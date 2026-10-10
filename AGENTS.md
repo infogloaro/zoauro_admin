@@ -2,8 +2,8 @@
 
 ## Project
 Web admin panel for ZOAURO food delivery. Roles: **Super Admin** (all zones) and **Zonal Admin** (1..N assigned zones; one admin can operate restaurants, homemakers, delivery partners, customers, orders and payments across all of them).
-Stack (D16): TypeScript strict; Next.js App Router web; Node.js + Express API (modular monolith); PostgreSQL + Prisma; Redis + BullMQ; Socket.IO; S3; Tailwind + shadcn/ui + Radix; React Hook Form + Zod; TanStack Query; Sentry; GitHub Actions; Docker + Nginx on AWS. **Do not change the stack without explicit permission.**
-Monorepo: `apps/web`, `apps/api`, `packages/shared`.
+Stack (D16, Assumed: do not change without the owner's permission): TypeScript strict; Next.js App Router web; Node.js + Express API (modular monolith); PostgreSQL + Prisma; Redis + BullMQ; Socket.IO; S3; Tailwind + shadcn/ui + Radix; React Hook Form + Zod; TanStack Query; Sentry; GitHub Actions; Docker + Nginx on AWS. **Do not change the stack without explicit permission.**
+Monorepo: `apps/web`, `apps/api`, `packages/shared`; plus `tools/simulators` (app simulators, doc 48), `.github/workflows` (CI), and the contracts under `docs/G-integration/contracts/`.
 
 ## Read order (load only what the task needs)
 1. This file. 2. The task row in `docs/F-execution/33|34|35` (it names the docs to load). 3. `docs/A-product/03_*` (decisions) only if business rules matter. 4. Relevant sections of 08 (schema), 09 (API), 10 (state machines), 04 (permissions), 36 (multi-zone). 5. UI tasks: 18–22, 37 and Figma. 6. Only then source files. Parallel sessions: obey the lanes in doc 38.
@@ -33,11 +33,11 @@ Files inside the task's module and lane (doc 38), its tests, shared components w
 ## Prohibited
 - Inventing endpoints, fields, enums, roles or permissions not in the docs; ask instead.
 - Weakening or bypassing authorization, zone scoping, CSRF, rate limits, validation.
-- Resolving items marked **[ASSUMPTION]**, Assumed or Open in doc 03 without asking (current Open: D6, D18, D36).
+- Resolving items marked **[ASSUMPTION]**, Assumed or Open in doc 03 without asking (current Open: D6, D18, D36, D47, D54; Assumed but not yet confirmed by the owner: D16, D17, D41, D52, D53).
 - Editing shipped migrations; destructive DB commands; touching production config.
 - Secrets in code, logs, tests or commits; PII in logs.
 - `any`, non-null `!`, `dangerouslySetInnerHTML`, raw SQL string concatenation.
-- Large refactors mixed with feature work; more than ~5 files per task.
+- Large refactors mixed with feature work; more than ~5 files per task (exception: scaffold and schema tasks F0.3, F1.1 and generated files; they still stay reviewable, one concern per commit).
 - Adding libraries or infrastructure (Terraform, ECS, new queues) not in doc 06.
 
 ## Testing

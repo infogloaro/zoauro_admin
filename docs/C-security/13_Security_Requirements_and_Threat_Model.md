@@ -22,7 +22,7 @@ Internet ↔ Nginx (CloudFront/WAF/ALB added after pilot, doc 06 §5) ↔ web + 
 | T9 | Malicious file upload | Malware, XSS | Type/size allow-list, content sniffing, private bucket, randomised keys, optional AV scan, never serve inline from app domain | Backend lead |
 | T10 | Insider misuse by admin | Fraud | Audit log, refund limits, daily refund alerts, least privilege | Super Admin |
 | T11 | Secrets leak | Full compromise | Secrets Manager, no secrets in repo (secret scanning), rotation | DevOps |
-| T12 | Dependency vulnerability / supply chain | Compromise | Dependabot, `npm audit` in CI, lockfile, pinned actions | DevOps |
+| T12 | Dependency vulnerability / supply chain | Compromise | Dependabot, `pnpm audit` in CI, lockfile, pinned actions | DevOps |
 | T13 | DoS / scraping | Outage | WAF rate rules, autoscaling, pagination caps, export as async job | DevOps |
 | T14 | Sensitive data exposure in logs/errors | Privacy breach | Log redaction, generic error bodies, Sentry scrubbing | Backend lead |
 | T15 | Insecure direct export (CSV) | Data leak | Same authz and zone filter, audit on export, formula-injection escaping | Backend lead |

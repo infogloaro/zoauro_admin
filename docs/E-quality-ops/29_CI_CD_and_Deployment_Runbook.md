@@ -1,7 +1,7 @@
 # 29 — CI/CD and Deployment Runbook
 
 ## 1. Pipelines (GitHub Actions)
-**On pull request:** checkout → install (pnpm, cached) → lint → typecheck → unit + integration tests (Postgres and Redis service containers) → authorization matrix → OpenAPI diff check → `npm audit --audit-level=high` → secret scan (gitleaks) → build → Playwright smoke (optional).
+**On pull request:** checkout → install (pnpm, cached) → lint → typecheck → unit + integration tests (Postgres and Redis service containers) → authorization matrix → OpenAPI diff check → `pnpm audit --audit-level=high` → secret scan (gitleaks) → build → Playwright smoke (optional).
 **On merge to main:** build `web` and `api` Docker images → tag with git SHA → scan → push to ECR → run Prisma `migrate deploy` against staging (one-off container) → `docker compose pull && up -d` on the staging host → smoke tests.
 **On release tag `v*`:** manual approval (GitHub Environment) → RDS snapshot → migrate production → deploy new containers behind Nginx (health-checked swap) → smoke tests → notify.
 

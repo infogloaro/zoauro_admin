@@ -86,7 +86,7 @@ Every module follows the same build order: **(1) contract** (shared Zod + OpenAP
 | Full Prisma schema | all | Created in S0–S1 from doc 08, so later work only adds columns |
 | Missing Figma frames (Access Control, Order Details, Zonal Payments) | Dev 1, Dev 3, Dev 2 | Build from doc 20/22 specs using the UI kit; mark provisional; designer reviews at the sprint demo |
 | Gateway decision D6 | Dev 3 | Needed by end of S4; the interface and the simulator let Dev 3 proceed until then |
-| D18 existing backend | everyone | Needed before S0 ends; if "yes", S2 Orders becomes an adapter task and the schema shrinks |
+| D18 existing backend | everyone | Needed before F1.1 (end of S0); if "yes", S2 Orders becomes an adapter task and the schema shrinks |
 | Order data for dashboards | Dev 2 | Dev 3's simulator seeds 100k orders by end of S2 |
 
 ## 6. Capacity check (dev-weeks)

@@ -19,7 +19,7 @@ v1.1 aligns the stack with the GloAro CRM stack (D16). Changed from v1.0: Expres
 | Monitoring | Sentry + structured pino logs + CloudWatch (or host log shipping) |
 | CI/CD | GitHub Actions, Docker images |
 | Hosting | Docker Compose behind Nginx on one AWS host; RDS PostgreSQL; S3. Upgrade path in §5 |
-| Security testing | `npm audit`, gitleaks, Semgrep, authorization matrix tests, ZAP baseline before launch |
+| Security testing | `pnpm audit`, gitleaks, Semgrep, authorization matrix tests, ZAP baseline before launch |
 
 ## 2. Application boundaries
 Monorepo, three packages:

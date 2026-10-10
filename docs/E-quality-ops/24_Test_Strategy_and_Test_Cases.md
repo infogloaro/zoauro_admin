@@ -10,7 +10,7 @@
 | Component | Testing Library | Forms, tables | Key components |
 | Accessibility | axe in Playwright | Core pages | No critical violations |
 | Performance | k6 | Dashboard, orders list | Meets doc 02 targets |
-| Security | `npm audit`, OWASP ZAP baseline, Semgrep | Whole app | No high issues |
+| Security | `pnpm audit`, OWASP ZAP baseline, Semgrep | Whole app | No high issues |
 
 ## 2. Authorization test matrix (auto-generated from the OpenAPI spec)
 For each endpoint test: unauthenticated (401); Admin(A) own zone (allowed per matrix); Admin(A) zone B (404); Admin(A+B) zones A and B (allowed), zone C (404), forged `zoneId` filters (404); Admin(none) (empty/404); capability missing (403); Super Admin (allowed). List endpoints must return only own-zone rows; counts and exports too; search must not leak.

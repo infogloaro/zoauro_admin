@@ -15,7 +15,7 @@
 | TD-10 | Retention periods need legal and accountant confirmation | Compliance | Legal | Before launch |
 | TD-11 | Analytics, Offers, Reviews, Support deferred to P2 (SA-8) | Scope | Product | After pilot |
 | TD-12 | Naming: ZOAURO (logo) vs GloAro (PDF/company) vs "GloAro Mart" (Figma zone page) (D21) | Naming | Product owner | F0.1 |
-| TD-13 | Existing backend/apps unknown (D18); pack provides Integration API (Mode A) and an adapter option (Mode B); app teams must review contract | **Blocker** | Product owner | Before IH-1 |
+| TD-13 | Existing backend/apps unknown (D18); pack provides Integration API (Mode A) and an adapter option (Mode B); app teams must review contract | **Blocker** | Product owner | Before F1.1 (end of S0) |
 | TD-14 | 16 of 29 Figma screens not received (doc 37 §1); builds are provisional | Design gap | Designer | Per phase |
 | TD-15 | Hosting starts single-host; ECS/Terraform/Multi-AZ/WAF deferred (D31) | Architecture | DevOps | After pilot |
 | TD-16 | Partner sharing across zones not supported (R-DEL-2) | Limitation | Product owner | If operations need it |

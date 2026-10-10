@@ -8,12 +8,12 @@ For the first two weeks (sprints S0–S1, tasks F0.3–F2.7 of doc 33). Later ta
 3. **Install tools.** Node 22 LTS, pnpm 9, Docker Desktop, Git, GitHub CLI, Claude Code.
 4. **Put the pack in the repo.**
    ```bash
-   unzip Zoauro-DevReady-Pack-v2.1.zip
+   unzip Zoauro-DevReady-Pack-v2.2.zip
    mkdir -p docs && cp -R Zoauro-DevReady-Pack/* docs/ && rm docs/AGENTS.md
    cp Zoauro-DevReady-Pack/AGENTS.md ./AGENTS.md
    printf '@AGENTS.md\n' > CLAUDE.md          # Claude Code reads CLAUDE.md and imports AGENTS.md
    touch docs/handoff.md
-   git add -A && git commit -m "docs: add dev-ready pack v2.1"
+   git add -A && git commit -m "docs: add dev-ready pack v2.2"
    ```
 5. **Give Claude Code the design inputs.** Put the Figma screenshots in `docs/design/screenshots/` and the designer PDF in `docs/design/`. (Claude Code cannot open your private Figma link without the Figma connector; screenshots are enough for tokens.)
 6. **Permissions.** Start Claude Code in the repo; allow `pnpm`, `docker compose`, `git`, `prisma`; do **not** allow it to run against any real database or cloud account. Use plan mode (Shift+Tab) for the first prompt of each task.
@@ -118,3 +118,15 @@ Constraints: follow AGENTS.md. Do not change the stack. Do not invent endpoints,
 
 ## Part E — After Prompt 9: what comes next
 S2–S4 follow doc 40 §3. The next prompts are the task rows themselves: SA-1.1 Zones, SA-1.7 member access model, IH-2 registrations, SA-2.2 Restaurants, IH-3 order intake, SA-4.1 order state machine. For each, use the doc 38 template, name the lane, and list which of docs 08/09/10/36/42 to load.
+
+## Part F — Replying to Claude Code's orientation questions (Prompt 0)
+Claude Code will ask you to confirm Assumed decisions before scaffolding. Record your answers in doc 03 (change the status from Assumed to Decided) so the next session sees them. Suggested reply, edit the D18 line to the true answer:
+```
+Confirmed: D16 stack as written (matches the GloAro CRM stack). D17 separate repo and database from the CRM.
+D18: <ANSWER: "greenfield, use Mode A (apps will call this Integration API)"  OR  "apps and backend exist: <describe backend, database, who owns it>">
+Also confirmed as written: D41 access granularity per member per zone, D19 scope selector, D21 brand ZOAURO, D29 fifth permission column Status, D31 simple hosting, D33 light theme only, D37 30-minute lock, D42 no Google login, D48 fix the "Gocart" copy, D52 online orders expire after 15 minutes, D53 pincode-based zone assignment.
+Still open and not blocking: D6 (gateway, by end of sprint 4), D36 (zonal payments design), D47 (missing Figma frames), D54 (shop vendor type).
+Fixes already made in the docs: use docs v2.2 from the zip (AGENTS.md open-decision list, pnpm audit, scaffold exemption from the 5-file rule, doc 33 pointer to doc 40).
+Go ahead with Prompt 1 (F0.3). Create the layout you proposed; delete the old index.html.
+```
+

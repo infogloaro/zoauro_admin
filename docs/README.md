@@ -1,4 +1,4 @@
-# ZOAURO (GloAro Food Delivery) — Admin Panel: Dev-Ready Documentation Pack v2.0 (full development pack)
+# ZOAURO (GloAro Food Delivery) — Admin Panel: Dev-Ready Documentation Pack v2.2 (full development pack)
 
 Scope: Super Admin + Zonal Admin web panel. A Zonal Admin can operate **multiple zones**, a zone can have **several members**, and the Super Admin controls exactly what each member can do in each zone (Access Control panel). v1.1 = v1.0 pre-dev pack, verified against the designer PDF and Figma screenshots, aligned to the GloAro CRM stack, plus separate phase plans for Super Admin and Zonal Admin.
 
@@ -33,7 +33,9 @@ Scope: Super Admin + Zonal Admin web panel. A Zonal Admin can operate **multiple
 | **46 Lifecycle Roadmap · 47 Deployment Runbook · 48 Integration Test and UAT Plan · 49 Claude Code Kickoff Steps and Prompts** (+ `deploy/`) | H-delivery | **new in v2.0** |
 | **39 Modules and Workflows · 40 Three-Developer Allocation and Module Plan** | F-execution | **new in v1.2** |
 
-v1.2 changes: access model D41–D49 (docs 03, 04, 08, 09, 14, 18, 20, 22, 36), plans 34/35/37/38 patched, timeline corrected to about 24 weeks with 3 developers.
+v1.2 changes: access model D41–D49 (docs 03, 04, 08, 09, 14, 18, 20, 22, 36), plans 34/35/37/38 patched, timeline corrected to about 24 weeks with 3 developers (superseded by v2.0: about 26 weeks).
+
+v2.2 changes: contradictions found by the Claude Code orientation read-out fixed (AGENTS.md open-decision list, D18 timing, pnpm audit, scaffold exemption from the 5-file rule, doc 33 pointer to doc 40). No new documents.
 
 v2.0 changes: D50–D58 (apps feed the panels; HMAC-signed Integration API; signed webhooks; field ownership; Integration Hub), docs 03, 04, 06, 08–14, 20, 24, 25, 30–32, 34, 35, 39, 40 patched; timeline now about 26 weeks (13 sprints) with 3 developers.
 

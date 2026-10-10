@@ -8,7 +8,7 @@
 - [ ] Unit + integration tests added and passing; coverage not reduced.
 - [ ] Audit log entries for all writes.
 - [ ] UI matches Figma; loading, empty, error states present; keyboard and screen-reader checked.
-- [ ] No lint, type, or `npm audit` high errors.
+- [ ] No lint, type, or `pnpm audit` high errors.
 - [ ] Migrations reviewed, reversible (expand/contract).
 - [ ] Logging without PII; Sentry breadcrumbs sensible.
 - [ ] Docs updated (changed contract → doc 09/08/10; decision → doc 03; deviation → doc 32).

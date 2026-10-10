@@ -24,7 +24,7 @@ Rules: (1) only **one** session at a time works in lane D, and it merges before 
 Task: <one sentence, task id from docs 33–35, e.g. SA-2.2>
 Lane: A|B|C|D        Module: <name>
 Load only: AGENTS.md, docs/<08 §table>, <09 §endpoints>, <04 rows>, <36 §x if zone-related>
-Files you may change (max 5): <list>
+Files you may change (max 5, except scaffold/schema tasks F0.3 and F1.1): <list>
 Rules: scope via repository (effectiveZoneIds), Zod from packages/shared, audit every write,
        authorization tests for Admin(A), Admin(A+B), Admin(none), SuperAdmin.
 Done when: <gate line from the plan>; pnpm lint && pnpm typecheck && pnpm test pass.
