@@ -31,7 +31,7 @@ Panel column: **SA** Super Admin, **ZA** Zonal Admin (when granted). Figma colum
 | M01 | Auth and Sessions | login, 2FA, sessions, lockout, password reset | same | Login card with Super Admin / Zonal Admin tabs, forgot password, remember me, role routing, 2FA | seen (Google login removed, D42) | P0 |
 | M02 | Zone Management | create/edit zones, KPIs, team stack, impact check | — | Zone, city, state, pincode range, delivery charge, status Active/Inactive/Upcoming | seen | P0 |
 | M03 | **Zonal Admins and Access Control** *(new)* | member accounts; **Zone Teams, Access Profiles, Member Access editor, Access Preview, Change History** | — | Who is on which zone's team and exactly what each can do there | **gap** | P0 |
-| M04 | Audit and Logs | system logs, access history | entity Activity tab | Append-only audit of every write | partly (Settings > System Logs not seen) | P0 |
+| M04 | Audit and Logs (doc 50, AU-1…AU-9; ≈ 3.3 dev-weeks) | system logs, access history | entity Activity tab | Append-only audit of every write | partly (Settings > System Logs not seen) | P0 |
 | M05 | Zone Scope Switcher | — | All my zones / one zone | Narrows every list, KPI, chart, export and alert | seen (chevron), no open state | P0 |
 
 ### Operations (master data)

@@ -46,7 +46,7 @@ Key: V view, A add, E edit, D soft delete, S status change (approve, verify, sus
 | Settings (all sections) | V E | not grantable | — |
 | Integrations (clients, webhooks, event monitor, retry/replay) | V E | not grantable (D57) | — |
 | Pending registrations inbox | derived from restaurants/homemakers/delivery view and status | per module permission | — |
-| Audit / system logs | V (all) | entity-level Activity tab for modules they can view | V (entity Activity) |
+| Audit / system logs | V E(export) (all) | entity Activity only, derived from the entity module's view permission; `audit:view` and `audit:export` not grantable | V (entity Activity) |
 
 PDF note: the designer PDF marks Delete "Restricted" for most modules and Customers Add "—". D2 gives Zonal Admins full control and v1.2 lets Super Admin tighten any of it per member, so the seed profile follows D2 and the restrictions are one click away.
 

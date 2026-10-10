@@ -28,7 +28,7 @@ Collect minimum; use only for operations; role-based access; zone limits; encryp
 | Customer profile | While active + 3 years after last order | Anonymise |
 | Customer on deletion request | Delete or anonymise PII within 30 days unless legally retained | Order records keep anonymised reference |
 | Vendor/partner documents | Contract duration + 3 years | Delete from S3 |
-| Audit logs | 3 years (hot 12 months, then archive) | Delete |
+| Audit logs | 3 years in one table; monthly S3 archive; purge after verified archive | Delete |
 | Login history | 12 months | Delete |
 | Sessions, reset tokens | Expiry + 30 days | Purge job |
 | Webhook payloads | 90 days | Purge |
@@ -42,7 +42,7 @@ Process: verify identity → Super Admin creates request record → export or an
 Consent and privacy notice are captured in customer-facing apps; admin panel displays consent flags if provided by the backend. Admins accept an acceptable-use and confidentiality agreement at onboarding.
 
 ## 7. Access logging
-Viewing documents, exporting data, and changing personal data are recorded in `audit_logs` with actor, zone, entity, time.
+Viewing documents, exporting data, and changing personal data are recorded in `audit_logs` with actor, zone, entity, time. Reveal, document view and export are recorded before data is returned.
 
 ## 8. Third parties
 Gateway, SMS, email, Sentry, AWS are processors; keep a vendor list with DPAs; scrub PII from Sentry.

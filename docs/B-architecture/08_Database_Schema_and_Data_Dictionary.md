@@ -14,9 +14,9 @@ Conventions: UUID v7 primary keys; `created_at`, `updated_at`, `deleted_at`, `cr
 | **assignment_overrides ★★** | assignment_id, module, action (VIEW/ADD/EDIT/DELETE/STATUS), effect (GRANT/DENY), PK (assignment_id, module, action). Deny wins |
 | **access_changes ★★** | id, actor_id (Super Admin), member_id, zone_id nullable, change_type (PROFILE_SET, OVERRIDE_SET, LIMIT_SET, ZONE_ADDED, ZONE_REMOVED, PROFILE_EDITED), before_json, after_json, created_at — append-only; also written to `audit_logs`; powers the Access change history screen |
 | sessions | id, user_id, token_hash, ip, user_agent, expires_at, revoked_at, last_seen_at |
-| login_history | id, user_id, email_attempted, success, ip, user_agent, reason, created_at |
+| login_history | id, user_id, email_attempted, success, ip, user_agent, reason, created_at (purge 12 months) |
 | password_reset_tokens | id, user_id, token_hash, expires_at, used_at |
-| audit_logs | id, actor_id, **zone_id (zone of the entity; null for global)**, module, action, entity_type, entity_id, before_json, after_json, ip, request_id, created_at (append-only) |
+| audit_logs | id (uuid v7, also the pagination cursor), created_at (timestamptz, default now()), actor_type (enum USER, APP_CLIENT, SYSTEM, WEBHOOK), actor_id (uuid null), actor_name (snapshot), actor_role (null; snapshot), **zone_id (zone of the entity; null for global)**, module, action (`entity.verb`, past tense), entity_type, entity_id (uuid null), entity_label (null; snapshot), outcome (enum SUCCESS, DENIED), sensitivity (enum NORMAL, HIGH), before_json, after_json (jsonb null; changed fields only, redacted), note, ip (inet null), user_agent (truncated to 300 chars), request_id. Indexes: (zone_id, id DESC), (zone_id, module, id DESC), (entity_type, entity_id, id DESC), (actor_id, id DESC), (module, action, id DESC), (sensitivity, id DESC), plus expression indexes on `lower(entity_label)` and `lower(actor_name)` (text_pattern_ops). No foreign keys. Append-only, enforced by database role and trigger (doc 50 §3.1, §3.2) |
 | **user_preferences ★** | user_id, last_zone_scope (nullable = all zones), table_density, updated_at |
 
 Super Admin has no assignment rows (global). A Zonal Admin with zero active assignments can log in but sees an empty-scope screen ("No zones assigned").

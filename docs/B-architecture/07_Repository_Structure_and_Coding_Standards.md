@@ -25,7 +25,7 @@
 /infra                         docker-compose.yml, nginx conf, deploy scripts (Terraform later, D31)
 AGENTS.md
 ```
-API modules: auth, zones, admins, roles, orders, restaurants, homemakers, menu, customers, delivery-partners, payments, refunds, cash-settlement, dashboard, search, settings, notifications, audit, uploads, intake.
+API modules: auth, zones, admins, access, orders, restaurants, homemakers, menu, customers, delivery-partners, payments, refunds, cash-settlement, dashboard, search, settings, notifications, audit, uploads, intake.
 
 ## 2. Naming
 Files kebab-case; React components PascalCase; functions camelCase; DB tables snake_case plural; enums UPPER_SNAKE; Zod schemas `fooSchema`, types `Foo`; routes plural nouns; permission keys `module:action`.

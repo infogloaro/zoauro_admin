@@ -6,7 +6,7 @@
 - [ ] Authorization enforced server-side; authorization matrix tests added.
 - [ ] Zone isolation verified for Admin(A), Admin(A+B) and unassigned zone C (TC-MZ).
 - [ ] Unit + integration tests added and passing; coverage not reduced.
-- [ ] Audit log entries for all writes.
+- [ ] Every mutating route declares audit metadata; the coverage guard passes; the write has an audit test.
 - [ ] UI matches Figma; loading, empty, error states present; keyboard and screen-reader checked.
 - [ ] No lint, type, or `pnpm audit` high errors.
 - [ ] Migrations reviewed, reversible (expand/contract).

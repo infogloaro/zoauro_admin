@@ -19,7 +19,7 @@ For each endpoint test: unauthenticated (401); Admin(A) own zone (allowed per ma
 | ID | Area | Case | Expected |
 |---|---|---|---|
 | TC-AUTH-1 | Login | Valid credentials | Role-based redirect |
-| TC-AUTH-2 | Login | 5 wrong passwords | Locked 15 min, audit entry |
+| TC-AUTH-2 | Login | 5 wrong passwords | Locked 30 min (D37), audit entry |
 | TC-AUTH-3 | 2FA | Wrong code | Rejected, attempts limited |
 | TC-AUTH-4 | Session | Idle past timeout | Redirect to login |
 | TC-AUTH-5 | Reset | Reused token | Rejected |
@@ -45,7 +45,7 @@ For each endpoint test: unauthenticated (401); Admin(A) own zone (allowed per ma
 | TC-REF-4 | Refunds | Refund > captured − refunded | 422 |
 | TC-REF-5 | Refunds | Requester approves own | Rejected |
 | TC-UPL-1 | Uploads | .exe renamed .jpg | Rejected |
-| TC-AUD-1 | Audit | Any write | Audit row with actor and zone |
+| TC-AUD-1…24 | Audit | doc 50 §12 | See doc 50 §12 |
 | TC-SEC-1 | Security | XSS payload in vendor name | Escaped everywhere |
 | TC-SEC-2 | Security | CSRF without token | 403 |
 | TC-SEC-3 | Security | CSV export with `=cmd` cell | Escaped |

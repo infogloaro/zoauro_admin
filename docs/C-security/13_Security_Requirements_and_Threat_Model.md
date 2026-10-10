@@ -36,6 +36,9 @@ Internet ↔ Nginx (CloudFront/WAF/ALB added after pilot, doc 06 §5) ↔ web + 
 | T24 | Forged, tampered or replayed app events | Fake orders, state corruption | HMAC over method+path+body hash, 5-minute timestamp window, idempotency keys, state machine and `version` checks, inbound log | Integration |
 | T25 | Webhook URL used for SSRF (internal addresses) | Internal network access | HTTPS only, block private/loopback/link-local, no redirects, DNS re-check at send time, outbound allow-list option | Integration |
 | T26 | Compromised or buggy app client manipulates prices, other vendors' orders or floods | Fraud, data corruption | Server re-validates prices from menu; entity checks (`ENTITY_MISMATCH`); scopes; rate limits; locked fields never writable by apps | Integration |
+| T27 | Tampering or deletion of audit rows (insider with DB or API access) | — | App DB role has INSERT/SELECT only; trigger blocks UPDATE/DELETE/TRUNCATE; no API verbs; purge only through the retention job after 3 years; migration role credentials kept out of the app | — |
+| T28 | Secrets or personal data leaking into audit JSON | — | Redaction before insert (doc 50 §5), registry test against the Prisma schema, masked phone/email, no request bodies stored | — |
+| T29 | Log flooding / storage abuse | — | Denied rows rate-limited; bulk actions write one row; export capped (100k rows, 3 per hour); app event streams excluded (D59) | — |
 | T18 | Admin account created by attacker | Takeover | Only Super Admin creates admins; email verification; audit | Super Admin |
 
 ## 4. Security requirements
@@ -44,7 +47,7 @@ Internet ↔ Nginx (CloudFront/WAF/ALB added after pilot, doc 06 §5) ↔ web + 
 - SEC-3 All inputs validated by Zod on server; output encoded.
 - SEC-4 Authorization on every API route and data access.
 - SEC-5 Encrypt at rest (RDS, S3, Redis in-transit/at-rest) and sensitive columns (MFA secret) at application level.
-- SEC-6 Audit log is append-only and not editable from the app.
+- SEC-6 Audit log is append-only and not editable from the app: append-only enforced by database privileges and trigger (doc 50 §3.2).
 - SEC-7 Least-privilege IAM; app task role limited to its bucket and secrets.
 - SEC-8 No real data in staging.
 - SEC-9 Security regression tests run in CI (doc 24).

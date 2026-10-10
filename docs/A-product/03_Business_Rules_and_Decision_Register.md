@@ -78,6 +78,10 @@ Naming: product brand in UI = **ZOAURO** (logo in Figma); company/platform = **G
 | D56 | Event delivery is at-least-once with signed webhooks, retries up to 24 h, dead-letter with manual retry, and a 14-day pull feed. Receivers must be idempotent | **Decided (design)** | Doc 43 |
 | D57 | Integration Hub (clients, webhooks, event monitor, kill switch) is Super Admin only and not grantable to Zonal Admin; zone members get the pending-registrations inbox and "source" labels through their normal view permissions | **Decided (design)** | Doc 45 |
 | D58 | Timeline: integration adds about 7.5 dev-weeks; total about 69 dev-weeks, **about 26 weeks (13 sprints) with 3 developers**; +1 week if Mode B (adapter) | **Estimate** | Doc 40 |
+| D59 | `audit_logs` records admin and system decisions, master-data changes by apps, and sensitive reads; it does not copy high-volume app event streams (order steps, location, stock toggles) | **Decided (design)** | Doc 50 |
+| D60 | Audit retention: one table for 3 years, monthly S3 archive, delete after 3 years only with verified archive (changes doc 15 hot/archive) | **Assumed** | Docs 50, 15 |
+| D61 | Audit failures fail the business transaction (fail closed) | **Decided (design)** | Doc 50 |
+| D62 | DENIED outcomes recorded for a short list with a 1/min rate limit | **Assumed** | Doc 50 |
 | D18 (refined) | Still **open and blocking**: do the apps exist and have backends? Mode A (apps call this Integration API, default) vs Mode B (adapter to an existing backend). I cannot see the apps; app teams must review the contract | **Open — blocks IH-1** | Doc 41 §4 |
 
 Every change to a decision is appended to doc 32.
