@@ -1,0 +1,41 @@
+{
+  "orderId": "CUST-ORD-88421",
+  "customerId": "cust_1042",
+  "vendorId": "ven_55",
+  "address": {
+    "line1": "12 Gandhi Nagar",
+    "area": "RS Puram",
+    "city": "Coimbatore",
+    "pincode": "641002",
+    "lat": 11.0071,
+    "lng": 76.9506
+  },
+  "items": [
+    {
+      "itemId": "itm_301",
+      "name": "Chicken Biryani",
+      "qty": 2,
+      "unitPricePaise": 18000,
+      "options": []
+    },
+    {
+      "itemId": "itm_322",
+      "name": "Raita",
+      "qty": 1,
+      "unitPricePaise": 4000,
+      "options": []
+    }
+  ],
+  "charges": {
+    "subtotalPaise": 40000,
+    "deliveryFeePaise": 3000,
+    "taxPaise": 2000,
+    "discountPaise": 0,
+    "totalPaise": 45000
+  },
+  "payment": {
+    "method": "UPI"
+  },
+  "notes": "Less spicy",
+  "placedAt": "2026-10-10T07:20:11Z"
+}

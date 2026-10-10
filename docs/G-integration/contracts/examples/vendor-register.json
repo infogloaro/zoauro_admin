@@ -1,0 +1,25 @@
+{
+  "vendorId": "ven_55",
+  "type": "RESTAURANT",
+  "name": "Annapoorna Mess",
+  "ownerName": "R. Kumar",
+  "phone": "+919876543210",
+  "email": "owner@example.com",
+  "address": {
+    "line1": "5 Cross Cut Rd",
+    "area": "Gandhipuram",
+    "city": "Coimbatore",
+    "pincode": "641012",
+    "lat": 11.0183,
+    "lng": 76.9725
+  },
+  "cuisineTags": [
+    "South Indian"
+  ],
+  "documents": [
+    {
+      "type": "FSSAI",
+      "fileKey": "uploads/ven_55/fssai.pdf"
+    }
+  ]
+}

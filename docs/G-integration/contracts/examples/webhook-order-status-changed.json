@@ -1,0 +1,28 @@
+{
+  "eventId": "0192f1d2-7c1e-7a55-9d3e-5a1b2c3d4e5f",
+  "type": "order.status_changed",
+  "schemaVersion": 1,
+  "occurredAt": "2026-10-10T07:25:03Z",
+  "sequence": 481220,
+  "aggregate": {
+    "type": "order",
+    "id": "0192f1d2-0000-7000-8000-000000000001",
+    "externalId": "CUST-ORD-88421",
+    "version": 4
+  },
+  "audience": {
+    "customerId": "cust_1042",
+    "vendorId": "ven_55",
+    "partnerId": null,
+    "zoneId": "0192f1d2-aaaa-7000-8000-000000000009"
+  },
+  "actor": {
+    "type": "ADMIN",
+    "id": "0192f1d2-bbbb-7000-8000-000000000003"
+  },
+  "data": {
+    "from": "PLACED",
+    "to": "ACCEPTED",
+    "note": ""
+  }
+}
