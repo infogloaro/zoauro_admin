@@ -1,0 +1,28 @@
+{
+  "name": "@zoauro/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "dev:worker": "tsx watch src/worker.ts",
+    "build": "tsup src/server.ts src/worker.ts --format esm --out-dir dist",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:migrate": "echo \"db:migrate: Prisma schema arrives in F1.1\" && exit 0",
+    "db:seed": "echo \"db:seed: seed arrives in F1.7\" && exit 0"
+  },
+  "dependencies": {
+    "@zoauro/shared": "workspace:*",
+    "express": "^5.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15"
+  }
+}
