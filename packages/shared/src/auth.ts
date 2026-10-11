@@ -34,3 +34,41 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 export const reauthSchema = z.object({ password: z.string().min(1).max(PASSWORD_MAX_LENGTH) });
 export type ReauthInput = z.infer<typeof reauthSchema>;
+
+// ---- responses (what the API returns; used by the OpenAPI document and the typed client) ------------------------------
+
+export const userSummarySchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  email: z.string(),
+  role: z.enum(ROLES),
+});
+export type UserSummary = z.infer<typeof userSummarySchema>;
+
+export const loginResponseSchema = z.object({
+  user: userSummarySchema,
+  mustChangePassword: z.boolean(),
+  /** send as X-CSRF-Token on every state-changing request */
+  csrfToken: z.string(),
+  /** where the UI goes next: /super-admin/dashboard, /zone/dashboard or /zone/no-zones */
+  redirectTo: z.string(),
+});
+export type LoginResponse = z.infer<typeof loginResponseSchema>;
+
+export const meResponseSchema = z.object({
+  user: userSummarySchema,
+  mustChangePassword: z.boolean(),
+  csrfToken: z.string(),
+  /** stub until the access module: Super Admin is global, a Zonal Admin has no resolved zones yet */
+  permissions: z.union([
+    z.object({ global: z.literal(true) }),
+    z.object({ global: z.literal(false), zones: z.array(z.object({ zoneId: z.uuid() }).loose()) }),
+  ]),
+});
+export type MeResponse = z.infer<typeof meResponseSchema>;
+
+export const messageResponseSchema = z.object({ message: z.string() });
+export type MessageResponse = z.infer<typeof messageResponseSchema>;
+
+export const reauthResponseSchema = z.object({ reauthenticatedUntil: z.iso.datetime() });
+export type ReauthResponse = z.infer<typeof reauthResponseSchema>;

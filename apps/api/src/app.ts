@@ -2,6 +2,7 @@ import express, { type Express, type RequestHandler, type Router } from 'express
 import { requestIdMiddleware } from './lib/auth/middleware';
 import { errorHandler, notFoundHandler } from './lib/errors';
 import { type ReadinessChecks, runReadiness } from './lib/health';
+import { buildOpenApiDocument } from './openapi/build';
 
 export interface ApiV1 {
   /** Resolves the session cookie; runs before every v1 router. */
@@ -27,6 +28,13 @@ export function createApp(deps: { readiness: ReadinessChecks; v1?: ApiV1 }): Exp
     res
       .status(result.ok ? 200 : 503)
       .json({ status: result.ok ? 'ok' : 'unavailable', checks: result.checks });
+  });
+
+  // The API contract (doc 09). Public; built once from the same definitions the committed openapi.json is generated from.
+  let openApiDocument: Record<string, unknown> | undefined;
+  app.get('/api/v1/openapi.json', (_req, res) => {
+    openApiDocument ??= buildOpenApiDocument();
+    res.json(openApiDocument);
   });
 
   if (deps.v1) {

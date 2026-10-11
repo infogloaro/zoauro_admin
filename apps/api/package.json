@@ -13,9 +13,12 @@
     "db:migrate": "node --env-file-if-exists=.env scripts/prisma-migrate.mjs",
     "db:seed": "echo \"db:seed: seed arrives in F1.7\" && exit 0",
     "db:generate": "prisma generate",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "openapi:generate": "tsx scripts/generate-openapi.ts",
+    "openapi:check": "tsx scripts/generate-openapi.ts --check"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "9.1.0",
     "@node-rs/argon2": "^2.2.2",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "^7.10.0",
@@ -29,6 +32,7 @@
     "@types/express": "^5.0.6",
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",
+    "openapi-typescript": "7.13.0",
     "prisma": "7.10.0",
     "supertest": "^7.3.1",
     "tsup": "^8.5.1",

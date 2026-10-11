@@ -1,0 +1,634 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ZOAURO Admin API",
+    "version": "1.0.0",
+    "description": "Generated from the shared Zod schemas (apps/api/src/openapi/operations.ts). Do not edit by hand."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "zoauro_session",
+        "description": "Opaque session id in an HTTP-only, Secure, SameSite=Lax cookie (doc 14)"
+      },
+      "csrfToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "Required on every state-changing request made with the session cookie"
+      }
+    },
+    "schemas": {
+      "ErrorBody": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "UNAUTHENTICATED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "ZONE_NOT_FOUND",
+                  "VALIDATION_ERROR",
+                  "CONFLICT",
+                  "RATE_LIMITED",
+                  "INVALID_STATE_TRANSITION",
+                  "REFUND_LIMIT_EXCEEDED",
+                  "REAUTH_REQUIRED",
+                  "PASSWORD_CHANGE_REQUIRED",
+                  "INTERNAL"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string"
+                    },
+                    "issue": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["field", "issue"]
+                }
+              },
+              "requestId": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "message"]
+          }
+        },
+        "required": ["error"]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/openapi.json": {
+      "get": {
+        "operationId": "getOpenApiDocument",
+        "tags": ["meta"],
+        "summary": "This OpenAPI document",
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.1 document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "openapi": {
+                      "type": "string"
+                    },
+                    "info": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["title"]
+                    }
+                  },
+                  "required": ["openapi", "info"],
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "public"
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "login",
+        "tags": ["auth"],
+        "summary": "Sign in. The tab (SUPER_ADMIN or ZONAL_ADMIN) must match the account; a mismatch gets the generic error.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "tab": {
+                    "type": "string",
+                    "enum": ["SUPER_ADMIN", "ZONAL_ADMIN"]
+                  }
+                },
+                "required": ["email", "password", "tab"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; session cookie set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": ["SUPER_ADMIN", "ZONAL_ADMIN"]
+                        }
+                      },
+                      "required": ["id", "name", "email", "role"]
+                    },
+                    "mustChangePassword": {
+                      "type": "boolean"
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    },
+                    "redirectTo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["user", "mustChangePassword", "csrfToken", "redirectTo"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "public"
+        },
+        "x-audit": {
+          "none": "login"
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "tags": ["auth"],
+        "summary": "Sign out and revoke the session",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Signed out; cookie cleared"
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session",
+          "pendingPasswordChange": "allowed"
+        },
+        "x-audit": {
+          "none": "logout"
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "operationId": "forgotPassword",
+        "tags": ["auth"],
+        "summary": "Request a password reset link. Always answers the same way.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                },
+                "required": ["email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generic confirmation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["message"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "public"
+        },
+        "x-audit": {
+          "module": "auth",
+          "action": "user.password_reset_requested"
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "resetPassword",
+        "tags": ["auth"],
+        "summary": "Set a new password with a single-use reset token; revokes all sessions",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 128
+                  }
+                },
+                "required": ["token", "newPassword"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["message"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "public"
+        },
+        "x-audit": {
+          "module": "auth",
+          "action": "user.password_changed"
+        }
+      }
+    },
+    "/auth/reauth": {
+      "post": {
+        "operationId": "reauth",
+        "tags": ["auth"],
+        "summary": "Confirm the password again before a high-risk action (valid for 10 minutes)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": ["password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Re-authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reauthenticatedUntil": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["reauthenticatedUntil"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
+        },
+        "x-audit": {
+          "none": "reauth"
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "tags": ["auth"],
+        "summary": "The signed-in user, CSRF token and (stub) permissions",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": ["SUPER_ADMIN", "ZONAL_ADMIN"]
+                        }
+                      },
+                      "required": ["id", "name", "email", "role"]
+                    },
+                    "mustChangePassword": {
+                      "type": "boolean"
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "global": {
+                              "type": "boolean",
+                              "enum": [true]
+                            }
+                          },
+                          "required": ["global"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "global": {
+                              "type": "boolean",
+                              "enum": [false]
+                            },
+                            "zones": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "zoneId": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  }
+                                },
+                                "required": ["zoneId"],
+                                "additionalProperties": {}
+                              }
+                            }
+                          },
+                          "required": ["global", "zones"]
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["user", "mustChangePassword", "csrfToken", "permissions"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session",
+          "pendingPasswordChange": "allowed"
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

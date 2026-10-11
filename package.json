@@ -17,7 +17,9 @@
     "db:seed": "pnpm --filter @zoauro/api db:seed",
     "prepare": "husky",
     "infra:up": "docker compose -f docker-compose.dev.yml up -d && docker compose -f docker-compose.dev.yml up -d --wait postgres redis minio mailpit",
-    "infra:down": "docker compose -f docker-compose.dev.yml down"
+    "infra:down": "docker compose -f docker-compose.dev.yml down",
+    "openapi:generate": "pnpm --filter @zoauro/api openapi:generate",
+    "openapi:check": "pnpm --filter @zoauro/api openapi:check"
   },
   "lint-staged": {
     "*.{ts,tsx,mjs,js}": [
