@@ -42,6 +42,8 @@ export function uuidv7(): string {
 export interface TestDatabase {
   /** connection string for the application role (zoauro_app) on this throwaway database */
   appUrl: string;
+  /** connection string for the owner role (zoauro_owner), as `prisma migrate` and `db:seed` use it */
+  ownerUrl: string;
   owner: Pool;
   app: Pool;
   purge: Pool;
@@ -88,6 +90,7 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 
   return {
     appUrl: urlFor(base, 'zoauro_app', 'zoauro_app_dev', name),
+    ownerUrl: ownerUrl(name),
     owner,
     app,
     purge,

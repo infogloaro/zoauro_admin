@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate": "node --env-file-if-exists=.env scripts/prisma-migrate.mjs",
-    "db:seed": "echo \"db:seed: seed arrives in F1.7\" && exit 0",
+    "db:seed": "tsx --env-file-if-exists=.env prisma/seed.ts",
     "db:generate": "prisma generate",
     "postinstall": "prisma generate",
     "openapi:generate": "tsx scripts/generate-openapi.ts",

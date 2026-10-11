@@ -6,7 +6,9 @@ import nextPlugin from '@next/eslint-plugin-next';
 import prettier from 'eslint-config-prettier';
 
 const prismaRestriction = {
-  group: ['@prisma/client', '@prisma/client/*', 'prisma'],
+  // The packages only (@prisma/client, prisma, prisma/config ...). A glob such as 'prisma' also matched relative paths
+  // through a folder named prisma/ (../../prisma/seed-data), which is our own code, not the Prisma package.
+  regex: '^(@prisma/client|prisma)(/.*)?$',
   message: 'Only apps/api repositories may import Prisma (AGENTS.md).',
 };
 
