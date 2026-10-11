@@ -1,24 +1,11 @@
 import type { ErrorRequestHandler, RequestHandler, Response } from 'express';
+import { ERROR_STATUS, type ErrorCode } from '@zoauro/shared';
 import { z } from 'zod';
 
 // Typed errors and the standard error body (doc 09). Services throw AppError; the middleware converts it.
 // Stack traces, SQL and request bodies never reach the client or the log.
 
-export const ERROR_STATUS = {
-  UNAUTHENTICATED: 401,
-  FORBIDDEN: 403,
-  NOT_FOUND: 404,
-  ZONE_NOT_FOUND: 404,
-  VALIDATION_ERROR: 422,
-  CONFLICT: 409,
-  RATE_LIMITED: 429,
-  INVALID_STATE_TRANSITION: 409,
-  REFUND_LIMIT_EXCEEDED: 403,
-  REAUTH_REQUIRED: 401,
-  PASSWORD_CHANGE_REQUIRED: 403,
-  INTERNAL: 500,
-} as const;
-export type ErrorCode = keyof typeof ERROR_STATUS;
+export { ERROR_STATUS, type ErrorCode } from '@zoauro/shared';
 
 export interface ErrorDetail {
   field: string;

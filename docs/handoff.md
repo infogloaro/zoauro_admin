@@ -95,3 +95,13 @@ Decisions or [ASSUMPTION]s touched (D-numbers): none. The four proposed changes 
 Gate line status (pass/fail): pass — lint, typecheck, test (apps/api 172 pass, 1 todo for TC-AUTH-3)
 Next step: F1.4
 Verify: pnpm lint && pnpm typecheck && pnpm test
+
+Date / task id: 2026-10-11 / F1.4 errors, pagination/filter helpers, idempotency (Lanes A + D)
+Lane / files changed: packages/shared/src/{errors, pagination}.ts (+ pagination.test.ts); apps/api/src/lib/errors.ts (now imports ERROR_STATUS from shared); apps/api/src/lib/idempotency/{middleware, idempotency.repository, index}.ts; tests/idempotency/idempotency.test.ts; tests/auth/support/auth-env.ts exposes prisma. The audit service was NOT rebuilt (lib/audit exists); AppError and the error middleware already existed from F1.2, they only gained the shared code table
+Contract changes (docs 08/09/10/36): none. Doc 09 error list gains PASSWORD_CHANGE_REQUIRED (403), already used by F1.2
+Decisions or [ASSUMPTION]s touched (D-numbers): none
+Gate line status (pass/fail): pass — lint, typecheck, test. New: shared 9 tests (page and cursor queries, sort allow-list, date range, repeatable filters, error codes), api 17 idempotency tests (required/invalid header, replay of body and 204, same JSON different key order, different body or route = 422, per-user keys, concurrent duplicate = 409 with Retry-After, three simultaneous requests run once, 4xx/5xx release the key, 24 h expiry, purgeExpired, takeover of a stuck request after 60 s)
+Behaviour: pageQuerySchema(sortable, fallback) -> page>=1, pageSize 1..100 (default 25), sort=-field from an allow-list, q, from/to; buildPage/pageWindow; cursorQuerySchema (limit default 50, uuid after) with cursorFetchSize/buildCursorPage (repository fetches limit+1); multiValue() for repeatable filters. idempotency({store, clock}) is installed per route after the session middleware; stored key = <userId>:<Idempotency-Key>; replay sets Idempotent-Replay: true
+Decisions to confirm: (1) only 2xx responses are stored; a 4xx/5xx releases the key so a corrected request can reuse it (alternative: store 4xx and force a new key); (2) same key + different request is 422 VALIDATION_ERROR (doc 09 has no dedicated code); (3) a request still running when its duplicate arrives gets 409 CONFLICT + Retry-After: 1; (4) the response is persisted when the response finishes, so a client retrying within a few milliseconds can see 409 once; (5) a worker job must call IdempotencyRepository.purgeExpired daily (no job runner exists yet)
+Next step: F1.5
+Verify: pnpm lint && pnpm typecheck && pnpm test

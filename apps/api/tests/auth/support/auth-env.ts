@@ -342,6 +342,7 @@ export async function createAuthTestEnv() {
     app,
     makeApp,
     makeAuthzApp,
+    prisma,
     api,
     clock,
     mails,
