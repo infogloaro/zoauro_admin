@@ -1,18 +1,45 @@
-import express, { type Express } from 'express';
+import express, { type Express, type RequestHandler, type Router } from 'express';
+import { requestIdMiddleware } from './lib/auth/middleware';
+import { errorHandler, notFoundHandler } from './lib/errors';
+import { type ReadinessChecks, runReadiness } from './lib/health';
 
-export function createApp(): Express {
+export interface ApiV1 {
+  /** Resolves the session cookie; runs before every v1 router. */
+  sessionMiddleware: RequestHandler;
+  /** Builds the AuthContext from the access tables for every request that has a session. */
+  authContextMiddleware: RequestHandler;
+  routers: Router[];
+}
+
+export function createApp(deps: { readiness: ReadinessChecks; v1?: ApiV1 }): Express {
   const app = express();
   app.disable('x-powered-by');
+  app.use(requestIdMiddleware);
 
   // Liveness: process is up.
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
 
-  // Readiness: placeholder until DB and Redis exist (F0.4 / F1.1).
-  app.get('/api/ready', (_req, res) => {
-    res.json({ status: 'ok', checks: {} });
+  // Readiness: PostgreSQL and Redis reachable. 503 when either is not. No error details in the body.
+  app.get('/api/ready', async (_req, res) => {
+    const result = await runReadiness(deps.readiness);
+    res
+      .status(result.ok ? 200 : 503)
+      .json({ status: result.ok ? 'ok' : 'unavailable', checks: result.checks });
   });
 
+  if (deps.v1) {
+    app.use(
+      '/api/v1',
+      express.json({ limit: '100kb' }),
+      deps.v1.sessionMiddleware,
+      deps.v1.authContextMiddleware,
+      ...deps.v1.routers,
+    );
+  }
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
   return app;
 }

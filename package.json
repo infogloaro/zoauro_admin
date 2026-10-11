@@ -15,7 +15,9 @@
     "test": "pnpm -r test",
     "db:migrate": "pnpm --filter @zoauro/api db:migrate",
     "db:seed": "pnpm --filter @zoauro/api db:seed",
-    "prepare": "husky"
+    "prepare": "husky",
+    "infra:up": "docker compose -f docker-compose.dev.yml up -d && docker compose -f docker-compose.dev.yml up -d --wait postgres redis minio mailpit",
+    "infra:down": "docker compose -f docker-compose.dev.yml down"
   },
   "lint-staged": {
     "*.{ts,tsx,mjs,js}": [

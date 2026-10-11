@@ -65,7 +65,13 @@ export default tseslint.config(
   // API: Prisma only inside repository files.
   {
     files: ['apps/api/**/*.ts'],
-    ignores: ['apps/api/**/repository.ts', 'apps/api/**/*.repository.ts', 'apps/api/prisma/**'],
+    ignores: [
+      'apps/api/**/repository.ts',
+      'apps/api/**/*.repository.ts',
+      'apps/api/prisma/**',
+      'apps/api/prisma.config.ts', // Prisma CLI config, not application code
+      'apps/api/src/lib/db.ts', // Prisma client adapters; lib/audit stays Prisma-free
+    ],
     rules: { 'no-restricted-imports': ['error', { patterns: [prismaRestriction] }] },
   },
   // Shared: pure, no app or Prisma imports.
@@ -90,6 +96,11 @@ export default tseslint.config(
   {
     files: ['**/*.test.{ts,tsx}', 'tests/**'],
     rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
+  // Node scripts (plain .mjs) run outside the TypeScript projects.
+  {
+    files: ['**/scripts/**/*.mjs'],
+    languageOptions: { globals: { process: 'readonly', console: 'readonly', URL: 'readonly' } },
   },
   prettier,
 );
