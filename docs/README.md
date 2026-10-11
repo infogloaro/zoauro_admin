@@ -1,4 +1,4 @@
-# ZOAURO (GloAro Food Delivery) — Admin Panel: Dev-Ready Documentation Pack v2.2 (full development pack)
+# ZOAURO (GloAro Food Delivery) — Admin Panel: Dev-Ready Documentation Pack v2.3 (full development pack)
 
 Scope: Super Admin + Zonal Admin web panel. A Zonal Admin can operate **multiple zones**, a zone can have **several members**, and the Super Admin controls exactly what each member can do in each zone (Access Control panel). v1.1 = v1.0 pre-dev pack, verified against the designer PDF and Figma screenshots, aligned to the GloAro CRM stack, plus separate phase plans for Super Admin and Zonal Admin.
 
@@ -30,6 +30,7 @@ Scope: Super Admin + Zonal Admin web panel. A Zonal Admin can operate **multiple
 | 33 Shared Foundation Plan · 34 Super Admin Plan · 35 Zonal Admin Plan | F-execution | new |
 | 36 Multi-Zone Zonal Admin Spec · 37 Design Reconciliation · 38 Lanes and Prompts | F-execution | new |
 | **41 Ecosystem and Data Flow · 42 App→Admin Contract · 43 Admin→App Control and Events · 44 Data Ownership and Sync · 45 Integration Hub** (+ `contracts/`) | G-integration | **new in v2.0** |
+| **50 Module Guide M04 Audit and Logs (v1.1, with verified code bundle `Zoauro-M04-Audit-Bundle/`)** | F-execution | **new** (first module guide) |
 | **46 Lifecycle Roadmap · 47 Deployment Runbook · 48 Integration Test and UAT Plan · 49 Claude Code Kickoff Steps and Prompts** (+ `deploy/`) | H-delivery | **new in v2.0** |
 | **39 Modules and Workflows · 40 Three-Developer Allocation and Module Plan** | F-execution | **new in v1.2** |
 
@@ -42,3 +43,5 @@ v2.0 changes: D50–D58 (apps feed the panels; HMAC-signed Integration API; sign
 Items marked Assumed in doc 03 use a default so work can start; change the register first, then the documents that cite it.
 
 Reading note (v1.2): wherever a document says "assigned zones", read it as "zones where the member holds the required permission for that module" (doc 36 header, doc 14 §4).
+
+v2.3 changes: doc 50 (Audit and Logs) rewritten as v1.1 after building and testing a reference implementation (`Zoauro-M04-Audit-Bundle`, delivered separately): third database role for retention (D64), extra indexes, diff-before-redact, customer zone rule (D63, Assumed), build status in §18, new Phase 0.6 prompt to adopt the bundle. Doc 07 route list now says `access` instead of `roles`.

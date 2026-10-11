@@ -6,7 +6,7 @@
   /web                         Next.js App Router (UI only)
     /app
       /(auth)/login, /forgot-password, /reset-password, /2fa
-      /(super-admin)/super-admin/...      dashboard, zones, zonal-admins, roles, settings, orders, restaurants, ...
+      /(super-admin)/super-admin/...      dashboard, zones, zonal-admins, access, settings, orders, restaurants, ...
       /(zonal)/zone/...                   dashboard, orders, restaurants, homemakers, delivery-partners, customers, payments
     /components/ui            shadcn components
     /components/shared        data-table, filter-bar, confirm-dialog, status-badge, page-header, zone-scope-switcher

@@ -13,7 +13,9 @@
 | NODE_ENV | no | |
 | APP_URL | no | Public base URL (web and API share it) |
 | WEB_INTERNAL_API_URL | no | Web → API URL for Server Components (web only) |
-| DATABASE_URL | yes | Postgres connection |
+| DATABASE_URL | yes | Postgres connection (role `zoauro_app`: SELECT/INSERT on the audit tables) |
+| DATABASE_URL_MIGRATE | CI/deploy only | Migration role `zoauro_owner`; never set in the API or worker environment |
+| DATABASE_URL_AUDIT_PURGE | worker only | Role `zoauro_purge` for the audit retention job (doc 50 §3.2, D64) |
 | REDIS_URL | yes | |
 | SESSION_SECRET | yes | Cookie/CSRF signing (replaces Auth.js `AUTH_SECRET`) |
 | ENCRYPTION_KEY | yes | AES-256 for MFA secrets and sensitive fields (KMS preferred) |

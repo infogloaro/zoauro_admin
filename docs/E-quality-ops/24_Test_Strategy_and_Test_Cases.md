@@ -45,7 +45,7 @@ For each endpoint test: unauthenticated (401); Admin(A) own zone (allowed per ma
 | TC-REF-4 | Refunds | Refund > captured − refunded | 422 |
 | TC-REF-5 | Refunds | Requester approves own | Rejected |
 | TC-UPL-1 | Uploads | .exe renamed .jpg | Rejected |
-| TC-AUD-1…24 | Audit | doc 50 §12 | See doc 50 §12 |
+| TC-AUD-1…24 | Audit and logs | Full list in doc 50 §12 | All pass; part of the per-PR regression (TC-AUD-8 and 24 nightly) |
 | TC-SEC-1 | Security | XSS payload in vendor name | Escaped everywhere |
 | TC-SEC-2 | Security | CSRF without token | 403 |
 | TC-SEC-3 | Security | CSV export with `=cmd` cell | Escaped |

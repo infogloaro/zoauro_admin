@@ -81,13 +81,13 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /reconciliation/runs, /reconciliation/runs/{id} | payments:view | |
 | GET/PUT | /settings/{group} | settings:view/edit | Super Admin |
 | GET/POST | /notifications | notifications:* | compose (Super Admin); GET also lists operational alerts for the caller |
-| GET | /audit-logs | audit:view (Super Admin) or entity mode | cursor list, newest first; filters `limit`, `after`, `from`, `to`, `actorId`, `actorType`, `module`, `action`, `entityType`, `entityId`, `zoneId`, `outcome`, `sensitivity`, `q`; entity mode (`entityType` + `entityId`) allowed for a Zonal Admin who can view that module in that zone; Zonal request without entity mode → 403 |
-| GET | /audit-logs/{id} | as above | detail with `changes[]`; not visible → 404 |
-| GET | /audit-logs/catalogue | audit:view | modules and action keys with labels, for the filter UI |
-| POST | /audit-logs/exports | audit:export (Super Admin) + re-auth | same filters + `format: "csv"`; row cap 100,000; returns `202 { exportId }`; 3 per hour per user |
-| GET | /exports/{id} | requester | status and a 24-hour signed URL (existing exports table) |
-| GET | /login-history | audit:view | Super Admin: all users; filters `userId`, `success`, `from`, `to`, cursor |
-| GET | /me/login-history | session | own last 50 sign-ins |
+| GET | /audit-logs | audit:view (Super Admin) or entity mode | Cursor list; filters actor, actorType, module, action, entityType, entityId, zoneId, outcome, sensitivity, q, from, to. Zonal Admin: entity mode only (entityType+entityId), else 403; ip/userAgent/requestId hidden (doc 50 §8) |
+| GET | /audit-logs/{id} | as above | detail with changes[] |
+| GET | /audit-logs/catalogue | audit:view | modules and action keys for filters |
+| POST | /audit-logs/exports | audit:export | Super Admin, re-auth, 3/hour, 100k rows cap, async CSV |
+| GET | /exports/{id} | requester | status and 24 h signed URL |
+| GET | /login-history | audit:view | Super Admin, cursor |
+| GET | /me/login-history | session | own last 50 |
 | GET/DELETE | /sessions, /sessions/{id} | self or Super Admin | |
 | POST | /webhooks/payments/{provider} | signature | public endpoint |
 | POST | /uploads/presign, /uploads/confirm | authenticated | content-type and size allow-list |

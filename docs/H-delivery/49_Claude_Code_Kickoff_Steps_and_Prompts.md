@@ -81,7 +81,7 @@ Done when: unit tests for TC-AC-5 and TC-AC-6 pass and the leaky-repository test
 ### Prompt 7 — F1.4 to F1.7 Platform plumbing and the authorization harness (Dev 3, then Dev 1 reviews)
 ```
 Tasks F1.4, F1.5, F1.6, F1.7 in that order, one commit each. Lane A + D. Load: AGENTS.md, docs/B-architecture/09_*, docs/E-quality-ops/24_* section 2, docs/F-execution/36_* section 6.
-F1.4: transaction-joined audit service (append-only), AppError and error middleware using the error codes of doc 09, pagination/filter helpers, idempotency middleware (Idempotency-Key, 24 h, request hash).
+F1.4: (audit service: SKIP here, it is built by the Audit module, doc 50 phases AU-1 to AU-3), AppError and error middleware using the error codes of doc 09, pagination/filter helpers, idempotency middleware (Idempotency-Key, 24 h, request hash).
 F1.5: generate OpenAPI 3.1 from the shared Zod schemas, publish /api/v1/openapi.json, generate a typed client package, fail CI if the committed spec differs.
 F1.6: authorization matrix harness. Fixtures: zones A, B, C; actors SuperAdmin, Admin(A full), Admin(A+B: full in A, read-only in B), Admin(A, payments denied), Admin(none). It reads the OpenAPI file and auto-generates 401/403/404/200 expectations per route.
 F1.7: seed script: default access profiles (Zone Manager, Operations, Support, Finance View, Read Only), the permission matrix of doc 04, the first Super Admin from INITIAL_SUPERADMIN_*.
