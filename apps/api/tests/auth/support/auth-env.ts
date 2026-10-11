@@ -76,7 +76,7 @@ export async function createAuthTestEnv() {
     config: AuthConfig,
     scope: string | undefined,
     extra: { routers?: Router[]; accessCacheTtlSec?: number } = {},
-  ): { app: Express; access: AccessService } {
+  ): { app: Express; access: AccessService; routers: Router[] } {
     let appRedis = redis;
     if (scope) {
       appRedis = new Redis(redisUrl, { keyPrefix: `${prefix}${scope}:` });
@@ -105,7 +105,7 @@ export async function createAuthTestEnv() {
         routers: [auth.router, ...(extra.routers ?? [])],
       },
     });
-    return { app, access };
+    return { app, access, routers: [auth.router, ...(extra.routers ?? [])] };
   }
   function makeApp(config: AuthConfig = TEST_CONFIG, scope?: string): Express {
     return build(config, scope).app;

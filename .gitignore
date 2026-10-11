@@ -10,3 +10,4 @@ coverage
 *.log
 .turbo
 Zoauro-DevReady-Pack-*.zip
+apps/api/test-reports/

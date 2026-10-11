@@ -64,17 +64,25 @@
                       "type": "string"
                     }
                   },
-                  "required": ["field", "issue"]
+                  "required": [
+                    "field",
+                    "issue"
+                  ]
                 }
               },
               "requestId": {
                 "type": "string"
               }
             },
-            "required": ["code", "message"]
+            "required": [
+              "code",
+              "message"
+            ]
           }
         },
-        "required": ["error"]
+        "required": [
+          "error"
+        ]
       }
     },
     "parameters": {}
@@ -83,7 +91,9 @@
     "/openapi.json": {
       "get": {
         "operationId": "getOpenApiDocument",
-        "tags": ["meta"],
+        "tags": [
+          "meta"
+        ],
         "summary": "This OpenAPI document",
         "responses": {
           "200": {
@@ -103,10 +113,15 @@
                           "type": "string"
                         }
                       },
-                      "required": ["title"]
+                      "required": [
+                        "title"
+                      ]
                     }
                   },
-                  "required": ["openapi", "info"],
+                  "required": [
+                    "openapi",
+                    "info"
+                  ],
                   "additionalProperties": {}
                 }
               }
@@ -121,7 +136,9 @@
     "/auth/login": {
       "post": {
         "operationId": "login",
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Sign in. The tab (SUPER_ADMIN or ZONAL_ADMIN) must match the account; a mismatch gets the generic error.",
         "requestBody": {
           "required": true,
@@ -140,10 +157,17 @@
                   },
                   "tab": {
                     "type": "string",
-                    "enum": ["SUPER_ADMIN", "ZONAL_ADMIN"]
+                    "enum": [
+                      "SUPER_ADMIN",
+                      "ZONAL_ADMIN"
+                    ]
                   }
                 },
-                "required": ["email", "password", "tab"]
+                "required": [
+                  "email",
+                  "password",
+                  "tab"
+                ]
               }
             }
           }
@@ -171,10 +195,18 @@
                         },
                         "role": {
                           "type": "string",
-                          "enum": ["SUPER_ADMIN", "ZONAL_ADMIN"]
+                          "enum": [
+                            "SUPER_ADMIN",
+                            "ZONAL_ADMIN"
+                          ]
                         }
                       },
-                      "required": ["id", "name", "email", "role"]
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "role"
+                      ]
                     },
                     "mustChangePassword": {
                       "type": "boolean"
@@ -186,7 +218,12 @@
                       "type": "string"
                     }
                   },
-                  "required": ["user", "mustChangePassword", "csrfToken", "redirectTo"]
+                  "required": [
+                    "user",
+                    "mustChangePassword",
+                    "csrfToken",
+                    "redirectTo"
+                  ]
                 }
               }
             }
@@ -243,7 +280,9 @@
     "/auth/logout": {
       "post": {
         "operationId": "logout",
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Sign out and revoke the session",
         "security": [
           {
@@ -288,7 +327,9 @@
     "/auth/forgot-password": {
       "post": {
         "operationId": "forgotPassword",
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Request a password reset link. Always answers the same way.",
         "requestBody": {
           "required": true,
@@ -301,7 +342,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["email"]
+                "required": [
+                  "email"
+                ]
               }
             }
           }
@@ -318,7 +361,9 @@
                       "type": "string"
                     }
                   },
-                  "required": ["message"]
+                  "required": [
+                    "message"
+                  ]
                 }
               }
             }
@@ -366,7 +411,9 @@
     "/auth/reset-password": {
       "post": {
         "operationId": "resetPassword",
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Set a new password with a single-use reset token; revokes all sessions",
         "requestBody": {
           "required": true,
@@ -386,7 +433,10 @@
                     "maxLength": 128
                   }
                 },
-                "required": ["token", "newPassword"]
+                "required": [
+                  "token",
+                  "newPassword"
+                ]
               }
             }
           }
@@ -403,7 +453,9 @@
                       "type": "string"
                     }
                   },
-                  "required": ["message"]
+                  "required": [
+                    "message"
+                  ]
                 }
               }
             }
@@ -441,7 +493,9 @@
     "/auth/reauth": {
       "post": {
         "operationId": "reauth",
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Confirm the password again before a high-risk action (valid for 10 minutes)",
         "security": [
           {
@@ -462,7 +516,9 @@
                     "maxLength": 128
                   }
                 },
-                "required": ["password"]
+                "required": [
+                  "password"
+                ]
               }
             }
           }
@@ -480,7 +536,9 @@
                       "format": "date-time"
                     }
                   },
-                  "required": ["reauthenticatedUntil"]
+                  "required": [
+                    "reauthenticatedUntil"
+                  ]
                 }
               }
             }
@@ -527,7 +585,9 @@
     "/me": {
       "get": {
         "operationId": "getMe",
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "The signed-in user, CSRF token and (stub) permissions",
         "security": [
           {
@@ -557,10 +617,18 @@
                         },
                         "role": {
                           "type": "string",
-                          "enum": ["SUPER_ADMIN", "ZONAL_ADMIN"]
+                          "enum": [
+                            "SUPER_ADMIN",
+                            "ZONAL_ADMIN"
+                          ]
                         }
                       },
-                      "required": ["id", "name", "email", "role"]
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "role"
+                      ]
                     },
                     "mustChangePassword": {
                       "type": "boolean"
@@ -575,17 +643,23 @@
                           "properties": {
                             "global": {
                               "type": "boolean",
-                              "enum": [true]
+                              "enum": [
+                                true
+                              ]
                             }
                           },
-                          "required": ["global"]
+                          "required": [
+                            "global"
+                          ]
                         },
                         {
                           "type": "object",
                           "properties": {
                             "global": {
                               "type": "boolean",
-                              "enum": [false]
+                              "enum": [
+                                false
+                              ]
                             },
                             "zones": {
                               "type": "array",
@@ -597,17 +671,27 @@
                                     "format": "uuid"
                                   }
                                 },
-                                "required": ["zoneId"],
+                                "required": [
+                                  "zoneId"
+                                ],
                                 "additionalProperties": {}
                               }
                             }
                           },
-                          "required": ["global", "zones"]
+                          "required": [
+                            "global",
+                            "zones"
+                          ]
                         }
                       ]
                     }
                   },
-                  "required": ["user", "mustChangePassword", "csrfToken", "permissions"]
+                  "required": [
+                    "user",
+                    "mustChangePassword",
+                    "csrfToken",
+                    "permissions"
+                  ]
                 }
               }
             }

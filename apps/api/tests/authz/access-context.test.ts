@@ -242,9 +242,12 @@ describe('object access: 404 for unassigned zone / unviewable module, 403 for a 
     expect((await requestWith('patch', `/_t/orders/in/${zoneB}`, cookie)).status).toBe(403);
   });
 
-  it('the route guard rejects a write for a member who holds the action nowhere (403), before any zone is known', async () => {
-    const res = await requestWith('patch', `/_t/orders/in/${zoneA}`, await cookieFor(adminNone));
-    expect(res.status).toBe(403);
+  it('a member who holds the action nowhere: 404 when the request names a zone, 403 when it names none', async () => {
+    const cookie = await cookieFor(adminNone);
+    const named = await requestWith('patch', `/_t/orders/in/${zoneA}`, cookie);
+    expect(named.status).toBe(404); // an unassigned zone is 404 for everyone (doc 24 section 2)
+    const bulk = await requestWith('patch', '/_t/orders', cookie);
+    expect(bulk.status).toBe(403); // no zone to hide: the route guard says the capability is missing
   });
 
   it('Super Admin can read and write in any zone', async () => {

@@ -64,12 +64,14 @@ export type PermissionGuard = RequestHandler & { requiredPermission: PermissionK
  * object is known (services: assertCanRead / assertCanWrite) and in the repository (zonesFor).
  *  - no session -> 401; first-login password change pending -> 403
  *  - Zonal Admin and an action that can never be granted for this module (zones, access, settings, ...) -> 403
- *  - write actions need the permission in at least one zone -> 403 otherwise
+ *  - write actions need the permission in at least one zone -> 403 otherwise, unless the request names a zone
+ *    (`zoneInRequest`): then assertCanWrite decides (404 for an unassigned zone, 403 for a missing action)
  *  - view actions pass: with no viewable zone the repository returns an empty result (TC-MZ-13)
  */
 export function requirePermission(
   module: PermissionModule,
   action: PermissionAction,
+  opts: { zoneInRequest?: boolean } = {},
 ): PermissionGuard {
   const key = permissionKey(module, action);
   const needSession = requireSession();
@@ -82,7 +84,9 @@ export function requirePermission(
       }
       if (!isGrantable(module, action))
         throw new AppError('FORBIDDEN', 'You do not have permission to do this');
-      if (action !== 'view' && !holdsAnywhere(ctx, key)) {
+      // A route that names a zone (path or body) leaves 404-versus-403 to assertCanWrite: an unassigned zone is 404 for
+      // everyone, including a member who holds the action nowhere (doc 24 section 2: Admin(none) = 404).
+      if (action !== 'view' && !opts.zoneInRequest && !holdsAnywhere(ctx, key)) {
         throw new AppError('FORBIDDEN', 'You do not have permission to do this');
       }
       next();

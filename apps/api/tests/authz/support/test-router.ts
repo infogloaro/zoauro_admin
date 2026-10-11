@@ -1,24 +1,40 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import {
   assertCanRead,
   assertCanWrite,
   authContextOf,
+  can,
   requirePermission,
   zonesFor,
 } from '../../../src/lib/authz';
+import { requireCsrf, requireSession } from '../../../src/lib/auth/middleware';
+import { AppError } from '../../../src/lib/errors';
 
 // Test-only routes that exercise the guards the way real modules will: route guard first, then the zone check where the
-// object's zone is known, then the scope for lists.
+// object's zone is known, then the scope for lists. The `mutant` option builds deliberately broken versions, which the
+// authorization matrix must detect (matrix/engine-detects.test.ts).
+
+export type Mutant =
+  | 'leaky-list' // a list that ignores the caller's zones
+  | 'wrong-code' // 403 instead of 404 for an object in a zone the caller cannot see
+  | 'no-session' // a route with no authentication at all
+  | 'undocumented' // an extra route that is not in the OpenAPI document
+  | 'weak-guard' // a never-grantable module reachable by a Zonal Admin
+  | 'missing-csrf'; // state-changing routes that skip the CSRF check
 
 const zoneParam = (v: string | string[] | undefined): string =>
   Array.isArray(v) ? (v[0] ?? '') : (v ?? '');
 
-export function createTestRouter(): Router {
+export function createTestRouter(opts: { csrf?: boolean; mutant?: Mutant } = {}): Router {
   const router = Router();
+  const csrf = opts.csrf && opts.mutant !== 'missing-csrf' ? [requireCsrf] : [];
 
   // list: scope comes from zonesFor
   router.get('/_t/orders', requirePermission('orders', 'view'), (_req, res) => {
-    res.json({ scope: zonesFor(authContextOf(res), 'orders:view') });
+    const ctx = authContextOf(res);
+    res.json({
+      scope: opts.mutant === 'leaky-list' ? { kind: 'ALL' } : zonesFor(ctx, 'orders:view'),
+    });
   });
   router.get('/_t/payments', requirePermission('payments', 'view'), (_req, res) => {
     res.json({ scope: zonesFor(authContextOf(res), 'payments:view') });
@@ -26,26 +42,50 @@ export function createTestRouter(): Router {
 
   // object read in a known zone
   router.get('/_t/orders/in/:zoneId', requirePermission('orders', 'view'), (req, res) => {
-    assertCanRead(authContextOf(res), 'orders:view', zoneParam(req.params['zoneId']));
+    const ctx = authContextOf(res);
+    const zone = zoneParam(req.params['zoneId']);
+    if (opts.mutant === 'wrong-code') {
+      if (!can(ctx, 'orders:view', zone)) throw new AppError('FORBIDDEN', 'No');
+    } else {
+      assertCanRead(ctx, 'orders:view', zone);
+    }
     res.json({ ok: true });
   });
 
   // write in a known zone
-  router.patch('/_t/orders/in/:zoneId', requirePermission('orders', 'edit'), (req, res) => {
-    assertCanWrite(authContextOf(res), 'orders:edit', zoneParam(req.params['zoneId']));
+  router.patch(
+    '/_t/orders/in/:zoneId',
+    requirePermission('orders', 'edit', { zoneInRequest: true }),
+    ...csrf,
+    (req, res) => {
+      assertCanWrite(authContextOf(res), 'orders:edit', zoneParam(req.params['zoneId']));
+      res.json({ ok: true });
+    },
+  );
+
+  // write that names no zone (bulk): the route guard itself needs the action in at least one zone
+  router.patch('/_t/orders', requirePermission('orders', 'edit'), ...csrf, (_req, res) => {
     res.json({ ok: true });
   });
 
   // modules a Zonal Admin can never hold
-  router.get('/_t/access', requirePermission('access', 'view'), (_req, res) => {
-    res.json({ ok: true });
-  });
-  router.put('/_t/access', requirePermission('access', 'edit'), (_req, res) => {
+  router.get(
+    '/_t/access',
+    opts.mutant === 'weak-guard' ? requireSession() : requirePermission('access', 'view'),
+    (_req, res) => {
+      res.json({ ok: true });
+    },
+  );
+  router.put('/_t/access', requirePermission('access', 'edit'), ...csrf, (_req, res) => {
     res.json({ ok: true });
   });
 
   // what the context looks like for the caller
-  router.get('/_t/ctx', requirePermission('dashboard', 'view'), (_req, res) => {
+  const ctxHandler = (_req: unknown, res: Response) => {
+    if (opts.mutant === 'no-session') {
+      res.json({ ok: true });
+      return;
+    }
     const ctx = authContextOf(res);
     res.json({
       userId: ctx.userId,
@@ -58,7 +98,15 @@ export function createTestRouter(): Router {
       limits: Object.fromEntries(ctx.limitsByZone),
       requestedZoneIds: ctx.requestedZoneIds,
     });
-  });
+  };
+  if (opts.mutant === 'no-session') router.get('/_t/ctx', ctxHandler);
+  else router.get('/_t/ctx', requirePermission('dashboard', 'view'), ctxHandler);
+
+  if (opts.mutant === 'undocumented') {
+    router.get('/_t/secret', (_req, res) => {
+      res.json({ secret: true });
+    });
+  }
 
   return router;
 }
