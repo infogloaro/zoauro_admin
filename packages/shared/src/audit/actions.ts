@@ -41,6 +41,15 @@ export const AUDIT_ACTIONS = {
   'user.unlocked': a('auth', 'Account unlocked'),
   'session.revoked': a('auth', 'Revoked session'),
   'reauth.failed': a('auth', 'Failed re-authentication', H),
+  // auth: 2-step verification (doc 52 section 4)
+  'user.two_factor_disabled': a('auth', 'Removed a two-factor method', H),
+  'user.two_factor_reset': a('auth', 'Reset two-factor authentication', H),
+  'user.backup_codes_generated': a('auth', 'Generated backup codes', H),
+  'user.backup_code_used': a('auth', 'Used a backup code', H),
+  'user.mfa_challenge_failed': a('auth', 'Failed two-factor challenge'),
+  'user.mfa_locked': a('auth', 'Account locked after two-factor failures', H),
+  'sms.paused': a('auth', 'Paused SMS sending', H),
+  'sms.resumed': a('auth', 'Resumed SMS sending', H),
   // zones
   'zone.created': a('zones', 'Created zone'),
   'zone.updated': a('zones', 'Updated zone'),

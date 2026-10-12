@@ -4,14 +4,17 @@ import { classifyField, findUncoveredSecretLikeColumns } from '../../src/lib/aud
 // Decisions taken after the real-schema check (TC-AUD-6) found seven uncovered columns in prisma/schema.prisma.
 describe('registry additions after the real-schema check', () => {
   it('drops encrypted blobs and hashes from audit JSON', () => {
-    for (const f of [
-      'mfaSecretEncrypted',
-      'backupCodesHash',
-      'requestHash',
-      'tokenHash',
-      'secretEncrypted',
-    ]) {
+    for (const f of ['requestHash', 'tokenHash', 'secretEncrypted']) {
       expect(classifyField(f), f).toBe('drop');
+    }
+  });
+
+  it('drops the 2-step secrets of doc 52 section 3 (secret_encrypted, code_hash) in either spelling', () => {
+    for (const f of ['secretEncrypted', 'secret_encrypted', 'codeHash', 'code_hash']) {
+      expect(classifyField(f), f).toBe('drop');
+    }
+    for (const f of ['destinationHint', 'lastUsedStep', 'phoneVerifiedAt', 'passwordChangedAt']) {
+      expect(classifyField(f), f).toBe('keep');
     }
   });
 

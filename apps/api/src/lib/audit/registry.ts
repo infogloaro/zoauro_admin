@@ -12,12 +12,14 @@ const DROP_EXACT = new Set([
   'sessiontoken',
   'authorization',
   'signature',
+  // doc 52 section 3: user_mfa_methods.secret_encrypted, mfa_challenges.code_hash, mfa_backup_codes.code_hash
   'secretencrypted',
+  'codehash',
 ]);
 const DROP_PREFIX = ['token', 'secret', 'totp', 'otp'];
 // additions beyond the doc list: obvious secret-like names (clientSecret, accessToken, refreshToken, resetToken, …),
-// any *Hash (passwordHash, backupCodesHash, requestHash, tokenHash: a hash has no audit value) and any *Encrypted blob
-// (mfaSecretEncrypted, secretEncrypted). Added after the real-schema check (TC-AUD-6) found uncovered columns.
+// any *Hash (passwordHash, codeHash, requestHash, tokenHash: a hash has no audit value) and any *Encrypted blob
+// (secretEncrypted). Added after the real-schema check (TC-AUD-6) found uncovered columns.
 const DROP_SUFFIX = ['secret', 'token', 'password', 'passwordhash', 'apikey', 'hash', 'encrypted'];
 const DROP_REGEX = [/^upi.*pin$/];
 
