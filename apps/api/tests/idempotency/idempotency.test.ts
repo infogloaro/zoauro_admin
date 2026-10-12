@@ -235,7 +235,7 @@ describe('failures do not poison the key', () => {
     const cookie = await cookieFor();
     const res = await post('/_t/crash', cookie, 'crash-key-00001');
     expect(res.status).toBe(500);
-    await new Promise((r) => setTimeout(r, 200)); // the finish handler settles after the response
+    // the key is released before the response is sent (settle-order.test.ts), so no wait is needed here
     const after = await env.db.owner.query(
       `SELECT count(*)::int AS n FROM idempotency_keys WHERE key LIKE $1`,
       ['%:crash-key-00001'],
