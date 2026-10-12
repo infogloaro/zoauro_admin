@@ -10,6 +10,7 @@ import {
 import { clearedSessionCookie, preSessionCsrfCookie, sessionCookie } from '../../lib/auth/cookies';
 import { issuePreSessionCsrf } from '../../lib/auth/crypto';
 import { getAuth } from '../../lib/auth/middleware';
+import { authContextOf } from '../../lib/authz';
 import type { AuthSession } from '../../lib/auth/session-store';
 import { AppError, parseBody, requestIdOf } from '../../lib/errors';
 import type { AuthService, RequestMeta } from './auth.service';
@@ -100,7 +101,7 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
   };
 
   const me: RequestHandler = async (_req, res) => {
-    res.json(await service.me(sessionOf(res)));
+    res.json(await service.me(sessionOf(res), authContextOf(res)));
   };
 
   return {

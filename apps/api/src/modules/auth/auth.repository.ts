@@ -103,6 +103,18 @@ export class AuthRepository implements SessionPersistence {
     return u ? toAuthUser(u) : null;
   }
 
+  /**
+   * Name, code, colour and status of zones the caller is assigned to, for /me. The ids come from the caller's own
+   * AuthContext (active assignments), so no further zone filter applies. Soft-deleted zones are left out.
+   */
+  async findZonesForDisplay(zoneIds: readonly string[]) {
+    if (zoneIds.length === 0) return [];
+    return this.db.zone.findMany({
+      where: { id: { in: [...zoneIds] }, deletedAt: null },
+      select: { id: true, name: true, code: true, colorHex: true, status: true },
+    });
+  }
+
   async countActiveZoneAssignments(userId: string): Promise<number> {
     return this.db.adminZoneAssignment.count({ where: { userId, revokedAt: null } });
   }

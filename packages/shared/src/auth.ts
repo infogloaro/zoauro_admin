@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { ROLES } from './enums';
 import { isCommonPassword } from './password-policy';
+import {
+  PERMISSION_ACTIONS,
+  PERMISSION_MODULES,
+  permissionKey,
+  type PermissionKey,
+} from './permissions';
 
 // Request schemas for the auth endpoints (doc 09, doc 14). Shared with the login form and OpenAPI.
 
@@ -75,15 +81,52 @@ export const loginResponseSchema = z.object({
 });
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
+/** Every `module:action` key (doc 04), as an enum for the contract. */
+export const PERMISSION_KEYS = PERMISSION_MODULES.flatMap((m) =>
+  PERMISSION_ACTIONS.map((a) => permissionKey(m, a)),
+) as [PermissionKey, ...PermissionKey[]];
+export const permissionKeySchema = z.enum(PERMISSION_KEYS);
+
+/** Per member per zone (doc 04, D20); refund limits in integer paise. */
+export const zoneLimitsSchema = z.object({
+  perRefund: z.number().int().min(0),
+  dailyRefund: z.number().int().min(0),
+  canReveal: z.boolean(),
+  canExport: z.boolean(),
+});
+
+/** One assigned zone of a Zonal Admin in /me (doc 09): what the member may do there, computed per request. */
+export const meZoneSchema = z.object({
+  zoneId: z.uuid(),
+  name: z.string(),
+  code: z.string(),
+  colorHex: z.string(),
+  status: z.enum(['UPCOMING', 'ACTIVE', 'INACTIVE']),
+  /** profile + GRANT overrides − DENY overrides (deny wins), sorted */
+  permissions: z.array(permissionKeySchema),
+  limits: zoneLimitsSchema,
+});
+export type MeZone = z.infer<typeof meZoneSchema>;
+
 export const meResponseSchema = z.object({
   user: userSummarySchema,
   mustChangePassword: z.boolean(),
   csrfToken: z.string(),
-  /** stub until the access module: Super Admin is global, a Zonal Admin has no resolved zones yet */
+  /**
+   * Super Admin: global. Zonal Admin: every active assignment with its permissions and limits (doc 09, doc 14 section 4),
+   * resolved from the access tables on each request, never from the session. The UI may hide things with it; the server
+   * checks every request anyway.
+   */
   permissions: z.union([
     z.object({ global: z.literal(true) }),
-    z.object({ global: z.literal(false), zones: z.array(z.object({ zoneId: z.uuid() }).loose()) }),
+    z.object({ global: z.literal(false), zones: z.array(meZoneSchema) }),
   ]),
+  /** 2-step state (doc 52 section 8); placeholders until P8 builds the second step */
+  mfa: z.object({
+    enabled: z.boolean(),
+    required: z.boolean(),
+    enrolmentNeeded: z.boolean(),
+  }),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
 

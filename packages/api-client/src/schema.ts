@@ -1180,6 +1180,11 @@ export interface operations {
                 content: {
                     "application/json": {
                         csrfToken: string;
+                        mfa: {
+                            enabled: boolean;
+                            enrolmentNeeded: boolean;
+                            required: boolean;
+                        };
                         mustChangePassword: boolean;
                         permissions: {
                             /** @enum {boolean} */
@@ -1187,12 +1192,22 @@ export interface operations {
                         } | {
                             /** @enum {boolean} */
                             global: false;
-                            zones: ({
+                            zones: {
+                                code: string;
+                                colorHex: string;
+                                limits: {
+                                    canExport: boolean;
+                                    canReveal: boolean;
+                                    dailyRefund: number;
+                                    perRefund: number;
+                                };
+                                name: string;
+                                permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status")[];
+                                /** @enum {string} */
+                                status: "UPCOMING" | "ACTIVE" | "INACTIVE";
                                 /** Format: uuid */
                                 zoneId: string;
-                            } & {
-                                [key: string]: unknown;
-                            })[];
+                            }[];
                         };
                         user: {
                             email: string;

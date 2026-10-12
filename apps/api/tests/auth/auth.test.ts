@@ -377,7 +377,7 @@ describe('CSRF and Origin (T5)', () => {
   });
 });
 
-describe('GET /me (permissions are a stub until the access module)', () => {
+describe('GET /me (identity; the zone permissions are tested in me-rbac.test.ts)', () => {
   it('returns the signed-in user for SuperAdmin, Admin(A), Admin(A+B) and Admin(none); never another user', async () => {
     const sa = await env.createUser('SUPER_ADMIN');
     const zoneA = await env.createZone();
@@ -389,15 +389,24 @@ describe('GET /me (permissions are a stub until the access module)', () => {
     await env.assignZone(adminAB.id, zoneA, sa.id);
     await env.assignZone(adminAB.id, zoneB, sa.id);
 
+    const zonesOf = new Map([
+      [adminA.id, [zoneA]],
+      [adminAB.id, [zoneA, zoneB]],
+      [adminNone.id, []],
+    ]);
     for (const u of [sa, adminA, adminAB, adminNone]) {
       const { cookie, csrf } = await env.session(u);
       const res = await env.api().get('/me').set('Cookie', cookie);
       expect(res.status).toBe(200);
       expect(res.body.user).toEqual({ id: u.id, name: u.name, email: u.email, role: u.role });
       expect(res.body.csrfToken).toBe(csrf);
-      expect(res.body.permissions).toEqual(
-        u.role === 'SUPER_ADMIN' ? { global: true } : { global: false, zones: [] },
-      );
+      if (u.role === 'SUPER_ADMIN') expect(res.body.permissions).toEqual({ global: true });
+      else {
+        expect(res.body.permissions.global).toBe(false);
+        expect(
+          (res.body.permissions.zones as { zoneId: string }[]).map((z) => z.zoneId).sort(),
+        ).toEqual([...(zonesOf.get(u.id) ?? [])].sort());
+      }
       expect(JSON.stringify(res.body)).not.toMatch(/passwordHash|password_hash|$argon2|secret/i);
     }
   });

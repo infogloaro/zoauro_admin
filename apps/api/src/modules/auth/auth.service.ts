@@ -1,6 +1,7 @@
 import type {
   ChangePasswordInput,
   ForgotPasswordInput,
+  MeZone,
   SessionListItem,
   LoginInput,
   ReauthInput,
@@ -11,6 +12,7 @@ import { noteAuditNoop, record, recordMany, runWithAuditContext, uuidv7 } from '
 import type { AuditActor, AuditEntry } from '../../lib/audit';
 import type { Audit } from '../../lib/audit/audit.service';
 import type { AuthConfig, Clock } from '../../lib/auth/config';
+import type { AuthContext, ZoneLimits } from '../../lib/authz';
 import {
   getDummyHash,
   hashPassword,
@@ -52,9 +54,12 @@ export interface MeResult {
   user: { id: string; name: string; email: string; role: Role };
   mustChangePassword: boolean;
   csrfToken: string;
-  /** Stub until the access module (SA-1.7+): Super Admin is global, a Zonal Admin has no resolved zones yet. */
-  permissions: { global: true } | { global: false; zones: [] };
+  permissions: { global: true } | { global: false; zones: MeZone[] };
+  mfa: { enabled: boolean; required: boolean; enrolmentNeeded: boolean };
 }
+
+/** A zone assignment without limits of its own: nothing may be refunded, revealed or exported without approval. */
+const NO_LIMITS: ZoneLimits = { perRefund: 0, dailyRefund: 0, canReveal: false, canExport: false };
 
 const GENERIC_LOGIN_ERROR = 'Invalid email or password';
 const UA_MAX = 300;
@@ -339,7 +344,7 @@ export class AuthService {
     await this.deps.sessions.evict(session.tokenHash);
   }
 
-  async me(session: AuthSession): Promise<MeResult> {
+  async me(session: AuthSession, ctx: AuthContext): Promise<MeResult> {
     const user = await this.deps.db.repo.findUserById(session.userId);
     if (!user || user.status !== 'ACTIVE')
       throw new AppError('UNAUTHENTICATED', 'Authentication required');
@@ -347,9 +352,28 @@ export class AuthService {
       user: { id: user.id, name: user.name, email: user.email, role: user.roleName },
       mustChangePassword: user.mustChangePassword,
       csrfToken: session.csrfToken,
-      permissions:
-        user.roleName === 'SUPER_ADMIN' ? { global: true } : { global: false, zones: [] },
+      permissions: ctx.isSuperAdmin
+        ? { global: true }
+        : { global: false, zones: await this.meZones(ctx) },
+      // placeholders until the second step exists (P8)
+      mfa: { enabled: user.mfaEnabled, required: false, enrolmentNeeded: false },
     };
+  }
+
+  /** Every active assignment of a Zonal Admin with its permissions and limits from the AuthContext (doc 09, doc 14). */
+  private async meZones(ctx: AuthContext): Promise<MeZone[]> {
+    const zones = await this.deps.db.repo.findZonesForDisplay(ctx.assignedZoneIds);
+    return zones
+      .map((z) => ({
+        zoneId: z.id,
+        name: z.name,
+        code: z.code,
+        colorHex: z.colorHex,
+        status: z.status,
+        permissions: [...(ctx.permissionsByZone.get(z.id) ?? [])].sort(),
+        limits: ctx.limitsByZone.get(z.id) ?? NO_LIMITS,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   // ---- re-authentication ----------------------------------------------------------------------------------------
