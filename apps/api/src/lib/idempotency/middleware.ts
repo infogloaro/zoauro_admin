@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { RequestHandler } from 'express';
+import { noteAuditNoop } from '../audit';
 import type { Clock } from '../auth/config';
 import { getAuth } from '../auth/middleware';
 import { AppError } from '../errors';
@@ -76,6 +77,8 @@ export function idempotency(deps: { store: IdempotencyStore; clock: Clock }): Re
     });
 
     if (result.kind === 'replay') {
+      // The first request audited the change; a replay changes nothing (an audited no-op for the coverage guard).
+      noteAuditNoop();
       res.setHeader('Idempotent-Replay', 'true');
       if (result.body === null || result.body === undefined) res.status(result.statusCode).end();
       else res.status(result.statusCode).json(result.body);

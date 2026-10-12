@@ -2,13 +2,14 @@ import { randomBytes } from 'node:crypto';
 import { Redis } from 'ioredis';
 import type { Express, Router } from 'express';
 import request from 'supertest';
-import { createApp } from '../../../src/app';
+import { createApp, type AuditCoverageOptions } from '../../../src/app';
 import { uuidv7 } from '../../../src/lib/audit';
 import { DEFAULT_AUTH_CONFIG, type AuthConfig } from '../../../src/lib/auth/config';
 import { hashPassword } from '../../../src/lib/auth/crypto';
 import { authContextMiddleware, type AccessService } from '../../../src/lib/authz';
 import { createPrismaClient } from '../../../src/lib/db';
 import { createAccessService } from '../../../src/modules/access';
+import { createAuditModule } from '../../../src/modules/audit';
 import { createAuthModule } from '../../../src/modules/auth';
 import { createTestDatabase, type TestDatabase } from '../../audit/support/db';
 
@@ -27,6 +28,13 @@ export interface ResetMail {
 }
 
 export type PersonaRole = 'SUPER_ADMIN' | 'ZONAL_ADMIN';
+
+interface AppExtras {
+  routers?: Router[];
+  accessCacheTtlSec?: number;
+  /** default: the app's own (throw under vitest, so any unaudited 2xx write fails the run) */
+  auditCoverage?: AuditCoverageOptions;
+}
 
 export interface TestUser {
   id: string;
@@ -75,8 +83,8 @@ export async function createAuthTestEnv() {
   function build(
     config: AuthConfig,
     scope: string | undefined,
-    extra: { routers?: Router[]; accessCacheTtlSec?: number } = {},
-  ): { app: Express; access: AccessService; routers: Router[] } {
+    extra: AppExtras = {},
+  ): { app: Express; access: AccessService; routers: Router[]; extraRouters: Router[] } {
     let appRedis = redis;
     if (scope) {
       appRedis = new Redis(redisUrl, { keyPrefix: `${prefix}${scope}:` });
@@ -97,21 +105,25 @@ export async function createAuthTestEnv() {
       ...(extra.accessCacheTtlSec === undefined ? {} : { cacheTtlSec: extra.accessCacheTtlSec }),
     });
     const ok = async (): Promise<void> => undefined;
+    // the real module routers, as server.ts mounts them
+    const moduleRouters = [auth.router, createAuditModule({ prisma }).router];
     const app = createApp({
       readiness: { database: ok, redis: ok },
       v1: {
         sessionMiddleware: auth.sessionMiddleware,
         authContextMiddleware: authContextMiddleware(access),
-        routers: [auth.router, ...(extra.routers ?? [])],
+        routers: [...moduleRouters, ...(extra.routers ?? [])],
       },
+      ...(extra.auditCoverage ? { auditCoverage: extra.auditCoverage } : {}),
     });
-    return { app, access, routers: [auth.router, ...(extra.routers ?? [])] };
+    const extraRouters = extra.routers ?? [];
+    return { app, access, routers: [...moduleRouters, ...extraRouters], extraRouters };
   }
   function makeApp(config: AuthConfig = TEST_CONFIG, scope?: string): Express {
     return build(config, scope).app;
   }
   /** App with extra routers and direct access to the AccessService (cache invalidation tests). */
-  function makeAuthzApp(extra: { routers?: Router[]; accessCacheTtlSec?: number } = {}) {
+  function makeAuthzApp(extra: AppExtras = {}) {
     return build(TEST_CONFIG, undefined, extra);
   }
   const app = makeApp();

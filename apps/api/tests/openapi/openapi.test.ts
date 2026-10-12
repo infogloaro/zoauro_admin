@@ -40,13 +40,20 @@ describe('the committed API contract is current (this is the CI check)', () => {
     expect(Object.keys(spec.components.schemas)).toContain('ErrorBody');
   });
 
-  it('contains every auth route that exists today', () => {
+  it('contains every route that exists today (auth, audit read API)', () => {
     const listed = Object.entries(spec.paths).flatMap(([p, ops]) =>
       Object.keys(ops).map((m) => `${m.toUpperCase()} ${p}`),
     );
     expect(listed.sort()).toEqual(
       [
+        'GET /audit-logs',
+        'GET /audit-logs/actors',
+        'GET /audit-logs/catalogue',
+        'GET /audit-logs/zones',
+        'GET /audit-logs/{id}',
+        'GET /login-history',
         'GET /me',
+        'GET /me/login-history',
         'GET /openapi.json',
         'POST /auth/forgot-password',
         'POST /auth/login',

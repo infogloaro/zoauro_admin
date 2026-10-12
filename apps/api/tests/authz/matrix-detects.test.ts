@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAuthTestEnv, type AuthTestEnv } from '../auth/support/auth-env';
 import type { OpenApiLike } from './matrix/engine';
 import type { MatrixFixtures } from './matrix/fixtures';
-import { prepareFixtures, runMatrix } from './matrix/run';
+import { makeMatrixApp, prepareFixtures, runMatrix } from './matrix/run';
 import { createTestRouter, type Mutant } from './support/test-router';
 import { TEST_BINDINGS, TEST_SPEC } from './support/test-spec';
 
@@ -23,14 +23,15 @@ async function failuresFor(
   mutant: Mutant | undefined,
   spec: OpenApiLike = TEST_SPEC,
 ): Promise<string[]> {
-  const { app, routers } = env.makeAuthzApp({
+  const { app, extraRouters, auditViolations } = makeMatrixApp(env, {
     routers: [createTestRouter({ csrf: true, ...(mutant ? { mutant } : {}) })],
   });
   const report = await runMatrix(env, fixtures, {
     spec,
     app,
-    routers: routers.slice(1),
+    routers: extraRouters,
     bindings: TEST_BINDINGS,
+    auditViolations,
   });
   return report.failures;
 }
@@ -79,6 +80,52 @@ describe('the matrix detects broken routes', () => {
     expect(failures).toMatch(/PATCH \/_t\/orders\/in\/\{zoneId\} as Admin\(A full\)/);
   });
 
+  it('a state-changing route without audit metadata is reported, statically and at runtime (TC-AUD-19)', async () => {
+    const failures = (await failuresFor('no-audit-meta')).join('\n');
+    expect(failures).toMatch(
+      /PATCH \/_t\/orders: the Express route declares no auditMeta\(\.\.\.\) \(doc 50 section 2\.1\)/,
+    );
+    // Super Admin's PATCH answered 200, so the coverage guard also saw it
+    expect(failures).toMatch(/PATCH \S*\/_t\/orders: audit coverage: no audit metadata/);
+  });
+
+  it('a route whose audit metadata differs from its x-audit is reported', async () => {
+    const spec: OpenApiLike = {
+      paths: {
+        ...TEST_SPEC.paths,
+        '/_t/access': {
+          ...TEST_SPEC.paths['/_t/access'],
+          put: {
+            operationId: 'testPutAccess',
+            'x-access': { kind: 'permission', permission: 'access:edit', zone: 'none' },
+            'x-audit': { module: 'access', action: 'access.limit_set' },
+          },
+        },
+      },
+    };
+    const failures = (await failuresFor(undefined, spec)).join('\n');
+    expect(failures).toMatch(
+      /PUT \/_t\/access: route audits .*access\.profile_set.* but the document says .*access\.limit_set/,
+    );
+  });
+
+  it('a mutating operation without x-audit in the document is reported', async () => {
+    const spec: OpenApiLike = {
+      paths: {
+        ...TEST_SPEC.paths,
+        '/_t/access': {
+          ...TEST_SPEC.paths['/_t/access'],
+          put: {
+            operationId: 'testPutAccess',
+            'x-access': { kind: 'permission', permission: 'access:edit', zone: 'none' },
+          },
+        },
+      },
+    };
+    const failures = (await failuresFor(undefined, spec)).join('\n');
+    expect(failures).toMatch(/PUT \/_t\/access: x-audit: no audit metadata/);
+  });
+
   it('a route that Express serves but the OpenAPI document does not list is reported', async () => {
     const failures = (await failuresFor('undocumented')).join('\n');
     expect(failures).toMatch(
@@ -111,11 +158,13 @@ describe('the matrix detects broken routes', () => {
   });
 
   it('a list operation without a listedZones binding cannot pass (it could leak unseen)', async () => {
-    const { app, routers } = env.makeAuthzApp({ routers: [createTestRouter({ csrf: true })] });
+    const { app, extraRouters } = makeMatrixApp(env, {
+      routers: [createTestRouter({ csrf: true })],
+    });
     const report = await runMatrix(env, fixtures, {
       spec: TEST_SPEC,
       app,
-      routers: routers.slice(1),
+      routers: extraRouters,
     });
     expect(report.failures.join('\n')).toMatch(/no listedZones binding for this list operation/);
   });

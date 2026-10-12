@@ -1,6 +1,8 @@
-import express, { type Express, type RequestHandler, type Router } from 'express';
-import { requestIdMiddleware } from './lib/auth/middleware';
-import { errorHandler, notFoundHandler } from './lib/errors';
+import express, { type Express, type Request, type RequestHandler, type Router } from 'express';
+import { auditContextMiddleware, auditCoverage } from './lib/audit';
+import type { AuditActor, CoverageViolation } from './lib/audit';
+import { getAuth, requestIdMiddleware } from './lib/auth/middleware';
+import { errorHandler, notFoundHandler, requestIdOf } from './lib/errors';
 import { type ReadinessChecks, runReadiness } from './lib/health';
 import { buildOpenApiDocument } from './openapi/build';
 
@@ -12,7 +14,32 @@ export interface ApiV1 {
   routers: Router[];
 }
 
-export function createApp(deps: { readiness: ReadinessChecks; v1?: ApiV1 }): Express {
+export interface AuditCoverageOptions {
+  mode: 'throw' | 'log' | 'collect';
+  onViolation?: (v: CoverageViolation) => void;
+}
+
+/** doc 50 section 2.1: a violation fails the run in tests and is logged everywhere else. */
+export const defaultAuditCoverageMode = (nodeEnv: string | undefined): 'throw' | 'log' =>
+  nodeEnv === 'test' ? 'throw' : 'log';
+
+/** The violation names only method, path and action: no request data, so nothing personal reaches the log. */
+const coverageLogger = {
+  error: (obj: object, msg: string): void => console.error(`${msg} ${JSON.stringify(obj)}`),
+};
+
+/** The signed-in user as the audit actor. No session, no context: record() then throws NO_ACTOR. */
+const actorOf = (req: Request): AuditActor | undefined => {
+  const auth = req.res ? getAuth(req.res) : undefined;
+  return auth ? { type: 'USER', id: auth.userId, name: auth.name, role: auth.role } : undefined;
+};
+
+export function createApp(deps: {
+  readiness: ReadinessChecks;
+  v1?: ApiV1;
+  /** defaults to throw under NODE_ENV=test, log otherwise; the authorization harness collects instead */
+  auditCoverage?: AuditCoverageOptions;
+}): Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(requestIdMiddleware);
@@ -38,11 +65,19 @@ export function createApp(deps: { readiness: ReadinessChecks; v1?: ApiV1 }): Exp
   });
 
   if (deps.v1) {
+    const coverage = deps.auditCoverage ?? {
+      mode: defaultAuditCoverageMode(process.env['NODE_ENV']),
+    };
     app.use(
       '/api/v1',
       express.json({ limit: '100kb' }),
       deps.v1.sessionMiddleware,
       deps.v1.authContextMiddleware,
+      auditContextMiddleware({
+        resolveActor: actorOf,
+        getRequestId: (req) => (req.res ? requestIdOf(req.res) : undefined),
+      }),
+      auditCoverage({ ...coverage, logger: coverageLogger }),
       ...deps.v1.routers,
     );
   }

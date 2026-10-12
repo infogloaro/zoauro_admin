@@ -4,5 +4,12 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "tests", "scripts/**/*.ts", "prisma/**/*.ts", "vitest.config.ts"]
+  "include": [
+    "src",
+    "tests",
+    "scripts/**/*.ts",
+    "prisma/**/*.ts",
+    "vitest.config.ts",
+    "../../tests/e2e/**/*.ts"
+  ]
 }

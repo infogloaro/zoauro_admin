@@ -5,6 +5,7 @@ import { createPrismaClient } from './lib/db';
 import { createReadinessChecks } from './lib/health';
 import { authContextMiddleware } from './lib/authz';
 import { createAccessService } from './modules/access';
+import { createAuditModule } from './modules/audit';
 import { createAuthModule } from './modules/auth';
 
 const env = loadEnvOrExit('api');
@@ -27,7 +28,7 @@ const app = createApp({
   v1: {
     sessionMiddleware: auth.sessionMiddleware,
     authContextMiddleware: authContextMiddleware(access),
-    routers: [auth.router],
+    routers: [auth.router, createAuditModule({ prisma }).router],
   },
 });
 

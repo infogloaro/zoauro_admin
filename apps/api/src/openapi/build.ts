@@ -33,7 +33,7 @@ const ERROR_DESCRIPTION: Record<ErrorCode, string> = {
 /** Error statuses implied by how the operation is protected, plus the ones it declares itself. */
 function errorCodesFor(op: OperationDef): ErrorCode[] {
   const codes = new Set<ErrorCode>(op.errors ?? []);
-  if (op.body || op.query) codes.add('VALIDATION_ERROR');
+  if (op.body || op.query || op.params) codes.add('VALIDATION_ERROR');
   if (op.access.kind !== 'public') codes.add('UNAUTHENTICATED');
   if (op.access.kind === 'session' && isMutating(op)) codes.add('FORBIDDEN'); // CSRF
   if (op.access.kind === 'session' && op.access.pendingPasswordChange !== 'allowed')
@@ -93,6 +93,7 @@ export function buildOpenApiDocument(): Record<string, unknown> {
         ? { security: [mutating ? { sessionCookie: [], csrfToken: [] } : { sessionCookie: [] }] }
         : {}),
       request: {
+        ...(op.params ? { params: op.params } : {}),
         ...(op.query ? { query: op.query } : {}),
         ...(op.body
           ? { body: { required: true, content: { 'application/json': { schema: op.body } } } }

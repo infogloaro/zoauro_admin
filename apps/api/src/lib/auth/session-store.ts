@@ -13,7 +13,7 @@ export interface SessionRecord {
   expiresAt: Date;
   lastSeenAt: Date;
   revokedAt: Date | null;
-  user: { roleName: Role; mustChangePassword: boolean; active: boolean };
+  user: { name: string; roleName: Role; mustChangePassword: boolean; active: boolean };
 }
 
 /** Implemented by the auth repository (the only place that talks to Prisma). */
@@ -26,6 +26,8 @@ export interface SessionPersistence {
 export interface AuthSession {
   sessionId: string;
   userId: string;
+  /** display name when the session was loaded; snapshotted into audit rows as the actor name */
+  name: string;
   role: Role;
   mustChangePassword: boolean;
   tokenHash: string;
@@ -37,6 +39,7 @@ export interface AuthSession {
 interface CachedSession {
   sessionId: string;
   userId: string;
+  name: string;
   role: Role;
   mustChangePassword: boolean;
   absoluteExpiresAtMs: number;
@@ -56,6 +59,7 @@ function parseCached(raw: string): CachedSession | null {
     if (
       typeof o['sessionId'] !== 'string' ||
       typeof o['userId'] !== 'string' ||
+      typeof o['name'] !== 'string' || // entries cached before the name was added: reload from PostgreSQL
       !isRole(o['role']) ||
       typeof o['mustChangePassword'] !== 'boolean' ||
       typeof o['absoluteExpiresAtMs'] !== 'number' ||
@@ -67,6 +71,7 @@ function parseCached(raw: string): CachedSession | null {
     return {
       sessionId: o['sessionId'],
       userId: o['userId'],
+      name: o['name'],
       role: o['role'],
       mustChangePassword: o['mustChangePassword'],
       absoluteExpiresAtMs: o['absoluteExpiresAtMs'],
@@ -103,6 +108,7 @@ export class SessionStore {
     s: {
       sessionId: string;
       userId: string;
+      name: string;
       role: Role;
       mustChangePassword: boolean;
       expiresAt: Date;
@@ -112,6 +118,7 @@ export class SessionStore {
     await this.write(tokenHash, {
       sessionId: s.sessionId,
       userId: s.userId,
+      name: s.name,
       role: s.role,
       mustChangePassword: s.mustChangePassword,
       absoluteExpiresAtMs: s.expiresAt.getTime(),
@@ -146,6 +153,7 @@ export class SessionStore {
     return {
       sessionId: cached.sessionId,
       userId: cached.userId,
+      name: cached.name,
       role: cached.role,
       mustChangePassword: cached.mustChangePassword,
       tokenHash,
@@ -185,6 +193,7 @@ export class SessionStore {
     return {
       sessionId: row.id,
       userId: row.userId,
+      name: row.user.name,
       role: row.user.roleName,
       mustChangePassword: row.user.mustChangePassword,
       absoluteExpiresAtMs: row.expiresAt.getTime(),

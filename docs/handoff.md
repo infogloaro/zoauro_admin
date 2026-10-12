@@ -9,7 +9,7 @@ Verify: pnpm lint && pnpm typecheck && pnpm test
 Date / task id: 2026-10-10 / F0.4 local env + audit DB roles
 Lane / files changed: D — docker-compose.dev.yml, infra/initdb/01-roles.sql, apps/api/src/lib/{env,health}.ts (+tests), app.ts/server.ts/worker.ts, apps/api/.env.example, apps/api/scripts/prisma-migrate.mjs, root package.json (infra:up/down), eslint.config.mjs (Node globals for scripts/*.mjs), doc 32 row
 Contract changes (docs 08/09/10/36): none. /api/ready now returns 200 {status, checks:{database, redis}} or 503 with the failing check marked "down" (no error details)
-Decisions or [ASSUMPTION]s touched (D-numbers): D64 implemented (zoauro_purge role + DATABASE_URL_AUDIT_PURGE). Deviations (doc 32 row added): host ports offset because 5432/6379/9000 were taken by other projects (Postgres 5440, Redis 6390, MinIO 9020/9021, override with ZOAURO_*_PORT); MinIO/mc/Mailpit images pinned; `pg` and `ioredis` added for readiness checks (not named in doc 06; Prisma replaces pg in F1.1); infra:up waits on the four services, not the one-shot bucket init
+Decisions or [ASSUMPTION]s touched (D-numbers): D64 implemented (zoauro_purge role + DATABASE_URL_AUDIT_PURGE). Deviations (doc 32 row added): host ports offset because 5432/6379/9000 were taken by other projects (Postgres 5440 (5441 when 5440 is taken: ZOAURO_PG_PORT), Redis 6390, MinIO 9020/9021, override with ZOAURO_*_PORT); MinIO/mc/Mailpit images pinned; `pg` and `ioredis` added for readiness checks (not named in doc 06; Prisma replaces pg in F1.1); infra:up waits on the four services, not the one-shot bucket init
 Gate line status (pass/fail): pass — psql as zoauro_app, zoauro_owner, zoauro_purge connect; app role gets DML on owner-created tables, purge role gets none; bucket zoauro-dev created; API exits 1 listing missing vars; /api/ready 200, 503 with Redis stopped, 200 after restart. Not done: apps/web env validation (doc 12 mentions an equivalent); db:migrate only wraps Prisma (no schema until F1.1)
 Next step: F0.5 CI (CI runs migrations with DATABASE_URL_MIGRATE only); F1.1 schema, which must include the audit migration that grants zoauro_purge on audit_logs/access_changes. Note: initdb scripts run only on a fresh volume; after editing them run `docker compose -f docker-compose.dev.yml down -v`. Local apps/api/.env holds DATABASE_URL_MIGRATE for convenience, so the dev API process can see the owner URL; production must not (env.ts rejects it)
 Verify: pnpm infra:up && pnpm lint && pnpm typecheck && pnpm test
@@ -139,3 +139,131 @@ Judgement calls to confirm (doc 04 is prose, not a table): (1) Operations has no
 Lint rule fix: the Prisma import boundary used the glob 'prisma', which also matched relative paths through our own prisma/ folder (../../prisma/seed-data). It is now a regex for the package names only (@prisma/client, prisma, prisma/config); probes confirmed it still blocks them in apps/api and apps/web (eslint.config.mjs)
 Next step: gate F1 is complete (login for both roles, harness in CI, audit row on a sample write is covered by F1.2 and AU-2). Next: F0.5 (real CI), F0.6 design tokens, then F2 UI foundation; AU-3 (wire the coverage middleware) and the Access Control module (SA-1.x) which will call AccessService.invalidate* after every change
 Verify: pnpm infra:up && pnpm lint && pnpm typecheck && pnpm test && pnpm openapi:check; pnpm db:seed
+
+Date / task id: 2026-10-11 / AU-3 audit wiring and coverage guard (Lane A)
+Lane / files changed: apps/api/src/app.ts (auditContextMiddleware after authentication, auditCoverage before the routers, mode throw under NODE_ENV=test else log); lib/audit/{context, audit.service, middleware, index}.ts (per-request AuditTally, countAudit, noteAuditNoop; auditMeta handlers expose .auditMeta); openapi/operations.ts (auditOf); modules/auth/{auth.routes, auth.service, auth.repository}.ts; lib/auth/session-store.ts (session carries the display name); lib/idempotency/middleware.ts (a replay is an audited no-op); tests: audit/wiring.test.ts (new), audit/coverage.test.ts, authz/matrix/{engine, run}.ts, authz/{authorization-matrix, matrix-detects}.test.ts, authz/support/{test-router, test-spec}.ts, auth/support/auth-env.ts, idempotency/idempotency.test.ts
+Contract changes (docs 08/09/10/36): none (openapi.json unchanged; x-audit values are the same, now the single source for the routes too)
+Decisions or [ASSUMPTION]s touched (D-numbers): none. Row added to doc 32
+Gate line status (pass/fail): pass — lint, typecheck, test (api 239 + 1 todo). TC-AUD-19 against the real app: a test-only route without metadata throws in the default (test) mode; allow-listed login/reauth/logout pass in throw mode; the matrix reports a route without auditMeta both statically (route stack vs x-audit) and at runtime. TC-AUD-27: identical-values record() and forgot-password for an unknown email are not flagged; known email writes one row through the service's own context. Done-check performed by hand: deleting `auditMeta(auditOf('logout'))` from auth.routes.ts made authorization-matrix.test.ts fail ("POST /auth/logout: the Express route declares no auditMeta"); restored
+How it works: actor = { USER, session userId, session name, session role }; no session -> no context (record() throws NO_ACTOR). The harness builds its app with mode 'collect' (makeMatrixApp) and turns every violation into a failure, plus checkOpenApiAuditMetadata(spec) and a route-stack comparison with x-audit
+Open points: (1) Actor name is the name when the session was loaded (cached up to the idle window); a rename mid-session shows the old name until the cache reloads. (2) No app logger exists; 'log' mode writes one console.error line with method/path/action only. (3) APP_CLIENT actor for the Integration API is not wired (IH-1 not built). (4) TC-AUD-22 and TC-AUD-17 from the original AU-3 prompt were not in this task's scope; they need M03 / a reveal endpoint. (5) Two teardown/timing flakes seen once each under full-suite load, both pass on rerun: DROP DATABASE ... WITH (FORCE) "permission denied to terminate process" in tests/audit/support/db.ts, and the idempotency replay test (response stored on finish, see F1.4 decision 4)
+Next step: AU-4 (read API)
+Verify: pnpm infra:up && pnpm lint && pnpm typecheck && pnpm test && pnpm openapi:check
+
+Date / task id: 2026-10-12 / AU-4 audit read API (Lane A)
+Lane / files changed: apps/api/src/modules/audit/{audit.repository, audit.service, audit.controller, audit.routes, permissions, index}.ts (new; visibility.ts and mapper.ts copied unchanged from the bundle); src/openapi/{operations, build}.ts (five operations, `params`, `zonalActivity`); src/server.ts (mounts the router); packages/shared/src/audit/schemas.ts (response envelopes, catalogue, login history); packages/api-client/src/index.ts (path parameters: `params`); prisma/schema.prisma + migrations/20261012000000_audit_zone_module_action_index (new index); scripts/seed-audit.ts; tests: audit/{read-api, perf}.test.ts, authz matrix (engine, fixtures, auth-env: real routers mounted, `zonalActivity` expectations); apps/api/openapi/openapi.json and packages/api-client/src/schema.ts regenerated; docs/F-execution/50 section 3.1; .env files (Open point 1)
+Contract changes (docs 08/09/10/36): GET /audit-logs, /audit-logs/{id}, /audit-logs/catalogue, /login-history, /me/login-history as doc 50 section 8 (doc 09 already listed them). Seventh audit_logs index (zone_id, module, action, id DESC) added to doc 50 section 3.1. No write endpoint on audit rows
+Decisions or [ASSUMPTION]s touched (D-numbers): none. Row added to doc 32
+Gate line status (pass/fail): pass — lint, typecheck, test (api 270 passed, 14 perf skipped, 1 todo), openapi:check. Authorization matrix covers all 12 routes (SuperAdmin, Admin(A), Admin(A+B), Admin(A, payments denied), Admin(none)). read-api.test.ts: 31 tests for TC-AUD-9..15 and 23 through the real routes. Performance (TC-AUD-24/25, nightly: AUDIT_PERF=1 pnpm --filter @zoauro/api exec vitest run tests/audit/perf.test.ts) with 2,000,000 rows on PostgreSQL 16: every list shape p95 < 300 ms and entity Activity p95 < 100 ms:
+| Shape | p95 ms | worst ms | budget |
+|---|---|---|---|
+| cursor deep in one zone | 3.3 | 9.2 | 300 |
+| TC-AUD-25 date window two years back + module | 3.9 | 6.5 | 300 |
+| q prefix with matches | 112.1 | 124.7 | 300 |
+| TC-AUD-25 q prefix, no match | 3.9 | 4.0 | 300 |
+| module + action | 6.2 | 6.6 | 300 |
+| sensitive only | 7.4 | 10.0 | 300 |
+| by actor | 4.6 | 14.2 | 300 |
+| TC-AUD-25 zone + module + action, no match | 4.0 | 4.4 | 300 |
+| by zone + module + action | 5.6 | 10.1 | 300 |
+| by zone | 6.7 | 13.6 | 300 |
+| first page, no filter | 3.6 | 5.5 | 300 |
+| entity Activity (Zonal, predicate) | 3.1 | 3.1 | 100 |
+| entity Activity (Super Admin) | 5.3 | 6.7 | 100 |
+How it works: planAuditList() decides 403 / ALL / ENTITY; the viewer is built from AuthContext (viewerOf: can -> can(), zonesFor -> zonesFor(), over all the member's zones, ignoring ?zoneId in entity mode); the Zonal predicate is (module = m AND zone_id IN (...)) OR ... next to the entity filter; an empty first page for a Zonal viewer is 404; GET /audit-logs/{id} not visible is 404. from/to go out as an id range (uuidv7Bounds) AND a created_at range; q is lower(entity_label) LIKE lower(q)||'%' OR lower(actor_name) LIKE ..., with \ % _ escaped; cursor is id < after ORDER BY audit_logs.id DESC. Only audit.repository.ts reads audit_logs and login_history. /login-history masks emails (maskEmail); /me/login-history shows the caller's own, unmasked.
+Defects found by the 2M-row run and fixed: (1) ORDER BY id DESC bound to the aliased text column id::text, so no list used the primary-key index (0.5 to 1.9 s per list); it is now ORDER BY audit_logs.id DESC. (2) ip::text returned 203.0.113.5/32; now host(ip). (3) zone + module + action with no match took p95 1.3 s (the existing (zone_id, module, id) index cannot test action): new index (zone_id, module, action, id DESC).
+Plans (EXPLAIN ANALYZE, BUFFERS; the slowest sample of each shape):
+
+### entity Activity (Zonal, predicate)
+```
+Limit  (cost=0.43..8.51 rows=1 width=516) (actual time=0.228..0.229 rows=0 loops=1)
+  Buffers: shared hit=13
+  ->  Index Scan using audit_logs_entity_type_entity_id_id_idx on audit_logs  (cost=0.43..8.51 rows=1 width=516) (actual time=0.225..0.225 rows=0 loops=1)
+        Index Cond: ((entity_type = 'restaurant'::text) AND (entity_id = '0192f1d2-2222-7000-8000-000000000041'::uuid))
+        Filter: ((zone_id = ANY ('{0192f1d2-0000-7000-8000-000000000006,0192f1d2-0000-7000-8000-000000000007,0192f1d2-0000-7000-8000-000000000008}'::uuid[])) AND ((module = 'restaurants'::text) OR (module = 'homemakers'::text) OR (module = 'menu'::text) OR (module = 'customers'::text) OR (module = 'delivery'::text) OR (module = 'orders'::text) OR (module = 'payments'::text) OR (module = 'refunds'::text)))
+        Rows Removed by Filter: 10
+        Buffers: shared hit=13
+Planning:
+  Buffers: shared hit=347
+Planning Time: 2.543 ms
+Execution Time: 1.270 ms
+```
+
+### TC-AUD-25 zone + module + action, no match
+```
+Limit  (cost=0.55..209.91 rows=51 width=516) (actual time=0.129..0.130 rows=0 loops=1)
+  Buffers: shared hit=4
+  ->  Index Scan using audit_logs_zone_id_module_action_id_idx on audit_logs  (cost=0.55..4286.26 rows=1044 width=516) (actual time=0.126..0.127 rows=0 loops=1)
+        Index Cond: ((zone_id = '0192f1d2-0000-7000-8000-000000000007'::uuid) AND (module = 'orders'::text) AND (action = 'refund.requested'::text))
+        Buffers: shared hit=4
+Planning Time: 0.353 ms
+Execution Time: 0.401 ms
+```
+
+### TC-AUD-25 q prefix, no match
+```
+Limit  (cost=27.17..27.29 rows=51 width=516) (actual time=0.148..0.150 rows=0 loops=1)
+  Buffers: shared hit=9
+  ->  Sort  (cost=27.17..27.67 rows=200 width=516) (actual time=0.146..0.147 rows=0 loops=1)
+        Sort Key: id DESC
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=9
+        ->  Bitmap Heap Scan on audit_logs  (cost=8.97..20.50 rows=200 width=516) (actual time=0.088..0.089 rows=0 loops=1)
+              Recheck Cond: ((lower(entity_label) ~~ 'zzz18%'::text) OR (lower(actor_name) ~~ 'zzz18%'::text))
+              Filter: ((lower(entity_label) ~~ 'zzz18%'::text) OR (lower(actor_name) ~~ 'zzz18%'::text))
+              Buffers: shared hit=6
+              ->  BitmapOr  (cost=8.97..8.97 rows=1 width=0) (actual time=0.084..0.086 rows=0 loops=1)
+                    Buffers: shared hit=6
+                    ->  Bitmap Index Scan on audit_logs_label_idx  (cost=0.00..4.44 rows=1 width=0) (actual time=0.030..0.030 rows=0 loops=1)
+                          Index Cond: ((lower(entity_label) ~>=~ 'zzz18'::text) AND (lower(entity_label) ~<~ 'zzz19'::text))
+                          Buffers: shared hit=3
+                    ->  Bitmap Index Scan on audit_logs_actorname_idx  (cost=0.00..4.44 rows=1 width=0) (actual time=0.053..0.053 rows=0 loops=1)
+                          Index Cond: ((lower(actor_name) ~>=~ 'zzz18'::text) AND (lower(actor_name) ~<~ 'zzz19'::text))
+                          Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=53
+Planning Time: 1.164 ms
+Execution Time: 0.242 ms
+```
+
+### TC-AUD-25 date window two years back + module
+```
+Limit  (cost=0.43..1420.47 rows=51 width=516) (actual time=0.147..0.542 rows=51 loops=1)
+  Buffers: shared hit=33
+  ->  Index Scan Backward using audit_logs_pkey on audit_logs  (cost=0.43..3592.31 rows=129 width=516) (actual time=0.145..0.532 rows=51 loops=1)
+        Index Cond: ((id >= '0190a901-a955-7000-8000-000000000000'::uuid) AND (id <= '01913f63-9615-7fff-bfff-ffffffffffff'::uuid))
+        Filter: ((created_at >= '2024-07-12 22:13:56.789+00'::timestamp with time zone) AND (created_at <= '2024-08-11 03:01:56.789+00'::timestamp with time zone) AND (module = 'refunds'::text))
+        Rows Removed by Filter: 358
+        Buffers: shared hit=33
+Planning:
+  Buffers: shared hit=24
+Planning Time: 0.369 ms
+Execution Time: 0.592 ms
+```
+
+### sensitive only
+```
+Limit  (cost=0.43..30.78 rows=51 width=516) (actual time=0.039..0.342 rows=51 loops=1)
+  Buffers: shared hit=22
+  ->  Index Scan Backward using audit_logs_pkey on audit_logs  (cost=0.43..169835.45 rows=285403 width=516) (actual time=0.038..0.333 rows=51 loops=1)
+        Filter: (sensitivity = 'HIGH'::"AuditSensitivity")
+        Rows Removed by Filter: 306
+        Buffers: shared hit=22
+Planning Time: 0.146 ms
+Execution Time: 0.383 ms
+```
+
+Open points: (1) Docker port clash: 5440 belongs to another project's container (4dcommerce-postgres), so Zoauro Postgres now runs on 5441 (ZOAURO_PG_PORT=5441 in the root .env, DATABASE_URL* in apps/api/.env and .env.example). Teammates whose 5440 is free can keep 5440. (2) scripts/seed-audit.ts refuses the `zoauro` database: audit rows can never be deleted, so seed only throwaway databases (the perf test makes its own). (3) q with matches is the noisiest shape (63 to 300 ms across three full runs, 112 ms on the last quiet one); a one-letter prefix matches half the table. (4) Entity-mode list items carry changedFields (names), not values; values come from GET /audit-logs/{id}. (5) The idempotency replay test (tests/idempotency) failed in 2 of 7 full runs under load with 409: the response is stored just after it is sent (F1.4 decision 4); it passes alone and on rerun. (6) POST /audit-logs/exports and /exports/{id} (AU-8) are not built
+Next step: AU-5 retention jobs / AU-8 export
+Verify: pnpm infra:up && pnpm lint && pnpm typecheck && pnpm test && pnpm openapi:check
+
+Date / task id: 2026-10-12 / AU-7 Activity tab (Lane B)
+Lane / files changed: apps/web/features/audit/{ActivityTab, AuditDetailDrawer, DiffView, useAuditLogs, format, index}.ts(x) and audit.test.tsx (17 tests, jsdom); apps/web/components/ui/sheet.tsx (shadcn-style Sheet on Radix Dialog); apps/web/lib/{api-client.tsx, utils}.ts; apps/web/package.json (+@tanstack/react-query, @radix-ui/react-dialog, lucide-react, @zoauro/api-client; dev: jsdom, @testing-library/react, dom, user-event; all named in doc 06); packages/api-client (path parameters + 2 tests); pnpm-lock.yaml
+Contract changes (docs 08/09/10/36): none
+Decisions or [ASSUMPTION]s touched (D-numbers): none. Row added to doc 32
+Gate line status (pass/fail): pass — lint (jsx-a11y included), typecheck, test (web 18, api-client 7). Component tests cover loading, empty, 5xx (retried twice, then Try again), 403 (message, no retry), 404 (renders nothing and calls onUnavailable), cursor paging (after = nextCursor), Zonal drawer without request id / IP / device / copy button, Super Admin drawer with request id + working Copy + IP + device, drawer 404, keyboard (Tab to the button, Enter opens, focus moves inside, Escape closes, focus returns to the button), paise to rupees with Indian grouping (100000 -> ₹1,000.00, 12345678 -> ₹1,23,456.78)
+How it works: <ActivityTab entityType entityId [timeZone='Asia/Kolkata'] [onUnavailable] /> calls GET /audit-logs in entity mode through the typed client (useAuditLogs, TanStack infinite query, key ['audit','list','<type>:<id>',{limit}]); it shows each entry's actor, label, time and up to 3 changed field names (+N more); "View details" opens AuditDetailDrawer (GET /audit-logs/{id}, field / before / after table). ip, userAgent and requestId appear only if the API returns them (Super Admin only). Radix returns focus only to its own Trigger, so the opener's button is found by data-open-detail and focused explicitly on close. Money: the diff recognises paise by the last path segment against MONEY_FIELDS in features/audit/format.ts (the integer money columns of schema.prisma); add new money columns there or their diff shows plain numbers
+Pages not built yet (no ActivityTab is mounted anywhere; mount <ActivityTab entityType=... entityId=... onUnavailable={hideTab} /> when each exists, doc 21 item 10): restaurant, homemaker, partner, customer, order, zone (Super Admin), member (Super Admin), refund detail pages. The app has no detail page, layout providers or session context yet (F2). The root layout must mount <QueryClientProvider> and <ApiClientProvider> (lib/api-client.tsx) before any page uses the tab
+Open points: (1) Doc 50 asks for "field changes inline for the latest 3 changes"; the list API returns changedFields names only (no before/after), so the timeline shows names inline and values in the drawer. To show values inline the list item must gain them (a contract change, not made). (2) No design tokens (F0.6) or DataTable exist: plain Tailwind neutral palette with dark: variants, to be replaced by tokens. (3) The "Record" line shows the API's snake_case entity type, only de-underscored. (4) Not run in a browser: there is no page to open; behaviour is verified in jsdom
+Next step: F0.6 tokens, F2 UI foundation (providers, layout, session), then mount the tab on each detail page as it is built
+Verify: pnpm lint && pnpm typecheck && pnpm test

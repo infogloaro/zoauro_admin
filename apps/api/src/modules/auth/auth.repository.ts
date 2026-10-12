@@ -152,6 +152,7 @@ export class AuthRepository implements SessionPersistence {
         createdAt: true,
         user: {
           select: {
+            name: true,
             status: true,
             deletedAt: true,
             mustChangePassword: true,
@@ -169,6 +170,7 @@ export class AuthRepository implements SessionPersistence {
       lastSeenAt: s.lastSeenAt ?? s.createdAt,
       revokedAt: s.revokedAt,
       user: {
+        name: s.user.name,
         roleName: s.user.role.name,
         mustChangePassword: s.user.mustChangePassword,
         active: s.user.deletedAt === null && s.user.status === 'ACTIVE',

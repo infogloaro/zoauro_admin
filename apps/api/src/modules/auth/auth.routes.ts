@@ -6,6 +6,7 @@ import {
   requireJsonBody,
   requireSession,
 } from '../../lib/auth/middleware';
+import { auditOf } from '../../openapi/operations';
 import type { createAuthController } from './auth.controller';
 
 type Controller = ReturnType<typeof createAuthController>;
@@ -13,24 +14,24 @@ type Controller = ReturnType<typeof createAuthController>;
 /**
  * Mounted at /api/v1 (doc 09). The session middleware must run before this router.
  * Public routes: Origin check + JSON only. Session routes: Origin check + session + CSRF token.
- * Each mutating route declares what it audits (doc 50 section 2.1); the coverage guard itself is wired in AU-3.
+ * Each mutating route declares what it audits (doc 50 section 2.1), taken from its operation in openapi/operations.ts.
  */
 export function createAuthRoutes(c: Controller, opts: { appOrigin: string }): Router {
   const router = Router();
   const publicRoute = [originCheck(opts.appOrigin), requireJsonBody];
   const sessionRoute = [originCheck(opts.appOrigin), requireSession(), requireCsrf];
 
-  router.post('/auth/login', ...publicRoute, auditMeta({ none: 'login' }), c.login);
+  router.post('/auth/login', ...publicRoute, auditMeta(auditOf('login')), c.login);
   router.post(
     '/auth/forgot-password',
     ...publicRoute,
-    auditMeta({ module: 'auth', action: 'user.password_reset_requested' }),
+    auditMeta(auditOf('forgotPassword')),
     c.forgotPassword,
   );
   router.post(
     '/auth/reset-password',
     ...publicRoute,
-    auditMeta({ module: 'auth', action: 'user.password_changed' }),
+    auditMeta(auditOf('resetPassword')),
     c.resetPassword,
   );
 
@@ -40,14 +41,14 @@ export function createAuthRoutes(c: Controller, opts: { appOrigin: string }): Ro
     originCheck(opts.appOrigin),
     requireSession({ allowPasswordChangePending: true }),
     requireCsrf,
-    auditMeta({ none: 'logout' }),
+    auditMeta(auditOf('logout')),
     c.logout,
   );
   router.post(
     '/auth/reauth',
     ...sessionRoute,
     requireJsonBody,
-    auditMeta({ none: 'reauth' }),
+    auditMeta(auditOf('reauth')),
     c.reauth,
   );
 

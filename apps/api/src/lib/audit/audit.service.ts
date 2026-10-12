@@ -1,5 +1,5 @@
 import { AuditError } from './errors';
-import { getAuditContext } from './context';
+import { countAudit, getAuditContext } from './context';
 import type { AuditActor } from './context';
 import { diff } from './diff';
 import { uuidv7 } from './id';
@@ -119,7 +119,7 @@ function toRow(e: AuditEntry, outcome: 'SUCCESS' | 'DENIED'): AuditRow | null {
   if (e.before !== undefined || e.after !== undefined) {
     const d = diff(e.before, e.after);
     if (d.isNoop) {
-      ctx.noops += 1;
+      countAudit('noops');
       return null;
     } // TC-AUD-4: nothing changed, nothing recorded
     beforeJson = d.before === null ? undefined : redact(d.before);
@@ -153,16 +153,14 @@ export async function record(tx: AuditTx, e: AuditEntry): Promise<void> {
   const row = toRow(e, 'SUCCESS');
   if (!row) return;
   await tx.auditLog.create({ data: row });
-  const ctx = getAuditContext();
-  if (ctx) ctx.rowsWritten += 1;
+  countAudit('rowsWritten');
 }
 
 export async function recordMany(tx: AuditTx, entries: AuditEntry[]): Promise<void> {
   const rows = entries.map((e) => toRow(e, 'SUCCESS')).filter((r): r is AuditRow => r !== null);
   if (rows.length === 0) return;
   await tx.auditLog.createMany({ data: rows });
-  const ctx = getAuditContext();
-  if (ctx) ctx.rowsWritten += rows.length;
+  countAudit('rowsWritten', rows.length);
 }
 
 export function createAudit(deps: AuditDeps) {

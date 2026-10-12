@@ -7,6 +7,7 @@ import {
   requirePermission,
   zonesFor,
 } from '../../../src/lib/authz';
+import { auditMeta, noteAuditNoop } from '../../../src/lib/audit';
 import { requireCsrf, requireSession } from '../../../src/lib/auth/middleware';
 import { AppError } from '../../../src/lib/errors';
 
@@ -20,7 +21,8 @@ export type Mutant =
   | 'no-session' // a route with no authentication at all
   | 'undocumented' // an extra route that is not in the OpenAPI document
   | 'weak-guard' // a never-grantable module reachable by a Zonal Admin
-  | 'missing-csrf'; // state-changing routes that skip the CSRF check
+  | 'missing-csrf' // state-changing routes that skip the CSRF check
+  | 'no-audit-meta'; // a state-changing route that declares no audit metadata
 
 const zoneParam = (v: string | string[] | undefined): string =>
   Array.isArray(v) ? (v[0] ?? '') : (v ?? '');
@@ -28,6 +30,10 @@ const zoneParam = (v: string | string[] | undefined): string =>
 export function createTestRouter(opts: { csrf?: boolean; mutant?: Mutant } = {}): Router {
   const router = Router();
   const csrf = opts.csrf && opts.mutant !== 'missing-csrf' ? [requireCsrf] : [];
+  // The writes below change nothing, so each counts as an audited no-op (as a real module's identical update would).
+  const audited = (action: 'order.marked_delayed' | 'access.profile_set') => [
+    auditMeta({ module: action === 'access.profile_set' ? 'access' : 'orders', action }),
+  ];
 
   // list: scope comes from zonesFor
   router.get('/_t/orders', requirePermission('orders', 'view'), (_req, res) => {
@@ -57,16 +63,25 @@ export function createTestRouter(opts: { csrf?: boolean; mutant?: Mutant } = {})
     '/_t/orders/in/:zoneId',
     requirePermission('orders', 'edit', { zoneInRequest: true }),
     ...csrf,
+    ...audited('order.marked_delayed'),
     (req, res) => {
       assertCanWrite(authContextOf(res), 'orders:edit', zoneParam(req.params['zoneId']));
+      noteAuditNoop();
       res.json({ ok: true });
     },
   );
 
   // write that names no zone (bulk): the route guard itself needs the action in at least one zone
-  router.patch('/_t/orders', requirePermission('orders', 'edit'), ...csrf, (_req, res) => {
-    res.json({ ok: true });
-  });
+  router.patch(
+    '/_t/orders',
+    requirePermission('orders', 'edit'),
+    ...csrf,
+    ...(opts.mutant === 'no-audit-meta' ? [] : audited('order.marked_delayed')),
+    (_req, res) => {
+      noteAuditNoop();
+      res.json({ ok: true });
+    },
+  );
 
   // modules a Zonal Admin can never hold
   router.get(
@@ -76,9 +91,16 @@ export function createTestRouter(opts: { csrf?: boolean; mutant?: Mutant } = {})
       res.json({ ok: true });
     },
   );
-  router.put('/_t/access', requirePermission('access', 'edit'), ...csrf, (_req, res) => {
-    res.json({ ok: true });
-  });
+  router.put(
+    '/_t/access',
+    requirePermission('access', 'edit'),
+    ...csrf,
+    ...audited('access.profile_set'),
+    (_req, res) => {
+      noteAuditNoop();
+      res.json({ ok: true });
+    },
+  );
 
   // what the context looks like for the caller
   const ctxHandler = (_req: unknown, res: Response) => {

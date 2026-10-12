@@ -1,10 +1,21 @@
 import { z } from 'zod';
 import {
+  auditActorSearchQuerySchema,
+  auditActorSearchResponseSchema,
+  auditCatalogueSchema,
+  auditDetailSchema,
+  auditIdParamsSchema,
+  auditListQuerySchema,
+  auditListResponseSchema,
+  auditZoneListResponseSchema,
   forgotPasswordSchema,
+  loginHistoryListResponseSchema,
+  loginHistoryQuerySchema,
   loginResponseSchema,
   loginSchema,
   meResponseSchema,
   messageResponseSchema,
+  myLoginHistoryResponseSchema,
   reauthResponseSchema,
   reauthSchema,
   resetPasswordSchema,
@@ -33,7 +44,17 @@ export type Access =
    *   'query' = list; `?zoneId=` narrows, scope = requested ∩ viewable zones
    *   'path'  = object in `{zoneId}`; an unassigned zone is 404, a missing action is 403
    */
-  | { kind: 'permission'; permission: PermissionKey; zone: 'none' | 'query' | 'path' };
+  | {
+      kind: 'permission';
+      permission: PermissionKey;
+      zone: 'none' | 'query' | 'path';
+      /**
+       * The audit read routes (doc 50 section 8): the permission is never grantable, yet a Zonal Admin may still read an
+       * entity's Activity through the entity module's view permission. Without entity mode a Zonal Admin gets 403;
+       * a row they cannot see is 404. The guard is the session; the service decides.
+       */
+      zonalActivity?: true;
+    };
 
 export interface OperationDef {
   operationId: string;
@@ -47,6 +68,8 @@ export interface OperationDef {
   audit?: AuditRouteMeta;
   body?: z.ZodType;
   query?: z.ZodObject;
+  /** path parameters, e.g. { id } for /audit-logs/{id} */
+  params?: z.ZodObject;
   /** success response */
   response: { status: 200 | 201 | 204; schema?: z.ZodType; description: string };
   /** error statuses this operation can return, beyond what `access` implies */
@@ -140,4 +163,97 @@ export const OPERATIONS: OperationDef[] = [
     access: { kind: 'session', pendingPasswordChange: 'allowed' },
     response: { status: 200, schema: meResponseSchema, description: 'Current user' },
   },
+  // ---- M04 audit read API (doc 50 section 8). No write operations on audit rows. ------------------------------------
+  {
+    operationId: 'listAuditLogs',
+    method: 'get',
+    path: '/audit-logs',
+    tags: ['audit'],
+    summary:
+      'Audit rows, newest first (cursor = id). Super Admin: every filter. Zonal Admin: entity mode only (entityType + entityId); other filters except limit, after, from, to are ignored; nothing visible on the first page is 404.',
+    access: { kind: 'permission', permission: 'audit:view', zone: 'none', zonalActivity: true },
+    query: auditListQuerySchema,
+    response: {
+      status: 200,
+      schema: auditListResponseSchema,
+      description: 'One page of audit rows',
+    },
+  },
+  {
+    operationId: 'getAuditCatalogue',
+    method: 'get',
+    path: '/audit-logs/catalogue',
+    tags: ['audit'],
+    summary: 'Audit modules and action keys with labels, for the filter UI',
+    access: { kind: 'permission', permission: 'audit:view', zone: 'none' },
+    response: { status: 200, schema: auditCatalogueSchema, description: 'The audit catalogue' },
+  },
+  {
+    operationId: 'searchAuditActors',
+    method: 'get',
+    path: '/audit-logs/actors',
+    tags: ['audit'],
+    summary:
+      'Admins whose name starts with q (case-insensitive, up to 20), for the System Logs actor typeahead. Soft-deleted admins included.',
+    access: { kind: 'permission', permission: 'audit:view', zone: 'none' },
+    query: auditActorSearchQuerySchema,
+    response: {
+      status: 200,
+      schema: auditActorSearchResponseSchema,
+      description: 'Matching admins',
+    },
+  },
+  {
+    operationId: 'listAuditZones',
+    method: 'get',
+    path: '/audit-logs/zones',
+    tags: ['audit'],
+    summary: 'Every zone (soft-deleted included), for the System Logs zone filter',
+    access: { kind: 'permission', permission: 'audit:view', zone: 'none' },
+    response: { status: 200, schema: auditZoneListResponseSchema, description: 'Zone options' },
+  },
+  {
+    operationId: 'getAuditLog',
+    method: 'get',
+    path: '/audit-logs/{id}',
+    tags: ['audit'],
+    summary:
+      'One audit row with changes[]. A row the caller cannot see is 404. ip, userAgent and requestId only for Super Admin.',
+    access: { kind: 'permission', permission: 'audit:view', zone: 'none', zonalActivity: true },
+    params: auditIdParamsSchema,
+    response: { status: 200, schema: auditDetailSchema, description: 'The audit row' },
+  },
+  {
+    operationId: 'listLoginHistory',
+    method: 'get',
+    path: '/login-history',
+    tags: ['audit'],
+    summary: 'Sign-in attempts of all users, newest first (cursor = id); emails masked',
+    access: { kind: 'permission', permission: 'audit:view', zone: 'none' },
+    query: loginHistoryQuerySchema,
+    response: {
+      status: 200,
+      schema: loginHistoryListResponseSchema,
+      description: 'One page of sign-in attempts',
+    },
+  },
+  {
+    operationId: 'listMyLoginHistory',
+    method: 'get',
+    path: '/me/login-history',
+    tags: ['audit'],
+    summary: 'The caller’s own last 50 sign-in attempts',
+    access: { kind: 'session' },
+    response: { status: 200, schema: myLoginHistoryResponseSchema, description: 'Own sign-ins' },
+  },
 ];
+
+/**
+ * The audit metadata of a mutating operation, for its Express route: router.post(path, auditMeta(auditOf('login')), …).
+ * The same value becomes the operation's x-audit, so the two cannot drift. Throws at startup for an unknown id.
+ */
+export function auditOf(operationId: string): AuditRouteMeta {
+  const audit = OPERATIONS.find((o) => o.operationId === operationId)?.audit;
+  if (!audit) throw new Error(`${operationId}: no such mutating operation with audit metadata`);
+  return audit;
+}

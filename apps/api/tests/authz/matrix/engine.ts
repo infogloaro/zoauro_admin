@@ -1,6 +1,7 @@
 import type { Express, Router } from 'express';
 import request from 'supertest';
 import { isGrantable, parsePermissionKey, type PermissionKey } from '@zoauro/shared';
+import { checkOpenApiAuditMetadata, type CoverageViolation } from '../../../src/lib/audit';
 import type { MatrixActor, MatrixFixtures, ZoneLabel } from './fixtures';
 import { ZONE_LABELS } from './fixtures';
 
@@ -14,18 +15,27 @@ import { ZONE_LABELS } from './fixtures';
 type AccessDecl =
   | { kind: 'public' }
   | { kind: 'session'; pendingPasswordChange?: 'allowed' }
-  | { kind: 'permission'; permission: PermissionKey; zone: 'none' | 'query' | 'path' };
+  | {
+      kind: 'permission';
+      permission: PermissionKey;
+      zone: 'none' | 'query' | 'path';
+      zonalActivity?: true;
+    };
 
 interface OperationLike {
   operationId: string;
   requestBody?: unknown;
   'x-access'?: AccessDecl;
+  'x-audit'?: unknown;
 }
 export interface OpenApiLike {
   paths: Record<string, Record<string, OperationLike>>;
 }
 
 const METHODS = ['get', 'post', 'put', 'patch', 'delete'];
+/** What the engine puts in for a non-zone path parameter. Fixtures create rows with this id where a route needs one. */
+export const PLACEHOLDER_ID = '0192f1d2-0000-7000-8000-0000000000ff';
+
 const MUTATING = new Set(['post', 'put', 'patch', 'delete']);
 
 // ---- expectations --------------------------------------------------------------------------------------------------------
@@ -69,7 +79,12 @@ const zoneNotFound: Expectation = { kind: 'status', status: 404, codes: ['ZONE_N
 const viewableZones = (a: MatrixActor, viewKey: PermissionKey): ZoneLabel[] =>
   ZONE_LABELS.filter((z) => a.holds(z, viewKey));
 
-export function casesFor(op: OperationLike, method: string, actors: MatrixActor[]): Case[] {
+export function casesFor(
+  op: OperationLike,
+  method: string,
+  actors: MatrixActor[],
+  specPath = '',
+): Case[] {
   const access = op['x-access'];
   if (!access) return [];
   const mutating = MUTATING.has(method);
@@ -146,6 +161,17 @@ export function casesFor(op: OperationLike, method: string, actors: MatrixActor[
     }
 
     // Zonal Admin
+    if (access.zonalActivity) {
+      // doc 50 section 8: reachable only as an entity's Activity. The matrix sends no entity parameters, so the free
+      // listing is 403 and a row by id (not visible to any Zonal Admin: see the fixture) is 404.
+      cases.push({
+        actor,
+        zone: null,
+        variant: 'default',
+        expected: specPath.includes('{') ? notFound : forbidden,
+      });
+      continue;
+    }
     if (!isGrantable(parsed.module, parsed.action)) {
       // never grantable: refused before any zone is looked at
       if (access.zone === 'none')
@@ -231,7 +257,7 @@ export function listSpecRoutes(spec: OpenApiLike): string[] {
 }
 
 interface RouteLayer {
-  route?: { path: unknown; methods: Record<string, boolean> };
+  route?: { path: unknown; methods: Record<string, boolean>; stack?: { handle?: unknown }[] };
 }
 /** Routes registered directly on the given routers (relative to where they are mounted), `:id` written as `{id}`. */
 export function listExpressRoutes(routers: Router[]): string[] {
@@ -246,6 +272,31 @@ export function listExpressRoutes(routers: Router[]): string[] {
   }
   return out.sort();
 }
+
+/** The audit metadata each mutating route carries on its stack (auditMeta handlers expose it), undefined when none. */
+export function listExpressAuditMeta(routers: Router[]): Map<string, unknown> {
+  const out = new Map<string, unknown>();
+  for (const router of routers) {
+    for (const layer of (router as unknown as { stack: RouteLayer[] }).stack) {
+      if (!layer.route || typeof layer.route.path !== 'string') continue;
+      const path = layer.route.path.replace(/:([A-Za-z0-9_]+)/g, '{$1}');
+      const holder = (layer.route.stack ?? [])
+        .map((l) => l.handle)
+        .find((h) => typeof h === 'function' && 'auditMeta' in h) as
+        { auditMeta: unknown } | undefined;
+      for (const [m, on] of Object.entries(layer.route.methods))
+        if (on && MUTATING.has(m)) out.set(`${m.toUpperCase()} ${path}`, holder?.auditMeta);
+    }
+  }
+  return out;
+}
+
+const describeViolation = (v: CoverageViolation): string =>
+  v.kind === 'BAD_METADATA'
+    ? `bad audit metadata (${v.detail})`
+    : v.kind === 'NO_AUDIT_ROW'
+      ? `answered 2xx but recorded no audit row for ${v.action}`
+      : 'no audit metadata';
 
 // ---- running ---------------------------------------------------------------------------------------------------------------
 
@@ -270,6 +321,8 @@ export interface MatrixConfig {
   /** routes served outside those routers (e.g. 'GET /openapi.json') */
   extraServedRoutes?: string[];
   bindings?: Record<string, Binding>;
+  /** filled by the app's coverage guard (mode 'collect') while the matrix runs; every entry is a failure */
+  auditViolations?: CoverageViolation[];
   /** a signed-in session for the actor; `fresh` for calls that may end it (logout) */
   session(actor: MatrixActor, fresh: boolean): Promise<Session>;
 }
@@ -328,9 +381,9 @@ export async function runAuthorizationMatrix(cfg: MatrixConfig): Promise<MatrixR
       const binding = cfg.bindings?.[op.operationId];
       const mutating = MUTATING.has(method);
 
-      for (const c of casesFor(op, method, fixtures.actors)) {
+      for (const c of casesFor(op, method, fixtures.actors, specPath)) {
         const zoneId = c.zone ? fixtures.zones[c.zone] : undefined;
-        let url = `${cfg.basePath}${specPath.replace(/\{zoneId\}/g, zoneId ?? fixtures.zones.A).replace(/\{[A-Za-z0-9_]+\}/g, '0192f1d2-0000-7000-8000-0000000000ff')}`;
+        let url = `${cfg.basePath}${specPath.replace(/\{zoneId\}/g, zoneId ?? fixtures.zones.A).replace(/\{[A-Za-z0-9_]+\}/g, PLACEHOLDER_ID)}`;
         if (c.variant === 'requested-zone' && zoneId) url += `?zoneId=${zoneId}`;
 
         let req = request(cfg.app)[method as 'get'](url).set('Origin', 'http://localhost:3000');
@@ -414,6 +467,22 @@ export async function runAuthorizationMatrix(cfg: MatrixConfig): Promise<MatrixR
     );
   for (const r of unimplementedRoutes)
     failures.push(`${r}: in the OpenAPI document but not served`);
+
+  // audit metadata (doc 50 section 2.1): in the document, on the Express route, the same in both, and honoured at runtime
+  for (const v of checkOpenApiAuditMetadata(spec))
+    failures.push(`${v.method} ${v.path}: x-audit: ${describeViolation(v)}`);
+  for (const [r, meta] of listExpressAuditMeta(cfg.routers)) {
+    const [method = '', specPath = ''] = r.split(' ');
+    const declared = spec.paths[specPath]?.[method.toLowerCase()]?.['x-audit'];
+    if (meta === undefined)
+      failures.push(`${r}: the Express route declares no auditMeta(...) (doc 50 section 2.1)`);
+    else if (declared !== undefined && JSON.stringify(meta) !== JSON.stringify(declared))
+      failures.push(
+        `${r}: route audits ${JSON.stringify(meta)} but the document says ${JSON.stringify(declared)}`,
+      );
+  }
+  for (const v of cfg.auditViolations ?? [])
+    failures.push(`${v.method} ${v.path}: audit coverage: ${describeViolation(v)}`);
 
   const coveredRoutes = [...new Set(results.map((r) => r.route))].sort();
   return {

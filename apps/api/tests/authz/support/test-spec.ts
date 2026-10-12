@@ -2,7 +2,7 @@ import type { OpenApiLike } from '../matrix/engine';
 import type { Binding } from '../matrix/engine';
 
 // OpenAPI-shaped description of the test-only routes in test-router.ts. It has exactly the parts the matrix engine
-// reads (operationId, requestBody, x-access), so permission routes with every zone behaviour are exercised before
+// reads (operationId, requestBody, x-access, x-audit), so permission routes with every zone behaviour are exercised before
 // real zone-owned modules exist.
 
 export const TEST_SPEC: OpenApiLike = {
@@ -15,6 +15,7 @@ export const TEST_SPEC: OpenApiLike = {
       patch: {
         operationId: 'testBulkEditOrders',
         'x-access': { kind: 'permission', permission: 'orders:edit', zone: 'none' },
+        'x-audit': { module: 'orders', action: 'order.marked_delayed' },
       },
     },
     '/_t/payments': {
@@ -31,6 +32,7 @@ export const TEST_SPEC: OpenApiLike = {
       patch: {
         operationId: 'testEditOrderInZone',
         'x-access': { kind: 'permission', permission: 'orders:edit', zone: 'path' },
+        'x-audit': { module: 'orders', action: 'order.marked_delayed' },
       },
     },
     '/_t/access': {
@@ -41,6 +43,7 @@ export const TEST_SPEC: OpenApiLike = {
       put: {
         operationId: 'testPutAccess',
         'x-access': { kind: 'permission', permission: 'access:edit', zone: 'none' },
+        'x-audit': { module: 'access', action: 'access.profile_set' },
       },
     },
     '/_t/ctx': {

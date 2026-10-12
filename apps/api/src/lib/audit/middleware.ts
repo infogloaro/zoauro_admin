@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
-import { getAuditContext, runWithAuditContext } from './context';
-import type { AuditActor } from './context';
+import { runWithAuditContext, runWithAuditTally } from './context';
+import type { AuditActor, AuditTally } from './context';
 import { evaluateCoverage } from './coverage';
 import type { AuditRouteMeta, CoverageViolation } from './coverage';
 
@@ -27,30 +27,36 @@ export function auditContextMiddleware(opts: {
   };
 }
 
+export type AuditMetaHandler = ((req: Request, res: Response, next: NextFunction) => void) & {
+  /** read by the authorization harness from the route stack and compared with the operation's x-audit */
+  auditMeta: AuditRouteMeta;
+};
+
 /** 2) Route metadata: router.post('/x', auditMeta({ module, action }), handler) or auditMeta({ none: 'logout' }). */
-export function auditMeta(meta: AuditRouteMeta) {
-  return (_req: Request, res: Response, next: NextFunction): void => {
+export function auditMeta(meta: AuditRouteMeta): AuditMetaHandler {
+  const handler = (_req: Request, res: Response, next: NextFunction): void => {
     res.locals['auditMeta'] = meta;
     next();
   };
+  return Object.assign(handler, { auditMeta: meta });
 }
 
-/** 3) Coverage guard. Install after the context middleware. mode "throw" (tests) fails the run; "log" (production) reports and continues. */
+/** 3) Coverage guard. Install before the routes. mode "throw" (tests) fails the run; "log" (production) reports and continues. */
 export function auditCoverage(opts: {
   mode: 'throw' | 'log' | 'collect';
   logger?: { error: (obj: object, msg: string) => void };
   onViolation?: (v: CoverageViolation) => void;
 }) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const ctx = getAuditContext();
+    const tally: AuditTally = { rowsWritten: 0, noops: 0 };
     res.on('finish', () => {
       const v = evaluateCoverage({
         method: req.method,
         path: req.baseUrl + (req.route?.path ?? req.path) || req.originalUrl,
         status: res.statusCode,
         meta: res.locals['auditMeta'],
-        rowsWritten: ctx?.rowsWritten ?? 0,
-        noops: ctx?.noops ?? 0,
+        rowsWritten: tally.rowsWritten,
+        noops: tally.noops,
       });
       if (!v) return;
       opts.onViolation?.(v);
@@ -60,6 +66,6 @@ export function auditCoverage(opts: {
           throw new Error(`audit coverage violation: ${JSON.stringify(v)}`);
         });
     });
-    next();
+    runWithAuditTally(tally, () => next());
   };
 }

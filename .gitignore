@@ -11,3 +11,6 @@ coverage
 .turbo
 Zoauro-DevReady-Pack-*.zip
 apps/api/test-reports/
+tests/e2e/.state/
+test-results/
+playwright-report/

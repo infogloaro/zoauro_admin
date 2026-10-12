@@ -121,3 +121,17 @@ describe('api client', () => {
     expectTypeOf<keyof paths>().toExtend<string>();
   });
 });
+
+describe('path parameters', () => {
+  it('fills {id} from params, URL-encoded, and keeps the query string', async () => {
+    const { calls, fn } = fakeFetch([{ status: 200, body: {} }]);
+    const client = createApiClient({ fetch: fn });
+    await client.get('/audit-logs/{id}', { params: { id: 'a/b c' } });
+    expect(calls[0]?.url).toBe('/api/v1/audit-logs/a%2Fb%20c');
+  });
+  it('refuses a call that leaves a placeholder unfilled', async () => {
+    const { fn } = fakeFetch([]);
+    const client = createApiClient({ fetch: fn });
+    await expect(client.get('/audit-logs/{id}')).rejects.toThrow(/missing path parameter id/);
+  });
+});

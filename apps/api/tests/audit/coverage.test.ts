@@ -10,7 +10,7 @@ import {
   uuidv7,
 } from '../../src/lib/audit';
 import type { AuditActor, CoverageViolation } from '../../src/lib/audit';
-import { getAuditContext } from '../../src/lib/audit';
+import { countAudit } from '../../src/lib/audit';
 
 const actor: AuditActor = { type: 'USER', id: uuidv7(), name: 'Test Admin', role: 'SUPER_ADMIN' };
 
@@ -20,14 +20,8 @@ function buildApp(violations: CoverageViolation[]) {
   app.use(auditContextMiddleware({ resolveActor: () => actor, getRequestId: () => 'req-x' }));
   app.use(auditCoverage({ mode: 'collect', onViolation: (v) => violations.push(v) }));
   // simulates a service that wrote an audit row
-  const wroteRow = () => {
-    const c = getAuditContext();
-    if (c) c.rowsWritten += 1;
-  };
-  const wasNoop = () => {
-    const c = getAuditContext();
-    if (c) c.noops += 1;
-  };
+  const wroteRow = () => countAudit('rowsWritten');
+  const wasNoop = () => countAudit('noops');
   app.post('/ok', auditMeta({ module: 'zones', action: 'zone.created' }), (_q, r) => {
     wroteRow();
     r.status(201).json({});

@@ -5,7 +5,7 @@ import type {
   ResetPasswordInput,
   Role,
 } from '@zoauro/shared';
-import { record, recordMany, runWithAuditContext, uuidv7 } from '../../lib/audit';
+import { noteAuditNoop, record, recordMany, runWithAuditContext, uuidv7 } from '../../lib/audit';
 import type { AuditActor, AuditEntry } from '../../lib/audit';
 import type { AuthConfig, Clock } from '../../lib/auth/config';
 import {
@@ -147,6 +147,7 @@ export class AuthService {
     await this.deps.sessions.cacheNew(tokenHash, {
       sessionId,
       userId: user.id,
+      name: user.name,
       role: user.roleName,
       mustChangePassword: user.mustChangePassword,
       expiresAt,
@@ -350,10 +351,17 @@ export class AuthService {
       config.forgotLimitPerEmail.limit,
       config.forgotLimitPerEmail.windowSec,
     );
-    if (!emailLimit.allowed) return;
+    // Nothing changes on these paths, so nothing is recorded; they count as audited no-ops for the coverage guard.
+    if (!emailLimit.allowed) {
+      noteAuditNoop();
+      return;
+    }
 
     const user = await this.deps.db.repo.findUserByEmail(input.email);
-    if (!user || user.status !== 'ACTIVE') return;
+    if (!user || user.status !== 'ACTIVE') {
+      noteAuditNoop();
+      return;
+    }
 
     const now = this.deps.clock();
     const token = randomToken(32);

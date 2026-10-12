@@ -84,6 +84,8 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /audit-logs | audit:view (Super Admin) or entity mode | Cursor list; filters actor, actorType, module, action, entityType, entityId, zoneId, outcome, sensitivity, q, from, to. Zonal Admin: entity mode only (entityType+entityId), else 403; ip/userAgent/requestId hidden (doc 50 §8) |
 | GET | /audit-logs/{id} | as above | detail with changes[] |
 | GET | /audit-logs/catalogue | audit:view | modules and action keys for filters |
+| GET | /audit-logs/actors | audit:view | `?q=` (name prefix, case-insensitive), `limit` ≤ 20: admins `{id, name, role}` for the System Logs actor typeahead (doc 50 §8) |
+| GET | /audit-logs/zones | audit:view | every zone `{id, name}` (soft-deleted included) for the System Logs zone filter (doc 50 §8) |
 | POST | /audit-logs/exports | audit:export | Super Admin, re-auth, 3/hour, 100k rows cap, async CSV |
 | GET | /exports/{id} | requester | status and 24 h signed URL |
 | GET | /login-history | audit:view | Super Admin, cursor |

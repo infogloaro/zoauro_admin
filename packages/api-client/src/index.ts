@@ -35,6 +35,8 @@ type Success<O> = O extends { responses: infer R }
 export interface RequestInitOf<O> {
   body?: JsonBody<O>;
   query?: QueryOf<O>;
+  /** values for `{name}` placeholders in the path, e.g. { id } for /audit-logs/{id}; URL-encoded */
+  params?: Record<string, string>;
   /** required by refund, payment, intake order and cash-settlement POSTs (doc 09) */
   idempotencyKey?: string;
   signal?: AbortSignal;
@@ -75,12 +77,18 @@ export function createApiClient(options: ApiClientOptions = {}) {
       for (const item of Array.isArray(v) ? v : [v]) params.append(k, String(item));
     }
     const query = params.toString();
+    const url = String(path).replace(/{([A-Za-z0-9_]+)}/g, (_m, name: string) => {
+      const value = init.params?.[name];
+      if (value === undefined)
+        throw new TypeError(`missing path parameter ${name} for ${String(path)}`);
+      return encodeURIComponent(value);
+    });
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (init.body !== undefined) headers['Content-Type'] = 'application/json';
     if (method !== 'get' && csrfToken) headers['X-CSRF-Token'] = csrfToken;
     if (init.idempotencyKey) headers['Idempotency-Key'] = init.idempotencyKey;
 
-    const res = await doFetch(`${baseUrl}${String(path)}${query ? `?${query}` : ''}`, {
+    const res = await doFetch(`${baseUrl}${url}${query ? `?${query}` : ''}`, {
       method: method.toUpperCase(),
       headers,
       credentials: 'include',

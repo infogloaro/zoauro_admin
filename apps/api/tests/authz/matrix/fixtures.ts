@@ -1,5 +1,6 @@
 import { isGrantable, parsePermissionKey, type PermissionKey } from '@zoauro/shared';
 import type { AuthTestEnv, PersonaRole, TestUser } from '../../auth/support/auth-env';
+import { PLACEHOLDER_ID } from './engine';
 
 // Fixtures for the authorization matrix (doc 24 section 2, doc 36 section 6): zones A, B, C and the actors
 //   SuperAdmin, Admin(A full), Admin(A+B: full in A, read-only in B), Admin(A, payments denied), Admin(none)
@@ -145,6 +146,13 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
         spec.role === 'SUPER_ADMIN' ? true : assigned().some((z) => holds(z, key)),
     });
   }
+
+  // GET /audit-logs/{id} with the placeholder id: a zone-less row, so Super Admin reads it and no Zonal Admin ever does
+  await env.db.owner.query(
+    `INSERT INTO audit_logs (id, actor_type, actor_name, module, action, entity_type, entity_id, entity_label)
+     VALUES ($1, 'SYSTEM', 'System: matrix fixture', 'zones', 'zone.updated', 'zone', $2, 'Zone A')`,
+    [PLACEHOLDER_ID, zones.A],
+  );
 
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {

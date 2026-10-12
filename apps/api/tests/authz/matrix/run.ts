@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Router } from 'express';
 import type { Express } from 'express';
+import type { CoverageViolation } from '../../../src/lib/audit';
 import type { AuthTestEnv } from '../../auth/support/auth-env';
 import {
   runAuthorizationMatrix,
@@ -17,6 +18,19 @@ export async function prepareFixtures(env: AuthTestEnv): Promise<MatrixFixtures>
   return createMatrixFixtures(env);
 }
 
+/**
+ * The app for a matrix run. Its audit coverage guard collects instead of throwing, and runMatrix reports what it
+ * collected as failures, so one unaudited route fails the run with a readable message.
+ */
+export function makeMatrixApp(env: AuthTestEnv, extra: { routers?: Router[] } = {}) {
+  const auditViolations: CoverageViolation[] = [];
+  const built = env.makeAuthzApp({
+    ...extra,
+    auditCoverage: { mode: 'collect', onViolation: (v) => auditViolations.push(v) },
+  });
+  return { ...built, auditViolations };
+}
+
 export async function runMatrix(
   env: AuthTestEnv,
   fixtures: MatrixFixtures,
@@ -26,6 +40,7 @@ export async function runMatrix(
     routers: Router[];
     extraServedRoutes?: string[];
     bindings?: Record<string, Binding>;
+    auditViolations?: CoverageViolation[];
   },
 ): Promise<MatrixReport> {
   return runAuthorizationMatrix({
@@ -36,6 +51,7 @@ export async function runMatrix(
     routers: cfg.routers,
     ...(cfg.extraServedRoutes ? { extraServedRoutes: cfg.extraServedRoutes } : {}),
     ...(cfg.bindings ? { bindings: cfg.bindings } : {}),
+    ...(cfg.auditViolations ? { auditViolations: cfg.auditViolations } : {}),
     session: async (actor) => {
       const s = await env.session(actor.user);
       return { cookie: s.cookie, csrf: s.csrf };

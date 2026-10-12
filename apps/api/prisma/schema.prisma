@@ -446,6 +446,7 @@ model AuditLog {
 
   @@index([zoneId, id(sort: Desc)])
   @@index([zoneId, module, id(sort: Desc)]) // added after the 2M-row test: zone+module(+action) filters with few or no matches
+  @@index([zoneId, module, action, id(sort: Desc)]) // AU-4: zone+module+action with no match (action is not in the index above)
   @@index([entityType, entityId, id(sort: Desc)])
   @@index([actorId, id(sort: Desc)])
   @@index([module, action, id(sort: Desc)])

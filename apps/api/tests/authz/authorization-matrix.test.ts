@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAuthTestEnv, type AuthTestEnv } from '../auth/support/auth-env';
 import { listSpecRoutes, type OpenApiLike } from './matrix/engine';
 import type { MatrixFixtures } from './matrix/fixtures';
-import { prepareFixtures, publishReport, runMatrix } from './matrix/run';
+import { makeMatrixApp, prepareFixtures, publishReport, runMatrix } from './matrix/run';
 import { createTestRouter } from './support/test-router';
 import { TEST_BINDINGS, TEST_SPEC } from './support/test-spec';
 
@@ -28,19 +28,20 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     const spec = JSON.parse(
       readFileSync(path.resolve(__dirname, '../../openapi/openapi.json'), 'utf8'),
     ) as OpenApiLike;
-    const { app, routers } = env.makeAuthzApp();
+    const { app, routers, auditViolations } = makeMatrixApp(env);
     const report = await runMatrix(env, fixtures, {
       spec,
       app,
       routers,
       extraServedRoutes: ['GET /openapi.json'], // served by createApp, not by a module router
+      auditViolations,
     });
     publishReport('real-routes', report);
 
     expect(report.failures).toEqual([]);
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
-    expect(report.coveredRoutes).toHaveLength(7);
+    expect(report.coveredRoutes).toHaveLength(14);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
   });
@@ -49,12 +50,13 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     const spec = JSON.parse(
       readFileSync(path.resolve(__dirname, '../../openapi/openapi.json'), 'utf8'),
     ) as OpenApiLike;
-    const { app, routers } = env.makeAuthzApp();
+    const { app, routers, auditViolations } = makeMatrixApp(env);
     const report = await runMatrix(env, fixtures, {
       spec,
       app,
       routers,
       extraServedRoutes: ['GET /openapi.json'],
+      auditViolations,
     });
     const actorsOnMe = new Set(
       report.results.filter((r) => r.route === 'GET /me').map((r) => r.actor),
@@ -79,14 +81,15 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
 
 describe('authorization matrix over permission routes (zone-scoped lists, objects and never-grantable modules)', () => {
   it('SuperAdmin, Admin(A), Admin(A+B), Admin(A, payments denied) and Admin(none) get the documented 200 / 403 / 404 on every zone', async () => {
-    const { app, routers } = env.makeAuthzApp({ routers: [createTestRouter({ csrf: true })] });
-    // the test document describes only the test routes, so the real auth router is not part of this run
-    const testRouters = routers.slice(1);
+    const { app, extraRouters, auditViolations } = makeMatrixApp(env, {
+      routers: [createTestRouter({ csrf: true })],
+    });
     const report = await runMatrix(env, fixtures, {
       spec: TEST_SPEC,
       app,
-      routers: testRouters,
+      routers: extraRouters, // the test document describes only the test routes
       bindings: TEST_BINDINGS,
+      auditViolations,
     });
     publishReport('permission-routes', report);
 

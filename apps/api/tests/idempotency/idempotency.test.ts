@@ -49,7 +49,8 @@ beforeAll(async () => {
     executions.noContent += 1;
     res.status(204).end();
   });
-  ({ app } = env.makeAuthzApp({ routers: [router] }));
+  // These stand-in routes test idempotency only and write no audit rows; the coverage guard has its own tests.
+  ({ app } = env.makeAuthzApp({ routers: [router], auditCoverage: { mode: 'collect' } }));
 }, 120_000);
 
 afterAll(async () => {
