@@ -66,7 +66,24 @@ const actorFor = (u: AuthUser): AuditActor => ({
   role: u.roleName,
 });
 
-const userEntity = (u: AuthUser) => ({ type: 'user', id: u.id, label: u.email });
+// Audit labels name the person, never their email (P3.3): the id is already in entity_id.
+const userEntity = (u: AuthUser) => ({ type: 'user', id: u.id, label: u.name });
+/** session.revoked: entity_id is the session, so the label carries the owner's name and user id. */
+const sessionEntity = (sessionId: string, u: AuthUser) => ({
+  type: 'session',
+  id: sessionId,
+  label: `${u.name} (${u.id})`,
+});
+
+const EMAIL_MAX = 254;
+/**
+ * login_history.email_attempted (P3.3): the account's address in lower case when the typed address belongs to a user;
+ * otherwise only a mask (first character, then `***@***`), so a password typed into the email field is never stored.
+ */
+export function emailForHistory(matched: { email: string } | null, typed: string): string {
+  if (matched) return matched.email.toLowerCase().slice(0, EMAIL_MAX);
+  return typed.length === 0 ? '' : `${typed.slice(0, 1)}***@***`;
+}
 
 export class AuthService {
   constructor(
@@ -138,7 +155,7 @@ export class AuthService {
           lastSeenAt: now,
         });
         await tx.repo.addLoginHistory(
-          this.historyEntry(user.id, user.email, true, 'LOGIN', meta, now),
+          this.historyEntry(user.id, emailForHistory(user, input.email), true, 'LOGIN', meta, now),
         );
         if (user.roleName === 'SUPER_ADMIN') return '/super-admin/dashboard';
         return (await tx.repo.countActiveZoneAssignments(user.id)) > 0
@@ -189,9 +206,10 @@ export class AuthService {
     meta: RequestMeta,
     now: Date,
   ): Promise<void> {
+    const stored = emailForHistory(user, email);
     if (!user || !COUNTED_FAILURES.has(reason)) {
       await this.deps.db.repo.addLoginHistory(
-        this.historyEntry(user?.id ?? null, email, false, reason, meta, now),
+        this.historyEntry(user?.id ?? null, stored, false, reason, meta, now),
       );
       return;
     }
@@ -199,7 +217,7 @@ export class AuthService {
       this.deps.db.transaction(async (tx) => {
         await this.releaseExpiredLock(tx, user, now);
         await this.countFailureAndMaybeLock(tx, user, now);
-        await tx.repo.addLoginHistory(this.historyEntry(user.id, email, false, reason, meta, now));
+        await tx.repo.addLoginHistory(this.historyEntry(user.id, stored, false, reason, meta, now));
       }),
     );
   }
@@ -291,7 +309,7 @@ export class AuthService {
     await this.deps.db.transaction(async (tx) => {
       await tx.repo.revokeSession(session.sessionId, now);
       await tx.repo.addLoginHistory(
-        this.historyEntry(session.userId, user?.email ?? '', true, 'LOGOUT', meta, now),
+        this.historyEntry(session.userId, emailForHistory(user, ''), true, 'LOGOUT', meta, now),
       );
     });
     await this.deps.sessions.evict(session.tokenHash);
@@ -433,7 +451,7 @@ export class AuthService {
           entries.push({
             module: 'auth',
             action: 'session.revoked',
-            entity: { type: 'session', id: s.id, label: user.email },
+            entity: sessionEntity(s.id, user),
             note: 'All sessions revoked by password reset',
           });
         }
