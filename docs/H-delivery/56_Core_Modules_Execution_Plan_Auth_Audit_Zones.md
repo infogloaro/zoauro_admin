@@ -25,7 +25,8 @@ Based on the **Step 1 read-only audit of the repo** (commit `0d12141`, branch `m
 | P2 | **Complete** | (a) `bf1b53450918156ba5f01cb899a02dbf8265d8d0` idempotency key settled before the response is sent (also touched `src/lib/errors.ts`, see doc 32); (b) `a3dc2d188212226e20f6814a27efcfae8fba5a36` guarded throwaway-database teardown without `DROP ... FORCE`. Three consecutive `pnpm --filter @zoauro/api test` runs: 330 passed, 0 failed, 14 skipped, 1 todo each; no new leftover databases |
 | P3 | **Complete** | `afc2f0e` DENIED rows via recordDenied; `239fe3c` TRUST_PROXY_HOPS; `1df4665` no staff email in labels / unmatched login history; `99d1a59` database role boot guard; `47cc689` detail endpoint scope tests. `pnpm --filter @zoauro/api test` green before each commit. Recorded in `docs/handoff.md` |
 | P4 | **Complete** | `e00f8fb`, `6d4bda3` shared 2-step contracts and audit actions; `b45588e` schema + migration `20261012100000_auth_two_step`, applied to `zoauro` with `migrate deploy` after approval; verified: 6 migrations, 3 MFA tables, 2 enums, partial unique index, users 0. Recorded in `docs/handoff.md` |
-| P5 onwards | Not started | |
+| P5 | **Complete** | `da0c1e8` shared zone contracts and audit actions; `0e45128` schema + migration `20261012110000_zones_schema`, applied to `zoauro` after approval; verified: 7 migrations, 4 CHECKs, UNIQUE(code) incl. soft-deleted, unique lower(name), UNIQUE(pincode). Recorded in `docs/handoff.md` |
+| P6 onwards | In progress | |
 
 ## 2. Decisions I made so the prompts could be written (change them before the step that uses them)
 | # | Decision | Default used | Why / alternative |
