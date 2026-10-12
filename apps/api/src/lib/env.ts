@@ -58,6 +58,11 @@ function buildSchema(entry: EntryPoint) {
       REDIS_URL: redisUrl,
       SESSION_SECRET: text.min(32, 'must be at least 32 characters'),
       ENCRYPTION_KEY: text.min(32, 'must be at least 32 characters'),
+      // 2-step verification (doc 52 section 5, doc 12): the previous key only while rotating ENCRYPTION_KEY
+      ENCRYPTION_KEY_PREVIOUS: text.min(32, 'must be at least 32 characters').optional(),
+      // HMAC key for one-time and backup codes; its own secret, never one of the others
+      OTP_HMAC_KEY: text.min(32, 'must be at least 32 characters'),
+      MFA_ISSUER: text.max(64).default('ZOAURO Admin'),
       S3_BUCKET: text,
       S3_REGION: text,
       S3_ENDPOINT: z.url().optional(),
@@ -80,6 +85,23 @@ function buildSchema(entry: EntryPoint) {
       INITIAL_SUPERADMIN_PASSWORD: z.string().min(1).optional(),
     })
     .superRefine((env, ctx) => {
+      if (env.OTP_HMAC_KEY === env.SESSION_SECRET || env.OTP_HMAC_KEY === env.ENCRYPTION_KEY) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['OTP_HMAC_KEY'],
+          message: 'must differ from SESSION_SECRET and ENCRYPTION_KEY',
+        });
+      }
+      if (
+        env.ENCRYPTION_KEY_PREVIOUS !== undefined &&
+        env.ENCRYPTION_KEY_PREVIOUS === env.ENCRYPTION_KEY
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['ENCRYPTION_KEY_PREVIOUS'],
+          message: 'must differ from ENCRYPTION_KEY',
+        });
+      }
       if (env.NODE_ENV !== 'production') return;
       if (env.DATABASE_URL_MIGRATE !== undefined) {
         ctx.addIssue({

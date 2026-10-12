@@ -8,6 +8,7 @@ const valid = {
   REDIS_URL: 'redis://localhost:6390',
   SESSION_SECRET: 'x'.repeat(32),
   ENCRYPTION_KEY: 'y'.repeat(32),
+  OTP_HMAC_KEY: 'z'.repeat(32),
   S3_BUCKET: 'zoauro-dev',
   S3_REGION: 'ap-south-1',
 };
@@ -89,6 +90,23 @@ describe('loadEnv', () => {
     for (const bad of [',', 'zoauro_app,zoauro_owner', 'zoauro_purge']) {
       expect(problems({ ...valid, DATABASE_ALLOWED_ROLES: bad }), bad).toHaveLength(1);
     }
+  });
+
+  it('2-step keys: OTP_HMAC_KEY required (32+) and distinct; previous key distinct; issuer default', () => {
+    expect(loadEnv(valid).MFA_ISSUER).toBe('ZOAURO Admin');
+    expect(loadEnv(valid).ENCRYPTION_KEY_PREVIOUS).toBeUndefined();
+    expect(problems({ ...valid, OTP_HMAC_KEY: undefined })).toEqual(['OTP_HMAC_KEY: is required']);
+    expect(problems({ ...valid, OTP_HMAC_KEY: 'short' })).toHaveLength(1);
+    expect(problems({ ...valid, OTP_HMAC_KEY: valid.SESSION_SECRET })).toEqual([
+      'OTP_HMAC_KEY: must differ from SESSION_SECRET and ENCRYPTION_KEY',
+    ]);
+    expect(problems({ ...valid, OTP_HMAC_KEY: valid.ENCRYPTION_KEY })).toHaveLength(1);
+    expect(problems({ ...valid, ENCRYPTION_KEY_PREVIOUS: valid.ENCRYPTION_KEY })).toEqual([
+      'ENCRYPTION_KEY_PREVIOUS: must differ from ENCRYPTION_KEY',
+    ]);
+    expect(
+      loadEnv({ ...valid, ENCRYPTION_KEY_PREVIOUS: 'p'.repeat(32) }).ENCRYPTION_KEY_PREVIOUS,
+    ).toBe('p'.repeat(32));
   });
 
   it('TRUST_PROXY_HOPS: a non-negative integer, default 0', () => {
