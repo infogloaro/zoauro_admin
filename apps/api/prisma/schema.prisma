@@ -216,6 +216,21 @@ enum AuditSensitivity {
   HIGH
 }
 
+// 2-step verification enums (doc 52 section 3)
+enum MfaType {
+  AUTHENTICATOR
+  EMAIL_OTP
+  SMS_OTP
+}
+
+enum MfaPurpose {
+  LOGIN
+  ENROL_PROOF
+  ENROL_EMAIL
+  ENROL_SMS
+  REAUTH
+}
+
 // ===========================================================================
 // IDENTITY AND ACCESS
 // ===========================================================================
@@ -228,10 +243,11 @@ model User {
   passwordHash       String    @map("password_hash")
   roleId             String    @map("role_id") @db.Uuid
   status             String // values not given in doc 08 (see handoff)
+  phoneVerifiedAt    DateTime? @map("phone_verified_at") @db.Timestamptz
+  // derived from user_mfa_methods, updated in the same transaction as any method change (doc 52 section 3)
   mfaEnabled         Boolean   @default(false) @map("mfa_enabled")
-  mfaSecretEncrypted String?   @map("mfa_secret_encrypted")
-  backupCodesHash    String?   @map("backup_codes_hash")
   mustChangePassword Boolean   @default(false) @map("must_change_password")
+  passwordChangedAt  DateTime? @map("password_changed_at") @db.Timestamptz
   failedAttempts     Int       @default(0) @map("failed_attempts")
   lockedUntil        DateTime? @map("locked_until") @db.Timestamptz
   lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz
@@ -245,6 +261,9 @@ model User {
   sessions                      Session[]
   loginHistory                  LoginHistory[]
   passwordResetTokens           PasswordResetToken[]
+  mfaMethods                    UserMfaMethod[]
+  mfaChallenges                 MfaChallenge[]
+  mfaBackupCodes                MfaBackupCode[]
   preferences                   UserPreference?
   assignments                   AdminZoneAssignment[] @relation("AssignmentMember")
   assignmentsGranted            AdminZoneAssignment[] @relation("AssignmentAssignedBy")
@@ -373,15 +392,23 @@ model AccessChange {
 }
 
 model Session {
-  id         String    @id @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  tokenHash  String    @unique @map("token_hash")
-  ip         String?
-  userAgent  String?   @map("user_agent")
-  expiresAt  DateTime  @map("expires_at") @db.Timestamptz
-  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz
-  lastSeenAt DateTime? @map("last_seen_at") @db.Timestamptz
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  id            String    @id @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  tokenHash     String    @unique @map("token_hash")
+  ip            String?
+  userAgent     String?   @map("user_agent")
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz
+  lastSeenAt    DateTime? @map("last_seen_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  // doc 52 section 3. Value lists are Zod enums in @zoauro/shared (auth-mfa.ts), not database enums:
+  // mfa_method = MfaType or BACKUP_CODE; reauth_level = PASSWORD | STRONG; restricted = PASSWORD_CHANGE.
+  mfaVerifiedAt DateTime? @map("mfa_verified_at") @db.Timestamptz
+  mfaMethod     String?   @map("mfa_method")
+  remember      Boolean   @default(false)
+  reauthAt      DateTime? @map("reauth_at") @db.Timestamptz
+  reauthLevel   String?   @map("reauth_level")
+  restricted    String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
@@ -397,7 +424,10 @@ model LoginHistory {
   success        Boolean
   ip             String?
   userAgent      String?  @map("user_agent")
+  // values: LOGIN_HISTORY_REASONS in @zoauro/shared (auth-mfa.ts); text, like before (doc 52 section 3)
   reason         String?
+  // MfaType or BACKUP_CODE, null when no second step was used
+  mfaMethod      String?  @map("mfa_method")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   user User? @relation(fields: [userId], references: [id], onDelete: Restrict)
@@ -419,6 +449,70 @@ model PasswordResetToken {
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+// 2-step verification (doc 52 section 3). The partial unique index (user_id, type) WHERE disabled_at IS NULL is written by
+// hand in the migration (Prisma cannot express it).
+model UserMfaMethod {
+  id              String    @id @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  type            MfaType
+  // AUTHENTICATOR only: "v1.<kid>.<nonce>.<ciphertext>.<tag>" (AES-256-GCM, D70)
+  secretEncrypted String?   @map("secret_encrypted")
+  // null = enrolment started, not confirmed
+  verifiedAt      DateTime? @map("verified_at") @db.Timestamptz
+  // TOTP replay guard: highest accepted step
+  lastUsedStep    BigInt?   @map("last_used_step")
+  isPrimary       Boolean   @default(false) @map("is_primary")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  disabledAt      DateTime? @map("disabled_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@map("user_mfa_methods")
+}
+
+model MfaChallenge {
+  id              String     @id @db.Uuid
+  userId          String     @map("user_id") @db.Uuid
+  purpose         MfaPurpose
+  // EMAIL_OTP or SMS_OTP
+  method          MfaType
+  // HMAC-SHA256(OTP_HMAC_KEY, challengeId || code); the code itself is never stored
+  codeHash        String     @map("code_hash")
+  // e.g. "a***@x.com", "+91•••••••210"
+  destinationHint String     @map("destination_hint")
+  expiresAt       DateTime   @map("expires_at") @db.Timestamptz
+  attempts        Int        @default(0)
+  maxAttempts     Int        @map("max_attempts")
+  sendCount       Int        @map("send_count")
+  lastSentAt      DateTime   @map("last_sent_at") @db.Timestamptz
+  consumedAt      DateTime?  @map("consumed_at") @db.Timestamptz
+  ip              String?    @db.Inet
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, purpose, method, createdAt(sort: Desc)])
+  @@index([expiresAt])
+  @@map("mfa_challenges")
+}
+
+model MfaBackupCode {
+  id        String    @id @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  // HMAC-SHA256(OTP_HMAC_KEY, normalised code)
+  codeHash  String    @map("code_hash")
+  batchId   String    @map("batch_id") @db.Uuid
+  usedAt    DateTime? @map("used_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, usedAt])
+  @@map("mfa_backup_codes")
 }
 
 // Copied exactly from the M04 bundle (doc 50 section 3.1). No foreign keys on purpose.
