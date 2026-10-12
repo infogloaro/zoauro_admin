@@ -1,5 +1,6 @@
 import type { Router } from 'express';
 import type { Redis } from 'ioredis';
+import type { Audit } from '../../lib/audit/audit.service';
 import { DEFAULT_AUTH_CONFIG, type AuthConfig, type Clock } from '../../lib/auth/config';
 import { sessionMiddleware } from '../../lib/auth/middleware';
 import { SessionStore } from '../../lib/auth/session-store';
@@ -25,6 +26,8 @@ export interface AuthModule {
 export function createAuthModule(deps: {
   prisma: ConstructorParameters<typeof AuthDatabase>[0];
   redis: Redis;
+  /** the process-wide audit service (server.ts); auth uses its rate-limited recordDenied() */
+  audit: Pick<Audit, 'recordDenied'>;
   sessionSecret: string;
   appOrigin: string;
   mailer?: PasswordResetMailer;
@@ -45,6 +48,7 @@ export function createAuthModule(deps: {
     db,
     sessions,
     limiter: new RedisRateLimiter(deps.redis),
+    audit: deps.audit,
     mailer: deps.mailer ?? noopPasswordResetMailer,
     config,
     clock,

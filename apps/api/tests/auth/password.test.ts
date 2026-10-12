@@ -282,7 +282,7 @@ describe('POST /auth/reauth', () => {
       entity_type: 'user',
       entity_id: user.id,
       sensitivity: 'HIGH',
-      outcome: 'SUCCESS',
+      outcome: 'DENIED', // doc 50 §4.3 item 3
     });
     expect(rows[0]?.request_id).toBeTruthy();
     // the session is still valid
@@ -304,9 +304,10 @@ describe('POST /auth/reauth', () => {
     expect(
       await env.auditRows(`action = 'user.locked' AND entity_id = $1`, [user.id]),
     ).toHaveLength(1);
+    // DENIED rows are rate limited to one per user and action a minute (D62); all five still counted toward the lock
     expect(
       await env.auditRows(`action = 'reauth.failed' AND entity_id = $1`, [user.id]),
-    ).toHaveLength(5);
+    ).toHaveLength(1);
     expect((await env.login(user)).status).toBe(401);
   });
 });

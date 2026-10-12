@@ -3,11 +3,16 @@ import { Redis } from 'ioredis';
 import type { Express, Router } from 'express';
 import request from 'supertest';
 import { createApp, type AuditCoverageOptions } from '../../../src/app';
-import { uuidv7 } from '../../../src/lib/audit';
+import {
+  createAudit,
+  RedisDeniedRateLimiter,
+  uuidv7,
+  type DeniedRateLimiter,
+} from '../../../src/lib/audit';
 import { DEFAULT_AUTH_CONFIG, type AuthConfig } from '../../../src/lib/auth/config';
 import { hashPassword } from '../../../src/lib/auth/crypto';
 import { authContextMiddleware, type AccessService } from '../../../src/lib/authz';
-import { createPrismaClient } from '../../../src/lib/db';
+import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
 import { createAccessService } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
 import { createAuthModule } from '../../../src/modules/auth';
@@ -34,6 +39,9 @@ interface AppExtras {
   accessCacheTtlSec?: number;
   /** default: the app's own (throw under vitest, so any unaudited 2xx write fails the run) */
   auditCoverage?: AuditCoverageOptions;
+  /** default: Redis-backed, as server.ts (keys under this env's private prefix) */
+  deniedLimiter?: DeniedRateLimiter;
+  onDeniedFailure?: (err: unknown) => void;
 }
 
 export interface TestUser {
@@ -90,9 +98,16 @@ export async function createAuthTestEnv() {
       appRedis = new Redis(redisUrl, { keyPrefix: `${prefix}${scope}:` });
       extraClients.push(appRedis);
     }
+    // the process-wide audit service, built as server.ts builds it
+    const audit = createAudit({
+      transaction: auditTransaction(prisma),
+      deniedLimiter: extra.deniedLimiter ?? new RedisDeniedRateLimiter(appRedis),
+      ...(extra.onDeniedFailure ? { onDeniedFailure: extra.onDeniedFailure } : {}),
+    });
     const auth = createAuthModule({
       prisma,
       redis: appRedis,
+      audit,
       sessionSecret: 'test-session-secret-0123456789-abcdef',
       appOrigin: APP_ORIGIN,
       mailer,

@@ -27,6 +27,12 @@ export function auditTx(tx: Prisma.TransactionClient): AuditTx {
   };
 }
 
+/** A short transaction of its own with the audit adapter: what `createAudit` needs to write DENIED rows (doc 50 §4.3). */
+export function auditTransaction(prisma: PrismaClient) {
+  return <T>(fn: (tx: AuditTx) => Promise<T>): Promise<T> =>
+    prisma.$transaction((tx) => fn(auditTx(tx)));
+}
+
 /** The application connection: DATABASE_URL, role zoauro_app only (never the migration role). */
 export function createPrismaClient(databaseUrl: string): PrismaClient {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });

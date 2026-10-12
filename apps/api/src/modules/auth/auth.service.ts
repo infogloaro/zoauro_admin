@@ -7,6 +7,7 @@ import type {
 } from '@zoauro/shared';
 import { noteAuditNoop, record, recordMany, runWithAuditContext, uuidv7 } from '../../lib/audit';
 import type { AuditActor, AuditEntry } from '../../lib/audit';
+import type { Audit } from '../../lib/audit/audit.service';
 import type { AuthConfig, Clock } from '../../lib/auth/config';
 import {
   getDummyHash,
@@ -73,6 +74,8 @@ export class AuthService {
       db: AuthDatabase;
       sessions: SessionStore;
       limiter: RateLimiter;
+      /** DENIED rows (doc 50 §4.3): own transaction, rate limited, never throws */
+      audit: Pick<Audit, 'recordDenied'>;
       mailer: PasswordResetMailer;
       config: AuthConfig;
       clock: Clock;
@@ -201,12 +204,16 @@ export class AuthService {
     );
   }
 
-  /** Increments the counter; at the limit, locks the account and writes user.locked in the same transaction. */
+  /**
+   * Increments the counter; at the limit, locks the account and writes user.locked in the same transaction, but only
+   * when this call moves the account into the locked state. Further failures while locked neither extend the lock nor
+   * write another user.locked, and of two concurrent failures crossing the limit only one locks.
+   */
   private async countFailureAndMaybeLock(tx: AuthTx, user: AuthUser, now: Date): Promise<void> {
     const attempts = await tx.repo.incrementFailedAttempts(user.id);
     if (attempts < this.config.maxFailedAttempts) return;
     const until = new Date(now.getTime() + this.config.lockDurationMs);
-    await tx.repo.lockUser(user.id, until);
+    if (!(await tx.repo.lockUserIfNotLocked(user.id, until, now))) return;
     await record(tx.audit, {
       module: 'auth',
       action: 'user.locked',
@@ -319,17 +326,17 @@ export class AuthService {
     }
 
     const now = this.deps.clock();
-    await this.asUser(user, meta, () =>
-      this.deps.db.transaction(async (tx) => {
-        await this.countFailureAndMaybeLock(tx, user, now);
-        await record(tx.audit, {
-          module: 'auth',
-          action: 'reauth.failed',
-          entity: userEntity(user),
-          note: 'Wrong password on re-authentication',
-        });
-      }),
-    );
+    await this.asUser(user, meta, async () => {
+      await this.deps.db.transaction((tx) => this.countFailureAndMaybeLock(tx, user, now));
+      // DENIED (doc 50 §4.3 item 3): own transaction after the lockout one, at most one row per user a minute (D62).
+      // recordDenied never throws, so a failure to record cannot hide the 401 below.
+      await this.deps.audit.recordDenied({
+        module: 'auth',
+        action: 'reauth.failed',
+        entity: userEntity(user),
+        note: 'Wrong password on re-authentication',
+      });
+    });
     throw new AppError('UNAUTHENTICATED', 'Incorrect password');
   }
 

@@ -101,8 +101,16 @@ export class AuthRepository implements SessionPersistence {
     return u.failedAttempts;
   }
 
-  async lockUser(userId: string, until: Date): Promise<void> {
-    await this.db.user.update({ where: { id: userId }, data: { lockedUntil: until } });
+  /**
+   * Locks only an account that is not locked now (no lock, or one that has run out); true when this call locked it.
+   * One conditional UPDATE: a concurrent transaction that locked first makes this one match no row.
+   */
+  async lockUserIfNotLocked(userId: string, until: Date, now: Date): Promise<boolean> {
+    const r = await this.db.user.updateMany({
+      where: { id: userId, OR: [{ lockedUntil: null }, { lockedUntil: { lte: now } }] },
+      data: { lockedUntil: until },
+    });
+    return r.count === 1;
   }
 
   /** Clears an expired lock only if it is still the lock we saw; true when this call cleared it. */
