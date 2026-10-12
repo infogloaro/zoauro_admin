@@ -10,6 +10,21 @@ import type { AuditRow, AuditTx } from '../../../src/lib/audit';
 
 const apiRoot = path.resolve(__dirname, '../../..');
 
+/** The only databases this helper creates or drops. Checked before any connection is opened. */
+const TEST_DATABASE_NAME = /^zoauro_audit_test_[0-9a-f]{8}$/;
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+/** How long a drop waits for the sessions of closed pools to leave the server. */
+const DROP_WAIT_MS = 10_000;
+
+export function assertTestDatabaseName(name: string): string {
+  if (!TEST_DATABASE_NAME.test(name)) {
+    throw new Error(
+      `Refusing to touch database ${JSON.stringify(name)}: only zoauro_audit_test_<8 lowercase hex> is allowed.`,
+    );
+  }
+  return name;
+}
+
 function migrateUrl(): URL {
   const raw = process.env['DATABASE_URL_MIGRATE'];
   if (!raw) {
@@ -17,7 +32,13 @@ function migrateUrl(): URL {
       'DATABASE_URL_MIGRATE is required for the audit guard tests (role zoauro_owner, local Docker).',
     );
   }
-  return new URL(raw);
+  const url = new URL(raw);
+  if (!LOOPBACK_HOSTS.has(url.hostname)) {
+    throw new Error(
+      'DATABASE_URL_MIGRATE must point at the local Postgres (localhost); refusing to create or drop test databases elsewhere.',
+    );
+  }
+  return url;
 }
 
 function urlFor(base: URL, user: string, password: string, database: string): string {
@@ -51,8 +72,8 @@ export interface TestDatabase {
 }
 
 export async function createTestDatabase(): Promise<TestDatabase> {
+  const name = assertTestDatabaseName(`zoauro_audit_test_${randomBytes(4).toString('hex')}`);
   const base = migrateUrl();
-  const name = `zoauro_audit_test_${randomBytes(4).toString('hex')}`;
   const ownerPassword = decodeURIComponent(base.password);
   const ownerUrl = (db: string) => urlFor(base, 'zoauro_owner', ownerPassword, db);
 
@@ -96,11 +117,65 @@ export async function createTestDatabase(): Promise<TestDatabase> {
     purge,
     close: async () => {
       await Promise.all([app.end(), purge.end(), owner.end()]);
-      const cleanup = new Pool({ connectionString: ownerUrl('postgres'), max: 1 });
-      await cleanup.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
-      await cleanup.end();
+      await dropTestDatabase(name);
     },
   };
+}
+
+/**
+ * Drops one throwaway database. A closed pool's server sessions can outlive its sockets for a moment, and zoauro_owner
+ * may not terminate zoauro_app / zoauro_purge sessions (why `DROP ... WITH (FORCE)` failed with "permission denied to
+ * terminate process" under load). So: refuse new sessions, wait for the old ones to leave, then drop; if any stay past
+ * the deadline, fail naming their roles. A failure after connections were refused and before the drop re-enables them
+ * first, so the leftover database can still be opened and inspected.
+ */
+export async function dropTestDatabase(
+  name: string,
+  opts: { waitMs?: number } = {},
+): Promise<void> {
+  assertTestDatabaseName(name);
+  const base = migrateUrl();
+  const waitMs = opts.waitMs ?? DROP_WAIT_MS;
+  const cleanup = new Pool({
+    connectionString: urlFor(base, 'zoauro_owner', decodeURIComponent(base.password), 'postgres'),
+    max: 1,
+  });
+  let blocked = false;
+  let dropped = false;
+  try {
+    await cleanup.query(`ALTER DATABASE ${name} WITH ALLOW_CONNECTIONS false`);
+    blocked = true;
+    const deadline = Date.now() + waitMs;
+    for (;;) {
+      const { rows } = await cleanup.query<{ role: string; n: number }>(
+        `SELECT usename AS role, count(*)::int AS n FROM pg_stat_activity WHERE datname = $1 GROUP BY usename ORDER BY usename`,
+        [name],
+      );
+      if (rows.length === 0) break;
+      if (Date.now() >= deadline) {
+        throw new Error(
+          `Test database ${name} still has sessions after ${waitMs} ms: ${rows.map((r) => `${r.role} x${r.n}`).join(', ')}`,
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    await cleanup.query(`DROP DATABASE IF EXISTS ${name}`);
+    dropped = true;
+  } catch (failure) {
+    if (blocked && !dropped) {
+      try {
+        await cleanup.query(`ALTER DATABASE ${name} WITH ALLOW_CONNECTIONS true`);
+      } catch (restoreFailure) {
+        throw new AggregateError(
+          [failure, restoreFailure],
+          `Dropping test database ${name} failed, and re-enabling its connections failed too`,
+        );
+      }
+    }
+    throw failure;
+  } finally {
+    await cleanup.end();
+  }
 }
 
 const COLS = [
