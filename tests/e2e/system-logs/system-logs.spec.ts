@@ -371,8 +371,8 @@ test.describe('System Logs on the seeded data', () => {
       'filter: date range 2024-03-10 to 2024-03-12',
       page,
       async () => {
-        await page.getByLabel('From').fill('2024-03-10');
-        await page.getByLabel('To').fill('2024-03-12');
+        await page.getByLabel('From', { exact: true }).fill('2024-03-10');
+        await page.getByLabel('To', { exact: true }).fill('2024-03-12');
       },
       async () => {
         await expect
