@@ -75,5 +75,20 @@ export function createAuthRoutes(
   );
 
   router.get('/me', requireSession({ allowPasswordChangePending: true }), c.me);
+
+  // own sessions (doc 52 section 8): list, revoke one, revoke all others
+  router.get('/me/sessions', requireSession(), c.listSessions);
+  router.post(
+    '/me/sessions/revoke-others',
+    ...sessionRoute,
+    auditMeta(auditOf('revokeOtherSessions')),
+    c.revokeOtherSessions,
+  );
+  router.delete(
+    '/me/sessions/:id',
+    ...sessionRoute,
+    auditMeta(auditOf('revokeSession')),
+    c.revokeSession,
+  );
   return router;
 }

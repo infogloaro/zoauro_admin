@@ -26,6 +26,8 @@ export const loginSchema = z.object({
   email,
   password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
   tab: z.enum(ROLES),
+  /** "remember me" (D79): absolute 7 days, idle 8 hours instead of 12 hours / 30 minutes */
+  remember: z.boolean().default(false),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
@@ -84,6 +86,22 @@ export const meResponseSchema = z.object({
   ]),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
+
+/** GET /me/sessions (doc 52 section 8): the caller's live sessions; `current` marks the one making the request. */
+export const sessionListItemSchema = z.object({
+  id: z.uuid(),
+  ip: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  createdAt: z.iso.datetime(),
+  lastSeenAt: z.iso.datetime(),
+  expiresAt: z.iso.datetime(),
+  remember: z.boolean(),
+  current: z.boolean(),
+});
+export type SessionListItem = z.infer<typeof sessionListItemSchema>;
+export const sessionListResponseSchema = z.object({ data: z.array(sessionListItemSchema) });
+export const sessionIdParamsSchema = z.object({ id: z.uuid() });
+export const revokeOtherSessionsResponseSchema = z.object({ revoked: z.number().int().min(0) });
 
 /** GET /auth/csrf: the same value is set as the zo_csrf cookie; send it as X-CSRF-Token before a session exists. */
 export const csrfTokenResponseSchema = z.object({ token: z.string() });

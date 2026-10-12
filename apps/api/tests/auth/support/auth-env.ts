@@ -59,9 +59,13 @@ export interface TestUser {
   role: PersonaRole;
 }
 
-/** Generous limits so ordinary tests never trip the rate limiter; the rate-limit tests pass their own. */
+/**
+ * Generous limits so ordinary tests never trip the rate limiter or the session cap (suites sign the same user in many
+ * times); the rate-limit and session-cap tests pass their own (DEFAULT_AUTH_CONFIG values).
+ */
 export const TEST_CONFIG: AuthConfig = {
   ...DEFAULT_AUTH_CONFIG,
+  maxSessions: 1_000,
   loginLimitPerIp: { limit: 10_000, windowSec: 60 },
   loginLimitPerEmail: { limit: 10_000, windowSec: 60 },
   forgotLimitPerIp: { limit: 10_000, windowSec: 60 },
@@ -311,6 +315,7 @@ export async function createAuthTestEnv() {
         .set('X-CSRF-Token', csrf.token);
     },
     get: (path: string) => request(a).get(`/api/v1${path}`),
+    delete: (path: string) => request(a).delete(`/api/v1${path}`).set('Origin', APP_ORIGIN),
   });
 
   async function login(

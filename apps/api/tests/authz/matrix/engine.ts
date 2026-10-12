@@ -307,6 +307,14 @@ const describeViolation = (v: CoverageViolation): string =>
 export interface Binding {
   /** zone ids a list response actually contained, so leaks are visible. Required for permission routes with zone: 'query'. */
   listedZones?: (body: unknown) => string[] | 'ALL';
+  /**
+   * The path object belongs to the caller (e.g. DELETE /me/sessions/{id}). The engine only has a placeholder id, which
+   * is never the caller's, so 404 NOT_FOUND counts as "passed authorization"; ownership is tested by the route's own
+   * suite.
+   */
+  ownObject?: true;
+  /** The call may revoke the actor's other sessions (POST /me/sessions/revoke-others): sign in again afterwards. */
+  invalidatesSessions?: true;
 }
 
 export interface Session {
@@ -419,7 +427,10 @@ export async function runAuthorizationMatrix(cfg: MatrixConfig): Promise<MatrixR
             actualCode !== undefined &&
             (c.expected.codes as string[]).includes(actualCode);
         } else {
-          const passedAuth = ![401, 403, 404].includes(res.status) && res.status < 500;
+          const ownObjectNotFound =
+            binding?.ownObject === true && res.status === 404 && actualCode === 'NOT_FOUND';
+          const passedAuth =
+            (ownObjectNotFound || ![401, 403, 404].includes(res.status)) && res.status < 500;
           ok = passedAuth && (c.expected.status === undefined || res.status === c.expected.status);
           if (ok && c.expected.listed !== undefined) {
             if (!binding?.listedZones) {
@@ -468,6 +479,7 @@ export async function runAuthorizationMatrix(cfg: MatrixConfig): Promise<MatrixR
             `${route} as ${actorName} on ${target}: expected ${describeExpectation(c.expected)}, got ${actual}${detail}`,
           );
       }
+      if (binding?.invalidatesSessions) sessions.clear();
     }
   }
 

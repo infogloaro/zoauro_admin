@@ -4,6 +4,11 @@
 export interface AuthConfig {
   idleTimeoutMs: number;
   absoluteTimeoutMs: number;
+  /** "remember me" (D79, doc 52 section 2.6): absolute 7 days, idle 8 hours */
+  rememberAbsoluteTimeoutMs: number;
+  rememberIdleTimeoutMs: number;
+  /** at most this many active sessions per user; the oldest is revoked on the next login (doc 14 section 2) */
+  maxSessions: number;
   maxFailedAttempts: number;
   lockDurationMs: number;
   resetTokenTtlMs: number;
@@ -22,6 +27,9 @@ const MIN = 60 * 1000;
 export const DEFAULT_AUTH_CONFIG: AuthConfig = {
   idleTimeoutMs: 30 * MIN,
   absoluteTimeoutMs: 12 * 60 * MIN,
+  rememberAbsoluteTimeoutMs: 7 * 24 * 60 * MIN,
+  rememberIdleTimeoutMs: 8 * 60 * MIN,
+  maxSessions: 3,
   maxFailedAttempts: 5,
   lockDurationMs: 30 * MIN,
   resetTokenTtlMs: 30 * MIN,

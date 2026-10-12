@@ -1,6 +1,7 @@
 import type {
   ChangePasswordInput,
   ForgotPasswordInput,
+  SessionListItem,
   LoginInput,
   ReauthInput,
   ResetPasswordInput,
@@ -140,9 +141,13 @@ export class AuthService {
     const sessionToken = randomToken(32);
     const tokenHash = sha256Hex(sessionToken);
     const sessionId = uuidv7();
-    const expiresAt = new Date(now.getTime() + this.config.absoluteTimeoutMs);
+    const remember = input.remember;
+    const absoluteMs = remember
+      ? this.config.rememberAbsoluteTimeoutMs
+      : this.config.absoluteTimeoutMs;
+    const expiresAt = new Date(now.getTime() + absoluteMs);
 
-    const redirectTo = await this.asUser(user, meta, () =>
+    const { redirectTo, capped } = await this.asUser(user, meta, () =>
       this.deps.db.transaction(async (tx) => {
         await this.releaseExpiredLock(tx, user, now);
         await tx.repo.recordSuccessfulLogin(user.id, now);
@@ -155,16 +160,19 @@ export class AuthService {
           expiresAt,
           lastSeenAt: now,
           restricted: user.mustChangePassword ? 'PASSWORD_CHANGE' : null,
+          remember,
         });
+        const capped = await this.enforceSessionCap(tx, user, now);
         await tx.repo.addLoginHistory(
           this.historyEntry(user.id, emailForHistory(user, input.email), true, 'LOGIN', meta, now),
         );
-        if (user.roleName === 'SUPER_ADMIN') return '/super-admin/dashboard';
-        return (await tx.repo.countActiveZoneAssignments(user.id)) > 0
-          ? '/zone/dashboard'
-          : '/zone/no-zones';
+        if (user.roleName === 'SUPER_ADMIN')
+          return { redirectTo: '/super-admin/dashboard', capped };
+        const zones = await tx.repo.countActiveZoneAssignments(user.id);
+        return { redirectTo: zones > 0 ? '/zone/dashboard' : '/zone/no-zones', capped };
       }),
     );
+    await this.deps.sessions.evictMany(capped);
 
     await this.deps.sessions.cacheNew(tokenHash, {
       sessionId,
@@ -173,6 +181,7 @@ export class AuthService {
       role: user.roleName,
       mustChangePassword: user.mustChangePassword,
       expiresAt,
+      remember,
     });
 
     // New-login notice with time, IP and device (doc 14 section 2, doc 52 section 2.7).
@@ -190,7 +199,7 @@ export class AuthService {
 
     return {
       sessionToken,
-      cookieMaxAgeSec: Math.floor(this.config.absoluteTimeoutMs / 1000),
+      cookieMaxAgeSec: Math.floor(absoluteMs / 1000),
       csrfToken: this.deps.sessions.csrfFor(tokenHash),
       redirectTo,
       mustChangePassword: user.mustChangePassword,
@@ -371,6 +380,117 @@ export class AuthService {
       });
     });
     throw new AppError('UNAUTHENTICATED', 'Incorrect password');
+  }
+
+  // ---- sessions (doc 52 section 2.6, doc 14 section 2) ----------------------------------------------------------
+
+  /** Open sessions that are also within their idle limit: the ones that still work. */
+  private async liveSessions(repo: AuthTx['repo'], userId: string, now: Date) {
+    const open = await repo.listOpenSessions(userId, now);
+    return open.filter(
+      (s) => now.getTime() - s.lastSeenAt.getTime() <= this.deps.sessions.idleMsFor(s.remember),
+    );
+  }
+
+  /**
+   * At most `maxSessions` live sessions: the oldest beyond the cap are revoked and audited (TC-AUTH-37). Runs inside
+   * the login transaction, after the new session was created; returns the token hashes to drop from the cache.
+   */
+  private async enforceSessionCap(tx: AuthTx, user: AuthUser, now: Date): Promise<string[]> {
+    const live = await this.liveSessions(tx.repo, user.id, now); // newest first
+    const excess = live.slice(this.config.maxSessions);
+    if (excess.length === 0) return [];
+    const revoked = await tx.repo.revokeSessions(
+      user.id,
+      excess.map((s) => s.id),
+      now,
+    );
+    await recordMany(
+      tx.audit,
+      revoked.map((s): AuditEntry => ({
+        module: 'auth',
+        action: 'session.revoked',
+        entity: sessionEntity(s.id, user),
+        note: `Oldest session revoked: at most ${this.config.maxSessions} active sessions`,
+      })),
+    );
+    return revoked.map((s) => s.tokenHash);
+  }
+
+  /** GET /me/sessions */
+  async listSessions(session: AuthSession): Promise<SessionListItem[]> {
+    const now = this.deps.clock();
+    const live = await this.liveSessions(this.deps.db.repo, session.userId, now);
+    return live.map((s) => ({
+      id: s.id,
+      ip: s.ip,
+      userAgent: s.userAgent,
+      createdAt: s.createdAt.toISOString(),
+      lastSeenAt: s.lastSeenAt.toISOString(),
+      expiresAt: s.expiresAt.toISOString(),
+      remember: s.remember,
+      current: s.id === session.sessionId,
+    }));
+  }
+
+  /** DELETE /me/sessions/{id}: only the caller's own live session; anything else is 404. Returns true for the current one. */
+  async revokeOwnSession(session: AuthSession, sessionId: string, meta: RequestMeta) {
+    const now = this.deps.clock();
+    const user = await this.deps.db.repo.findUserById(session.userId);
+    if (!user) throw new AppError('UNAUTHENTICATED', 'Authentication required');
+    const live = await this.liveSessions(this.deps.db.repo, user.id, now);
+    if (!live.some((s) => s.id === sessionId)) throw new AppError('NOT_FOUND', 'Not found');
+    const revoked = await this.revokeAndAudit(user, [sessionId], now, meta, 'Revoked by the user');
+    await this.deps.sessions.evictMany(revoked);
+    return { current: sessionId === session.sessionId };
+  }
+
+  /** POST /me/sessions/revoke-others: every live session but the current one. */
+  async revokeOtherOwnSessions(session: AuthSession, meta: RequestMeta): Promise<number> {
+    const now = this.deps.clock();
+    const user = await this.deps.db.repo.findUserById(session.userId);
+    if (!user) throw new AppError('UNAUTHENTICATED', 'Authentication required');
+    const others = (await this.liveSessions(this.deps.db.repo, user.id, now))
+      .map((s) => s.id)
+      .filter((id) => id !== session.sessionId);
+    if (others.length === 0) {
+      noteAuditNoop(); // nothing to revoke: an audited no-op for the coverage guard
+      return 0;
+    }
+    const revoked = await this.revokeAndAudit(
+      user,
+      others,
+      now,
+      meta,
+      'Revoked by the user (all other sessions)',
+    );
+    await this.deps.sessions.evictMany(revoked);
+    return revoked.length;
+  }
+
+  private async revokeAndAudit(
+    user: AuthUser,
+    sessionIds: string[],
+    now: Date,
+    meta: RequestMeta,
+    note: string,
+  ): Promise<string[]> {
+    return this.asUser(user, meta, () =>
+      this.deps.db.transaction(async (tx) => {
+        const revoked = await tx.repo.revokeSessions(user.id, sessionIds, now);
+        if (revoked.length === 0) noteAuditNoop(); // revoked meanwhile by another request: nothing changed here
+        await recordMany(
+          tx.audit,
+          revoked.map((s): AuditEntry => ({
+            module: 'auth',
+            action: 'session.revoked',
+            entity: sessionEntity(s.id, user),
+            note,
+          })),
+        );
+        return revoked.map((s) => s.tokenHash);
+      }),
+    );
   }
 
   // ---- change password ------------------------------------------------------------------------------------------

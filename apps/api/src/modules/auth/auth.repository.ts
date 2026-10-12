@@ -69,6 +69,20 @@ export interface NewSession {
   lastSeenAt: Date;
   /** 'PASSWORD_CHANGE' while the first-login password change is pending (doc 52 section 3) */
   restricted?: 'PASSWORD_CHANGE' | null;
+  /** "remember me" (D79) */
+  remember: boolean;
+}
+
+/** A session that is not revoked and not past its absolute expiry (idle expiry is judged by the caller). */
+export interface OpenSession {
+  id: string;
+  tokenHash: string;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: Date;
+  lastSeenAt: Date;
+  expiresAt: Date;
+  remember: boolean;
 }
 
 export class AuthRepository implements SessionPersistence {
@@ -166,6 +180,7 @@ export class AuthRepository implements SessionPersistence {
         lastSeenAt: true,
         revokedAt: true,
         createdAt: true,
+        remember: true,
         user: {
           select: {
             name: true,
@@ -185,6 +200,7 @@ export class AuthRepository implements SessionPersistence {
       // lastSeenAt is nullable in the schema; a session that was never touched counts from its creation
       lastSeenAt: s.lastSeenAt ?? s.createdAt,
       revokedAt: s.revokedAt,
+      remember: s.remember,
       user: {
         name: s.user.name,
         roleName: s.user.role.name,
@@ -213,6 +229,45 @@ export class AuthRepository implements SessionPersistence {
   async revokeAllSessions(userId: string, at: Date): Promise<{ id: string; tokenHash: string }[]> {
     const open = await this.db.session.findMany({
       where: { userId, revokedAt: null },
+      select: { id: true, tokenHash: true },
+    });
+    if (open.length > 0) {
+      await this.db.session.updateMany({
+        where: { id: { in: open.map((s) => s.id) }, revokedAt: null },
+        data: { revokedAt: at },
+      });
+    }
+    return open;
+  }
+
+  /** Open sessions of the user, newest first. */
+  async listOpenSessions(userId: string, now: Date): Promise<OpenSession[]> {
+    const rows = await this.db.session.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: now } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: {
+        id: true,
+        tokenHash: true,
+        ip: true,
+        userAgent: true,
+        createdAt: true,
+        lastSeenAt: true,
+        expiresAt: true,
+        remember: true,
+      },
+    });
+    return rows.map((r) => ({ ...r, lastSeenAt: r.lastSeenAt ?? r.createdAt }));
+  }
+
+  /** Revokes the listed sessions of this user that are still open; returns the ones this call revoked. */
+  async revokeSessions(
+    userId: string,
+    sessionIds: readonly string[],
+    at: Date,
+  ): Promise<{ id: string; tokenHash: string }[]> {
+    if (sessionIds.length === 0) return [];
+    const open = await this.db.session.findMany({
+      where: { userId, id: { in: [...sessionIds] }, revokedAt: null },
       select: { id: true, tokenHash: true },
     });
     if (open.length > 0) {

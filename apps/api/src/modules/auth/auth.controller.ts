@@ -5,6 +5,7 @@ import {
   loginSchema,
   reauthSchema,
   resetPasswordSchema,
+  sessionIdParamsSchema,
 } from '@zoauro/shared';
 import { clearedSessionCookie, preSessionCsrfCookie, sessionCookie } from '../../lib/auth/cookies';
 import { issuePreSessionCsrf } from '../../lib/auth/crypto';
@@ -83,9 +84,36 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
     res.json({ message: 'Password changed. Sessions on other devices were signed out.' });
   };
 
+  const listSessions: RequestHandler = async (_req, res) => {
+    res.json({ data: await service.listSessions(sessionOf(res)) });
+  };
+
+  const revokeSession: RequestHandler = async (req, res) => {
+    const { id } = parseBody(sessionIdParamsSchema, req.params);
+    const { current } = await service.revokeOwnSession(sessionOf(res), id, metaOf(req, res));
+    if (current) res.setHeader('Set-Cookie', clearedSessionCookie());
+    res.status(204).end();
+  };
+
+  const revokeOtherSessions: RequestHandler = async (req, res) => {
+    res.json({ revoked: await service.revokeOtherOwnSessions(sessionOf(res), metaOf(req, res)) });
+  };
+
   const me: RequestHandler = async (_req, res) => {
     res.json(await service.me(sessionOf(res)));
   };
 
-  return { csrf, login, logout, forgotPassword, resetPassword, reauth, changePassword, me };
+  return {
+    csrf,
+    login,
+    logout,
+    forgotPassword,
+    resetPassword,
+    reauth,
+    changePassword,
+    listSessions,
+    revokeSession,
+    revokeOtherSessions,
+    me,
+  };
 }

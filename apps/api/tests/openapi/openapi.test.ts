@@ -56,13 +56,16 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'GET /login-history',
         'GET /me',
         'GET /me/login-history',
+        'GET /me/sessions',
         'GET /openapi.json',
+        'DELETE /me/sessions/{id}',
         'POST /auth/change-password',
         'POST /auth/forgot-password',
         'POST /auth/login',
         'POST /auth/logout',
         'POST /auth/reauth',
         'POST /auth/reset-password',
+        'POST /me/sessions/revoke-others',
       ].sort(),
     );
   });

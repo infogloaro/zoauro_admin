@@ -13,6 +13,8 @@ export interface SessionRecord {
   expiresAt: Date;
   lastSeenAt: Date;
   revokedAt: Date | null;
+  /** "remember me": idle limit 8 h instead of 30 min (D79) */
+  remember: boolean;
   user: { name: string; roleName: Role; mustChangePassword: boolean; active: boolean };
 }
 
@@ -46,6 +48,7 @@ interface CachedSession {
   lastSeenAtMs: number;
   dbSeenAtMs: number;
   reauthAtMs: number | null;
+  remember: boolean;
 }
 
 const isRole = (v: unknown): v is Role =>
@@ -78,6 +81,7 @@ function parseCached(raw: string): CachedSession | null {
       lastSeenAtMs: o['lastSeenAtMs'],
       dbSeenAtMs: o['dbSeenAtMs'],
       reauthAtMs: typeof o['reauthAtMs'] === 'number' ? o['reauthAtMs'] : null,
+      remember: o['remember'] === true,
     };
   } catch {
     return null;
@@ -96,7 +100,11 @@ export class SessionStore {
   ) {}
 
   private key = (tokenHash: string): string => `sess:${tokenHash}`;
-  private ttlSec = (): number => Math.ceil(this.deps.config.idleTimeoutMs / 1000);
+
+  /** Idle limit of a session: 30 min, or 8 h with "remember me" (doc 52 section 2.6, D79). */
+  idleMsFor(remember: boolean): number {
+    return remember ? this.deps.config.rememberIdleTimeoutMs : this.deps.config.idleTimeoutMs;
+  }
 
   csrfFor(tokenHash: string): string {
     return csrfTokenFor(tokenHash, this.deps.sessionSecret);
@@ -112,6 +120,7 @@ export class SessionStore {
       role: Role;
       mustChangePassword: boolean;
       expiresAt: Date;
+      remember: boolean;
     },
   ): Promise<void> {
     const now = this.deps.clock().getTime();
@@ -125,6 +134,7 @@ export class SessionStore {
       lastSeenAtMs: now,
       dbSeenAtMs: now,
       reauthAtMs: null,
+      remember: s.remember,
     });
   }
 
@@ -139,7 +149,7 @@ export class SessionStore {
     }
     if (
       now >= cached.absoluteExpiresAtMs ||
-      now - cached.lastSeenAtMs > this.deps.config.idleTimeoutMs
+      now - cached.lastSeenAtMs > this.idleMsFor(cached.remember)
     ) {
       await this.evict(tokenHash);
       return null;
@@ -201,7 +211,7 @@ export class SessionStore {
     const row = await this.deps.persistence.findSessionByTokenHash(tokenHash);
     if (!row || row.revokedAt || !row.user.active) return null;
     if (now >= row.expiresAt.getTime()) return null;
-    if (now - row.lastSeenAt.getTime() > this.deps.config.idleTimeoutMs) return null;
+    if (now - row.lastSeenAt.getTime() > this.idleMsFor(row.remember)) return null;
     return {
       sessionId: row.id,
       userId: row.userId,
@@ -212,6 +222,7 @@ export class SessionStore {
       lastSeenAtMs: row.lastSeenAt.getTime(),
       dbSeenAtMs: row.lastSeenAt.getTime(),
       reauthAtMs: null,
+      remember: row.remember,
     };
   }
 
@@ -226,7 +237,12 @@ export class SessionStore {
 
   private async write(tokenHash: string, s: CachedSession): Promise<void> {
     try {
-      await this.deps.redis.set(this.key(tokenHash), JSON.stringify(s), 'EX', this.ttlSec());
+      await this.deps.redis.set(
+        this.key(tokenHash),
+        JSON.stringify(s),
+        'EX',
+        Math.ceil(this.idleMsFor(s.remember) / 1000),
+      );
     } catch {
       /* cache only */
     }
