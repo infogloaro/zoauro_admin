@@ -50,6 +50,13 @@ enum ZoneStatus {
   UPCOMING
 }
 
+// how a serviceable pincode was added (doc 53 section 3)
+enum PincodeSource {
+  RANGE
+  MANUAL
+  IMPORT
+}
+
 enum VendorStatus {
   PENDING
   ACTIVE
@@ -564,23 +571,33 @@ model UserPreference {
 // GEOGRAPHY
 // ===========================================================================
 
+// doc 53 section 3. In migration 20261012110000_zones_schema (Prisma cannot express them): unique lower(name) where
+// deleted_at IS NULL (R-ZONE-4) and the CHECKs on code, delivery_charge and the entered pincode range.
 model Zone {
-  id             String     @id @db.Uuid
-  name           String     @unique
-  code           String // unique where deleted_at IS NULL (constraints migration)
-  city           String
-  state          String?
-  pincodeFrom    String?    @map("pincode_from")
-  pincodeTo      String?    @map("pincode_to")
-  deliveryCharge Int        @default(0) @map("delivery_charge") // paise
-  status         ZoneStatus @default(ACTIVE)
-  description    String?
-  colorHex       String?    @map("color_hex")
-  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt      DateTime?  @map("deleted_at") @db.Timestamptz
-  createdBy      String?    @map("created_by") @db.Uuid
-  updatedBy      String?    @map("updated_by") @db.Uuid
+  id                 String     @id @db.Uuid
+  name               String
+  // unique including soft-deleted zones, and never changed after creation (R-ZONE-3)
+  code               String     @unique
+  city               String
+  state              String?
+  // the entered range, display only; the truth is serviceable_pincodes
+  pincodeFrom        String?    @map("pincode_from") @db.Char(6)
+  pincodeTo          String?    @map("pincode_to") @db.Char(6)
+  deliveryCharge     Int        @default(0) @map("delivery_charge") // paise, 0..100000 (R-ZONE-5)
+  status             ZoneStatus @default(UPCOMING)
+  description        String?
+  // one of the 12 palette tokens (@zoauro/shared zones/palette.ts)
+  colorHex           String     @map("color_hex") @db.Char(7)
+  // optimistic locking (R-ZONE-9)
+  version            Int        @default(1)
+  activatedAt        DateTime?  @map("activated_at") @db.Timestamptz
+  deactivatedAt      DateTime?  @map("deactivated_at") @db.Timestamptz
+  deactivationReason String?    @map("deactivation_reason")
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime?  @map("deleted_at") @db.Timestamptz
+  createdBy          String?    @map("created_by") @db.Uuid
+  updatedBy          String?    @map("updated_by") @db.Uuid
 
   pincodes          ServiceablePincode[]
   assignments       AdminZoneAssignment[]
@@ -603,20 +620,23 @@ model Zone {
   @@map("zones")
 }
 
+// doc 53 section 3. A pincode belongs to at most one zone, forever, unless removed (R-ZONE-2): the unique index is global,
+// so removing a pincode deletes the row (a soft-deleted row would still hold the pincode).
 model ServiceablePincode {
-  id        String    @id @db.Uuid
-  zoneId    String    @map("zone_id") @db.Uuid
-  pincode   String
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
-  createdBy String?   @map("created_by") @db.Uuid
-  updatedBy String?   @map("updated_by") @db.Uuid
+  id        String        @id @db.Uuid
+  zoneId    String        @map("zone_id") @db.Uuid
+  // CHECK '^[1-9][0-9]{5}$' in migration 20261012110000_zones_schema
+  pincode   String        @unique @db.Char(6)
+  source    PincodeSource
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime?     @map("deleted_at") @db.Timestamptz
+  createdBy String?       @map("created_by") @db.Uuid
+  updatedBy String?       @map("updated_by") @db.Uuid
 
   zone Zone @relation(fields: [zoneId], references: [id], onDelete: Restrict)
 
   @@index([zoneId])
-  @@index([pincode])
   @@map("serviceable_pincodes")
 }
 

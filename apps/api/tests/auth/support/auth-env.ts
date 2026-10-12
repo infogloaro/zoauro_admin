@@ -198,9 +198,11 @@ export async function createAuthTestEnv() {
 
   async function createZone(): Promise<string> {
     const id = uuidv7();
-    const code = randomBytes(3).toString('hex');
+    // a valid code (doc 53: ^[A-Z][A-Z0-9]{1,5}$) and an ACTIVE zone, as these fixtures were before UPCOMING became the default
+    const code = `Z${randomBytes(3).toString('hex').toUpperCase().slice(0, 5)}`;
     await db.owner.query(
-      `INSERT INTO zones (id, name, code, city, updated_at) VALUES ($1, $2, $3, 'Chennai', now())`,
+      `INSERT INTO zones (id, name, code, city, status, color_hex, updated_at)
+       VALUES ($1, $2, $3, 'Chennai', 'ACTIVE', '#2563EB', now())`,
       [id, `Zone ${code}`, code],
     );
     return id;
