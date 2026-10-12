@@ -63,6 +63,17 @@ export function createAuthRoutes(
     c.reauth,
   );
 
+  // Reachable while the first-login change is pending: it is how the restriction ends (doc 52 section 2.1).
+  router.post(
+    '/auth/change-password',
+    originCheck(opts.appOrigin),
+    requireSession({ allowPasswordChangePending: true }),
+    requireCsrf,
+    requireJsonBody,
+    auditMeta(auditOf('changePassword')),
+    c.changePassword,
+  );
+
   router.get('/me', requireSession({ allowPasswordChangePending: true }), c.me);
   return router;
 }

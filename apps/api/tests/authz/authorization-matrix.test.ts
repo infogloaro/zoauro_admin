@@ -41,10 +41,12 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     expect(report.failures).toEqual([]);
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
-    expect(report.coveredRoutes).toHaveLength(15);
+    expect(report.coveredRoutes).toHaveLength(16);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
-  });
+    // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,
+    // so it grows with the API; it is a single test, not a per-request budget (doc 32, P6).
+  }, 180_000);
 
   it('exercises all six actors on the session routes and the unauthenticated case on every protected route', async () => {
     const spec = JSON.parse(

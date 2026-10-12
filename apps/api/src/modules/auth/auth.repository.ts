@@ -67,6 +67,8 @@ export interface NewSession {
   userAgent: string | null;
   expiresAt: Date;
   lastSeenAt: Date;
+  /** 'PASSWORD_CHANGE' while the first-login password change is pending (doc 52 section 3) */
+  restricted?: 'PASSWORD_CHANGE' | null;
 }
 
 export class AuthRepository implements SessionPersistence {
@@ -220,6 +222,33 @@ export class AuthRepository implements SessionPersistence {
       });
     }
     return open;
+  }
+
+  /** Revokes every open session of the user except `keepSessionId`; returns what was revoked. */
+  async revokeOtherSessions(
+    userId: string,
+    keepSessionId: string,
+    at: Date,
+  ): Promise<{ id: string; tokenHash: string }[]> {
+    const open = await this.db.session.findMany({
+      where: { userId, revokedAt: null, id: { not: keepSessionId } },
+      select: { id: true, tokenHash: true },
+    });
+    if (open.length > 0) {
+      await this.db.session.updateMany({
+        where: { id: { in: open.map((s) => s.id) }, revokedAt: null },
+        data: { revokedAt: at },
+      });
+    }
+    return open;
+  }
+
+  /** sessions.restricted (doc 52 section 3): set while the first-login password change is pending. */
+  async setSessionRestriction(
+    sessionId: string,
+    restricted: 'PASSWORD_CHANGE' | null,
+  ): Promise<void> {
+    await this.db.session.updateMany({ where: { id: sessionId }, data: { restricted } });
   }
 
   // ---- password reset tokens -----------------------------------------------------------------------------------

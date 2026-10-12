@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ROLES } from './enums';
+import { isCommonPassword } from './password-policy';
 
 // Request schemas for the auth endpoints (doc 09, doc 14). Shared with the login form and OpenAPI.
 
@@ -13,7 +14,12 @@ const email = z
   .toLowerCase()
   .pipe(z.email())
   .refine((v) => v.length <= 254, 'too long');
-const newPassword = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH);
+/** Doc 14 section 2 + the local denylist (password-policy.ts); used by reset and change. */
+const newPassword = z
+  .string()
+  .min(PASSWORD_MIN_LENGTH)
+  .max(PASSWORD_MAX_LENGTH)
+  .refine((p) => !isCommonPassword(p), 'is too common; choose another password');
 
 /** `tab` is the login card tab (doc 14 section 3). The server compares it with the account's role. */
 export const loginSchema = z.object({
@@ -31,6 +37,18 @@ export const resetPasswordSchema = z.object({
   newPassword,
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+/** POST /auth/change-password (doc 52 section 8): also the forced first-login change. */
+export const changePasswordSchema = z
+  .object({
+    current: z.string().min(1).max(PASSWORD_MAX_LENGTH),
+    new: newPassword,
+  })
+  .refine((v) => v.new !== v.current, {
+    path: ['new'],
+    message: 'must differ from the current password',
+  });
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 export const reauthSchema = z.object({ password: z.string().min(1).max(PASSWORD_MAX_LENGTH) });
 export type ReauthInput = z.infer<typeof reauthSchema>;

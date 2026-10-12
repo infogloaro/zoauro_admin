@@ -8,6 +8,7 @@ import {
   auditListQuerySchema,
   auditListResponseSchema,
   auditZoneListResponseSchema,
+  changePasswordSchema,
   csrfTokenResponseSchema,
   forgotPasswordSchema,
   loginHistoryListResponseSchema,
@@ -169,6 +170,18 @@ export const OPERATIONS: OperationDef[] = [
     audit: { none: 'reauth' },
     body: reauthSchema,
     response: { status: 200, schema: reauthResponseSchema, description: 'Re-authenticated' },
+  },
+  {
+    operationId: 'changePassword',
+    method: 'post',
+    path: '/auth/change-password',
+    tags: ['auth'],
+    summary:
+      'Change the password (also the forced first-login change). A wrong current password counts toward the lockout; success signs out the other sessions',
+    access: { kind: 'session', pendingPasswordChange: 'allowed' },
+    audit: { module: 'auth', action: 'user.password_changed' },
+    body: changePasswordSchema,
+    response: { status: 200, schema: messageResponseSchema, description: 'Password changed' },
   },
   {
     operationId: 'getMe',

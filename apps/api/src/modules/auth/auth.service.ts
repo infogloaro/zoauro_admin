@@ -1,4 +1,5 @@
 import type {
+  ChangePasswordInput,
   ForgotPasswordInput,
   LoginInput,
   ReauthInput,
@@ -153,6 +154,7 @@ export class AuthService {
           userAgent: meta.userAgent?.slice(0, UA_MAX) ?? null,
           expiresAt,
           lastSeenAt: now,
+          restricted: user.mustChangePassword ? 'PASSWORD_CHANGE' : null,
         });
         await tx.repo.addLoginHistory(
           this.historyEntry(user.id, emailForHistory(user, input.email), true, 'LOGIN', meta, now),
@@ -369,6 +371,73 @@ export class AuthService {
       });
     });
     throw new AppError('UNAUTHENTICATED', 'Incorrect password');
+  }
+
+  // ---- change password ------------------------------------------------------------------------------------------
+
+  /**
+   * POST /auth/change-password (doc 52 section 8): also the forced first-login change, which a restricted session may
+   * call. A wrong current password counts toward the lockout like a wrong login (doc 32). Success: new hash, the
+   * restriction lifted, every OTHER session revoked (doc 56 P6), audit, and a notice to the account address.
+   */
+  async changePassword(
+    session: AuthSession,
+    input: ChangePasswordInput,
+    meta: RequestMeta,
+  ): Promise<void> {
+    const user = await this.deps.db.repo.findUserById(session.userId);
+    if (!user || user.status !== 'ACTIVE')
+      throw new AppError('UNAUTHENTICATED', 'Authentication required');
+    const now = this.deps.clock();
+    if (user.lockedUntil && user.lockedUntil > now) {
+      throw new AppError('FORBIDDEN', 'The account is locked. Try again later.');
+    }
+
+    if (!(await verifyPassword(user.passwordHash, input.current))) {
+      await this.asUser(user, meta, () =>
+        this.deps.db.transaction((tx) => this.countFailureAndMaybeLock(tx, user, now)),
+      );
+      throw new AppError('VALIDATION_ERROR', 'The current password is not correct', [
+        { field: 'current', issue: 'incorrect' },
+      ]);
+    }
+
+    const passwordHash = await hashPassword(input.new);
+    const revoked = await this.asUser(user, meta, () =>
+      this.deps.db.transaction(async (tx) => {
+        await tx.repo.setPassword(user.id, passwordHash, now);
+        await tx.repo.setSessionRestriction(session.sessionId, null);
+        const others = await tx.repo.revokeOtherSessions(user.id, session.sessionId, now);
+        await recordMany(tx.audit, [
+          {
+            module: 'auth',
+            action: 'user.password_changed',
+            entity: userEntity(user),
+            note: user.mustChangePassword ? 'First-login password change' : 'Changed by the user',
+          },
+          ...others.map((s): AuditEntry => ({
+            module: 'auth',
+            action: 'session.revoked',
+            entity: sessionEntity(s.id, user),
+            note: 'Other sessions revoked by a password change',
+          })),
+        ]);
+        return others.map((s) => s.tokenHash);
+      }),
+    );
+
+    await this.deps.sessions.evictMany(revoked);
+    await this.deps.sessions.clearPasswordChange(session.tokenHash);
+    notify(
+      this.deps.mailer.sendPasswordChanged({
+        to: user.email,
+        name: user.name,
+        at: now,
+        ip: meta.ip,
+      }),
+      'password changed',
+      meta.requestId,
+    );
   }
 
   // ---- password reset -------------------------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import type { Request, RequestHandler, Response } from 'express';
 import {
+  changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
   reauthSchema,
@@ -73,9 +74,18 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
     res.json({ reauthenticatedUntil: result.reauthenticatedUntil.toISOString() });
   };
 
+  const changePassword: RequestHandler = async (req, res) => {
+    await service.changePassword(
+      sessionOf(res),
+      parseBody(changePasswordSchema, req.body),
+      metaOf(req, res),
+    );
+    res.json({ message: 'Password changed. Sessions on other devices were signed out.' });
+  };
+
   const me: RequestHandler = async (_req, res) => {
     res.json(await service.me(sessionOf(res)));
   };
 
-  return { csrf, login, logout, forgotPassword, resetPassword, reauth, me };
+  return { csrf, login, logout, forgotPassword, resetPassword, reauth, changePassword, me };
 }

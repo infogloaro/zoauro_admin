@@ -57,6 +57,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'GET /me',
         'GET /me/login-history',
         'GET /openapi.json',
+        'POST /auth/change-password',
         'POST /auth/forgot-password',
         'POST /auth/login',
         'POST /auth/logout',

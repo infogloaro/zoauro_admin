@@ -173,6 +173,18 @@ export class SessionStore {
     return new Date(now + this.deps.config.reauthWindowMs);
   }
 
+  /**
+   * After a successful password change the current session is no longer restricted. The cached entry is updated; if
+   * Redis is down, the next resolve reloads the user's flag from PostgreSQL anyway.
+   */
+  async clearPasswordChange(tokenHash: string): Promise<void> {
+    const cached = await this.read(tokenHash);
+    if (cached) {
+      cached.mustChangePassword = false;
+      await this.write(tokenHash, cached);
+    }
+  }
+
   async evict(tokenHash: string): Promise<void> {
     try {
       await this.deps.redis.del(this.key(tokenHash));
