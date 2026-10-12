@@ -2,7 +2,8 @@ import { Redis } from 'ioredis';
 import { createApp } from './app';
 import { createAudit, RedisDeniedRateLimiter } from './lib/audit';
 import { loadEnvOrExit } from './lib/env';
-import { auditTransaction, createPrismaClient } from './lib/db';
+import { auditTransaction, createPrismaClient, currentDatabaseRole } from './lib/db';
+import { assertDatabaseRole, DatabaseRoleError } from './lib/db-role-guard';
 import { createReadinessChecks } from './lib/health';
 import { authContextMiddleware } from './lib/authz';
 import { createAccessService } from './modules/access';
@@ -44,6 +45,24 @@ const app = createApp({
   },
 });
 
-app.listen(env.PORT, () => {
-  console.log(`api listening on :${env.PORT}`);
-});
+// Boot guard (P3.4): listen only after the connection proves it is the allowed application role.
+assertDatabaseRole({
+  currentRole: () => currentDatabaseRole(prisma),
+  databaseUrl: env.DATABASE_URL,
+  allowedRoles: env.DATABASE_ALLOWED_ROLES,
+})
+  .then(() => {
+    app.listen(env.PORT, () => {
+      console.log(`api listening on :${env.PORT}`);
+    });
+  })
+  .catch((err: unknown) => {
+    // A role mismatch names roles only; any other error (e.g. unreachable database) prints its class name, never its
+    // message, which can carry the host or connection details.
+    console.error(
+      err instanceof DatabaseRoleError
+        ? `${err.message}; refusing to start`
+        : `database role check could not run (${err instanceof Error ? err.name : 'unknown'}); refusing to start`,
+    );
+    process.exit(1);
+  });

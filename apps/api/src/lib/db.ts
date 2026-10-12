@@ -33,6 +33,12 @@ export function auditTransaction(prisma: PrismaClient) {
     prisma.$transaction((tx) => fn(auditTx(tx)));
 }
 
+/** `select current_user` on this connection, for the boot guard (lib/db-role-guard.ts). */
+export async function currentDatabaseRole(prisma: PrismaClient): Promise<string> {
+  const rows = await prisma.$queryRaw<{ current_user: string }[]>`SELECT current_user`;
+  return rows[0]?.current_user ?? '';
+}
+
 /** The application connection: DATABASE_URL, role zoauro_app only (never the migration role). */
 export function createPrismaClient(databaseUrl: string): PrismaClient {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });

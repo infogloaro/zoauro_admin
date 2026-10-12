@@ -80,6 +80,17 @@ describe('loadEnv', () => {
     expect(problems({ ...valid }, 'worker')).toEqual([]);
   });
 
+  it('DATABASE_ALLOWED_ROLES: comma-separated, default zoauro_app, never a privileged role', () => {
+    expect(loadEnv(valid).DATABASE_ALLOWED_ROLES).toEqual(['zoauro_app']);
+    expect(
+      loadEnv({ ...valid, DATABASE_ALLOWED_ROLES: ' zoauro_app , zoauro_app_ro ' })
+        .DATABASE_ALLOWED_ROLES,
+    ).toEqual(['zoauro_app', 'zoauro_app_ro']);
+    for (const bad of [',', 'zoauro_app,zoauro_owner', 'zoauro_purge']) {
+      expect(problems({ ...valid, DATABASE_ALLOWED_ROLES: bad }), bad).toHaveLength(1);
+    }
+  });
+
   it('TRUST_PROXY_HOPS: a non-negative integer, default 0', () => {
     expect(loadEnv(valid).TRUST_PROXY_HOPS).toBe(0);
     expect(loadEnv({ ...valid, TRUST_PROXY_HOPS: '1' }).TRUST_PROXY_HOPS).toBe(1);

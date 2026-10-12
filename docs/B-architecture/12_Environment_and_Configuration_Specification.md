@@ -14,6 +14,7 @@
 | APP_URL | no | Public base URL (web and API share it) |
 | WEB_INTERNAL_API_URL | no | Web → API URL for Server Components (web only) |
 | DATABASE_URL | yes | Postgres connection (role `zoauro_app`: SELECT/INSERT on the audit tables) |
+| DATABASE_ALLOWED_ROLES | no | Comma-separated, default `zoauro_app`. Boot guard: after connecting, `select current_user` must equal the role in `DATABASE_URL` and be in this list, or the API refuses to start (the message names roles only). `zoauro_owner` and `zoauro_purge` are rejected |
 | DATABASE_URL_MIGRATE | CI/deploy only | Migration role `zoauro_owner`; never set in the API or worker environment |
 | DATABASE_URL_AUDIT_PURGE | worker only | Role `zoauro_purge` for the audit retention job (doc 50 §3.2, D64) |
 | REDIS_URL | yes | |

@@ -36,6 +36,21 @@ function buildSchema(entry: EntryPoint) {
         (v) => !PRIVILEGED_DB_USERS.includes(dbUser(v)),
         'must connect as the application role zoauro_app, not zoauro_owner or zoauro_purge',
       ),
+      // Boot guard: `select current_user` must be one of these (comma-separated). Privileged roles are never allowed.
+      DATABASE_ALLOWED_ROLES: z
+        .string()
+        .default('zoauro_app')
+        .transform((v) =>
+          v
+            .split(',')
+            .map((r) => r.trim())
+            .filter((r) => r.length > 0),
+        )
+        .refine((l) => l.length > 0, 'must name at least one role')
+        .refine(
+          (l) => !l.some((r) => PRIVILEGED_DB_USERS.includes(r)),
+          'must not include zoauro_owner or zoauro_purge',
+        ),
       // Prisma commands and CI only. Not allowed in a production API or worker environment (doc 12).
       DATABASE_URL_MIGRATE: postgresUrl.optional(),
       // Audit retention job only (doc 50 section 3.2, D64). Required for the production worker.
