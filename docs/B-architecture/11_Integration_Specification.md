@@ -7,7 +7,7 @@
 | Customer / vendor / partner apps | Order source and vendor/partner events | **D18 open** | Inbound Integration API + outbound signed webhooks (docs 41–45). Mode B adapter if a backend already exists |
 | Delivery services | Third-party fleet | Not in v1 | Interface placeholder `FleetProvider` |
 | Email | Credentials, resets, alerts | Amazon SES | Verified domain, SPF, DKIM, DMARC |
-| SMS / OTP | Optional OTP, alerts | Provider TBD (India DLT registration needed) | |
+| SMS / OTP | Login OTP (2-step verification), alerts | Provider **not chosen** (D68). Built behind `SmsProvider`, off by default (D67). India DLT registration of entity, sender ID and OTP template required before enabling | `SMS_PROVIDER=none` until then |
 | WhatsApp | Notifications | Optional later | Business API template approval |
 | Push | Customer/partner apps | Out of panel scope; admin sends via notifications module | FCM |
 | Object storage | Documents, images | Amazon S3 (S3-compatible, MinIO locally) | Pre-signed PUT, 5 MB images / 10 MB PDFs, allow-list types, virus scan (optional ClamAV Lambda) |

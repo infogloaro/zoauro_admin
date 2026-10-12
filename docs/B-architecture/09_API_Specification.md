@@ -23,7 +23,13 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | POST | /auth/login | public | rate limited, lockout |
 | POST | /auth/logout | session | |
 | POST | /auth/forgot-password, /auth/reset-password | public | generic responses |
-| POST | /auth/2fa/setup, /auth/2fa/verify | session | |
+| GET | /auth/csrf | public | sets the CSRF cookie, returns token |
+| POST | /auth/mfa/challenge, /auth/mfa/verify, /auth/mfa/enrol/complete | pending cookie `zo_mfa` | second step of login (doc 52 §2.1, §8). `/auth/login` returns `OK`, `MFA_REQUIRED` or `ENROLMENT_REQUIRED` |
+| POST | /auth/change-password | session | also the forced first-login change |
+| GET/POST/PUT/DELETE | /me/mfa, /me/mfa/{email\|authenticator\|sms}/{start\|confirm}, /me/mfa/primary, /me/mfa/{type}, /me/mfa/backup-codes/regenerate | session or pending (enrol) | enrol, manage, remove (STRONG re-auth) |
+| GET/DELETE/POST | /me/sessions, /me/sessions/{id}, /me/sessions/revoke-others | session | |
+| GET/PUT | /settings/security, GET /settings/security/status, POST /settings/security/sms/resume | Super Admin; PUT needs STRONG re-auth | 2-step policy (doc 52 §5) |
+| POST | /members/{id}/mfa/reset | Super Admin + STRONG | `{reason}`; audited |
 | POST | /auth/reauth | session | recent re-auth for high-risk actions |
 | GET | **/me** | session | role, **zones[] each with granted permissions and limits for that zone** (Zonal Admin) or global flag (Super Admin), preferences |
 | PUT | **/me/zone-scope** | session | `{ zoneIds: [] }` saves preference; validated against assignment |
@@ -34,6 +40,9 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET/POST | /zones | zones:view/add | Super Admin |
 | GET/PATCH/DELETE | /zones/{id} | zones:* | delete = deactivate with impact check |
 | GET | /zones/{id}/impact | zones:view | counts of open orders, vendors, partners, admins before deactivate |
+| GET | /zones/summary, /zones/lookup?pincode= | zones:view | KPI counts; owning zone of a pincode (live overlap hint) |
+| PUT | /zones/{id}/pincodes (`?preview=true` dry run) | zones:edit | range / add / remove; overlap check under advisory lock; returns vendor mismatches |
+| POST | /zones/{id}/activate, /zones/{id}/deactivate | zones:status + re-auth | deactivate needs `reason`, `version`, `impactVersion`; no cascade writes (doc 53 §2.1) |
 | GET/POST | /zonal-admins | admins:* | Super Admin; create member account (name, email, phone, password, status); zones/access are set via `/access` below |
 | GET/PATCH/DELETE | /zonal-admins/{id} | admins:* | |
 | GET | **/zonal-admins/{id}/access** | access:view | member's assignments: `[{ zoneId, profileId, overrides[], limits }]` |
@@ -84,8 +93,6 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /audit-logs | audit:view (Super Admin) or entity mode | Cursor list; filters actor, actorType, module, action, entityType, entityId, zoneId, outcome, sensitivity, q, from, to. Zonal Admin: entity mode only (entityType+entityId), else 403; ip/userAgent/requestId hidden (doc 50 §8) |
 | GET | /audit-logs/{id} | as above | detail with changes[] |
 | GET | /audit-logs/catalogue | audit:view | modules and action keys for filters |
-| GET | /audit-logs/actors | audit:view | `?q=` (name prefix, case-insensitive), `limit` ≤ 20: admins `{id, name, role}` for the System Logs actor typeahead (doc 50 §8) |
-| GET | /audit-logs/zones | audit:view | every zone `{id, name}` (soft-deleted included) for the System Logs zone filter (doc 50 §8) |
 | POST | /audit-logs/exports | audit:export | Super Admin, re-auth, 3/hour, 100k rows cap, async CSV |
 | GET | /exports/{id} | requester | status and 24 h signed URL |
 | GET | /login-history | audit:view | Super Admin, cursor |

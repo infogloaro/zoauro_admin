@@ -12,7 +12,7 @@
 | AUTH-1 | Email and password login, show/hide password | P0 |
 | AUTH-2 | Remember me, forgot password, validation errors | P0 |
 | AUTH-3 | Role-based routing after login | P0 |
-| AUTH-4 | 2FA (TOTP, email OTP fallback) | P1 |
+| AUTH-4 | 2-step verification: authenticator app, email OTP, SMS OTP (off until provider + DLT), backup codes (doc 52) | P0 for Super Admin, P1 for Zonal Admin policy |
 | AUTH-5 | Session timeout, login history, active sessions, revoke | P1 |
 | AUTH-6 | Lockout after N failed attempts | P0 |
 

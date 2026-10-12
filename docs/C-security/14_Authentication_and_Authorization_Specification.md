@@ -8,7 +8,7 @@ Cognito remains rejected unless SSO/social login becomes a requirement. **Figma 
 - Email + password; Argon2id; minimum 12 characters (configurable); breached-password check optional.
 - Generic error "Invalid email or password".
 - Lockout: max attempts 5 → lock **30 minutes** (Figma defaults, D37; both editable in Settings > Security).
-- 2FA: TOTP (Google Authenticator) mandatory for Super Admin; enforceable for Zonal Admin; email OTP fallback; SMS OTP shown disabled in Figma and kept off until a DLT-registered provider exists; 10 single-use backup codes.
+- 2FA (amended by doc 52, D65–D77): authenticator app (TOTP) mandatory for Super Admin and required by default for Zonal Admin (policy); email OTP and **SMS OTP** are supported methods per role policy; Super Admin defaults to authenticator + backup codes only (D66). SMS OTP is built behind a provider interface and **off until a real provider and DLT-registered template exist** (D67; this replaces "kept off" and TD-17). 10 single-use backup codes. No session cookie exists until the second step passes (D69).
 - Session: opaque ID in HTTP-only, Secure, SameSite=Lax cookie; idle timeout 30 min (Figma default); absolute 12 h; remember me 7 days (setting).
 - Multiple sessions policy configurable (Figma toggle "Allow multiple sessions"; default allowed up to 3).
 - Reset password: single-use hashed token, 30 min expiry; revokes all sessions.
@@ -38,7 +38,7 @@ The whole `AuthContext` is built per request from `admin_zone_assignments`, `acc
 - Object in an unassigned zone → 404. Zone id in query not assigned → 404 `ZONE_NOT_FOUND`. Zone assigned but module not viewable there → 404 on read, 403 on write. Deny overrides always win.
 - Any change to a profile, an assignment, an override or a limit invalidates the affected members' cached context immediately and emits `scope.changed` (members' tabs refetch `/me`). Access changes do not revoke sessions; removing a member's last zone or suspending the account does.
 - Socket.IO handshake uses the same session; rooms `zone:<id>:orders` are joined only for zones where the member has `orders:view`, and `zone:<id>:refunds` only where they have `refunds:view`; rooms are re-evaluated on `scope.changed`.
-- High-risk actions require recent re-authentication (password or TOTP within 10 min): change role, **change any member's access (profile, overrides, limits, zones)**, edit an Access Profile, delete/deactivate zone, approve large refund, mark payout paid, change payment settings, move vendor to another zone.
+- High-risk actions require recent re-authentication (password or TOTP within 10 min): change role, **change any member's access (profile, overrides, limits, zones)**, edit an Access Profile, delete/deactivate zone, approve large refund, mark payout paid, change payment settings, move vendor to another zone. **Amended (D74):** two levels. `PASSWORD` for the list above; `STRONG` (password + a current second-step code) for removing a 2-step method, regenerating backup codes, resetting a member's 2-step, editing the security policy.
 
 ## 5. Privileged access
 Super Admin accounts limited and named; no shared accounts; all Super Admin actions audited; break-glass account stored offline, used only with incident record. A Zonal Admin cannot edit their own role, permissions, status or zone assignments (R-ACC-1).

@@ -31,6 +31,8 @@ Scope: Super Admin + Zonal Admin web panel. A Zonal Admin can operate **multiple
 | 36 Multi-Zone Zonal Admin Spec · 37 Design Reconciliation · 38 Lanes and Prompts | F-execution | new |
 | **41 Ecosystem and Data Flow · 42 App→Admin Contract · 43 Admin→App Control and Events · 44 Data Ownership and Sync · 45 Integration Hub** (+ `contracts/`) | G-integration | **new in v2.0** |
 | **50 Module Guide M04 Audit and Logs (v1.1, with verified code bundle `Zoauro-M04-Audit-Bundle/`)** | F-execution | **new** (first module guide) |
+| **52 Module Guide M01 Auth, Sessions and 2-Step Verification · 53 Module Guide M02 Zones** | F-execution | **new in v2.4** |
+| **54 Auth and Zones Build Prompts (from scratch, in order)** | H-delivery | **new in v2.4** |
 | **46 Lifecycle Roadmap · 47 Deployment Runbook · 48 Integration Test and UAT Plan · 49 Claude Code Kickoff Steps and Prompts** (+ `deploy/`) | H-delivery | **new in v2.0** |
 | **39 Modules and Workflows · 40 Three-Developer Allocation and Module Plan** | F-execution | **new in v1.2** |
 
@@ -45,3 +47,5 @@ Items marked Assumed in doc 03 use a default so work can start; change the regis
 Reading note (v1.2): wherever a document says "assigned zones", read it as "zones where the member holds the required permission for that module" (doc 36 header, doc 14 §4).
 
 v2.3 changes: doc 50 (Audit and Logs) rewritten as v1.1 after building and testing a reference implementation (`Zoauro-M04-Audit-Bundle`, delivered separately): third database role for retention (D64), extra indexes, diff-before-redact, customer zone rule (D63, Assumed), build status in §18, new Phase 0.6 prompt to adopt the bundle. Doc 07 route list now says `access` instead of `roles`.
+
+v2.4 changes: docs 52, 53, 54 added (Auth with authenticator/email/SMS 2-step verification; Zones). Changes the earlier decision to keep SMS OTP out of v1 (D67; doc 14 §2, TD-17); new decisions D65–D90, threats T30–T43, tests TC-AUTH-6…47 and TC-ZONE-5…30. Docs 02, 03, 05, 06, 08, 09, 11, 12, 13, 14, 17, 20, 24, 25, 31, 32, 34, 37, 39, 40, 42, 50 and AGENTS.md amended. Nothing in 52/53 is built or tested yet.

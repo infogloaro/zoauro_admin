@@ -6,16 +6,19 @@ Conventions: UUID v7 primary keys; `created_at`, `updated_at`, `deleted_at`, `cr
 ## Identity and access
 | Table | Columns |
 |---|---|
-| users | id, name, email (unique where deleted_at null), phone, password_hash, role_id, status, mfa_enabled, mfa_secret_encrypted, backup_codes_hash, must_change_password, failed_attempts, locked_until, last_login_at |
+| users | id, name, email (unique where deleted_at null), phone, password_hash, role_id, status, mfa_enabled, phone_verified_at, password_changed_at (MFA secrets and codes moved to the tables below, doc 52 §3), must_change_password, failed_attempts, locked_until, last_login_at |
 | roles | id, name (SUPER_ADMIN, ZONAL_ADMIN), is_system. **Identity role only; no permissions here (v1.2)** |
 | **access_profiles ★★** | id, name (unique), description, is_seed, default_per_refund_limit, default_daily_refund_limit, default_can_reveal, default_can_export, created_by, updated_by — reusable templates (D41) |
 | **profile_permissions ★★** | profile_id, module, can_view, can_add, can_edit, can_delete, can_status; PK (profile_id, module). Replaces v1.1 `role_permissions` |
 | **admin_zone_assignments ★★** | id, user_id, zone_id, **profile_id (FK access_profiles), per_refund_limit nullable, daily_refund_limit nullable, can_reveal nullable, can_export nullable (null = profile default)**, assigned_by, assigned_at, revoked_at nullable, revoked_by, note; partial unique (user_id, zone_id) WHERE revoked_at IS NULL. A zone's team = active rows for that zone. No "one active zone" rule (D3 changed). Index (zone_id) WHERE revoked_at IS NULL |
 | **assignment_overrides ★★** | assignment_id, module, action (VIEW/ADD/EDIT/DELETE/STATUS), effect (GRANT/DENY), PK (assignment_id, module, action). Deny wins |
 | **access_changes ★★** | id, actor_id (Super Admin), member_id, zone_id nullable, change_type (PROFILE_SET, OVERRIDE_SET, LIMIT_SET, ZONE_ADDED, ZONE_REMOVED, PROFILE_EDITED), before_json, after_json, created_at — append-only; also written to `audit_logs`; powers the Access change history screen |
-| sessions | id, user_id, token_hash, ip, user_agent, expires_at, revoked_at, last_seen_at |
-| login_history | id, user_id, email_attempted, success, ip, user_agent, reason, created_at (purged after 12 months) |
+| sessions | id, user_id, token_hash, ip, user_agent, expires_at, revoked_at, last_seen_at, mfa_verified_at, mfa_method, remember, reauth_at, reauth_level, restricted |
+| login_history | id, user_id, email_attempted, success, ip, user_agent, reason (BAD_PASSWORD, WRONG_TAB, LOCKED, INACTIVE, MFA_FAILED, MFA_EXPIRED, MFA_LOCKOUT, OK), mfa_method, created_at (purged after 12 months) |
 | password_reset_tokens | id, user_id, token_hash, expires_at, used_at |
+| user_mfa_methods | id, user_id, type (AUTHENTICATOR, EMAIL_OTP, SMS_OTP), secret_encrypted (authenticator only, AES-256-GCM), verified_at, last_used_step, is_primary, disabled_at, created_at, updated_at; unique (user_id, type) where disabled_at is null (doc 52 §3) |
+| mfa_challenges | id, user_id, purpose (LOGIN, ENROL_PROOF, ENROL_EMAIL, ENROL_SMS, REAUTH), method, code_hash, destination_hint, expires_at, attempts, max_attempts, send_count, last_sent_at, consumed_at, ip, created_at |
+| mfa_backup_codes | id, user_id, code_hash, batch_id, used_at, created_at |
 | audit_logs | **Redefined in doc 50 §3.1:** id (uuid v7), created_at, actor_type (USER, APP_CLIENT, SYSTEM, WEBHOOK), actor_id, actor_name, actor_role, zone_id (null for global), module, action, entity_type, entity_id, entity_label, outcome (SUCCESS, DENIED), sensitivity (NORMAL, HIGH), before_json, after_json (changed fields only, redacted), note, ip, user_agent, request_id. No foreign keys. Indexes: (zone_id, id desc), (zone_id, module, id desc), (entity_type, entity_id, id desc), (actor_id, id desc), (module, action, id desc), (sensitivity, id desc) plus expression indexes on lower(entity_label) and lower(actor_name) (doc 50 §3.1). Append-only: INSERT/SELECT only for the app role plus trigger; deletes only by the `zoauro_purge` role (doc 50 §3.2). Purge only after 3 years with verified archive |
 | **user_preferences ★** | user_id, last_zone_scope (nullable = all zones), table_density, updated_at |
 
@@ -24,8 +27,8 @@ Super Admin has no assignment rows (global). A Zonal Admin with zero active assi
 ## Geography
 | Table | Columns |
 |---|---|
-| zones | id, name (unique), code (unique), city, **state ★**, pincode_from, pincode_to, delivery_charge, status (**ACTIVE, INACTIVE, UPCOMING ★**), description, color_hex (chart dot) |
-| serviceable_pincodes | id, zone_id, pincode |
+| zones | id, name (unique), code (unique), city, **state ★**, pincode_from, pincode_to, delivery_charge, status (**ACTIVE, INACTIVE, UPCOMING ★**), description, color_hex (chart dot, 12-token palette), version, activated_at, deactivated_at, deactivation_reason, created_by, deleted_at; code immutable and unique incl. soft-deleted; pincode_from/to are the entered range for display only (doc 53 §3) |
+| serviceable_pincodes | id, zone_id, pincode char(6) **unique across all zones** (D82), source (RANGE, MANUAL, IMPORT), created_at; index zone_id (doc 53 §3) |
 
 Zone list counts (restaurants, homemakers, partners, customers, admins) are derived queries/materialised counters, not columns.
 

@@ -61,6 +61,7 @@ A request outside its scopes → `403 SCOPE_DENIED`. A vendor client acting on a
 | GET | `/ping` | connectivity + clock check; returns server time and client name |
 | GET | `/config` | rules the app should honour: cancel reasons, acceptance timeout, max cart value, supported payment methods, support number, app min-version flags |
 | GET | `/zones/resolve?lat=&lng=&pincode=` | which zone covers a location; `serviceable`, `deliveryChargePaise`, `status` (ACTIVE / UPCOMING / NONE) |
+| | | **Note (v2.4, D83/D87):** v1 decides serviceability by **pincode only**. `lat`/`lng` are accepted but not used for matching; send the customer's pincode. Closed (INACTIVE) zones are returned as `NONE`. `status=UPCOMING` means the area is planned: show "coming soon". Polygon matching is planned after the pilot. |
 | POST | `/uploads/presign`, `/uploads/confirm` | pre-signed upload for documents (type and size allow-list, doc 13) |
 | GET | `/events?after=&limit=&types=` | pull feed of outbound events (doc 43 §3) |
 

@@ -11,7 +11,7 @@ v1.1 aligns the stack with the GloAro CRM stack (D16). Changed from v1.0: Expres
 | Database | PostgreSQL + Prisma |
 | Cache, jobs | Redis + BullMQ (dashboard cache, exports, outbox publisher, webhooks, payouts, reconciliation, retention) |
 | Real-time | Socket.IO (zone-scoped rooms joined server-side only) |
-| Auth | In-house session auth in the API: Argon2id, opaque session id in HTTP-only cookie, sessions in PostgreSQL (Redis read-through), TOTP via `otplib`, email OTP fallback (doc 14) |
+| Auth | In-house session auth in the API: Argon2id, opaque session id in HTTP-only cookie, sessions in PostgreSQL (Redis read-through), 2-step verification via `otplib` (authenticator app), email OTP and SMS OTP behind a provider interface (off by default), backup codes (docs 14, 52) |
 | Authorization | Server-side RBAC + zone scoping in the API repository layer |
 | Storage | S3 (S3-compatible API; MinIO locally), pre-signed URLs |
 | Payments | `PaymentProvider` interface (D6 open) + COD + wallet record |

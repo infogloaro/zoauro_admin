@@ -44,7 +44,7 @@ Not seen: 16 of 29. For these, build from docs 20/22 and mark "provisional" unti
 | 10 | Lists show full phone numbers and emails | Mask in lists | Mask + reveal (D26) |
 | 11 | Customers: Add Customer, Registration Source, User Type, Blocked | No add; no source | Added (D28), `source` column |
 | 12 | Menu items: Out of Stock tag, Import button, Featured toggle | Import not specified | Out of stock = stock 0; import P1 |
-| 13 | Security: lock 30 min, session 30 min, SMS OTP (disabled), multi-session, remember me toggles | Lock 15 min | 30 min default (D37) |
+| 13 | Security: lock 30 min, session 30 min, SMS OTP (shown disabled; built behind a provider interface, off until provider + DLT exist, D67), multi-session, remember me toggles | Lock 15 min | 30 min default (D37) |
 | 14 | Login activity roles: Super Admin, Admin, Support Staff, Finance Staff | Two roles | Custom roles P1 (D30) |
 | 15 | Header theme toggle, "Need Help? Contact Support" card, bell with badge, global search | Not in docs | P2 / static / alerts feed / P1 (D32, D33) |
 | 16 | Brand logo reads ZOAURO; Zone page subtitle says "GloAro Mart" | "GloAro" | D21 |

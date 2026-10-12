@@ -19,6 +19,11 @@
 | REDIS_URL | yes | |
 | SESSION_SECRET | yes | Cookie/CSRF signing (replaces Auth.js `AUTH_SECRET`) |
 | ENCRYPTION_KEY | yes | AES-256 for MFA secrets and sensitive fields (KMS preferred) |
+| ENCRYPTION_KEY_PREVIOUS | no | Previous key kept while rotating (secrets are opened with current, then previous) |
+| OTP_HMAC_KEY | yes | HMAC key for OTP and backup-code hashes; ≥ 32 bytes; must differ from `SESSION_SECRET` and `ENCRYPTION_KEY` (doc 52) |
+| MFA_ISSUER | no | Name shown in authenticator apps (default `ZOAURO Admin`) |
+| SMS_PROVIDER | yes | `none` (default) \| `console` (dev/test only; production refuses to start) \| a real adapter once chosen |
+| SMS_API_KEY, SMS_SENDER_ID, SMS_DLT_ENTITY_ID, SMS_DLT_TEMPLATE_ID_OTP | when SMS is enabled | Provider credentials and DLT identifiers; `smsEnabled` cannot be true without a real provider and the template id |
 | S3_BUCKET, S3_REGION, S3_ENDPOINT | no | endpoint set for MinIO locally |
 | SES_FROM_ADDRESS / SMTP_URL | no/yes | |
 | PAYMENT_PROVIDER | no | razorpay, cashfree |

@@ -39,6 +39,20 @@ Internet ↔ Nginx (CloudFront/WAF/ALB added after pilot, doc 06 §5) ↔ web + 
 | T27 | Tampering with or deleting audit rows | Hidden misuse | App DB role INSERT/SELECT only, trigger, no API verbs, purge only by retention job after 3 years (doc 50) | M04 |
 | T28 | Secrets or personal data leaking into audit JSON | Data exposure | Redaction before insert, registry test against the schema, masked phone/email | M04 |
 | T29 | Audit flooding / storage abuse | Cost, noise | Denied rows rate limited, bulk actions one row, export caps, app event streams excluded (D59) | M04 |
+| T30 | OTP / TOTP guessing | Account takeover | Per-code attempt cap, 5 failures lock 30 min (D77), rate limits, 5-min expiry, timing-safe compare (doc 52; TC-AUTH-10…14) | M01 |
+| T31 | SMS pumping / OTP flooding | Cost, harassment | Destination never user-supplied, cooldown, hourly/daily caps, global SMS cap and circuit breaker, SMS off by default (TC-AUTH-17…20) | M01 |
+| T32 | SIM swap / mailbox takeover defeats OTP | Account takeover | Super Admin authenticator-only by default (D66), new-method emails, STRONG re-auth (TC-AUTH-26, 29) | M01 |
+| T33 | 2-step downgrade (attacker picks weakest method) | Bypass | Allowed methods per role evaluated server-side; unenrolled/disallowed method rejected (TC-AUTH-21) | M01 |
+| T34 | Enrolment hijack with a temporary password | Attacker owns factor | Mailbox proof before enrolment; gate order password → second step → change password (TC-AUTH-22) | M01 |
+| T35 | TOTP secret theft from DB or backup | Permanent compromise | AES-256-GCM, key id and rotation, never returned after enrolment, redacted from audit (TC-AUTH-30) | M01 |
+| T36 | TOTP code replay | Session theft | Last-used step guard, short window (TC-AUTH-11); real-time phishing relay is residual until passkeys | M01 |
+| T37 | Recovery abuse (social engineering) | Bypass | STRONG re-auth, reason, member email, HIGH audit, ≥ 2 Super Admins, audited CLI (TC-AUTH-31…34) | M01 |
+| T38 | Pending-login cookie theft / fixation | Skip step 1 | Opaque, Strict, 5 min, single use, new session id on success (TC-AUTH-9) | M01 |
+| T39 | Enumeration through the second step | Valid emails learned | Methods shown only after correct password; identical errors and timing (TC-AUTH-35) | M01 |
+| T40 | Pincode overlap / hijack between zones | Wrong team, misrouted orders | DB unique index, advisory-locked check, HIGH audit, mismatch report, Super Admin only (TC-ZONE-6…9) | M02 |
+| T41 | Accidental or malicious zone deactivation | Outage | Impact check, reason, acknowledgement, re-auth, HIGH audit, reversible without cascade (TC-ZONE-14…17) | M02 |
+| T42 | Zone resolver abuse / scraping | Info leak, load | Client scope, rate limit, closed zones shown as NONE, cache (TC-ZONE-20, 21) | M02 |
+| T43 | Stale zone cache accepts orders for a closed zone | Wrong serviceability | Version bump in commit path; intake re-checks the zone row (TC-ZONE-19) | M02 |
 | T18 | Admin account created by attacker | Takeover | Only Super Admin creates admins; email verification; audit | Super Admin |
 
 ## 4. Security requirements

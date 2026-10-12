@@ -84,6 +84,32 @@ Naming: product brand in UI = **ZOAURO** (logo in Figma); company/platform = **G
 | D62 | DENIED outcomes are recorded only for a short list, rate limited to 1 per minute per actor and action | **Assumed** | Doc 50 §4.3 |
 | D63 | Audit rows about a customer carry the zone in which the action happened (or the zone of the customer's latest order/address for Super Admin edits); rows with no zone are visible to Super Admin only | **Assumed** | Doc 50 §4.0. Needs owner confirmation before the customers module |
 | D64 | Audit retention deletes run as a separate database role (`zoauro_purge`) with its own connection string, never as the application role | **Decided (design)** | Doc 50 §3.2, doc 12 |
+| D65 | 2-step verification methods: authenticator app (TOTP), email OTP, SMS OTP, backup codes; allowed methods set per role in policy | **Decided** (owner request 2026-10-12) | Doc 52 |
+| D66 | Super Admin: authenticator + backup codes only by default; email/SMS accepted as an alternative only if the policy is changed (re-auth, warning). SMS and email are only as strong as SIM and mailbox | **Assumed** | Doc 52 §1, §5 |
+| D67 | SMS OTP is built in v1 behind a provider interface and **off by default**; cannot be switched on without a real provider and a registered DLT template. **Supersedes** doc 14 §2 ("kept off") and TD-17 for SMS OTP | **Decided** | Doc 52 §6, doc 32 |
+| D68 | SMS provider and DLT registration (entity, sender ID, template) | **Open** | Doc 52 §6, doc 11 |
+| D69 | Login is two-step: no session cookie until the second step is passed; pending state in cookie `zo_mfa` (5 min) | **Decided (design)** | Doc 52 §2.1 |
+| D70 | TOTP SHA-1/6 digits/30 s, ±1 step, replay guard; secret AES-256-GCM with key id | **Decided (design)** | Doc 52 §2.2 |
+| D71 | 10 single-use backup codes, stored HMAC-hashed | **Decided (design)** | Doc 52 §2.2 |
+| D72 | OTPs go only to the verified email/phone on the account record; first enrolment starts with a mailbox check | **Decided (design)** | Doc 52 §2.3 |
+| D73 | 2-step required for both roles by default; per-role switch (Super Admin cannot be switched off) | **Assumed** | Doc 52 §5 |
+| D74 | Re-auth levels: `PASSWORD` (doc 14 list) and `STRONG` (password + code) for 2-step changes, 2-step reset and security policy | **Decided (design)** | Doc 52 §2.4 |
+| D75 | At least two active Super Admins at launch; recovery by another Super Admin, last resort audited CLI | **Assumed** | Doc 52 §2.5 |
+| D76 | Password reset never bypasses or removes 2-step | **Decided** | Doc 52 §2.1 |
+| D77 | Wrong second-step codes count toward the lockout of D37 | **Decided** | Doc 52 §2.1 |
+| D78 | Password denylist is local (no online breach-check API) | **Assumed** | Doc 52 §1.2 |
+| D79 | Remember me = 7 days absolute, 8 h idle | **Assumed** | Doc 52 §2.6 |
+| D80 | Add `qrcode` (web) now and `libphonenumber-js` when SMS ships | **Assumed** | Doc 52 §7 |
+| D81 | Zone `code`: 2–6 chars A–Z/0–9, unique, immutable | **Assumed** | Doc 53 §3 |
+| D82 | A pincode belongs to at most one zone (DB unique index); inactive zones keep theirs until removed | **Assumed** | Doc 53 §2.6 |
+| D83 | Serviceability by pincode only in v1; polygons/PostGIS after the pilot; lat/lng accepted but unused | **Assumed** | Doc 53 §2.3 |
+| D84 | Registrations in an UPCOMING zone are accepted into it and wait | **Assumed** | Doc 53 §2.1 |
+| D85 | Deactivation stops new intake only; open orders finish; no cascade writes; members may act on open orders | **Assumed** | Doc 53 §2.6 |
+| D86 | Zone delivery charge ceiling ₹1 000 | **Assumed** | Doc 53 §2.6 |
+| D87 | Resolve returns `NONE` for closed zones; `zone.updated` gets `pincodeCount` (needs the app teams) | **Assumed** | Doc 53 §2.5 |
+| D88 | Order-number prefix: `GA-<zonecode>-<seq>` (R-ORD-1) or `ZO-<seq>` (intake example) | **Open** | Doc 53 §14 |
+| D89 | Zone name editable, code not | **Assumed** | Doc 53 |
+| D90 | No scheduled zone activation | **Assumed** | Doc 53 |
 | D18 (refined) | Still **open and blocking**: do the apps exist and have backends? Mode A (apps call this Integration API, default) vs Mode B (adapter to an existing backend). I cannot see the apps; app teams must review the contract | **Open — blocks IH-1** | Doc 41 §4 |
 
 Every change to a decision is appended to doc 32.

@@ -7,7 +7,7 @@ Sizes: S ≤ 1 day, M 2–3 days, L 4–5 days. "Docs" = the only sections an AI
 Goal: Super Admin can open a new city and give people access to it with no code change.
 | ID | Task | Size | P | Depends | Docs |
 |---|---|---|---|---|---|
-| SA-1.1 | Zones API + UI: list with KPI cards (Total/Active/Inactive/Upcoming), table (name, city, state, admins, restaurants, homemakers, partners, customers, status), Add/Edit overlay (name, city, state, pincode range, delivery charge, status, description), deactivate with impact check | M | P0 | F1, F2 | 08 zones; 09 /zones; 20 Zone Mgmt; 22 Zone form |
+| SA-1.1 | Zones API + UI: list with KPI cards (Total/Active/Inactive/Upcoming), table (name, city, state, admins, restaurants, homemakers, partners, customers, status), Add/Edit overlay (name, city, state, pincode range, delivery charge, status, description), deactivate with impact check. **Full module spec: doc 53 (pincode integrity, lifecycle, resolver); sized ≈ 3.4 dev-weeks in total, ZONE-1…5** | M | P0 | F1, F2 | 08 zones; 09 /zones; 20 Zone Mgmt; 22 Zone form |
 | SA-1.2 | Zonal Admin **member accounts** API + UI: list, Add/Edit overlay (name, email, phone, password, status), credentials email, forced password change, reset password, revoke sessions. Zones and access are set in SA-1.7–1.9, not here | M | P0 | SA-1.1 | 08 users; 09 /zonal-admins; 20 |
 | SA-1.3 | Superseded by SA-1.7 (`PUT /zonal-admins/{id}/access`) | — | — | — | 09 |
 | SA-1.4 | **Access Profiles** UI + API: seed profiles (Zone Manager, Operations, Support, Finance View, Read Only), permission matrix View/Add/Edit/Delete/Status per module, default limits, delete blocked if in use, impact notice on save | M | P0 | SA-1.7 | 04; 09 /access-profiles; 20 |
@@ -75,7 +75,7 @@ Revenue, Commission, Refunds, Payouts, Avg Order Value, Revenue Overview widgets
 | ID | Task | Size | P | Depends | Docs |
 |---|---|---|---|---|---|
 | SA-7.1 | Settings sections (General, Business & Operations, Payment & Commission, Order Settings, User Management, Security, Notifications, Integrations, System Logs) with Save Changes confirmation for risky fields | L | P1 | F2.4 | 20 Settings |
-| SA-7.2 | Security tab: TOTP 2FA setup/enforcement, email OTP, session timeout, attempts, lock duration, new-login notice, active sessions, login history, Security Status card | L | P1 | F1.2 | 14 |
+| SA-7.2 | Security tab: **2-step policy and Security Status card (backend AUTH-8, UI AUTH-10; full module in doc 52: authenticator, email OTP, SMS OTP off by default, backup codes, recovery)**, session timeout, attempts, lock duration, new-login notice, active sessions, login history, Security Status card | L | P1 | F1.2 | 14 |
 | SA-7.3 | Notifications module: compose to audience (zone/vendors/partners/customers), channel, schedule, history; bell + operational alerts feed | M | P1 | SA-4.5 | 20 Notifications |
 | SA-7.4 | System Logs viewer = doc 50 phase AU-6 (export AU-8 and retention AU-5 after pilot) | M | P1 | SA-1.5 | |
 | SA-7.5 | Global search (orders, customers, vendors, partners), per-entity permission + scope | M | P1 | SA-4.3 | D32 |

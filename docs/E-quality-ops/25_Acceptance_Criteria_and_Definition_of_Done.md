@@ -28,7 +28,7 @@
 **Settings:** Given Super Admin changes password policy, Then enforced on next password change; Zonal Admin cannot open settings.
 **Dashboard:** Given data, Then KPIs equal direct database counts; Zonal dashboard aggregates exactly the effective scope and excludes other zones; p95 < 2 s.
 **Zone scope switcher:** Given an admin with zones A and B, When they select B, Then every list, KPI, chart, export and alert narrows to B and the URL reflects it; given A removed by Super Admin, Then A data is 404 on the next request.
-**Security settings:** Given 2FA enforced, Then users without 2FA are forced to enroll at next login.
+**Security settings:** Given 2FA enforced, Then users without 2FA are forced to enroll at next login. Given a user's only method is no longer allowed, Then they are routed to enrolment at next login. Given SMS is not configured, Then SMS OTP cannot be enabled or sent (doc 52 §12). **Zones:** Given a pincode owned by zone A, When it is added to zone B, Then the save is refused naming A; given a deactivated zone, Then open orders finish and new intake is refused (doc 53 §10).
 
 ### Integration with the apps (v2.0)
 See `G-integration/45` §5 and `H-delivery/48` (TC-INT-1…26, E2E-1…8). A feature that reads or writes app-fed data is done only when its inbound handler, outbound event (if any), inbound-log entry and audit row exist and are tested with the simulators.
