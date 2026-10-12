@@ -36,7 +36,8 @@ export type SessionRestriction = (typeof SESSION_RESTRICTIONS)[number];
 
 /**
  * login_history.reason (text column). Doc 52 section 3 lists BAD_PASSWORD … OK; the current auth service also writes
- * LOGIN (success, before doc 52) and LOGOUT, which stay valid for existing rows.
+ * LOGIN (success, before doc 52), LOGOUT, UNKNOWN_USER and MFA_UNSUPPORTED (2-step not built yet), which stay valid for
+ * existing rows.
  */
 export const LOGIN_HISTORY_REASONS = [
   'BAD_PASSWORD',
@@ -49,6 +50,8 @@ export const LOGIN_HISTORY_REASONS = [
   'OK',
   'LOGIN',
   'LOGOUT',
+  'UNKNOWN_USER',
+  'MFA_UNSUPPORTED',
 ] as const;
 export const loginHistoryReasonSchema = z.enum(LOGIN_HISTORY_REASONS);
 export type LoginHistoryReason = (typeof LOGIN_HISTORY_REASONS)[number];

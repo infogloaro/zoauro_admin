@@ -183,8 +183,10 @@ describe('member 2-step reset and login history reasons', () => {
     expect(memberMfaResetSchema.safeParse({ reason: 'x'.repeat(501) }).success).toBe(false);
   });
 
-  it('login_history.reason accepts the doc 52 values and the two the service already writes', () => {
-    for (const r of ['MFA_FAILED', 'MFA_EXPIRED', 'MFA_LOCKOUT', 'OK', 'LOGIN', 'LOGOUT']) {
+  it('login_history.reason accepts the doc 52 values and every value the service already writes', () => {
+    const doc52 = ['BAD_PASSWORD', 'WRONG_TAB', 'LOCKED', 'INACTIVE', 'MFA_FAILED', 'MFA_EXPIRED'];
+    const writtenToday = ['LOGIN', 'LOGOUT', 'UNKNOWN_USER', 'MFA_UNSUPPORTED'];
+    for (const r of [...doc52, 'MFA_LOCKOUT', 'OK', ...writtenToday]) {
       expect(loginHistoryReasonSchema.safeParse(r).success, r).toBe(true);
     }
     expect(loginHistoryReasonSchema.safeParse('SOMETHING').success).toBe(false);
