@@ -251,6 +251,36 @@ describe('GET /audit-logs/{id}', () => {
     expect((await as(SA).get(`/audit-logs/${uuidv7()}`)).status).toBe(404);
     expect((await as(SA).get('/audit-logs/not-a-uuid')).status).toBe(422);
   });
+
+  // P3.5 (doc 56): by id, a Zonal Admin gets exactly what entity mode of the list would show them, nothing more.
+  it('by id, the entity-mode restriction applies: another zone, a hidden module or no zone is 404', async () => {
+    const inA = await idOf('restaurant.created', ent.restA);
+    const inB = await idOf('restaurant.created', ent.restB);
+    const inC = await idOf('restaurant.created', ent.restC);
+    const hiddenInA = await idOf('access.profile_set', ent.restA);
+    const zoneless = await idOf('settings.updated', ent.zoneless);
+    const status = async (who: string, id: string) =>
+      (await as(who).get(`/audit-logs/${id}`)).status;
+
+    const expected: Record<string, Record<string, number>> = {
+      [A_FULL]: { inA: 200, inB: 404, inC: 404, hiddenInA: 404, zoneless: 404 },
+      [A_B]: { inA: 200, inB: 200, inC: 404, hiddenInA: 404, zoneless: 404 },
+      [NONE]: { inA: 404, inB: 404, inC: 404, hiddenInA: 404, zoneless: 404 },
+    };
+    const ids: Record<string, string> = { inA, inB, inC, hiddenInA, zoneless };
+    for (const [who, byRow] of Object.entries(expected)) {
+      for (const [row, want] of Object.entries(byRow)) {
+        const id = ids[row] ?? '';
+        expect(id, row).not.toBe('');
+        expect(await status(who, id), `${who} ${row}`).toBe(want);
+      }
+    }
+    // the same answer as the list in entity mode, for the same viewers
+    expect((await as(A_FULL).get(activity('restaurant', ent.restB))).status).toBe(404);
+    expect((await as(A_B).get(activity('restaurant', ent.restC))).status).toBe(404);
+    // Super Admin sees every one of them
+    for (const id of Object.values(ids)) expect(await status(SA, id)).toBe(200);
+  });
 });
 
 describe('TC-AUD-14 Super Admin filters', () => {
