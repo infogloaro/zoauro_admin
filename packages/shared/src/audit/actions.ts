@@ -53,8 +53,12 @@ export const AUDIT_ACTIONS = {
   // zones
   'zone.created': a('zones', 'Created zone'),
   'zone.updated': a('zones', 'Updated zone'),
-  'zone.deactivated': a('zones', 'Deactivated zone'),
+  'zone.deactivated': a('zones', 'Deactivated zone', H), // HIGH per doc 50 section 4
   'zone.activated': a('zones', 'Activated zone'),
+  // doc 53 section 4
+  'zone.delivery_charge_changed': a('zones', 'Changed delivery charge', H),
+  'zone.pincodes_changed': a('zones', 'Changed pincodes', H),
+  'zone.deleted': a('zones', 'Deleted zone'),
   // members and access
   'member.created': a('admins', 'Created member account'),
   'member.updated': a('admins', 'Updated member account'),
