@@ -2,7 +2,11 @@ import express, { type Express } from 'express';
 
 export function createApp(): Express {
   const app = express();
+
   app.disable('x-powered-by');
+
+  // Parse JSON request bodies.
+  app.use(express.json({ limit: '1mb' }));
 
   // Liveness: process is up.
   app.get('/api/health', (_req, res) => {
