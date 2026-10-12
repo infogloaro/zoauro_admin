@@ -37,6 +37,7 @@
 (Client secrets are encrypted with `ENCRYPTION_KEY`; the v1.1 pepper is no longer used, D51.)
 | SENTRY_DSN | no | |
 | LOG_LEVEL | no | |
+| TRUST_PROXY_HOPS | no | Non-negative integer, default 0: how many reverse proxies may set `X-Forwarded-For` (Express `trust proxy`). 0 = `req.ip` is the socket address; 1 behind the single Nginx (doc 06). Never more than the real number, or a client can choose its own IP for rate limits and the audit `ip` |
 | INITIAL_SUPERADMIN_EMAIL | no | Seed only |
 | INITIAL_SUPERADMIN_PASSWORD | yes | Seed only, forced change |
 

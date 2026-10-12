@@ -29,6 +29,8 @@ function buildSchema(entry: EntryPoint) {
     .object({
       NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
       PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+      // Reverse proxies in front of the API (Express `trust proxy`): 0 = use the socket address; 1 behind one Nginx.
+      TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
       APP_URL: text.pipe(z.url()),
       DATABASE_URL: postgresUrl.refine(
         (v) => !PRIVILEGED_DB_USERS.includes(dbUser(v)),

@@ -79,4 +79,13 @@ describe('loadEnv', () => {
     expect(problems({ ...prod, DATABASE_URL_AUDIT_PURGE: purge }, 'worker')).toEqual([]);
     expect(problems({ ...valid }, 'worker')).toEqual([]);
   });
+
+  it('TRUST_PROXY_HOPS: a non-negative integer, default 0', () => {
+    expect(loadEnv(valid).TRUST_PROXY_HOPS).toBe(0);
+    expect(loadEnv({ ...valid, TRUST_PROXY_HOPS: '1' }).TRUST_PROXY_HOPS).toBe(1);
+    expect(loadEnv({ ...valid, TRUST_PROXY_HOPS: '0' }).TRUST_PROXY_HOPS).toBe(0);
+    for (const bad of ['-1', '1.5', 'yes', 'true']) {
+      expect(problems({ ...valid, TRUST_PROXY_HOPS: bad }), bad).toHaveLength(1);
+    }
+  });
 });

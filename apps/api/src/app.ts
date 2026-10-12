@@ -39,9 +39,14 @@ export function createApp(deps: {
   v1?: ApiV1;
   /** defaults to throw under NODE_ENV=test, log otherwise; the authorization harness collects instead */
   auditCoverage?: AuditCoverageOptions;
+  /** TRUST_PROXY_HOPS: how many proxies may set X-Forwarded-For for req.ip (rate limits, audit ip). Default 0. */
+  trustProxyHops?: number;
 }): Express {
   const app = express();
   app.disable('x-powered-by');
+  // 0: X-Forwarded-For is ignored and req.ip is the socket address. Never more hops than really sit in front.
+  const hops = deps.trustProxyHops ?? 0;
+  app.set('trust proxy', hops > 0 ? hops : false);
   app.use(requestIdMiddleware);
 
   // Liveness: process is up.

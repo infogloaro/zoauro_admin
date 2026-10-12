@@ -35,6 +35,7 @@ const auth = createAuthModule({
 const access = createAccessService({ prisma, redis });
 
 const app = createApp({
+  trustProxyHops: env.TRUST_PROXY_HOPS,
   readiness: createReadinessChecks({ databaseUrl: env.DATABASE_URL, redisUrl: env.REDIS_URL }),
   v1: {
     sessionMiddleware: auth.sessionMiddleware,
