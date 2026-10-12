@@ -129,10 +129,16 @@ export class AuthRepository implements SessionPersistence {
     });
   }
 
-  async setPassword(userId: string, passwordHash: string): Promise<void> {
+  async setPassword(userId: string, passwordHash: string, at: Date): Promise<void> {
     await this.db.user.update({
       where: { id: userId },
-      data: { passwordHash, mustChangePassword: false, failedAttempts: 0, lockedUntil: null },
+      data: {
+        passwordHash,
+        passwordChangedAt: at,
+        mustChangePassword: false,
+        failedAttempts: 0,
+        lockedUntil: null,
+      },
     });
   }
 

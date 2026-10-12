@@ -19,6 +19,7 @@ import {
 import type { AuthSession, SessionStore } from '../../lib/auth/session-store';
 import { AppError } from '../../lib/errors';
 import type { RateLimiter } from '../../lib/rate-limiter';
+import type { AuthMailer } from './auth.mails';
 import type { AuthDatabase, AuthTx, AuthUser } from './auth.repository';
 
 export interface RequestMeta {
@@ -27,14 +28,13 @@ export interface RequestMeta {
   requestId: string | undefined;
 }
 
-/** Delivery of the reset link. The real SMTP/SES sender arrives with the notifications module; the token is never logged. */
-export interface PasswordResetMailer {
-  sendPasswordReset(message: {
-    to: string;
-    name: string;
-    token: string;
-    expiresAt: Date;
-  }): Promise<void>;
+/** Mail is sent in the background: the response never waits for, or reveals, delivery. Bodies are never logged. */
+function notify(send: Promise<void>, what: string, requestId: string | undefined): void {
+  send.catch((err: unknown) =>
+    console.error(
+      `${what} mail failed (${err instanceof Error ? err.name : 'unknown'}) requestId=${requestId ?? '-'}`,
+    ),
+  );
 }
 
 export interface LoginResult {
@@ -93,7 +93,7 @@ export class AuthService {
       limiter: RateLimiter;
       /** DENIED rows (doc 50 §4.3): own transaction, rate limited, never throws */
       audit: Pick<Audit, 'recordDenied'>;
-      mailer: PasswordResetMailer;
+      mailer: AuthMailer;
       config: AuthConfig;
       clock: Clock;
     },
@@ -172,6 +172,19 @@ export class AuthService {
       mustChangePassword: user.mustChangePassword,
       expiresAt,
     });
+
+    // New-login notice with time, IP and device (doc 14 section 2, doc 52 section 2.7).
+    notify(
+      this.deps.mailer.sendNewLogin({
+        to: user.email,
+        name: user.name,
+        at: now,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+      }),
+      'new login',
+      meta.requestId,
+    );
 
     return {
       sessionToken,
@@ -410,9 +423,11 @@ export class AuthService {
     );
 
     // Not awaited: the response must not reveal, by timing, that an account exists.
-    this.deps.mailer
-      .sendPasswordReset({ to: user.email, name: user.name, token, expiresAt })
-      .catch(() => console.error(`password reset mail failed requestId=${meta.requestId ?? '-'}`));
+    notify(
+      this.deps.mailer.sendPasswordReset({ to: user.email, name: user.name, token, expiresAt }),
+      'password reset',
+      meta.requestId,
+    );
   }
 
   async resetPassword(input: ResetPasswordInput, meta: RequestMeta): Promise<void> {
@@ -428,7 +443,7 @@ export class AuthService {
       if (!user || user.status !== 'ACTIVE') return null;
 
       return this.asUser(user, meta, async () => {
-        await tx.repo.setPassword(user.id, passwordHash);
+        await tx.repo.setPassword(user.id, passwordHash, now);
         const sessions = await tx.repo.revokeAllSessions(user.id, now);
 
         const entries: AuditEntry[] = [
@@ -456,13 +471,23 @@ export class AuthService {
           });
         }
         await recordMany(tx.audit, entries);
-        return sessions.map((s) => s.tokenHash);
+        return { user, tokenHashes: sessions.map((s) => s.tokenHash) };
       });
     });
 
     if (revoked === null) {
       throw new AppError('VALIDATION_ERROR', 'This reset link is invalid or has expired');
     }
-    await this.deps.sessions.evictMany(revoked);
+    await this.deps.sessions.evictMany(revoked.tokenHashes);
+    notify(
+      this.deps.mailer.sendPasswordChanged({
+        to: revoked.user.email,
+        name: revoked.user.name,
+        at: now,
+        ip: meta.ip,
+      }),
+      'password changed',
+      meta.requestId,
+    );
   }
 }

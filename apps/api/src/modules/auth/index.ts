@@ -8,14 +8,10 @@ import { RedisRateLimiter } from '../../lib/rate-limiter';
 import { AuthDatabase } from './auth.repository';
 import { createAuthController } from './auth.controller';
 import { createAuthRoutes } from './auth.routes';
-import { AuthService, type PasswordResetMailer } from './auth.service';
+import { noopAuthMailer, type AuthMailer } from './auth.mails';
+import { AuthService } from './auth.service';
 
-export type { PasswordResetMailer } from './auth.service';
-
-/** Until the notifications module exists, reset links go nowhere (and are never logged). */
-export const noopPasswordResetMailer: PasswordResetMailer = {
-  sendPasswordReset: async () => undefined,
-};
+export { createAuthMailer, noopAuthMailer, type AuthMailer } from './auth.mails';
 
 export interface AuthModule {
   router: Router;
@@ -30,7 +26,8 @@ export function createAuthModule(deps: {
   audit: Pick<Audit, 'recordDenied'>;
   sessionSecret: string;
   appOrigin: string;
-  mailer?: PasswordResetMailer;
+  /** reset link, new-login and password-changed mails; default sends nothing (server.ts wires SMTP when SMTP_URL is set) */
+  mailer?: AuthMailer;
   config?: AuthConfig;
   clock?: Clock;
 }): AuthModule {
@@ -49,7 +46,7 @@ export function createAuthModule(deps: {
     sessions,
     limiter: new RedisRateLimiter(deps.redis),
     audit: deps.audit,
-    mailer: deps.mailer ?? noopPasswordResetMailer,
+    mailer: deps.mailer ?? noopAuthMailer,
     config,
     clock,
   });

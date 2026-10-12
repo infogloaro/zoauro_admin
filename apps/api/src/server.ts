@@ -8,7 +8,8 @@ import { createReadinessChecks } from './lib/health';
 import { authContextMiddleware } from './lib/authz';
 import { createAccessService } from './modules/access';
 import { createAuditModule } from './modules/audit';
-import { createAuthModule } from './modules/auth';
+import { createAuthMailer, createAuthModule } from './modules/auth';
+import { createSmtpMailer, noopMailer } from './lib/mailer';
 
 const env = loadEnvOrExit('api');
 
@@ -25,10 +26,21 @@ const audit = createAudit({
     console.error(`audit DENIED row not written ${err instanceof Error ? err.name : 'unknown'}`),
 });
 
+// Mail (doc 06): SMTP to Mailpit locally or a provider later; without SMTP_URL nothing is sent.
+const mailer = env.SMTP_URL
+  ? createSmtpMailer({
+      smtpUrl: env.SMTP_URL,
+      ...(env.SES_FROM_ADDRESS ? { from: env.SES_FROM_ADDRESS } : {}),
+    })
+  : noopMailer;
+if (!env.SMTP_URL)
+  console.warn('SMTP_URL is not set: auth emails (reset links, notices) are not sent');
+
 const auth = createAuthModule({
   prisma,
   redis,
   audit,
+  mailer: createAuthMailer(mailer, { appUrl: env.APP_URL }),
   sessionSecret: env.SESSION_SECRET,
   appOrigin: new URL(env.APP_URL).origin,
 });

@@ -15,7 +15,7 @@ import { authContextMiddleware, type AccessService } from '../../../src/lib/auth
 import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
 import { createAccessService } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
-import { createAuthModule } from '../../../src/modules/auth';
+import { createAuthModule, type AuthMailer } from '../../../src/modules/auth';
 import { createTestDatabase, type TestDatabase } from '../../audit/support/db';
 
 // Integration environment for the auth tests: a throwaway PostgreSQL database built by `prisma migrate deploy`, the
@@ -88,9 +88,17 @@ export async function createAuthTestEnv() {
     },
   };
   const mails: ResetMail[] = [];
-  const mailer = {
+  /** new-login and password-changed notices, in order */
+  const notices: { kind: 'NEW_LOGIN' | 'PASSWORD_CHANGED'; to: string; ip: string | null }[] = [];
+  const mailer: AuthMailer = {
     sendPasswordReset: async (m: ResetMail) => {
       mails.push(m);
+    },
+    sendNewLogin: async (m) => {
+      notices.push({ kind: 'NEW_LOGIN', to: m.to, ip: m.ip });
+    },
+    sendPasswordChanged: async (m) => {
+      notices.push({ kind: 'PASSWORD_CHANGED', to: m.to, ip: m.ip });
     },
   };
 
@@ -394,6 +402,7 @@ export async function createAuthTestEnv() {
     api,
     clock,
     mails,
+    notices,
     db,
     createUser,
     createZone,
