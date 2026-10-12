@@ -4,6 +4,7 @@ import {
   originCheck,
   requireCsrf,
   requireJsonBody,
+  requirePreSessionCsrf,
   requireSession,
 } from '../../lib/auth/middleware';
 import { auditOf } from '../../openapi/operations';
@@ -13,13 +14,23 @@ type Controller = ReturnType<typeof createAuthController>;
 
 /**
  * Mounted at /api/v1 (doc 09). The session middleware must run before this router.
- * Public routes: Origin check + JSON only. Session routes: Origin check + session + CSRF token.
+ * Pre-session routes: Origin check + JSON only + the zo_csrf double-submit token from GET /auth/csrf.
+ * Session routes: Origin check + session + the session-bound CSRF token.
  * Each mutating route declares what it audits (doc 50 section 2.1), taken from its operation in openapi/operations.ts.
  */
-export function createAuthRoutes(c: Controller, opts: { appOrigin: string }): Router {
+export function createAuthRoutes(
+  c: Controller,
+  opts: { appOrigin: string; csrfSecret: string },
+): Router {
   const router = Router();
-  const publicRoute = [originCheck(opts.appOrigin), requireJsonBody];
+  const publicRoute = [
+    originCheck(opts.appOrigin),
+    requireJsonBody,
+    requirePreSessionCsrf(opts.csrfSecret),
+  ];
   const sessionRoute = [originCheck(opts.appOrigin), requireSession(), requireCsrf];
+
+  router.get('/auth/csrf', c.csrf);
 
   router.post('/auth/login', ...publicRoute, auditMeta(auditOf('login')), c.login);
   router.post(

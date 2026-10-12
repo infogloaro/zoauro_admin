@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { Request, RequestHandler, Response } from 'express';
 import { AppError } from '../errors';
-import { CSRF_HEADER, SESSION_COOKIE } from './config';
+import { CSRF_HEADER, PRE_SESSION_CSRF_COOKIE, SESSION_COOKIE } from './config';
 import { parseCookies } from './cookies';
-import { safeEqual } from './crypto';
+import { isValidPreSessionCsrf, safeEqual } from './crypto';
 import type { AuthSession, SessionStore } from './session-store';
 
 const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -67,6 +67,30 @@ export const requireCsrf: RequestHandler = (req, res, next) => {
   }
   next();
 };
+
+/**
+ * CSRF for POSTs made before a session exists (doc 52 section 2.6, doc 09 GET /auth/csrf): the X-CSRF-Token header must
+ * equal the zo_csrf cookie and carry a valid signature. Session routes keep the session-bound token (requireCsrf).
+ */
+export function requirePreSessionCsrf(secret: string): RequestHandler {
+  return (req, _res, next) => {
+    if (!STATE_CHANGING.has(req.method)) {
+      next();
+      return;
+    }
+    const cookie = parseCookies(req.get('cookie'))[PRE_SESSION_CSRF_COOKIE];
+    const supplied = req.get(CSRF_HEADER);
+    if (
+      !cookie ||
+      !supplied ||
+      !safeEqual(supplied, cookie) ||
+      !isValidPreSessionCsrf(supplied, secret)
+    ) {
+      throw new AppError('FORBIDDEN', 'Invalid CSRF token');
+    }
+    next();
+  };
+}
 
 /**
  * T5 for requests without a session (login, forgot/reset password): a cross-site browser request carries an Origin that

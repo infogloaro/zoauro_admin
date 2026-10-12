@@ -15,14 +15,20 @@
       "sessionCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "zoauro_session",
-        "description": "Opaque session id in an HTTP-only, Secure, SameSite=Lax cookie (doc 14)"
+        "name": "zo_sid",
+        "description": "Opaque session id in an HTTP-only, Secure, SameSite=Lax cookie (doc 14, doc 52)"
       },
       "csrfToken": {
         "type": "apiKey",
         "in": "header",
         "name": "X-CSRF-Token",
-        "description": "Required on every state-changing request made with the session cookie"
+        "description": "Required on every state-changing request: the session-bound token with the session cookie, or before sign-in the token from GET /auth/csrf (equal to the zo_csrf cookie)"
+      },
+      "preSessionCsrfCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "zo_csrf",
+        "description": "Pre-session CSRF cookie set by GET /auth/csrf (HttpOnly, Secure, SameSite=Strict); double submit with X-CSRF-Token"
       }
     },
     "schemas": {
@@ -133,6 +139,38 @@
         }
       }
     },
+    "/auth/csrf": {
+      "get": {
+        "operationId": "getCsrfToken",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Pre-session CSRF token: sets the zo_csrf cookie and returns the same token for X-CSRF-Token on login, password reset and 2-step POSTs",
+        "responses": {
+          "200": {
+            "description": "Token issued; cookie set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "token"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "public"
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "login",
@@ -140,6 +178,12 @@
           "auth"
         ],
         "summary": "Sign in. The tab (SUPER_ADMIN or ZONAL_ADMIN) must match the account; a mismatch gets the generic error.",
+        "security": [
+          {
+            "preSessionCsrfCookie": [],
+            "csrfToken": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -270,7 +314,8 @@
           }
         },
         "x-access": {
-          "kind": "public"
+          "kind": "public",
+          "preSessionCsrf": true
         },
         "x-audit": {
           "none": "login"
@@ -331,6 +376,12 @@
           "auth"
         ],
         "summary": "Request a password reset link. Always answers the same way.",
+        "security": [
+          {
+            "preSessionCsrfCookie": [],
+            "csrfToken": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -400,7 +451,8 @@
           }
         },
         "x-access": {
-          "kind": "public"
+          "kind": "public",
+          "preSessionCsrf": true
         },
         "x-audit": {
           "module": "auth",
@@ -415,6 +467,12 @@
           "auth"
         ],
         "summary": "Set a new password with a single-use reset token; revokes all sessions",
+        "security": [
+          {
+            "preSessionCsrfCookie": [],
+            "csrfToken": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -482,7 +540,8 @@
           }
         },
         "x-access": {
-          "kind": "public"
+          "kind": "public",
+          "preSessionCsrf": true
         },
         "x-audit": {
           "module": "auth",

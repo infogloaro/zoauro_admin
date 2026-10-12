@@ -33,7 +33,10 @@ export const DEFAULT_AUTH_CONFIG: AuthConfig = {
   forgotLimitPerEmail: { limit: 3, windowSec: 15 * 60 },
 };
 
-export const SESSION_COOKIE = 'zoauro_session';
+/** Session cookie name (doc 52 section 2.6). */
+export const SESSION_COOKIE = 'zo_sid';
+/** Pre-session CSRF cookie (double submit) for POSTs made before a session exists: login, password reset, 2-step. */
+export const PRE_SESSION_CSRF_COOKIE = 'zo_csrf';
 export const CSRF_HEADER = 'x-csrf-token';
 
 export type Clock = () => Date;

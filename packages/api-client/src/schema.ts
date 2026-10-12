@@ -85,6 +85,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/csrf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pre-session CSRF token: sets the zo_csrf cookie and returns the same token for X-CSRF-Token on login, password reset and 2-step POSTs */
+        get: operations["getCsrfToken"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -643,6 +660,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getCsrfToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Token issued; cookie set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        token: string;
+                    };
                 };
             };
         };

@@ -10,7 +10,7 @@ import {
   type DeniedRateLimiter,
 } from '../../../src/lib/audit';
 import { DEFAULT_AUTH_CONFIG, type AuthConfig } from '../../../src/lib/auth/config';
-import { hashPassword } from '../../../src/lib/auth/crypto';
+import { hashPassword, issuePreSessionCsrf } from '../../../src/lib/auth/crypto';
 import { authContextMiddleware, type AccessService } from '../../../src/lib/authz';
 import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
 import { createAccessService } from '../../../src/modules/access';
@@ -23,6 +23,14 @@ import { createTestDatabase, type TestDatabase } from '../../audit/support/db';
 // that captures reset links.
 
 export const APP_ORIGIN = 'http://localhost:3000';
+/** The session secret every test app is built with; also signs the pre-session CSRF token. */
+export const TEST_SESSION_SECRET = 'test-session-secret-0123456789-abcdef';
+
+/** What a browser holds after GET /auth/csrf: the zo_csrf cookie and the same token for X-CSRF-Token. */
+export function preSessionCsrf(): { cookie: string; token: string } {
+  const token = issuePreSessionCsrf(TEST_SESSION_SECRET);
+  return { cookie: `zo_csrf=${encodeURIComponent(token)}`, token };
+}
 export const PASSWORD = 'correct horse battery staple 1';
 
 export interface ResetMail {
@@ -108,7 +116,7 @@ export async function createAuthTestEnv() {
       prisma,
       redis: appRedis,
       audit,
-      sessionSecret: 'test-session-secret-0123456789-abcdef',
+      sessionSecret: TEST_SESSION_SECRET,
       appOrigin: APP_ORIGIN,
       mailer,
       config,
@@ -282,7 +290,18 @@ export async function createAuthTestEnv() {
 
   // ---- helpers -----------------------------------------------------------------------------------------------------
   const api = (a: Express = app) => ({
-    post: (path: string) => request(a).post(`/api/v1${path}`).set('Origin', APP_ORIGIN),
+    /**
+     * Like a browser that has called GET /auth/csrf: carries the pre-session CSRF cookie and header. Session routes
+     * replace both (the test's own Cookie and X-CSRF-Token win), so this never satisfies the session-bound check.
+     */
+    post: (path: string) => {
+      const csrf = preSessionCsrf();
+      return request(a)
+        .post(`/api/v1${path}`)
+        .set('Origin', APP_ORIGIN)
+        .set('Cookie', csrf.cookie)
+        .set('X-CSRF-Token', csrf.token);
+    },
     get: (path: string) => request(a).get(`/api/v1${path}`),
   });
 
@@ -397,7 +416,7 @@ export type AuthTestEnv = Awaited<ReturnType<typeof createAuthTestEnv>>;
 export function cookieOf(res: { headers: Record<string, unknown> }): string {
   const raw = res.headers['set-cookie'];
   const list = Array.isArray(raw) ? raw.map(String) : [];
-  const line = list.find((c) => c.startsWith('zoauro_session='));
+  const line = list.find((c) => c.startsWith('zo_sid='));
   if (!line) throw new Error('no session cookie in response');
   return line.split(';')[0] ?? '';
 }
@@ -405,5 +424,5 @@ export function cookieOf(res: { headers: Record<string, unknown> }): string {
 export function setCookieLine(res: { headers: Record<string, unknown> }): string {
   const raw = res.headers['set-cookie'];
   const list = Array.isArray(raw) ? raw.map(String) : [];
-  return list.find((c) => c.startsWith('zoauro_session=')) ?? '';
+  return list.find((c) => c.startsWith('zo_sid=')) ?? '';
 }

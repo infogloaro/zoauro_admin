@@ -235,7 +235,7 @@ describe('TC-AUTH-4 sessions: idle 30 min, absolute 12 h', () => {
   });
 
   it('a garbage cookie is simply unauthenticated', async () => {
-    const res = await env.api().get('/me').set('Cookie', 'zoauro_session=not-a-real-token');
+    const res = await env.api().get('/me').set('Cookie', 'zo_sid=not-a-real-token');
     expect(res.status).toBe(401);
   });
 });
@@ -245,7 +245,7 @@ describe('session cookie flags', () => {
     const user = await env.createUser('SUPER_ADMIN');
     const res = await env.login(user);
     const line = setCookieLine(res);
-    expect(line).toMatch(/^zoauro_session=[A-Za-z0-9_-]{43}(;|$)/);
+    expect(line).toMatch(/^zo_sid=[A-Za-z0-9_-]{43}(;|$)/);
     expect(line).toContain('HttpOnly');
     expect(line).toContain('Secure');
     expect(line).toContain('SameSite=Lax');

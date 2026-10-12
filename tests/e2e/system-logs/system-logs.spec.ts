@@ -29,6 +29,17 @@ const timings = {
 // reuses that session cookie.
 const cookieValues = new Map<string, string>();
 
+/**
+ * Pre-session CSRF (doc 52 section 2.6): GET /auth/csrf, then the token goes in X-CSRF-Token and the zo_csrf cookie.
+ * The cookie is Secure, so on plain-http localhost it is passed explicitly, as a browser on https would send it.
+ */
+async function preSessionCsrfHeaders(context: BrowserContext): Promise<Record<string, string>> {
+  const csrf = await context.request.get('/api/v1/auth/csrf');
+  expect(csrf.ok(), `csrf: ${csrf.status()}`).toBe(true);
+  const { token } = (await csrf.json()) as { token: string };
+  return { 'X-CSRF-Token': token, Cookie: `zo_csrf=${encodeURIComponent(token)}` };
+}
+
 async function signIn(
   context: BrowserContext,
   email: string,
@@ -36,24 +47,24 @@ async function signIn(
 ): Promise<void> {
   const known = cookieValues.get(email);
   if (known) {
-    await context.addCookies([{ name: 'zoauro_session', value: known, url: BASE }]);
+    await context.addCookies([{ name: 'zo_sid', value: known, url: BASE }]);
     return;
   }
   const res = await context.request.post('/api/v1/auth/login', {
     data: { email, password: state.password, tab },
-    headers: { Origin: BASE },
+    headers: { Origin: BASE, ...(await preSessionCsrfHeaders(context)) },
   });
   expect(res.ok(), `login as ${email}: ${res.status()} ${(await res.text()).slice(0, 300)}`).toBe(
     true,
   );
   const header = res
     .headersArray()
-    .find((h) => h.name.toLowerCase() === 'set-cookie' && h.value.startsWith('zoauro_session='));
+    .find((h) => h.name.toLowerCase() === 'set-cookie' && h.value.startsWith('zo_sid='));
   expect(header, 'session cookie').toBeTruthy();
   // the cookie is Secure; add it by URL so a plain-http localhost run sends it as a browser on https would
-  const value = (header?.value ?? '').split(';')[0]!.slice('zoauro_session='.length);
+  const value = (header?.value ?? '').split(';')[0]?.slice('zo_sid='.length) ?? '';
   cookieValues.set(email, value);
-  await context.addCookies([{ name: 'zoauro_session', value, url: BASE }]);
+  await context.addCookies([{ name: 'zo_sid', value, url: BASE }]);
 }
 
 const table = (page: Page) => page.getByRole('table', { name: 'Activity log' });
@@ -474,7 +485,7 @@ test.describe('System Logs on the seeded data', () => {
         password: 'definitely not the password',
         tab: 'SUPER_ADMIN',
       },
-      headers: { Origin: BASE },
+      headers: { Origin: BASE, ...(await preSessionCsrfHeaders(context)) },
     });
     expect(bad.status()).toBe(401);
 

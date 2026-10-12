@@ -41,3 +41,21 @@ export function safeEqual(a: string, b: string): boolean {
 /** CSRF token bound to one session: HMAC of the stored token hash with SESSION_SECRET. Stateless, so a Redis flush cannot lose it. */
 export const csrfTokenFor = (sessionTokenHash: string, secret: string): string =>
   createHmac('sha256', secret).update(`csrf:${sessionTokenHash}`).digest('base64url');
+
+const preSessionSignature = (nonce: string, secret: string): string =>
+  createHmac('sha256', secret).update(`csrf-pre:${nonce}`).digest('base64url');
+
+/**
+ * Pre-session CSRF token (GET /auth/csrf): `<nonce>.<HMAC(SESSION_SECRET, nonce)>`. Sent back both as the zo_csrf cookie
+ * and in X-CSRF-Token (double submit). The signature stops a cookie planted by a sibling subdomain from being accepted.
+ */
+export function issuePreSessionCsrf(secret: string): string {
+  const nonce = randomBytes(18).toString('base64url');
+  return `${nonce}.${preSessionSignature(nonce, secret)}`;
+}
+
+export function isValidPreSessionCsrf(token: string, secret: string): boolean {
+  const dot = token.indexOf('.');
+  if (dot < 1 || dot !== token.lastIndexOf('.')) return false;
+  return safeEqual(token.slice(dot + 1), preSessionSignature(token.slice(0, dot), secret));
+}

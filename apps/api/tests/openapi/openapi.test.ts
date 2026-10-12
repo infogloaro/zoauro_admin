@@ -35,6 +35,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
     expect(spec.servers).toEqual([{ url: '/api/v1' }]);
     expect(Object.keys(spec.components.securitySchemes).sort()).toEqual([
       'csrfToken',
+      'preSessionCsrfCookie',
       'sessionCookie',
     ]);
     expect(Object.keys(spec.components.schemas)).toContain('ErrorBody');
@@ -51,6 +52,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'GET /audit-logs/catalogue',
         'GET /audit-logs/zones',
         'GET /audit-logs/{id}',
+        'GET /auth/csrf',
         'GET /login-history',
         'GET /me',
         'GET /me/login-history',
@@ -130,12 +132,15 @@ describe('document quality', () => {
     }
   });
 
-  it('protected operations declare the session cookie, mutating ones also the CSRF header; public ones neither', () => {
+  it('protected operations declare the session cookie, mutating ones also the CSRF header; public ones neither, except pre-session POSTs (zo_csrf + header)', () => {
     for (const ops of Object.values(spec.paths)) {
       for (const [method, op] of Object.entries(ops)) {
-        const access = op['x-access'] as { kind: string };
+        const access = op['x-access'] as { kind: string; preSessionCsrf?: true };
         const security = op['security'] as Record<string, unknown>[] | undefined;
-        if (access.kind === 'public') expect(security).toBeUndefined();
+        if (access.kind === 'public' && access.preSessionCsrf) {
+          expect(MUTATING).toContain(method);
+          expect(security).toEqual([{ preSessionCsrfCookie: [], csrfToken: [] }]);
+        } else if (access.kind === 'public') expect(security).toBeUndefined();
         else if (MUTATING.includes(method))
           expect(security).toEqual([{ sessionCookie: [], csrfToken: [] }]);
         else expect(security).toEqual([{ sessionCookie: [] }]);

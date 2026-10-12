@@ -54,7 +54,10 @@ export function createAuthModule(deps: {
     clock,
   });
   return {
-    router: createAuthRoutes(createAuthController(service), { appOrigin: deps.appOrigin }),
+    router: createAuthRoutes(createAuthController(service, { csrfSecret: deps.sessionSecret }), {
+      appOrigin: deps.appOrigin,
+      csrfSecret: deps.sessionSecret,
+    }),
     sessionMiddleware: sessionMiddleware(sessions),
   };
 }

@@ -13,7 +13,7 @@ import { ZONE_LABELS } from './fixtures';
 // ---- the parts of the OpenAPI document the engine reads ---------------------------------------------------------------
 
 type AccessDecl =
-  | { kind: 'public' }
+  | { kind: 'public'; preSessionCsrf?: true }
   | { kind: 'session'; pendingPasswordChange?: 'allowed' }
   | {
       kind: 'permission';
@@ -94,6 +94,10 @@ export function casesFor(
   const cases: Case[] = [];
 
   if (access.kind === 'public') {
+    // a POST made before any session exists must carry the pre-session CSRF token (GET /auth/csrf)
+    if (mutating && access.preSessionCsrf) {
+      cases.push({ actor: null, zone: null, variant: 'no-csrf', expected: forbidden });
+    }
     // reachable without a session; a body-less call fails validation, never authentication
     cases.push({
       actor: null,
@@ -323,6 +327,8 @@ export interface MatrixConfig {
   bindings?: Record<string, Binding>;
   /** filled by the app's coverage guard (mode 'collect') while the matrix runs; every entry is a failure */
   auditViolations?: CoverageViolation[];
+  /** the zo_csrf cookie and X-CSRF-Token value a browser holds after GET /auth/csrf (pre-session POSTs) */
+  preSessionCsrf?: () => { cookie: string; token: string };
   /** a signed-in session for the actor; `fresh` for calls that may end it (logout) */
   session(actor: MatrixActor, fresh: boolean): Promise<Session>;
 }
@@ -391,6 +397,15 @@ export async function runAuthorizationMatrix(cfg: MatrixConfig): Promise<MatrixR
           const s = await sessionFor(c.actor, mutating && access.kind === 'session');
           req = req.set('Cookie', s.cookie);
           if (mutating && c.variant !== 'no-csrf') req = req.set('X-CSRF-Token', s.csrf);
+        } else if (
+          mutating &&
+          access.kind === 'public' &&
+          access.preSessionCsrf &&
+          c.variant !== 'no-csrf'
+        ) {
+          if (!cfg.preSessionCsrf) throw new Error(`${route}: needs MatrixConfig.preSessionCsrf`);
+          const csrf = cfg.preSessionCsrf();
+          req = req.set('Cookie', csrf.cookie).set('X-CSRF-Token', csrf.token);
         }
         const res = mutating ? await req.send({}) : await req;
 

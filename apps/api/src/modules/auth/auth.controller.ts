@@ -5,7 +5,8 @@ import {
   reauthSchema,
   resetPasswordSchema,
 } from '@zoauro/shared';
-import { clearedSessionCookie, sessionCookie } from '../../lib/auth/cookies';
+import { clearedSessionCookie, preSessionCsrfCookie, sessionCookie } from '../../lib/auth/cookies';
+import { issuePreSessionCsrf } from '../../lib/auth/crypto';
 import { getAuth } from '../../lib/auth/middleware';
 import type { AuthSession } from '../../lib/auth/session-store';
 import { AppError, parseBody, requestIdOf } from '../../lib/errors';
@@ -27,7 +28,15 @@ function sessionOf(res: Response): AuthSession {
   return auth;
 }
 
-export function createAuthController(service: AuthService) {
+export function createAuthController(service: AuthService, opts: { csrfSecret: string }) {
+  /** GET /auth/csrf: a fresh pre-session token, as cookie and in the body (double submit). */
+  const csrf: RequestHandler = (_req, res) => {
+    const token = issuePreSessionCsrf(opts.csrfSecret);
+    res.setHeader('Set-Cookie', preSessionCsrfCookie(token));
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ token });
+  };
+
   const login: RequestHandler = async (req, res) => {
     const result = await service.login(parseBody(loginSchema, req.body), metaOf(req, res));
     res.setHeader('Set-Cookie', sessionCookie(result.sessionToken, result.cookieMaxAgeSec));
@@ -68,5 +77,5 @@ export function createAuthController(service: AuthService) {
     res.json(await service.me(sessionOf(res)));
   };
 
-  return { login, logout, forgotPassword, resetPassword, reauth, me };
+  return { csrf, login, logout, forgotPassword, resetPassword, reauth, me };
 }

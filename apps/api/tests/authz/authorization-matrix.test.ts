@@ -41,7 +41,7 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     expect(report.failures).toEqual([]);
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
-    expect(report.coveredRoutes).toHaveLength(14);
+    expect(report.coveredRoutes).toHaveLength(15);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
   });

@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Router } from 'express';
 import type { Express } from 'express';
 import type { CoverageViolation } from '../../../src/lib/audit';
-import type { AuthTestEnv } from '../../auth/support/auth-env';
+import { preSessionCsrf, type AuthTestEnv } from '../../auth/support/auth-env';
 import {
   runAuthorizationMatrix,
   type Binding,
@@ -52,6 +52,7 @@ export async function runMatrix(
     ...(cfg.extraServedRoutes ? { extraServedRoutes: cfg.extraServedRoutes } : {}),
     ...(cfg.bindings ? { bindings: cfg.bindings } : {}),
     ...(cfg.auditViolations ? { auditViolations: cfg.auditViolations } : {}),
+    preSessionCsrf,
     session: async (actor) => {
       const s = await env.session(actor.user);
       return { cookie: s.cookie, csrf: s.csrf };

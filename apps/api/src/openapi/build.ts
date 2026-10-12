@@ -36,6 +36,7 @@ function errorCodesFor(op: OperationDef): ErrorCode[] {
   if (op.body || op.query || op.params) codes.add('VALIDATION_ERROR');
   if (op.access.kind !== 'public') codes.add('UNAUTHENTICATED');
   if (op.access.kind === 'session' && isMutating(op)) codes.add('FORBIDDEN'); // CSRF
+  if (op.access.kind === 'public' && op.access.preSessionCsrf) codes.add('FORBIDDEN'); // pre-session CSRF
   if (op.access.kind === 'session' && op.access.pendingPasswordChange !== 'allowed')
     codes.add('PASSWORD_CHANGE_REQUIRED');
   if (op.access.kind === 'permission') {
@@ -54,14 +55,22 @@ export function buildOpenApiDocument(): Record<string, unknown> {
   registry.registerComponent('securitySchemes', 'sessionCookie', {
     type: 'apiKey',
     in: 'cookie',
-    name: 'zoauro_session',
-    description: 'Opaque session id in an HTTP-only, Secure, SameSite=Lax cookie (doc 14)',
+    name: 'zo_sid',
+    description: 'Opaque session id in an HTTP-only, Secure, SameSite=Lax cookie (doc 14, doc 52)',
   });
   registry.registerComponent('securitySchemes', 'csrfToken', {
     type: 'apiKey',
     in: 'header',
     name: 'X-CSRF-Token',
-    description: 'Required on every state-changing request made with the session cookie',
+    description:
+      'Required on every state-changing request: the session-bound token with the session cookie, or before sign-in the token from GET /auth/csrf (equal to the zo_csrf cookie)',
+  });
+  registry.registerComponent('securitySchemes', 'preSessionCsrfCookie', {
+    type: 'apiKey',
+    in: 'cookie',
+    name: 'zo_csrf',
+    description:
+      'Pre-session CSRF cookie set by GET /auth/csrf (HttpOnly, Secure, SameSite=Strict); double submit with X-CSRF-Token',
   });
 
   for (const op of OPERATIONS) {
@@ -91,7 +100,9 @@ export function buildOpenApiDocument(): Record<string, unknown> {
       summary: op.summary,
       ...(needsSession
         ? { security: [mutating ? { sessionCookie: [], csrfToken: [] } : { sessionCookie: [] }] }
-        : {}),
+        : op.access.kind === 'public' && op.access.preSessionCsrf
+          ? { security: [{ preSessionCsrfCookie: [], csrfToken: [] }] }
+          : {}),
       request: {
         ...(op.params ? { params: op.params } : {}),
         ...(op.query ? { query: op.query } : {}),

@@ -1,4 +1,7 @@
-import { SESSION_COOKIE } from './config';
+import { PRE_SESSION_CSRF_COOKIE, SESSION_COOKIE } from './config';
+
+/** Lifetime of the pre-session CSRF cookie: long enough to fill in the login and 2-step screens. */
+export const PRE_SESSION_CSRF_MAX_AGE_SEC = 2 * 60 * 60;
 
 export function parseCookies(header: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
@@ -24,4 +27,9 @@ export function sessionCookie(token: string, maxAgeSec: number): string {
 
 export function clearedSessionCookie(): string {
   return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+}
+
+/** HttpOnly (the token is returned in the body for the header), Secure, SameSite=Strict: web and API share one origin. */
+export function preSessionCsrfCookie(token: string): string {
+  return `${PRE_SESSION_CSRF_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${PRE_SESSION_CSRF_MAX_AGE_SEC}`;
 }

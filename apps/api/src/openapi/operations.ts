@@ -8,6 +8,7 @@ import {
   auditListQuerySchema,
   auditListResponseSchema,
   auditZoneListResponseSchema,
+  csrfTokenResponseSchema,
   forgotPasswordSchema,
   loginHistoryListResponseSchema,
   loginHistoryQuerySchema,
@@ -35,7 +36,8 @@ import type { AuditRouteMeta } from '../lib/audit';
 export type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 export type Access =
-  | { kind: 'public' }
+  /** `preSessionCsrf`: a POST made before any session exists; needs the zo_csrf cookie + X-CSRF-Token from GET /auth/csrf */
+  | { kind: 'public'; preSessionCsrf?: true }
   /** any signed-in user; `pendingPasswordChange: 'allowed'` = reachable while the first-login password change is pending */
   | { kind: 'session'; pendingPasswordChange?: 'allowed' }
   /**
@@ -93,13 +95,27 @@ export const OPERATIONS: OperationDef[] = [
     response: { status: 200, schema: openApiDocumentSchema, description: 'OpenAPI 3.1 document' },
   },
   {
+    operationId: 'getCsrfToken',
+    method: 'get',
+    path: '/auth/csrf',
+    tags: ['auth'],
+    summary:
+      'Pre-session CSRF token: sets the zo_csrf cookie and returns the same token for X-CSRF-Token on login, password reset and 2-step POSTs',
+    access: { kind: 'public' },
+    response: {
+      status: 200,
+      schema: csrfTokenResponseSchema,
+      description: 'Token issued; cookie set',
+    },
+  },
+  {
     operationId: 'login',
     method: 'post',
     path: '/auth/login',
     tags: ['auth'],
     summary:
       'Sign in. The tab (SUPER_ADMIN or ZONAL_ADMIN) must match the account; a mismatch gets the generic error.',
-    access: { kind: 'public' },
+    access: { kind: 'public', preSessionCsrf: true },
     audit: { none: 'login' },
     body: loginSchema,
     response: {
@@ -125,7 +141,7 @@ export const OPERATIONS: OperationDef[] = [
     path: '/auth/forgot-password',
     tags: ['auth'],
     summary: 'Request a password reset link. Always answers the same way.',
-    access: { kind: 'public' },
+    access: { kind: 'public', preSessionCsrf: true },
     audit: { module: 'auth', action: 'user.password_reset_requested' },
     body: forgotPasswordSchema,
     response: { status: 200, schema: messageResponseSchema, description: 'Generic confirmation' },
@@ -137,7 +153,7 @@ export const OPERATIONS: OperationDef[] = [
     path: '/auth/reset-password',
     tags: ['auth'],
     summary: 'Set a new password with a single-use reset token; revokes all sessions',
-    access: { kind: 'public' },
+    access: { kind: 'public', preSessionCsrf: true },
     audit: { module: 'auth', action: 'user.password_changed' },
     body: resetPasswordSchema,
     response: { status: 200, schema: messageResponseSchema, description: 'Password updated' },

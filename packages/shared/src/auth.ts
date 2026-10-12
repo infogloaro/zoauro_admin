@@ -67,6 +67,10 @@ export const meResponseSchema = z.object({
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
 
+/** GET /auth/csrf: the same value is set as the zo_csrf cookie; send it as X-CSRF-Token before a session exists. */
+export const csrfTokenResponseSchema = z.object({ token: z.string() });
+export type CsrfTokenResponse = z.infer<typeof csrfTokenResponseSchema>;
+
 export const messageResponseSchema = z.object({ message: z.string() });
 export type MessageResponse = z.infer<typeof messageResponseSchema>;
 
