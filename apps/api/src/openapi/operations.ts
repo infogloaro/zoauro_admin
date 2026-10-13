@@ -15,6 +15,8 @@ import {
   loginHistoryQuerySchema,
   loginOkResponseSchema,
   loginResponseSchema,
+  mfaChallengeResponseSchema,
+  mfaChallengeSchema,
   mfaVerifySchema,
   loginSchema,
   meResponseSchema,
@@ -130,6 +132,23 @@ export const OPERATIONS: OperationDef[] = [
       description: 'Signed in; session cookie set',
     },
     errors: ['UNAUTHENTICATED', 'RATE_LIMITED', 'FORBIDDEN'],
+  },
+  {
+    operationId: 'challengeMfa',
+    method: 'post',
+    path: '/auth/mfa/challenge',
+    tags: ['auth'],
+    summary:
+      'Send an email (or SMS) code for the pending sign-in, to the address or number on the account only. 429 with Retry-After on cooldown or caps; 409 when the method is not available',
+    access: { kind: 'public', preSessionCsrf: true },
+    audit: { none: 'otp-send' },
+    body: mfaChallengeSchema,
+    response: {
+      status: 200,
+      schema: mfaChallengeResponseSchema,
+      description: 'Code sent (or delivery failed: sent=false)',
+    },
+    errors: ['UNAUTHENTICATED', 'RATE_LIMITED', 'CONFLICT', 'FORBIDDEN'],
   },
   {
     operationId: 'verifyMfa',

@@ -281,12 +281,13 @@ describe('TC-AUTH-21: method not allowed or not enrolled', () => {
     expect(res.body).toEqual({ status: 'ENROLMENT_REQUIRED' });
   });
 
-  it('EMAIL_OTP before P9: refused as not available, without counting', async () => {
-    const user = await env.createUser('ZONAL_ADMIN');
+  it('an email code from a user who never enrolled email: the generic refusal, counted', async () => {
+    const user = await env.createUser('ZONAL_ADMIN'); // authenticator only
     const { cookie } = await pending(user);
     const res = await env.verify(cookie, { method: 'EMAIL_OTP', code: '123456' });
-    expect(res.status).toBe(422);
-    expect((await env.userRow(user.id)).failed_attempts).toBe(0);
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toBe(GENERIC_CODE);
+    expect((await env.userRow(user.id)).failed_attempts).toBe(1);
   });
 });
 

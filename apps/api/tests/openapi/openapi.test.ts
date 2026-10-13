@@ -63,6 +63,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /auth/forgot-password',
         'POST /auth/login',
         'POST /auth/logout',
+        'POST /auth/mfa/challenge',
         'POST /auth/mfa/verify',
         'POST /auth/reauth',
         'POST /auth/reset-password',

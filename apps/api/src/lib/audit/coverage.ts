@@ -8,6 +8,7 @@ export const AUDIT_NONE_REASONS = {
   health: 'Infrastructure probe',
   login: 'Recorded in login_history by M01',
   reauth: 'Successful re-authentication changes nothing; failures are audited (reauth.failed)',
+  'otp-send': 'Sending a one-time code is counted and capped, not audited (doc 52 section 4, T29)',
 } as const;
 export type AuditNoneReason = keyof typeof AUDIT_NONE_REASONS;
 

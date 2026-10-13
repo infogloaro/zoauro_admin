@@ -8,7 +8,7 @@ import { createReadinessChecks } from './lib/health';
 import { authContextMiddleware } from './lib/authz';
 import { createAccessService } from './modules/access';
 import { createAuditModule } from './modules/audit';
-import { createAuthMailer, createAuthModule } from './modules/auth';
+import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
 
 const env = loadEnvOrExit('api');
@@ -44,6 +44,7 @@ const auth = createAuthModule({
   encryptionKey: env.ENCRYPTION_KEY,
   ...(env.ENCRYPTION_KEY_PREVIOUS ? { encryptionKeyPrevious: env.ENCRYPTION_KEY_PREVIOUS } : {}),
   otpHmacKey: env.OTP_HMAC_KEY,
+  sms: createSmsProvider(env.SMS_PROVIDER),
   sessionSecret: env.SESSION_SECRET,
   appOrigin: new URL(env.APP_URL).origin,
 });

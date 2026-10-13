@@ -3,6 +3,7 @@ import {
   changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
+  mfaChallengeSchema,
   mfaVerifySchema,
   reauthSchema,
   resetPasswordSchema,
@@ -87,6 +88,16 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
     );
   };
 
+  /** POST /auth/mfa/challenge: an email or SMS code for the pending login (doc 52 section 8). */
+  const challengeMfa: RequestHandler = async (req, res) => {
+    const input = parseBody(mfaChallengeSchema, req.body);
+    const pendingToken = parseCookies(req.get('cookie'))[PENDING_LOGIN_COOKIE];
+    if (!pendingToken) {
+      throw new AppError('UNAUTHENTICATED', 'Your sign-in has expired. Sign in again.');
+    }
+    res.json(await service.requestChallenge(pendingToken, input, metaOf(req, res)));
+  };
+
   /** POST /auth/mfa/verify: the pending cookie plus a code; the session is minted only here (doc 52 section 2.1 [3]). */
   const verifyMfa: RequestHandler = async (req, res) => {
     const input = parseBody(mfaVerifySchema, req.body);
@@ -164,6 +175,7 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
   return {
     csrf,
     login,
+    challengeMfa,
     verifyMfa,
     logout,
     forgotPassword,

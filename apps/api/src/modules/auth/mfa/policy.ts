@@ -17,9 +17,12 @@ export interface MfaPolicyReader {
   read(): Promise<MfaPolicy>;
 }
 
-/** What a role may use right now: the allowed list, minus SMS while SMS is switched off (doc 52 section 5). */
-export function usableMethodsFor(policy: MfaPolicy, role: Role): MfaType[] {
-  return policy.allowed[role].filter((t) => t !== 'SMS_OTP' || policy.smsEnabled);
+/**
+ * What a role may use right now: the allowed list, minus SMS unless the policy switched it on AND it can be sent now
+ * (a provider exists, the breaker has not paused it) (doc 52 sections 2.2 and 5).
+ */
+export function usableMethodsFor(policy: MfaPolicy, role: Role, smsReady = false): MfaType[] {
+  return policy.allowed[role].filter((t) => t !== 'SMS_OTP' || (policy.smsEnabled && smsReady));
 }
 
 export const isMfaRequired = (policy: MfaPolicy, role: Role): boolean => policy.required[role];

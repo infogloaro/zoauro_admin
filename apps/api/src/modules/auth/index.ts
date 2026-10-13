@@ -14,9 +14,13 @@ import { createOtpHasher } from './mfa/otp-hash';
 import { PendingLoginStore } from './mfa/pending';
 import { createMfaPolicyReader, type MfaPolicyReader } from './mfa/policy';
 import { createSecretBox } from './mfa/secret-box';
+import { OtpService } from './mfa/otp.service';
+import { disabledSmsProvider, SmsCircuitBreaker, type SmsProvider } from './mfa/sms';
+import { record, runAsSystem } from '../../lib/audit';
 
 export { createAuthMailer, noopAuthMailer, type AuthMailer } from './auth.mails';
 export { staticMfaPolicy, type MfaPolicyReader } from './mfa/policy';
+export { ConsoleSmsProvider, createSmsProvider, type SmsProvider } from './mfa/sms';
 
 export interface AuthModule {
   router: Router;
@@ -42,6 +46,8 @@ export function createAuthModule(deps: {
   otpHmacKey: string;
   /** default: the settings key security.mfa with the doc 52 defaults; tests pass a fixed policy */
   mfaPolicy?: MfaPolicyReader;
+  /** SMS_PROVIDER (doc 52 section 6): default none, nothing is ever sent */
+  sms?: SmsProvider;
 }): AuthModule {
   const config = deps.config ?? DEFAULT_AUTH_CONFIG;
   const clock = deps.clock ?? (() => new Date());
@@ -53,12 +59,37 @@ export function createAuthModule(deps: {
     clock,
     sessionSecret: deps.sessionSecret,
   });
+  const limiter = new RedisRateLimiter(deps.redis);
+  const mailer = deps.mailer ?? noopAuthMailer;
+  const hasher = createOtpHasher(deps.otpHmacKey);
+  const sms = deps.sms ?? disabledSmsProvider;
+  const breaker = new SmsCircuitBreaker({
+    redis: deps.redis,
+    clock,
+    // doc 52 section 2.2: at 100 % SMS pauses until a Super Admin resumes it; audited as the system. The notifications
+    // module that would alert Super Admins in the panel does not exist yet: the log line is the alert for now.
+    onPaused: async (sentThisHour, cap) => {
+      console.error(`SMS paused: ${sentThisHour} SMS this hour reached the cap of ${cap}`);
+      await runAsSystem('sms-circuit-breaker', () =>
+        db.transaction((tx) =>
+          record(tx.audit, {
+            module: 'auth',
+            action: 'sms.paused',
+            entity: { type: 'setting', label: 'SMS one-time codes' },
+            note: `${sentThisHour} SMS this hour reached the hourly cap of ${cap}`,
+          }),
+        ),
+      );
+    },
+    onWarning: (sentThisHour, cap) =>
+      console.warn(`SMS at ${sentThisHour} of the hourly cap of ${cap} (80 %)`),
+  });
   const service = new AuthService({
     db,
     sessions,
-    limiter: new RedisRateLimiter(deps.redis),
+    limiter,
     audit: deps.audit,
-    mailer: deps.mailer ?? noopAuthMailer,
+    mailer,
     config,
     clock,
     mfa: {
@@ -73,7 +104,18 @@ export function createAuthModule(deps: {
         current: deps.encryptionKey,
         ...(deps.encryptionKeyPrevious ? { previous: deps.encryptionKeyPrevious } : {}),
       }),
-      hasher: createOtpHasher(deps.otpHmacKey),
+      hasher,
+      otp: new OtpService({
+        repo: () => db.repo,
+        hasher,
+        mailer,
+        sms,
+        breaker,
+        limiter,
+        clock,
+      }),
+      sms,
+      breaker,
     },
   });
   return {

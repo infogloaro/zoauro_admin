@@ -15,6 +15,14 @@ export interface AuthMailer {
   sendPasswordChanged(m: { to: string; name: string; at: Date; ip: string | null }): Promise<void>;
   /** doc 52 sections 2.5 and 2.7: a backup code was used to sign in */
   sendBackupCodeUsed(m: { to: string; name: string; at: Date; remaining: number }): Promise<void>;
+  /** doc 52 section 2.2: a one-time code; the body is the only place the code ever appears */
+  sendOtpCode(m: {
+    to: string;
+    name: string;
+    code: string;
+    expiresAt: Date;
+    purpose: 'LOGIN' | 'ENROL_PROOF' | 'ENROL_EMAIL' | 'ENROL_SMS' | 'REAUTH';
+  }): Promise<void>;
 }
 
 /** Until a mailer is configured nothing is sent (and never logged). */
@@ -23,6 +31,7 @@ export const noopAuthMailer: AuthMailer = {
   sendNewLogin: async () => undefined,
   sendPasswordChanged: async () => undefined,
   sendBackupCodeUsed: async () => undefined,
+  sendOtpCode: async () => undefined,
 };
 
 const UA_IN_MAIL_MAX = 120;
@@ -97,6 +106,22 @@ export function createAuthMailer(mailer: Mailer, opts: { appUrl: string }): Auth
           `The password of your account was changed on ${formatIst(m.at)} (IP address: ${m.ip ?? 'unknown'}). Sessions on other devices were signed out.`,
           IF_NOT_YOU,
         ]),
+      ),
+
+    sendOtpCode: (m) =>
+      mailer.send(
+        message(
+          m.to,
+          m.purpose === 'LOGIN' || m.purpose === 'REAUTH'
+            ? `${m.code} is your ZOAURO Admin sign-in code`
+            : `${m.code} is your ZOAURO Admin verification code`,
+          [
+            `Hello ${m.name},`,
+            `Your code is ${m.code}. It works once, until ${formatIst(m.expiresAt)}.`,
+            'Never share this code. Nobody from ZOAURO will ever ask you for it.',
+            'If you did not just sign in or set up 2-step verification, change your password and tell your Super Admin.',
+          ],
+        ),
       ),
 
     sendBackupCodeUsed: (m) =>

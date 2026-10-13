@@ -3,6 +3,7 @@ export * from './money';
 export * from './audit';
 export * from './auth';
 export * from './password-policy';
+export * from './phone';
 export * from './auth-mfa';
 export * from './zones';
 export * from './permissions';

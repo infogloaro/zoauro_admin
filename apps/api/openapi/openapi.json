@@ -397,6 +397,134 @@
         }
       }
     },
+    "/auth/mfa/challenge": {
+      "post": {
+        "operationId": "challengeMfa",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Send an email (or SMS) code for the pending sign-in, to the address or number on the account only. 429 with Retry-After on cooldown or caps; 409 when the method is not available",
+        "security": [
+          {
+            "preSessionCsrfCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "EMAIL_OTP",
+                      "SMS_OTP"
+                    ]
+                  }
+                },
+                "required": [
+                  "method"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Code sent (or delivery failed: sent=false)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sent": {
+                      "type": "boolean"
+                    },
+                    "hint": {
+                      "type": "string"
+                    },
+                    "resendAfterSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "expiresInSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "sent",
+                    "hint",
+                    "resendAfterSeconds",
+                    "expiresInSeconds"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "public",
+          "preSessionCsrf": true
+        },
+        "x-audit": {
+          "none": "otp-send"
+        }
+      }
+    },
     "/auth/mfa/verify": {
       "post": {
         "operationId": "verifyMfa",

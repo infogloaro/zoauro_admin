@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from '@prisma/client';
+import type { MfaPurpose, MfaType, Prisma, PrismaClient } from '@prisma/client';
 import type { Role } from '@zoauro/shared';
 import type { AuditTx } from '../../lib/audit';
 import type { SessionPersistence, SessionRecord } from '../../lib/auth/session-store';
@@ -18,6 +18,9 @@ export interface AuthUser {
   mfaEnabled: boolean;
   failedAttempts: number;
   lockedUntil: Date | null;
+  /** the number on the member record (set by Super Admin, D72) and when it was proven by an SMS code */
+  phone: string | null;
+  phoneVerifiedAt: Date | null;
 }
 
 const userSelect = {
@@ -30,6 +33,8 @@ const userSelect = {
   mfaEnabled: true,
   failedAttempts: true,
   lockedUntil: true,
+  phone: true,
+  phoneVerifiedAt: true,
   role: { select: { name: true } },
 } as const;
 
@@ -46,6 +51,8 @@ const toAuthUser = (u: UserRow): AuthUser => ({
   mfaEnabled: u.mfaEnabled,
   failedAttempts: u.failedAttempts,
   lockedUntil: u.lockedUntil,
+  phone: u.phone,
+  phoneVerifiedAt: u.phoneVerifiedAt,
 });
 
 export interface LoginHistoryEntry {
@@ -372,6 +379,75 @@ export class AuthRepository implements SessionPersistence {
     const r = await this.db.mfaBackupCode.updateMany({
       where: { id: codeId, usedAt: null },
       data: { usedAt: at },
+    });
+    return r.count === 1;
+  }
+
+  // ---- one-time code challenges (doc 52 section 2.2, mfa_challenges) ---------------------------------------------
+
+  /** The newest challenge of this kind that was not consumed (it may have expired: a resend reuses the row). */
+  async findLatestOpenChallenge(userId: string, purpose: MfaPurpose, method: MfaType) {
+    return this.db.mfaChallenge.findFirst({
+      where: { userId, purpose, method, consumedAt: null },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: {
+        id: true,
+        codeHash: true,
+        expiresAt: true,
+        attempts: true,
+        maxAttempts: true,
+        sendCount: true,
+        lastSentAt: true,
+      },
+    });
+  }
+
+  async createChallenge(c: {
+    id: string;
+    userId: string;
+    purpose: MfaPurpose;
+    method: MfaType;
+    codeHash: string;
+    destinationHint: string;
+    expiresAt: Date;
+    maxAttempts: number;
+    lastSentAt: Date;
+    ip: string | null;
+  }): Promise<void> {
+    await this.db.mfaChallenge.create({ data: { ...c, sendCount: 1, attempts: 0 } });
+  }
+
+  /** Resend: a new code on the same row, guesses reset, one more send counted. */
+  async replaceChallengeCode(
+    id: string,
+    c: { codeHash: string; expiresAt: Date; maxAttempts: number; lastSentAt: Date },
+  ): Promise<void> {
+    await this.db.mfaChallenge.updateMany({
+      where: { id, consumedAt: null },
+      data: { ...c, attempts: 0, sendCount: { increment: 1 } },
+    });
+  }
+
+  /** One wrong guess; the guess that reaches max_attempts kills the code (consumed_at set). */
+  async recordWrongGuess(id: string, now: Date): Promise<void> {
+    const row = await this.db.mfaChallenge.update({
+      where: { id },
+      data: { attempts: { increment: 1 } },
+      select: { attempts: true, maxAttempts: true },
+    });
+    if (row.attempts >= row.maxAttempts) {
+      await this.db.mfaChallenge.updateMany({
+        where: { id, consumedAt: null },
+        data: { consumedAt: now },
+      });
+    }
+  }
+
+  /** Single use: true only for the call that consumed a still-valid code. */
+  async consumeChallenge(id: string, now: Date): Promise<boolean> {
+    const r = await this.db.mfaChallenge.updateMany({
+      where: { id, consumedAt: null, expiresAt: { gt: now } },
+      data: { consumedAt: now },
     });
     return r.count === 1;
   }

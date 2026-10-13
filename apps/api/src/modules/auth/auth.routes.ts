@@ -34,6 +34,12 @@ export function createAuthRoutes(
 
   router.post('/auth/login', ...publicRoute, auditMeta(auditOf('login')), c.login);
   // second step: the pending cookie zo_mfa, never a session (doc 52 section 2.1); CSRF like every pre-session POST
+  router.post(
+    '/auth/mfa/challenge',
+    ...publicRoute,
+    auditMeta(auditOf('challengeMfa')),
+    c.challengeMfa,
+  );
   router.post('/auth/mfa/verify', ...publicRoute, auditMeta(auditOf('verifyMfa')), c.verifyMfa);
   router.post(
     '/auth/forgot-password',

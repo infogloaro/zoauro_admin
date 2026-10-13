@@ -2,7 +2,9 @@ import type {
   ChangePasswordInput,
   ForgotPasswordInput,
   MeZone,
+  MfaChallengeInput,
   MfaMethodUsed,
+  MfaPolicy,
   MfaType,
   MfaVerifyInput,
   SessionListItem,
@@ -26,7 +28,6 @@ import {
 import type { AuthSession, SessionStore } from '../../lib/auth/session-store';
 import { AppError } from '../../lib/errors';
 import type { RateLimiter } from '../../lib/rate-limiter';
-import { maskEmail } from '../../lib/audit/redact';
 import type { AuthMailer } from './auth.mails';
 import { findBackupCode } from './mfa/backup-codes';
 import type { OtpHasher } from './mfa/otp-hash';
@@ -34,6 +35,8 @@ import type { PendingLogin, PendingLoginStore } from './mfa/pending';
 import { isMfaRequired, usableMethodsFor, type MfaPolicyReader } from './mfa/policy';
 import { mfaSecretAad, type SecretBox } from './mfa/secret-box';
 import { verifyTotp } from './mfa/totp';
+import { channelUnavailable, type OtpService, type SentChallenge } from './mfa/otp.service';
+import type { SmsCircuitBreaker, SmsProvider } from './mfa/sms';
 import type { AuthDatabase, AuthTx, AuthUser } from './auth.repository';
 
 export interface RequestMeta {
@@ -83,13 +86,6 @@ interface SecondStep {
 
 /** The second step was used by a concurrent request between the check and the commit. */
 class SecondStepRace extends Error {}
-
-/** Shown next to each method on the 2-step screen; never more than a masked hint (doc 52 section 8). */
-function methodHint(type: MfaType, user: AuthUser): string {
-  if (type === 'AUTHENTICATOR') return 'Authenticator app';
-  if (type === 'EMAIL_OTP') return maskEmail(user.email);
-  return 'SMS to the phone on your account';
-}
 
 export interface MeResult {
   user: { id: string; name: string; email: string; role: Role };
@@ -150,6 +146,9 @@ export class AuthService {
         policy: MfaPolicyReader;
         secretBox: SecretBox;
         hasher: OtpHasher;
+        otp: OtpService;
+        sms: SmsProvider;
+        breaker: SmsCircuitBreaker;
       };
     },
   ) {}
@@ -193,10 +192,7 @@ export class AuthService {
 
     // Second step (doc 52 section 2.1 [2]): only now, after the password, are the user's methods looked at or listed.
     const policy = await this.deps.mfa.policy.read();
-    const usable = usableMethodsFor(policy, user.roleName);
-    const methods = (await this.deps.db.repo.listActiveMfaMethods(user.id)).filter((m) =>
-      usable.includes(m.type),
-    );
+    const methods = await this.offeredMethods(user, policy);
     const pendingBase = {
       userId: user.id,
       tab: input.tab,
@@ -209,7 +205,7 @@ export class AuthService {
       return {
         status: 'MFA_REQUIRED',
         pendingToken,
-        methods: methods.map((m) => ({ type: m.type, hint: methodHint(m.type, user) })),
+        methods: methods.map((m) => ({ type: m.type, hint: this.methodHint(m.type, user) })),
         ...(methods[0] ? { preferred: methods[0].type } : {}),
       };
     }
@@ -353,17 +349,12 @@ export class AuthService {
       return { ok: false, pendingEnded: true };
     }
 
-    if (input.method === 'EMAIL_OTP' || input.method === 'SMS_OTP') {
-      // P9 builds the one-time-code channels; until then they are refused without counting as a failed attempt
-      throw new AppError('VALIDATION_ERROR', 'This method is not available yet', [
-        { field: 'method', issue: 'not_available' },
-      ]);
-    }
-
     const step =
       input.method === 'AUTHENTICATOR'
         ? await this.checkAuthenticator(user, input.code, now)
-        : await this.checkBackupCode(user, input.code);
+        : input.method === 'BACKUP_CODE'
+          ? await this.checkBackupCode(user, input.code)
+          : await this.checkOneTimeCode(user, input.method, input.code);
     if (!step) return this.secondStepFailed(user, pending, pendingToken, input.method, meta, now);
 
     // single use: the first successful request takes the pending login; any other gets nothing
@@ -396,6 +387,68 @@ export class AuthService {
       );
     }
     return { ok: true, session };
+  }
+
+  /**
+   * POST /auth/mfa/challenge (doc 52 section 8): sends an email or SMS code for the pending login. The method must be
+   * allowed for the role, enrolled by the user and deliverable (SMS: switched on, a provider, not paused, a verified
+   * number), otherwise 409. Cooldown and caps answer 429 with Retry-After.
+   */
+  async requestChallenge(
+    pendingToken: string,
+    input: MfaChallengeInput,
+    meta: RequestMeta,
+  ): Promise<SentChallenge> {
+    const pending = await this.deps.mfa.pending.get(pendingToken);
+    if (
+      !pending ||
+      pending.stage !== 'VERIFY' ||
+      pending.ip !== meta.ip ||
+      pending.userAgent !== meta.userAgent
+    ) {
+      throw new AppError('UNAUTHENTICATED', 'Your sign-in has expired. Sign in again.');
+    }
+    const user = await this.deps.db.repo.findUserById(pending.userId);
+    const now = this.deps.clock();
+    if (!user || user.status !== 'ACTIVE' || (user.lockedUntil && user.lockedUntil > now)) {
+      throw new AppError('UNAUTHENTICATED', 'Your sign-in has expired. Sign in again.');
+    }
+    const policy = await this.deps.mfa.policy.read();
+    const offered = await this.offeredMethods(user, policy);
+    const destination = this.deps.mfa.otp.destination(user, input.method);
+    if (!offered.some((m) => m.type === input.method) || !destination) throw channelUnavailable();
+    return this.deps.mfa.otp.send(user, 'LOGIN', input.method, policy, meta, destination);
+  }
+
+  /**
+   * The user's confirmed methods that can be used right now: allowed for the role by the policy, SMS only while it is
+   * switched on, has a provider, is not paused, and the user's number is verified (doc 52 sections 2.2 and 5).
+   */
+  private async offeredMethods(user: AuthUser, policy: MfaPolicy) {
+    const smsReady = this.deps.mfa.sms.canSend && !(await this.deps.mfa.breaker.isPaused());
+    const usable = usableMethodsFor(policy, user.roleName, smsReady);
+    return (await this.deps.db.repo.listActiveMfaMethods(user.id)).filter(
+      (m) =>
+        usable.includes(m.type) &&
+        (m.type === 'AUTHENTICATOR' || this.deps.mfa.otp.destination(user, m.type) !== null),
+    );
+  }
+
+  /** Shown next to each method on the 2-step screen; never more than a masked hint (doc 52 section 8). */
+  private methodHint(type: MfaType, user: AuthUser): string {
+    if (type === 'AUTHENTICATOR') return 'Authenticator app';
+    return this.deps.mfa.otp.destination(user, type)?.hint ?? '';
+  }
+
+  /** An email or SMS code of the pending login's challenge (doc 52 section 2.2). */
+  private async checkOneTimeCode(
+    user: AuthUser,
+    method: 'EMAIL_OTP' | 'SMS_OTP',
+    code: string,
+  ): Promise<SecondStep | null> {
+    const policy = await this.deps.mfa.policy.read();
+    if (!(await this.offeredMethods(user, policy)).some((m) => m.type === method)) return null;
+    return this.deps.mfa.otp.check(user, 'LOGIN', method, code);
   }
 
   /** An accepted authenticator code, with the replay-guard update to run in the login transaction. */
@@ -648,10 +701,7 @@ export class AuthService {
   /** /me mfa (doc 52 section 8): from the confirmed methods the policy lets this role use, not from users.mfa_enabled. */
   private async mfaState(user: AuthUser) {
     const policy = await this.deps.mfa.policy.read();
-    const usable = usableMethodsFor(policy, user.roleName);
-    const enabled = (await this.deps.db.repo.listActiveMfaMethods(user.id)).some((m) =>
-      usable.includes(m.type),
-    );
+    const enabled = (await this.offeredMethods(user, policy)).length > 0;
     const required = isMfaRequired(policy, user.roleName);
     return { enabled, required, enrolmentNeeded: required && !enabled };
   }

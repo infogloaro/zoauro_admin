@@ -63,6 +63,13 @@ function buildSchema(entry: EntryPoint) {
       // HMAC key for one-time and backup codes; its own secret, never one of the others
       OTP_HMAC_KEY: text.min(32, 'must be at least 32 characters'),
       MFA_ISSUER: text.max(64).default('ZOAURO Admin'),
+      // SMS one-time codes (doc 52 sections 5 and 6): off until a real provider and a DLT template exist (D67, D68 open).
+      // 'console' prints messages for local work and is refused in production.
+      SMS_PROVIDER: z.enum(['none', 'console']).default('none'),
+      SMS_API_KEY: z.string().min(1).optional(),
+      SMS_SENDER_ID: z.string().min(1).optional(),
+      SMS_DLT_ENTITY_ID: z.string().min(1).optional(),
+      SMS_DLT_TEMPLATE_ID_OTP: z.string().min(1).optional(),
       S3_BUCKET: text,
       S3_REGION: text,
       S3_ENDPOINT: z.url().optional(),
@@ -103,6 +110,13 @@ function buildSchema(entry: EntryPoint) {
         });
       }
       if (env.NODE_ENV !== 'production') return;
+      if (env.SMS_PROVIDER === 'console') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['SMS_PROVIDER'],
+          message: 'console is for local development only; production refuses to start with it',
+        });
+      }
       if (env.DATABASE_URL_MIGRATE !== undefined) {
         ctx.addIssue({
           code: 'custom',

@@ -109,6 +109,15 @@ describe('loadEnv', () => {
     ).toBe('p'.repeat(32));
   });
 
+  it('SMS_PROVIDER: none by default; console is refused in production', () => {
+    expect(loadEnv(valid).SMS_PROVIDER).toBe('none');
+    expect(loadEnv({ ...valid, SMS_PROVIDER: 'console' }).SMS_PROVIDER).toBe('console');
+    expect(problems({ ...valid, SMS_PROVIDER: 'twilio' })).toHaveLength(1);
+    expect(problems({ ...valid, NODE_ENV: 'production', SMS_PROVIDER: 'console' })).toEqual([
+      'SMS_PROVIDER: console is for local development only; production refuses to start with it',
+    ]);
+  });
+
   it('TRUST_PROXY_HOPS: a non-negative integer, default 0', () => {
     expect(loadEnv(valid).TRUST_PROXY_HOPS).toBe(0);
     expect(loadEnv({ ...valid, TRUST_PROXY_HOPS: '1' }).TRUST_PROXY_HOPS).toBe(1);

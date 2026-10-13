@@ -15,7 +15,12 @@ import { authContextMiddleware, type AccessService } from '../../../src/lib/auth
 import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
 import { createAccessService } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
-import { createAuthModule, type AuthMailer, type MfaPolicyReader } from '../../../src/modules/auth';
+import {
+  createAuthModule,
+  type AuthMailer,
+  type MfaPolicyReader,
+  type SmsProvider,
+} from '../../../src/modules/auth';
 import { generateBackupCodes, hashBackupCode } from '../../../src/modules/auth/mfa/backup-codes';
 import { createOtpHasher } from '../../../src/modules/auth/mfa/otp-hash';
 import { createSecretBox, mfaSecretAad } from '../../../src/modules/auth/mfa/secret-box';
@@ -59,6 +64,8 @@ interface AppExtras {
   onDeniedFailure?: (err: unknown) => void;
   /** default: the settings row (none in the test database) = the doc 52 defaults, 2-step required for both roles */
   mfaPolicy?: MfaPolicyReader;
+  /** default: no SMS provider (nothing can be sent), as in production today */
+  sms?: SmsProvider;
 }
 
 export interface TestUser {
@@ -104,6 +111,8 @@ export async function createAuthTestEnv() {
     },
   };
   const mails: ResetMail[] = [];
+  /** emailed one-time codes (the test double is the only place a code is ever kept) */
+  const otpMails: { to: string; code: string; purpose: string }[] = [];
   /** new-login and password-changed notices, in order */
   const notices: {
     kind: 'NEW_LOGIN' | 'PASSWORD_CHANGED' | 'BACKUP_CODE_USED';
@@ -122,6 +131,9 @@ export async function createAuthTestEnv() {
     },
     sendBackupCodeUsed: async (m) => {
       notices.push({ kind: 'BACKUP_CODE_USED', to: m.to, ip: null });
+    },
+    sendOtpCode: async (m) => {
+      otpMails.push({ to: m.to, code: m.code, purpose: m.purpose });
     },
   };
 
@@ -153,6 +165,7 @@ export async function createAuthTestEnv() {
       encryptionKey: TEST_ENCRYPTION_KEY,
       otpHmacKey: TEST_OTP_HMAC_KEY,
       ...(extra.mfaPolicy ? { mfaPolicy: extra.mfaPolicy } : {}),
+      ...(extra.sms ? { sms: extra.sms } : {}),
       config,
       clock: clock.now,
     });
@@ -514,6 +527,7 @@ export async function createAuthTestEnv() {
     api,
     clock,
     mails,
+    otpMails,
     notices,
     db,
     createUser,
