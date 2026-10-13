@@ -19,6 +19,7 @@
     "infra:up": "docker compose -f docker-compose.dev.yml up -d && docker compose -f docker-compose.dev.yml up -d --wait postgres redis minio mailpit",
     "infra:down": "docker compose -f docker-compose.dev.yml down",
     "e2e:system-logs": "pnpm --filter @zoauro/api exec tsx ../../tests/e2e/system-logs/run.ts",
+    "e2e:shell": "playwright test -c tests/e2e/shell/playwright.config.ts",
     "openapi:generate": "pnpm --filter @zoauro/api openapi:generate",
     "openapi:check": "pnpm --filter @zoauro/api openapi:check"
   },
