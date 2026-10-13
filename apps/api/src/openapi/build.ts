@@ -27,6 +27,9 @@ const ERROR_DESCRIPTION: Record<ErrorCode, string> = {
   REFUND_LIMIT_EXCEEDED: 'Over the refund limit',
   REAUTH_REQUIRED: 'Recent re-authentication required',
   PASSWORD_CHANGE_REQUIRED: 'The first-login password change is still pending',
+  SMS_NOT_AVAILABLE: 'SMS codes are switched off, paused or have no provider',
+  PHONE_MISSING: 'There is no mobile number on the account',
+  LAST_METHOD_REQUIRED: 'The 2-step policy requires at least one method; this is the last one',
   INTERNAL: 'Server error',
 };
 
@@ -37,6 +40,7 @@ function errorCodesFor(op: OperationDef): ErrorCode[] {
   if (op.access.kind !== 'public') codes.add('UNAUTHENTICATED');
   if (op.access.kind === 'session' && isMutating(op)) codes.add('FORBIDDEN'); // CSRF
   if (op.access.kind === 'public' && op.access.preSessionCsrf) codes.add('FORBIDDEN'); // pre-session CSRF
+  if (op.access.kind === 'session' && op.access.reauth) codes.add('REAUTH_REQUIRED');
   if (op.access.kind === 'session' && op.access.pendingPasswordChange !== 'allowed')
     codes.add('PASSWORD_CHANGE_REQUIRED');
   if (op.access.kind === 'permission') {

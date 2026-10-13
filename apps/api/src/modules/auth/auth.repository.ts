@@ -403,6 +403,117 @@ export class AuthRepository implements SessionPersistence {
     return r.count === 1;
   }
 
+  // ---- enrolment and management (doc 52 sections 2.3, 8) ----------------------------------------------------------
+
+  /** The active row of a type (confirmed or started), at most one by the partial unique index. */
+  async findActiveMfaMethod(userId: string, type: MfaType) {
+    return this.db.userMfaMethod.findFirst({
+      where: { userId, type, disabledAt: null },
+      select: {
+        id: true,
+        verifiedAt: true,
+        secretEncrypted: true,
+        isPrimary: true,
+        lastUsedStep: true,
+      },
+    });
+  }
+
+  /** Starts (or restarts) authenticator enrolment: an unconfirmed row with a new sealed secret. */
+  async upsertUnconfirmedAuthenticator(
+    userId: string,
+    id: string,
+    secretEncrypted: string,
+  ): Promise<void> {
+    const existing = await this.findActiveMfaMethod(userId, 'AUTHENTICATOR');
+    if (existing) {
+      await this.db.userMfaMethod.updateMany({
+        where: { id: existing.id, verifiedAt: null },
+        data: { secretEncrypted, lastUsedStep: null },
+      });
+      return;
+    }
+    await this.db.userMfaMethod.create({
+      data: { id, userId, type: 'AUTHENTICATOR', secretEncrypted },
+    });
+  }
+
+  /** Confirms a started method (only once). */
+  async confirmMfaMethod(
+    methodId: string,
+    at: Date,
+    lastUsedStep: number | null,
+  ): Promise<boolean> {
+    const r = await this.db.userMfaMethod.updateMany({
+      where: { id: methodId, verifiedAt: null, disabledAt: null },
+      data: {
+        verifiedAt: at,
+        ...(lastUsedStep === null ? {} : { lastUsedStep: BigInt(lastUsedStep) }),
+      },
+    });
+    return r.count === 1;
+  }
+
+  /** A method confirmed in one go (email after the mailbox proof, SMS after the number was proven). */
+  async createConfirmedMfaMethod(
+    userId: string,
+    id: string,
+    type: MfaType,
+    at: Date,
+  ): Promise<void> {
+    await this.db.userMfaMethod.create({ data: { id, userId, type, verifiedAt: at } });
+  }
+
+  async disableMfaMethod(methodId: string, at: Date): Promise<boolean> {
+    const r = await this.db.userMfaMethod.updateMany({
+      where: { id: methodId, disabledAt: null },
+      data: { disabledAt: at, isPrimary: false },
+    });
+    return r.count === 1;
+  }
+
+  /** Exactly one primary among the user's confirmed methods (`type` null: the oldest confirmed one). */
+  async setPrimaryMfaMethod(userId: string, type: MfaType | null): Promise<void> {
+    const confirmed = await this.db.userMfaMethod.findMany({
+      where: { userId, disabledAt: null, verifiedAt: { not: null } },
+      orderBy: [{ verifiedAt: 'asc' }],
+      select: { id: true, type: true },
+    });
+    const primary = (type ? confirmed.find((m) => m.type === type) : confirmed[0]) ?? confirmed[0];
+    await this.db.userMfaMethod.updateMany({
+      where: { userId, disabledAt: null },
+      data: { isPrimary: false },
+    });
+    if (primary) {
+      await this.db.userMfaMethod.update({ where: { id: primary.id }, data: { isPrimary: true } });
+    }
+  }
+
+  /** users.mfa_enabled is derived (doc 52 section 3): kept in step in the same transaction as any method change. */
+  async syncMfaEnabled(userId: string): Promise<boolean> {
+    const n = await this.db.userMfaMethod.count({
+      where: { userId, disabledAt: null, verifiedAt: { not: null } },
+    });
+    await this.db.user.update({ where: { id: userId }, data: { mfaEnabled: n > 0 } });
+    return n > 0;
+  }
+
+  /** A new batch replaces every older code (doc 52 section 2.2: regenerating invalidates the old ones). */
+  async replaceBackupCodes(
+    userId: string,
+    batchId: string,
+    codeHashes: { id: string; codeHash: string }[],
+  ) {
+    await this.db.mfaBackupCode.deleteMany({ where: { userId } });
+    await this.db.mfaBackupCode.createMany({
+      data: codeHashes.map((c) => ({ ...c, userId, batchId })),
+    });
+  }
+
+  async setPhoneVerified(userId: string, at: Date): Promise<void> {
+    await this.db.user.update({ where: { id: userId }, data: { phoneVerifiedAt: at } });
+  }
+
   // ---- one-time code challenges (doc 52 section 2.2, mfa_challenges) ---------------------------------------------
 
   /** The newest challenge of this kind that was not consumed (it may have expired: a resend reuses the row). */

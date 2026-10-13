@@ -16,6 +16,9 @@ import { PendingLoginStore } from './mfa/pending';
 import { createMfaPolicyReader, type MfaPolicyReader } from './mfa/policy';
 import { createSecretBox } from './mfa/secret-box';
 import { OtpService } from './mfa/otp.service';
+import { EnrolmentService } from './mfa/enrolment.service';
+import { mfaActorMiddleware } from './mfa/actor';
+import { createMfaController } from './mfa.controller';
 import { disabledSmsProvider, SmsCircuitBreaker, type SmsProvider } from './mfa/sms';
 import { record, runAsSystem } from '../../lib/audit';
 
@@ -51,6 +54,8 @@ export function createAuthModule(deps: {
   mfaPolicy?: MfaPolicyReader;
   /** SMS_PROVIDER (doc 52 section 6): default none, nothing is ever sent */
   sms?: SmsProvider;
+  /** MFA_ISSUER: the name authenticator apps show (default ZOAURO Admin) */
+  mfaIssuer?: string;
 }): AuthModule {
   const config = deps.config ?? DEFAULT_AUTH_CONFIG;
   const clock = deps.clock ?? (() => new Date());
@@ -87,6 +92,18 @@ export function createAuthModule(deps: {
     onWarning: (sentThisHour, cap) =>
       console.warn(`SMS at ${sentThisHour} of the hourly cap of ${cap} (80 %)`),
   });
+  const pending = new PendingLoginStore({ redis: deps.redis, clock });
+  const policy =
+    deps.mfaPolicy ??
+    createMfaPolicyReader({
+      load: (key) => db.repo.getSettingValue(key),
+      onInvalid: () => console.error('settings security.mfa is invalid: the defaults apply'),
+    });
+  const secretBox = createSecretBox({
+    current: deps.encryptionKey,
+    ...(deps.encryptionKeyPrevious ? { previous: deps.encryptionKeyPrevious } : {}),
+  });
+  const otp = new OtpService({ repo: () => db.repo, hasher, mailer, sms, breaker, limiter, clock });
   const service = new AuthService({
     db,
     sessions,
@@ -95,38 +112,39 @@ export function createAuthModule(deps: {
     mailer,
     config,
     clock,
-    mfa: {
-      pending: new PendingLoginStore({ redis: deps.redis, clock }),
-      policy:
-        deps.mfaPolicy ??
-        createMfaPolicyReader({
-          load: (key) => db.repo.getSettingValue(key),
-          onInvalid: () => console.error('settings security.mfa is invalid: the defaults apply'),
-        }),
-      secretBox: createSecretBox({
-        current: deps.encryptionKey,
-        ...(deps.encryptionKeyPrevious ? { previous: deps.encryptionKeyPrevious } : {}),
-      }),
-      hasher,
-      otp: new OtpService({
-        repo: () => db.repo,
-        hasher,
-        mailer,
-        sms,
-        breaker,
-        limiter,
-        clock,
-      }),
-      sms,
-      breaker,
-    },
+    mfa: { pending, policy, secretBox, hasher, otp, sms, breaker },
   });
+  const enrolment = new EnrolmentService({
+    db,
+    sessions,
+    pending,
+    policy,
+    secretBox,
+    hasher,
+    otp,
+    sms,
+    breaker,
+    mailer,
+    clock,
+    issuer: deps.mfaIssuer ?? 'ZOAURO Admin',
+  });
+  const requireReauth = (level: ReauthLevel) => requireRecentReauth(sessions, level);
   return {
     router: createAuthRoutes(createAuthController(service, { csrfSecret: deps.sessionSecret }), {
       appOrigin: deps.appOrigin,
       csrfSecret: deps.sessionSecret,
+      mfa: {
+        controller: createMfaController(enrolment),
+        actor: mfaActorMiddleware({
+          pending,
+          repo: () => db.repo,
+          csrfSecret: deps.sessionSecret,
+          clock,
+        }),
+        requireReauth,
+      },
     }),
     sessionMiddleware: sessionMiddleware(sessions),
-    requireReauth: (level) => requireRecentReauth(sessions, level),
+    requireReauth,
   };
 }

@@ -45,6 +45,7 @@ const auth = createAuthModule({
   ...(env.ENCRYPTION_KEY_PREVIOUS ? { encryptionKeyPrevious: env.ENCRYPTION_KEY_PREVIOUS } : {}),
   otpHmacKey: env.OTP_HMAC_KEY,
   sms: createSmsProvider(env.SMS_PROVIDER),
+  mfaIssuer: env.MFA_ISSUER,
   sessionSecret: env.SESSION_SECRET,
   appOrigin: new URL(env.APP_URL).origin,
 });

@@ -47,7 +47,7 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     expect(report.failures).toEqual([]);
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
-    expect(report.coveredRoutes).toHaveLength(21);
+    expect(report.coveredRoutes).toHaveLength(32);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,
@@ -84,7 +84,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
       '403 PASSWORD_CHANGE_REQUIRED',
     ]);
     expect(firstLogin('GET /me').every((r) => r.expected.startsWith('allowed'))).toBe(true);
-  });
+    // the whole real contract, every actor: grows with the API like the test above (doc 32, P6)
+  }, 180_000);
 });
 
 describe('authorization matrix over permission routes (zone-scoped lists, objects and never-grantable modules)', () => {

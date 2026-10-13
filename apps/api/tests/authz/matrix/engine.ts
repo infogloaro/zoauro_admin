@@ -14,7 +14,7 @@ import { ZONE_LABELS } from './fixtures';
 
 type AccessDecl =
   | { kind: 'public'; preSessionCsrf?: true }
-  | { kind: 'session'; pendingPasswordChange?: 'allowed' }
+  | { kind: 'session'; pendingPasswordChange?: 'allowed'; reauth?: 'PASSWORD' | 'STRONG' }
   | {
       kind: 'permission';
       permission: PermissionKey;
@@ -46,7 +46,8 @@ type ErrorName =
   | 'PASSWORD_CHANGE_REQUIRED'
   | 'NOT_FOUND'
   | 'ZONE_NOT_FOUND'
-  | 'VALIDATION_ERROR';
+  | 'VALIDATION_ERROR'
+  | 'REAUTH_REQUIRED';
 
 export type Expectation =
   | { kind: 'status'; status: number; codes: ErrorName[] }
@@ -124,7 +125,15 @@ export function casesFor(
         continue;
       }
       if (mutating) cases.push({ actor, zone: null, variant: 'no-csrf', expected: forbidden });
-      cases.push({ actor, zone: null, variant: 'default', expected: authorized });
+      // a step-up route must refuse a session that has not re-authenticated (the engine never re-authenticates)
+      cases.push({
+        actor,
+        zone: null,
+        variant: 'default',
+        expected: access.reauth
+          ? { kind: 'status', status: 401, codes: ['REAUTH_REQUIRED'] }
+          : authorized,
+      });
       continue;
     }
 

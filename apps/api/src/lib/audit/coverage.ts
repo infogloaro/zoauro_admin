@@ -9,6 +9,9 @@ export const AUDIT_NONE_REASONS = {
   login: 'Recorded in login_history by M01',
   reauth: 'Successful re-authentication changes nothing; failures are audited (reauth.failed)',
   'otp-send': 'Sending a one-time code is counted and capped, not audited (doc 52 section 4, T29)',
+  'mfa-enrolment-step':
+    'Starting an authenticator set-up changes nothing until it is confirmed (audited as user.two_factor_enrolled)',
+  'mfa-preference': 'Choosing the preferred 2-step method changes no security setting',
 } as const;
 export type AuditNoneReason = keyof typeof AUDIT_NONE_REASONS;
 

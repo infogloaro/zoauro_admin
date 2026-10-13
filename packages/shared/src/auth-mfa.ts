@@ -138,10 +138,37 @@ export const authenticatorStartResponseSchema = z.object({
 });
 export type AuthenticatorStartResponse = z.infer<typeof authenticatorStartResponseSchema>;
 
-/** backupCodes only the first time a method is confirmed */
+/** /me/mfa/{email,authenticator,sms}/confirm: backupCodes only when this is the user's first confirmed method */
 export const authenticatorConfirmResponseSchema = z.object({
   backupCodes: z.array(z.string()).length(BACKUP_CODE_COUNT).optional(),
 });
+export const mfaConfirmResponseSchema = authenticatorConfirmResponseSchema;
+
+/** DELETE /me/mfa/{type} */
+export const mfaTypeParamsSchema = z.object({ type: z.enum(MFA_TYPES) });
+
+/** GET /me/mfa (doc 52 section 8): the user's methods (hints only, never a secret) and what the policy allows them. */
+export const mfaOverviewSchema = z.object({
+  methods: z.array(z.object({ type: z.enum(MFA_TYPES), hint: z.string(), primary: z.boolean() })),
+  /** an authenticator was started but not confirmed yet */
+  authenticatorPending: z.boolean(),
+  backupCodesRemaining: z.number().int().min(0),
+  policy: z.object({
+    allowed: z.array(z.enum(MFA_TYPES)),
+    required: z.boolean(),
+    smsAvailable: z.boolean(),
+  }),
+  /** enrolment during sign-in only: the account mailbox was proven (doc 52 section 2.3) */
+  mailboxProved: z.boolean().optional(),
+});
+export type MfaOverview = z.infer<typeof mfaOverviewSchema>;
+
+/**
+ * POST /auth/mfa/enrol/complete (doc 52 section 2.3 step 4). Doc 52 shows an empty body but requires the backup codes to
+ * be acknowledged first (TC-AUTH-25): the acknowledgement is this field (doc 32).
+ */
+export const enrolCompleteSchema = z.object({ backupCodesAcknowledged: z.boolean() }).strict();
+export type EnrolCompleteInput = z.infer<typeof enrolCompleteSchema>;
 
 export const mfaPrimarySchema = z.object({ type: z.enum(MFA_TYPES) });
 export type MfaPrimaryInput = z.infer<typeof mfaPrimarySchema>;

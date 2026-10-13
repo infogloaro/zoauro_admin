@@ -1,5 +1,6 @@
 import type {
   ChangePasswordInput,
+  EnrolCompleteInput,
   ForgotPasswordInput,
   MeZone,
   MfaChallengeInput,
@@ -418,6 +419,46 @@ export class AuthService {
     const destination = this.deps.mfa.otp.destination(user, input.method);
     if (!offered.some((m) => m.type === input.method) || !destination) throw channelUnavailable();
     return this.deps.mfa.otp.send(user, 'LOGIN', input.method, policy, meta, destination);
+  }
+
+  /**
+   * POST /auth/mfa/enrol/complete (doc 52 section 2.3 step 4): only with a confirmed method the policy allows and the
+   * backup codes acknowledged (TC-AUTH-25: otherwise 409). Then the session starts, as after a second step.
+   */
+  async completeEnrolment(
+    pendingToken: string,
+    input: EnrolCompleteInput,
+    meta: RequestMeta,
+  ): Promise<StartedSession> {
+    const pending = await this.deps.mfa.pending.get(pendingToken);
+    if (
+      !pending ||
+      pending.stage !== 'ENROL' ||
+      pending.ip !== meta.ip ||
+      pending.userAgent !== meta.userAgent
+    ) {
+      throw new AppError('UNAUTHENTICATED', 'Your sign-in has expired. Sign in again.');
+    }
+    const user = await this.deps.db.repo.findUserById(pending.userId);
+    const now = this.deps.clock();
+    if (!user || user.status !== 'ACTIVE' || (user.lockedUntil && user.lockedUntil > now)) {
+      await this.deps.mfa.pending.end(pendingToken);
+      throw new AppError('UNAUTHENTICATED', 'Your sign-in has expired. Sign in again.');
+    }
+    const offered = await this.offeredMethods(user, await this.deps.mfa.policy.read());
+    const primary = offered.find((m) => m.isPrimary) ?? offered[0];
+    if (!primary) throw new AppError('CONFLICT', 'Set up a 2-step method your policy allows first');
+    if (input.backupCodesAcknowledged !== true) {
+      throw new AppError('CONFLICT', 'Confirm that you have saved your backup codes');
+    }
+    if (!(await this.deps.mfa.pending.consume(pendingToken))) {
+      throw new AppError('UNAUTHENTICATED', 'Your sign-in has expired. Sign in again.');
+    }
+    return this.startSession(user, meta, now, {
+      remember: pending.remember,
+      typedEmail: user.email,
+      mfaMethod: primary.type,
+    });
   }
 
   /**

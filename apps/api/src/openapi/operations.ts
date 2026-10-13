@@ -15,7 +15,15 @@ import {
   loginHistoryQuerySchema,
   loginOkResponseSchema,
   loginResponseSchema,
+  authenticatorStartResponseSchema,
+  backupCodesResponseSchema,
+  enrolCompleteSchema,
   mfaChallengeResponseSchema,
+  mfaConfirmResponseSchema,
+  mfaConfirmSchema,
+  mfaOverviewSchema,
+  mfaPrimarySchema,
+  mfaTypeParamsSchema,
   mfaChallengeSchema,
   mfaVerifySchema,
   loginSchema,
@@ -47,7 +55,12 @@ export type Access =
   /** `preSessionCsrf`: a POST made before any session exists; needs the zo_csrf cookie + X-CSRF-Token from GET /auth/csrf */
   | { kind: 'public'; preSessionCsrf?: true }
   /** any signed-in user; `pendingPasswordChange: 'allowed'` = reachable while the first-login password change is pending */
-  | { kind: 'session'; pendingPasswordChange?: 'allowed' }
+  /**
+   * any signed-in user; `pendingPasswordChange: 'allowed'` = reachable while the first-login password change is pending;
+   * `reauth`: the route also needs a recent step-up re-authentication (doc 52 section 2.4) and answers REAUTH_REQUIRED
+   * without it. Routes marked "S or PEND" in doc 52 are documented with their session form.
+   */
+  | { kind: 'session'; pendingPasswordChange?: 'allowed'; reauth?: 'PASSWORD' | 'STRONG' }
   /**
    * `zone`: how the route is scoped.
    *   'none'  = not zone-owned (global data)
@@ -264,6 +277,146 @@ export const OPERATIONS: OperationDef[] = [
       schema: revokeOtherSessionsResponseSchema,
       description: 'Number of sessions signed out',
     },
+  },
+  {
+    operationId: 'completeEnrolment',
+    method: 'post',
+    path: '/auth/mfa/enrol/complete',
+    tags: ['auth'],
+    summary:
+      'End of first-time 2-step set-up during sign-in (pending cookie, stage ENROL): needs a confirmed allowed method and the backup codes acknowledged (409 otherwise); starts the session',
+    access: { kind: 'public', preSessionCsrf: true },
+    audit: { none: 'login' },
+    body: enrolCompleteSchema,
+    response: { status: 200, schema: loginOkResponseSchema, description: 'Signed in' },
+    errors: ['UNAUTHENTICATED', 'CONFLICT', 'FORBIDDEN'],
+  },
+  {
+    operationId: 'getMyMfa',
+    method: 'get',
+    path: '/me/mfa',
+    tags: ['auth'],
+    summary:
+      'My 2-step methods (hints only), backup codes left and what my policy allows. Also during sign-in enrolment (pending cookie)',
+    access: { kind: 'session' },
+    response: { status: 200, schema: mfaOverviewSchema, description: '2-step overview' },
+  },
+  {
+    operationId: 'mfaEmailStart',
+    method: 'post',
+    path: '/me/mfa/email/start',
+    tags: ['auth'],
+    summary:
+      'Send a code to my account address: the mailbox proof during enrolment, or to add email codes as a method',
+    access: { kind: 'session' },
+    audit: { none: 'otp-send' },
+    response: { status: 200, schema: mfaChallengeResponseSchema, description: 'Code sent' },
+    errors: ['RATE_LIMITED', 'CONFLICT'],
+  },
+  {
+    operationId: 'mfaEmailConfirm',
+    method: 'post',
+    path: '/me/mfa/email/confirm',
+    tags: ['auth'],
+    summary:
+      'Confirm the emailed code: proves the mailbox and, where the policy allows, adds email codes as a method',
+    access: { kind: 'session' },
+    audit: { module: 'auth', action: 'user.two_factor_enrolled' },
+    body: mfaConfirmSchema,
+    response: {
+      status: 200,
+      schema: mfaConfirmResponseSchema,
+      description: 'Confirmed; backup codes when this is the first method',
+    },
+  },
+  {
+    operationId: 'mfaAuthenticatorStart',
+    method: 'post',
+    path: '/me/mfa/authenticator/start',
+    tags: ['auth'],
+    summary:
+      'A new authenticator secret, shown once. During enrolment only after the mailbox proof; signed in, after a PASSWORD re-authentication',
+    access: { kind: 'session', reauth: 'PASSWORD' },
+    audit: { none: 'mfa-enrolment-step' },
+    response: {
+      status: 200,
+      schema: authenticatorStartResponseSchema,
+      description: 'Secret and otpauth URI',
+    },
+    errors: ['CONFLICT'],
+  },
+  {
+    operationId: 'mfaAuthenticatorConfirm',
+    method: 'post',
+    path: '/me/mfa/authenticator/confirm',
+    tags: ['auth'],
+    summary:
+      'Confirm the authenticator with one valid code; backup codes when it is the first method',
+    access: { kind: 'session' },
+    audit: { module: 'auth', action: 'user.two_factor_enrolled' },
+    body: mfaConfirmSchema,
+    response: { status: 200, schema: mfaConfirmResponseSchema, description: 'Confirmed' },
+    errors: ['CONFLICT'],
+  },
+  {
+    operationId: 'mfaSmsStart',
+    method: 'post',
+    path: '/me/mfa/sms/start',
+    tags: ['auth'],
+    summary:
+      'Send a code to the mobile number on my account (never another): 409 SMS_NOT_AVAILABLE or PHONE_MISSING',
+    access: { kind: 'session', reauth: 'PASSWORD' },
+    audit: { none: 'otp-send' },
+    response: { status: 200, schema: mfaChallengeResponseSchema, description: 'Code sent' },
+    errors: ['RATE_LIMITED', 'SMS_NOT_AVAILABLE', 'PHONE_MISSING'],
+  },
+  {
+    operationId: 'mfaSmsConfirm',
+    method: 'post',
+    path: '/me/mfa/sms/confirm',
+    tags: ['auth'],
+    summary: 'Confirm the SMS code: the number is verified and SMS codes become a method',
+    access: { kind: 'session' },
+    audit: { module: 'auth', action: 'user.two_factor_enrolled' },
+    body: mfaConfirmSchema,
+    response: { status: 200, schema: mfaConfirmResponseSchema, description: 'Confirmed' },
+  },
+  {
+    operationId: 'mfaSetPrimary',
+    method: 'put',
+    path: '/me/mfa/primary',
+    tags: ['auth'],
+    summary: 'Choose the method offered first at sign-in',
+    access: { kind: 'session' },
+    audit: { none: 'mfa-preference' },
+    body: mfaPrimarySchema,
+    response: { status: 204, description: 'Saved' },
+    errors: ['NOT_FOUND'],
+  },
+  {
+    operationId: 'mfaRegenerateBackupCodes',
+    method: 'post',
+    path: '/me/mfa/backup-codes/regenerate',
+    tags: ['auth'],
+    summary:
+      'New backup codes (shown once); the old ones stop working. Needs a STRONG re-authentication',
+    access: { kind: 'session', reauth: 'STRONG' },
+    audit: { module: 'auth', action: 'user.backup_codes_generated' },
+    response: { status: 200, schema: backupCodesResponseSchema, description: 'Ten new codes' },
+    errors: ['CONFLICT'],
+  },
+  {
+    operationId: 'mfaRemoveMethod',
+    method: 'delete',
+    path: '/me/mfa/{type}',
+    tags: ['auth'],
+    summary:
+      'Remove one of my 2-step methods. Needs a STRONG re-authentication; 409 LAST_METHOD_REQUIRED when the policy requires one',
+    access: { kind: 'session', reauth: 'STRONG' },
+    audit: { module: 'auth', action: 'user.two_factor_disabled' },
+    params: mfaTypeParamsSchema,
+    response: { status: 204, description: 'Removed' },
+    errors: ['NOT_FOUND', 'LAST_METHOD_REQUIRED'],
   },
   {
     operationId: 'getMe',

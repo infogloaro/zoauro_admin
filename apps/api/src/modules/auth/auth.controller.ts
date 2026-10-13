@@ -1,6 +1,7 @@
 import type { Request, RequestHandler, Response } from 'express';
 import {
   changePasswordSchema,
+  enrolCompleteSchema,
   forgotPasswordSchema,
   loginSchema,
   mfaChallengeSchema,
@@ -86,6 +87,16 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
           }
         : { status: result.status },
     );
+  };
+
+  /** POST /auth/mfa/enrol/complete: a confirmed method and the backup codes acknowledged -> the session starts. */
+  const completeEnrolment: RequestHandler = async (req, res) => {
+    const input = parseBody(enrolCompleteSchema, req.body);
+    const pendingToken = parseCookies(req.get('cookie'))[PENDING_LOGIN_COOKIE];
+    if (!pendingToken) {
+      throw new AppError('UNAUTHENTICATED', 'Your sign-in has expired. Sign in again.');
+    }
+    sendSignedIn(res, await service.completeEnrolment(pendingToken, input, metaOf(req, res)));
   };
 
   /** POST /auth/mfa/challenge: an email or SMS code for the pending login (doc 52 section 8). */
@@ -177,6 +188,7 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
     login,
     challengeMfa,
     verifyMfa,
+    completeEnrolment,
     logout,
     forgotPassword,
     resetPassword,

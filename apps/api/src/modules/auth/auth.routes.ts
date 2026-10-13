@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import { auditMeta } from '../../lib/audit';
 import {
   originCheck,
@@ -8,9 +8,12 @@ import {
   requireSession,
 } from '../../lib/auth/middleware';
 import { auditOf } from '../../openapi/operations';
+import type { ReauthLevel } from '../../lib/auth/session-store';
 import type { createAuthController } from './auth.controller';
+import type { createMfaController } from './mfa.controller';
 
 type Controller = ReturnType<typeof createAuthController>;
+type MfaController = ReturnType<typeof createMfaController>;
 
 /**
  * Mounted at /api/v1 (doc 09). The session middleware must run before this router.
@@ -20,7 +23,16 @@ type Controller = ReturnType<typeof createAuthController>;
  */
 export function createAuthRoutes(
   c: Controller,
-  opts: { appOrigin: string; csrfSecret: string },
+  opts: {
+    appOrigin: string;
+    csrfSecret: string;
+    mfa: {
+      controller: MfaController;
+      /** a full session or the pending cookie in stage ENROL, with the matching CSRF check (mfa/actor.ts) */
+      actor: RequestHandler;
+      requireReauth: (level: ReauthLevel) => RequestHandler;
+    };
+  },
 ): Router {
   const router = Router();
   const publicRoute = [
@@ -41,6 +53,12 @@ export function createAuthRoutes(
     c.challengeMfa,
   );
   router.post('/auth/mfa/verify', ...publicRoute, auditMeta(auditOf('verifyMfa')), c.verifyMfa);
+  router.post(
+    '/auth/mfa/enrol/complete',
+    ...publicRoute,
+    auditMeta(auditOf('completeEnrolment')),
+    c.completeEnrolment,
+  );
   router.post(
     '/auth/forgot-password',
     ...publicRoute,
@@ -97,6 +115,60 @@ export function createAuthRoutes(
     ...sessionRoute,
     auditMeta(auditOf('revokeSession')),
     c.revokeSession,
+  );
+
+  // 2-step enrolment and management (doc 52 section 8). "S or PEND": the actor middleware decides and checks CSRF.
+  const m = opts.mfa.controller;
+  const enrol = [originCheck(opts.appOrigin), opts.mfa.actor];
+  const enrolWithBody = [originCheck(opts.appOrigin), requireJsonBody, opts.mfa.actor];
+  const signedIn = [originCheck(opts.appOrigin), requireSession(), opts.mfa.actor];
+  router.get('/me/mfa', opts.mfa.actor, m.overview);
+  router.post('/me/mfa/email/start', ...enrol, auditMeta(auditOf('mfaEmailStart')), m.emailStart);
+  router.post(
+    '/me/mfa/email/confirm',
+    ...enrolWithBody,
+    auditMeta(auditOf('mfaEmailConfirm')),
+    m.emailConfirm,
+  );
+  router.post(
+    '/me/mfa/authenticator/start',
+    ...enrol,
+    auditMeta(auditOf('mfaAuthenticatorStart')),
+    m.authenticatorStart,
+  );
+  router.post(
+    '/me/mfa/authenticator/confirm',
+    ...enrolWithBody,
+    auditMeta(auditOf('mfaAuthenticatorConfirm')),
+    m.authenticatorConfirm,
+  );
+  router.post('/me/mfa/sms/start', ...enrol, auditMeta(auditOf('mfaSmsStart')), m.smsStart);
+  router.post(
+    '/me/mfa/sms/confirm',
+    ...enrolWithBody,
+    auditMeta(auditOf('mfaSmsConfirm')),
+    m.smsConfirm,
+  );
+  router.put(
+    '/me/mfa/primary',
+    ...signedIn,
+    requireJsonBody,
+    auditMeta(auditOf('mfaSetPrimary')),
+    m.setPrimary,
+  );
+  router.post(
+    '/me/mfa/backup-codes/regenerate',
+    ...signedIn,
+    opts.mfa.requireReauth('STRONG'),
+    auditMeta(auditOf('mfaRegenerateBackupCodes')),
+    m.regenerateBackupCodes,
+  );
+  router.delete(
+    '/me/mfa/:type',
+    ...signedIn,
+    opts.mfa.requireReauth('STRONG'),
+    auditMeta(auditOf('mfaRemoveMethod')),
+    m.removeMethod,
   );
   return router;
 }

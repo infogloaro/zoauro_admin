@@ -15,6 +15,10 @@ export const ERROR_STATUS = {
   REFUND_LIMIT_EXCEEDED: 403,
   REAUTH_REQUIRED: 401,
   PASSWORD_CHANGE_REQUIRED: 403,
+  // doc 52 section 8 (2-step enrolment and management)
+  SMS_NOT_AVAILABLE: 409,
+  PHONE_MISSING: 409,
+  LAST_METHOD_REQUIRED: 409,
   INTERNAL: 500,
 } as const;
 

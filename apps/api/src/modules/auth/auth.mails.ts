@@ -15,6 +15,14 @@ export interface AuthMailer {
   sendPasswordChanged(m: { to: string; name: string; at: Date; ip: string | null }): Promise<void>;
   /** doc 52 sections 2.5 and 2.7: a backup code was used to sign in */
   sendBackupCodeUsed(m: { to: string; name: string; at: Date; remaining: number }): Promise<void>;
+  /** doc 52 section 2.7: a 2-step method added or removed, backup codes regenerated, 2-step reset by an admin */
+  sendMfaChanged(m: {
+    to: string;
+    name: string;
+    at: Date;
+    change: 'METHOD_ADDED' | 'METHOD_REMOVED' | 'BACKUP_CODES_REGENERATED' | 'RESET_BY_ADMIN';
+    method?: string;
+  }): Promise<void>;
   /** doc 52 section 2.2: a one-time code; the body is the only place the code ever appears */
   sendOtpCode(m: {
     to: string;
@@ -32,9 +40,16 @@ export const noopAuthMailer: AuthMailer = {
   sendPasswordChanged: async () => undefined,
   sendBackupCodeUsed: async () => undefined,
   sendOtpCode: async () => undefined,
+  sendMfaChanged: async () => undefined,
 };
 
 const UA_IN_MAIL_MAX = 120;
+
+const METHOD_NAMES: Record<string, string> = {
+  AUTHENTICATOR: 'authenticator app',
+  EMAIL_OTP: 'email code',
+  SMS_OTP: 'SMS code',
+};
 
 /** Times in mails are shown in India Standard Time, as the panel shows them (doc 19). */
 export function formatIst(at: Date): string {
@@ -123,6 +138,24 @@ export function createAuthMailer(mailer: Mailer, opts: { appUrl: string }): Auth
           ],
         ),
       ),
+
+    sendMfaChanged: (m) => {
+      const what = {
+        METHOD_ADDED: `A 2-step method (${METHOD_NAMES[m.method ?? ''] ?? 'a method'}) was added to your account`,
+        METHOD_REMOVED: `A 2-step method (${METHOD_NAMES[m.method ?? ''] ?? 'a method'}) was removed from your account`,
+        BACKUP_CODES_REGENERATED:
+          'New backup codes were generated for your account; the old ones no longer work',
+        RESET_BY_ADMIN:
+          'A Super Admin reset your 2-step verification. All your sessions were signed out; you will set it up again at your next sign-in',
+      }[m.change];
+      return mailer.send(
+        message(m.to, 'Your ZOAURO Admin 2-step verification changed', [
+          `Hello ${m.name},`,
+          `${what} on ${formatIst(m.at)}.`,
+          IF_NOT_YOU,
+        ]),
+      );
+    },
 
     sendBackupCodeUsed: (m) =>
       mailer.send(

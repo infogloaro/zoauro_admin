@@ -116,6 +116,8 @@ export async function createAuthTestEnv() {
   const mails: ResetMail[] = [];
   /** emailed one-time codes (the test double is the only place a code is ever kept) */
   const otpMails: { to: string; code: string; purpose: string }[] = [];
+  /** 2-step change notices (method added/removed, codes regenerated, reset by admin) */
+  const mfaChanges: { to: string; change: string; method: string | null }[] = [];
   /** new-login and password-changed notices, in order */
   const notices: {
     kind: 'NEW_LOGIN' | 'PASSWORD_CHANGED' | 'BACKUP_CODE_USED';
@@ -134,6 +136,9 @@ export async function createAuthTestEnv() {
     },
     sendBackupCodeUsed: async (m) => {
       notices.push({ kind: 'BACKUP_CODE_USED', to: m.to, ip: null });
+    },
+    sendMfaChanged: async (m) => {
+      mfaChanges.push({ to: m.to, change: m.change, method: m.method ?? null });
     },
     sendOtpCode: async (m) => {
       otpMails.push({ to: m.to, code: m.code, purpose: m.purpose });
@@ -534,6 +539,7 @@ export async function createAuthTestEnv() {
     clock,
     mails,
     otpMails,
+    mfaChanges,
     notices,
     db,
     createUser,

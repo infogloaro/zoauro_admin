@@ -52,6 +52,9 @@
                   "REFUND_LIMIT_EXCEEDED",
                   "REAUTH_REQUIRED",
                   "PASSWORD_CHANGE_REQUIRED",
+                  "SMS_NOT_AVAILABLE",
+                  "PHONE_MISSING",
+                  "LAST_METHOD_REQUIRED",
                   "INTERNAL"
                 ]
               },
@@ -1385,6 +1388,1077 @@
         "x-audit": {
           "module": "auth",
           "action": "session.revoked"
+        }
+      }
+    },
+    "/auth/mfa/enrol/complete": {
+      "post": {
+        "operationId": "completeEnrolment",
+        "tags": [
+          "auth"
+        ],
+        "summary": "End of first-time 2-step set-up during sign-in (pending cookie, stage ENROL): needs a confirmed allowed method and the backup codes acknowledged (409 otherwise); starts the session",
+        "security": [
+          {
+            "preSessionCsrfCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "backupCodesAcknowledged": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "backupCodesAcknowledged"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "redirect": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "SUPER_ADMIN",
+                            "ZONAL_ADMIN"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "role"
+                      ]
+                    },
+                    "mustChangePassword": {
+                      "type": "boolean"
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "redirect",
+                    "user",
+                    "mustChangePassword",
+                    "csrfToken"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "public",
+          "preSessionCsrf": true
+        },
+        "x-audit": {
+          "none": "login"
+        }
+      }
+    },
+    "/me/mfa": {
+      "get": {
+        "operationId": "getMyMfa",
+        "tags": [
+          "auth"
+        ],
+        "summary": "My 2-step methods (hints only), backup codes left and what my policy allows. Also during sign-in enrolment (pending cookie)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "2-step overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "methods": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "AUTHENTICATOR",
+                              "EMAIL_OTP",
+                              "SMS_OTP"
+                            ]
+                          },
+                          "hint": {
+                            "type": "string"
+                          },
+                          "primary": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "hint",
+                          "primary"
+                        ]
+                      }
+                    },
+                    "authenticatorPending": {
+                      "type": "boolean"
+                    },
+                    "backupCodesRemaining": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "policy": {
+                      "type": "object",
+                      "properties": {
+                        "allowed": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "AUTHENTICATOR",
+                              "EMAIL_OTP",
+                              "SMS_OTP"
+                            ]
+                          }
+                        },
+                        "required": {
+                          "type": "boolean"
+                        },
+                        "smsAvailable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "allowed",
+                        "required",
+                        "smsAvailable"
+                      ]
+                    },
+                    "mailboxProved": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "methods",
+                    "authenticatorPending",
+                    "backupCodesRemaining",
+                    "policy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
+        }
+      }
+    },
+    "/me/mfa/email/start": {
+      "post": {
+        "operationId": "mfaEmailStart",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Send a code to my account address: the mailbox proof during enrolment, or to add email codes as a method",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Code sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sent": {
+                      "type": "boolean"
+                    },
+                    "hint": {
+                      "type": "string"
+                    },
+                    "resendAfterSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "expiresInSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "sent",
+                    "hint",
+                    "resendAfterSeconds",
+                    "expiresInSeconds"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
+        },
+        "x-audit": {
+          "none": "otp-send"
+        }
+      }
+    },
+    "/me/mfa/email/confirm": {
+      "post": {
+        "operationId": "mfaEmailConfirm",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm the emailed code: proves the mailbox and, where the policy allows, adds email codes as a method",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Confirmed; backup codes when this is the first method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backupCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
+        },
+        "x-audit": {
+          "module": "auth",
+          "action": "user.two_factor_enrolled"
+        }
+      }
+    },
+    "/me/mfa/authenticator/start": {
+      "post": {
+        "operationId": "mfaAuthenticatorStart",
+        "tags": [
+          "auth"
+        ],
+        "summary": "A new authenticator secret, shown once. During enrolment only after the mailbox proof; signed in, after a PASSWORD re-authentication",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Secret and otpauth URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "secretBase32": {
+                      "type": "string"
+                    },
+                    "otpauthUri": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "secretBase32",
+                    "otpauthUri"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "none": "mfa-enrolment-step"
+        }
+      }
+    },
+    "/me/mfa/authenticator/confirm": {
+      "post": {
+        "operationId": "mfaAuthenticatorConfirm",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm the authenticator with one valid code; backup codes when it is the first method",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backupCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
+        },
+        "x-audit": {
+          "module": "auth",
+          "action": "user.two_factor_enrolled"
+        }
+      }
+    },
+    "/me/mfa/sms/start": {
+      "post": {
+        "operationId": "mfaSmsStart",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Send a code to the mobile number on my account (never another): 409 SMS_NOT_AVAILABLE or PHONE_MISSING",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Code sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sent": {
+                      "type": "boolean"
+                    },
+                    "hint": {
+                      "type": "string"
+                    },
+                    "resendAfterSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "expiresInSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "sent",
+                    "hint",
+                    "resendAfterSeconds",
+                    "expiresInSeconds"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "There is no mobile number on the account; SMS codes are switched off, paused or have no provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "none": "otp-send"
+        }
+      }
+    },
+    "/me/mfa/sms/confirm": {
+      "post": {
+        "operationId": "mfaSmsConfirm",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm the SMS code: the number is verified and SMS codes become a method",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backupCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
+        },
+        "x-audit": {
+          "module": "auth",
+          "action": "user.two_factor_enrolled"
+        }
+      }
+    },
+    "/me/mfa/primary": {
+      "put": {
+        "operationId": "mfaSetPrimary",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Choose the method offered first at sign-in",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "AUTHENTICATOR",
+                      "EMAIL_OTP",
+                      "SMS_OTP"
+                    ]
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Saved"
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
+        },
+        "x-audit": {
+          "none": "mfa-preference"
+        }
+      }
+    },
+    "/me/mfa/backup-codes/regenerate": {
+      "post": {
+        "operationId": "mfaRegenerateBackupCodes",
+        "tags": [
+          "auth"
+        ],
+        "summary": "New backup codes (shown once); the old ones stop working. Needs a STRONG re-authentication",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ten new codes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "codes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "codes"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session",
+          "reauth": "STRONG"
+        },
+        "x-audit": {
+          "module": "auth",
+          "action": "user.backup_codes_generated"
+        }
+      }
+    },
+    "/me/mfa/{type}": {
+      "delete": {
+        "operationId": "mfaRemoveMethod",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Remove one of my 2-step methods. Needs a STRONG re-authentication; 409 LAST_METHOD_REQUIRED when the policy requires one",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "AUTHENTICATOR",
+                "EMAIL_OTP",
+                "SMS_OTP"
+              ]
+            },
+            "required": true,
+            "name": "type",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The 2-step policy requires at least one method; this is the last one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session",
+          "reauth": "STRONG"
+        },
+        "x-audit": {
+          "module": "auth",
+          "action": "user.two_factor_disabled"
         }
       }
     },
