@@ -1,8 +1,9 @@
-import type { Router } from 'express';
+import type { RequestHandler, Router } from 'express';
 import type { Redis } from 'ioredis';
 import type { Audit } from '../../lib/audit/audit.service';
 import { DEFAULT_AUTH_CONFIG, type AuthConfig, type Clock } from '../../lib/auth/config';
-import { sessionMiddleware } from '../../lib/auth/middleware';
+import { requireRecentReauth, sessionMiddleware } from '../../lib/auth/middleware';
+import type { ReauthLevel } from '../../lib/auth/session-store';
 import { SessionStore } from '../../lib/auth/session-store';
 import { RedisRateLimiter } from '../../lib/rate-limiter';
 import { AuthDatabase } from './auth.repository';
@@ -26,6 +27,8 @@ export interface AuthModule {
   router: Router;
   /** Resolves the session cookie; install once, before every router that needs a session. */
   sessionMiddleware: ReturnType<typeof sessionMiddleware>;
+  /** Step-up guard for high-risk routes of any module (doc 14 section 4, doc 52 section 2.4); after requireSession */
+  requireReauth: (level: ReauthLevel) => RequestHandler;
 }
 
 export function createAuthModule(deps: {
@@ -124,5 +127,6 @@ export function createAuthModule(deps: {
       csrfSecret: deps.sessionSecret,
     }),
     sessionMiddleware: sessionMiddleware(sessions),
+    requireReauth: (level) => requireRecentReauth(sessions, level),
   };
 }

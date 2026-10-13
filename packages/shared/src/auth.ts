@@ -58,8 +58,7 @@ export const changePasswordSchema = z
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
-export const reauthSchema = z.object({ password: z.string().min(1).max(PASSWORD_MAX_LENGTH) });
-export type ReauthInput = z.infer<typeof reauthSchema>;
+// POST /auth/reauth takes reauthStepUpSchema and answers reauthLevelResponseSchema (auth-mfa.ts, doc 52 section 2.4).
 
 // ---- responses (what the API returns; used by the OpenAPI document and the typed client) ------------------------------
 
@@ -144,6 +143,3 @@ export type CsrfTokenResponse = z.infer<typeof csrfTokenResponseSchema>;
 
 export const messageResponseSchema = z.object({ message: z.string() });
 export type MessageResponse = z.infer<typeof messageResponseSchema>;
-
-export const reauthResponseSchema = z.object({ reauthenticatedUntil: z.iso.datetime() });
-export type ReauthResponse = z.infer<typeof reauthResponseSchema>;

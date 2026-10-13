@@ -213,7 +213,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Confirm the password again before a high-risk action (valid for 10 minutes) */
+        /** Step-up before a high-risk action: the password (PASSWORD, 10 minutes) or the password and a second-step code (STRONG, 5 minutes, one action) */
         post: operations["reauth"];
         delete?: never;
         options?: never;
@@ -1198,20 +1198,25 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    code?: string;
+                    /** @enum {string} */
+                    method?: "AUTHENTICATOR" | "EMAIL_OTP" | "SMS_OTP" | "BACKUP_CODE";
                     password: string;
                 };
             };
         };
         responses: {
-            /** @description Re-authenticated */
+            /** @description Re-authenticated: PASSWORD (10 minutes) or STRONG (5 minutes, one action) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
+                        /** @enum {string} */
+                        level: "PASSWORD" | "STRONG";
                         /** Format: date-time */
-                        reauthenticatedUntil: string;
+                        validUntil: string;
                     };
                 };
             };

@@ -15,13 +15,21 @@ export interface SessionRecord {
   revokedAt: Date | null;
   /** "remember me": idle limit 8 h instead of 30 min (D79) */
   remember: boolean;
+  /** step-up re-authentication (doc 52 section 2.4): when, and at which level */
+  reauthAt: Date | null;
+  reauthLevel: ReauthLevel | null;
   user: { name: string; roleName: Role; mustChangePassword: boolean; active: boolean };
 }
+
+export type ReauthLevel = 'PASSWORD' | 'STRONG';
 
 /** Implemented by the auth repository (the only place that talks to Prisma). */
 export interface SessionPersistence {
   findSessionByTokenHash(tokenHash: string): Promise<SessionRecord | null>;
   touchSession(sessionId: string, at: Date): Promise<void>;
+  setSessionReauth(sessionId: string, at: Date, level: ReauthLevel): Promise<void>;
+  /** Single use: STRONG -> PASSWORD if it is STRONG and not older than `since`; true only for the call that did it. */
+  consumeStrongReauth(sessionId: string, since: Date): Promise<boolean>;
 }
 
 /** What a request sees after the cookie has been resolved. */
@@ -36,6 +44,7 @@ export interface AuthSession {
   csrfToken: string;
   /** epoch ms of the last successful re-authentication, if any */
   reauthAtMs: number | null;
+  reauthLevel: ReauthLevel | null;
 }
 
 interface CachedSession {
@@ -48,6 +57,7 @@ interface CachedSession {
   lastSeenAtMs: number;
   dbSeenAtMs: number;
   reauthAtMs: number | null;
+  reauthLevel: ReauthLevel | null;
   remember: boolean;
 }
 
@@ -81,6 +91,8 @@ function parseCached(raw: string): CachedSession | null {
       lastSeenAtMs: o['lastSeenAtMs'],
       dbSeenAtMs: o['dbSeenAtMs'],
       reauthAtMs: typeof o['reauthAtMs'] === 'number' ? o['reauthAtMs'] : null,
+      reauthLevel:
+        o['reauthLevel'] === 'PASSWORD' || o['reauthLevel'] === 'STRONG' ? o['reauthLevel'] : null,
       remember: o['remember'] === true,
     };
   } catch {
@@ -134,6 +146,7 @@ export class SessionStore {
       lastSeenAtMs: now,
       dbSeenAtMs: now,
       reauthAtMs: null,
+      reauthLevel: null,
       remember: s.remember,
     });
   }
@@ -169,18 +182,51 @@ export class SessionStore {
       tokenHash,
       csrfToken: this.csrfFor(tokenHash),
       reauthAtMs: cached.reauthAtMs,
+      reauthLevel: cached.reauthLevel,
     };
   }
 
-  /** Records a successful re-authentication; returns when it stops counting as recent. */
-  async markReauth(tokenHash: string): Promise<Date> {
-    const now = this.deps.clock().getTime();
+  /** How long a re-authentication counts (doc 52 section 2.4): PASSWORD 10 minutes, STRONG 5 minutes. */
+  reauthWindowMs(level: ReauthLevel): number {
+    return level === 'STRONG'
+      ? this.deps.config.strongReauthWindowMs
+      : this.deps.config.reauthWindowMs;
+  }
+
+  /** Records a successful re-authentication (database and cache); returns when it stops counting. */
+  async markReauth(tokenHash: string, sessionId: string, level: ReauthLevel): Promise<Date> {
+    const now = this.deps.clock();
+    await this.deps.persistence.setSessionReauth(sessionId, now, level);
     const cached = await this.read(tokenHash);
     if (cached) {
-      cached.reauthAtMs = now;
+      cached.reauthAtMs = now.getTime();
+      cached.reauthLevel = level;
       await this.write(tokenHash, cached);
     }
-    return new Date(now + this.deps.config.reauthWindowMs);
+    return new Date(now.getTime() + this.reauthWindowMs(level));
+  }
+
+  /** PASSWORD level is enough for anything re-authenticated (either level) within 10 minutes. */
+  hasRecentReauth(session: AuthSession): boolean {
+    return (
+      session.reauthAtMs !== null &&
+      this.deps.clock().getTime() - session.reauthAtMs <= this.deps.config.reauthWindowMs
+    );
+  }
+
+  /**
+   * STRONG is single use (doc 52 section 2.4): one conditional UPDATE in PostgreSQL turns it back into PASSWORD, so two
+   * concurrent high-risk requests cannot both spend it.
+   */
+  async consumeStrong(session: AuthSession): Promise<boolean> {
+    const since = new Date(this.deps.clock().getTime() - this.deps.config.strongReauthWindowMs);
+    const ok = await this.deps.persistence.consumeStrongReauth(session.sessionId, since);
+    const cached = await this.read(session.tokenHash);
+    if (cached && cached.reauthLevel === 'STRONG') {
+      cached.reauthLevel = 'PASSWORD';
+      await this.write(session.tokenHash, cached);
+    }
+    return ok;
   }
 
   /**
@@ -221,7 +267,8 @@ export class SessionStore {
       absoluteExpiresAtMs: row.expiresAt.getTime(),
       lastSeenAtMs: row.lastSeenAt.getTime(),
       dbSeenAtMs: row.lastSeenAt.getTime(),
-      reauthAtMs: null,
+      reauthAtMs: row.reauthAt ? row.reauthAt.getTime() : null,
+      reauthLevel: row.reauthLevel,
       remember: row.remember,
     };
   }

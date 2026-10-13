@@ -4,7 +4,7 @@ import {
   loginResponseSchema,
   meResponseSchema,
   messageResponseSchema,
-  reauthResponseSchema,
+  reauthLevelResponseSchema,
 } from '@zoauro/shared';
 import { PASSWORD, createAuthTestEnv, type AuthTestEnv } from '../auth/support/auth-env';
 
@@ -43,7 +43,7 @@ describe('responses match the shared schemas', () => {
       .set('Cookie', cookie)
       .set('X-CSRF-Token', csrf)
       .send({ password: PASSWORD });
-    expect(reauthResponseSchema.safeParse(reauth.body).success).toBe(true);
+    expect(reauthLevelResponseSchema.safeParse(reauth.body).success).toBe(true);
 
     const forgot = await env.api().post('/auth/forgot-password').send({ email: za.email });
     expect(messageResponseSchema.safeParse(forgot.body).success).toBe(true);

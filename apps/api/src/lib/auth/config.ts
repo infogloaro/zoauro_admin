@@ -14,6 +14,8 @@ export interface AuthConfig {
   resetTokenTtlMs: number;
   /** "recent re-authentication ... within 10 min" (doc 14 section 4) */
   reauthWindowMs: number;
+  /** STRONG re-authentication (doc 52 section 2.4, D74): 5 minutes and a single action */
+  strongReauthWindowMs: number;
   /** DB last_seen_at is written at most this often per session */
   lastSeenWriteIntervalMs: number;
   loginLimitPerIp: { limit: number; windowSec: number };
@@ -36,6 +38,7 @@ export const DEFAULT_AUTH_CONFIG: AuthConfig = {
   lockDurationMs: 30 * MIN,
   resetTokenTtlMs: 30 * MIN,
   reauthWindowMs: 10 * MIN,
+  strongReauthWindowMs: 5 * MIN,
   lastSeenWriteIntervalMs: MIN,
   loginLimitPerIp: { limit: 30, windowSec: 60 },
   loginLimitPerEmail: { limit: 10, windowSec: 60 },

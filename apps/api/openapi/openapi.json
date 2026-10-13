@@ -934,7 +934,7 @@
         "tags": [
           "auth"
         ],
-        "summary": "Confirm the password again before a high-risk action (valid for 10 minutes)",
+        "summary": "Step-up before a high-risk action: the password (PASSWORD, 10 minutes) or the password and a second-step code (STRONG, 5 minutes, one action)",
         "security": [
           {
             "sessionCookie": [],
@@ -952,30 +952,52 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "AUTHENTICATOR",
+                      "EMAIL_OTP",
+                      "SMS_OTP",
+                      "BACKUP_CODE"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "maxLength": 32
                   }
                 },
                 "required": [
                   "password"
-                ]
+                ],
+                "additionalProperties": false
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Re-authenticated",
+            "description": "Re-authenticated: PASSWORD (10 minutes) or STRONG (5 minutes, one action)",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "reauthenticatedUntil": {
+                    "level": {
+                      "type": "string",
+                      "enum": [
+                        "PASSWORD",
+                        "STRONG"
+                      ]
+                    },
+                    "validUntil": {
                       "type": "string",
                       "format": "date-time"
                     }
                   },
                   "required": [
-                    "reauthenticatedUntil"
+                    "level",
+                    "validUntil"
                   ]
                 }
               }

@@ -9,7 +9,7 @@ import type {
   MfaVerifyInput,
   SessionListItem,
   LoginInput,
-  ReauthInput,
+  ReauthStepUpInput,
   ResetPasswordInput,
   Role,
 } from '@zoauro/shared';
@@ -25,7 +25,7 @@ import {
   sha256Hex,
   verifyPassword,
 } from '../../lib/auth/crypto';
-import type { AuthSession, SessionStore } from '../../lib/auth/session-store';
+import type { AuthSession, ReauthLevel, SessionStore } from '../../lib/auth/session-store';
 import { AppError } from '../../lib/errors';
 import type { RateLimiter } from '../../lib/rate-limiter';
 import type { AuthMailer } from './auth.mails';
@@ -445,10 +445,11 @@ export class AuthService {
     user: AuthUser,
     method: 'EMAIL_OTP' | 'SMS_OTP',
     code: string,
+    purpose: 'LOGIN' | 'REAUTH' = 'LOGIN',
   ): Promise<SecondStep | null> {
     const policy = await this.deps.mfa.policy.read();
     if (!(await this.offeredMethods(user, policy)).some((m) => m.type === method)) return null;
-    return this.deps.mfa.otp.check(user, 'LOGIN', method, code);
+    return this.deps.mfa.otp.check(user, purpose, method, code);
   }
 
   /** An accepted authenticator code, with the replay-guard update to run in the login transaction. */
@@ -724,20 +725,72 @@ export class AuthService {
 
   // ---- re-authentication ----------------------------------------------------------------------------------------
 
+  /**
+   * POST /auth/reauth (doc 52 section 2.4, D74). Password alone: PASSWORD level (10 minutes). Password and a current
+   * second-step code (authenticator or backup code): STRONG (5 minutes, one action). A user with no method whose role
+   * does not require one gets STRONG from the password, since nothing stronger exists for them. Any failure counts
+   * toward the lockout and is a rate-limited DENIED reauth.failed row.
+   */
   async reauth(
     session: AuthSession,
-    input: ReauthInput,
+    input: ReauthStepUpInput,
     meta: RequestMeta,
-  ): Promise<{ reauthenticatedUntil: Date }> {
+  ): Promise<{ level: ReauthLevel; validUntil: Date }> {
     const user = await this.deps.db.repo.findUserById(session.userId);
     if (!user || user.status !== 'ACTIVE')
       throw new AppError('UNAUTHENTICATED', 'Authentication required');
+    const now = this.deps.clock();
 
-    if (await verifyPassword(user.passwordHash, input.password)) {
-      return { reauthenticatedUntil: await this.deps.sessions.markReauth(session.tokenHash) };
+    if (!(await verifyPassword(user.passwordHash, input.password))) {
+      return this.reauthFailed(
+        user,
+        meta,
+        now,
+        'Wrong password on re-authentication',
+        'Incorrect password',
+      );
     }
 
-    const now = this.deps.clock();
+    const mark = async (level: ReauthLevel) => ({
+      level,
+      validUntil: await this.deps.sessions.markReauth(session.tokenHash, session.sessionId, level),
+    });
+    if (input.method === undefined || input.code === undefined) {
+      const policy = await this.deps.mfa.policy.read();
+      const nothingStronger =
+        (await this.offeredMethods(user, policy)).length === 0 &&
+        !isMfaRequired(policy, user.roleName);
+      return mark(nothingStronger ? 'STRONG' : 'PASSWORD');
+    }
+
+    const step =
+      input.method === 'AUTHENTICATOR'
+        ? await this.checkAuthenticator(user, input.code, now)
+        : input.method === 'BACKUP_CODE'
+          ? await this.checkBackupCode(user, input.code)
+          : await this.checkOneTimeCode(user, input.method, input.code, 'REAUTH');
+    const consumed =
+      step !== null &&
+      (await this.asUser(user, meta, () => this.deps.db.transaction((tx) => step.consume(tx))));
+    if (!consumed) {
+      return this.reauthFailed(
+        user,
+        meta,
+        now,
+        `Wrong second-step code on re-authentication (${input.method})`,
+        'That code didn’t work. Check it and try again.',
+      );
+    }
+    return mark('STRONG');
+  }
+
+  private async reauthFailed(
+    user: AuthUser,
+    meta: RequestMeta,
+    now: Date,
+    note: string,
+    message: string,
+  ): Promise<never> {
     await this.asUser(user, meta, async () => {
       await this.deps.db.transaction((tx) => this.countFailureAndMaybeLock(tx, user, now));
       // DENIED (doc 50 §4.3 item 3): own transaction after the lockout one, at most one row per user a minute (D62).
@@ -746,10 +799,10 @@ export class AuthService {
         module: 'auth',
         action: 'reauth.failed',
         entity: userEntity(user),
-        note: 'Wrong password on re-authentication',
+        note,
       });
     });
-    throw new AppError('UNAUTHENTICATED', 'Incorrect password');
+    throw new AppError('UNAUTHENTICATED', message);
   }
 
   // ---- sessions (doc 52 section 2.6, doc 14 section 2) ----------------------------------------------------------

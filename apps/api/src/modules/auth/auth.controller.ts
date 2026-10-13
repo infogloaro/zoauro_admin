@@ -5,7 +5,7 @@ import {
   loginSchema,
   mfaChallengeSchema,
   mfaVerifySchema,
-  reauthSchema,
+  reauthStepUpSchema,
   resetPasswordSchema,
   sessionIdParamsSchema,
 } from '@zoauro/shared';
@@ -138,10 +138,10 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
   const reauth: RequestHandler = async (req, res) => {
     const result = await service.reauth(
       sessionOf(res),
-      parseBody(reauthSchema, req.body),
+      parseBody(reauthStepUpSchema, req.body),
       metaOf(req, res),
     );
-    res.json({ reauthenticatedUntil: result.reauthenticatedUntil.toISOString() });
+    res.json({ level: result.level, validUntil: result.validUntil.toISOString() });
   };
 
   const changePassword: RequestHandler = async (req, res) => {

@@ -3,8 +3,7 @@ import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, userSummarySchema } from './a
 import { ROLES } from './enums';
 
 // 2-step verification contracts (doc 52 sections 2, 3, 5 and 8). Shared with the forms and the OpenAPI document.
-// The live /auth/login and /auth/reauth still use loginSchema / reauthSchema in auth.ts; the two-step versions below
-// replace them when M01 rewires those routes.
+// The login request is loginSchema in auth.ts; everything 2-step specific is here.
 
 // ---- enums ------------------------------------------------------------------------------------------------------------
 

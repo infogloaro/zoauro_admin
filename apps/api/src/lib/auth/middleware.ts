@@ -4,7 +4,7 @@ import { AppError } from '../errors';
 import { CSRF_HEADER, PRE_SESSION_CSRF_COOKIE, SESSION_COOKIE } from './config';
 import { parseCookies } from './cookies';
 import { isValidPreSessionCsrf, safeEqual } from './crypto';
-import type { AuthSession, SessionStore } from './session-store';
+import type { AuthSession, ReauthLevel, SessionStore } from './session-store';
 
 const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -114,3 +114,26 @@ export const requireJsonBody: RequestHandler = (req, _res, next) => {
   }
   next();
 };
+
+/**
+ * Step-up for high-risk actions (doc 14 section 4, doc 52 section 2.4, D74). PASSWORD: re-authenticated (either level)
+ * within 10 minutes. STRONG: password and a second-step code within 5 minutes, spent by this request (single action).
+ * Install after requireSession. Missing or spent: REAUTH_REQUIRED.
+ */
+export function requireRecentReauth(sessions: SessionStore, level: ReauthLevel): RequestHandler {
+  return async (_req, res, next) => {
+    const auth = getAuth(res);
+    if (!auth) throw new AppError('UNAUTHENTICATED', 'Authentication required');
+    const ok =
+      level === 'STRONG' ? await sessions.consumeStrong(auth) : sessions.hasRecentReauth(auth);
+    if (!ok) {
+      throw new AppError(
+        'REAUTH_REQUIRED',
+        level === 'STRONG'
+          ? 'Confirm your password and a 2-step code to continue'
+          : 'Confirm your password to continue',
+      );
+    }
+    next();
+  };
+}

@@ -19,6 +19,7 @@ import {
   createAuthModule,
   type AuthMailer,
   type MfaPolicyReader,
+  type AuthModule,
   type SmsProvider,
 } from '../../../src/modules/auth';
 import { generateBackupCodes, hashBackupCode } from '../../../src/modules/auth/mfa/backup-codes';
@@ -66,6 +67,8 @@ interface AppExtras {
   mfaPolicy?: MfaPolicyReader;
   /** default: no SMS provider (nothing can be sent), as in production today */
   sms?: SmsProvider;
+  /** a router built with the module's own step-up guard (routes needing PASSWORD or STRONG re-authentication) */
+  routerFactory?: (deps: { requireReauth: AuthModule['requireReauth'] }) => Router;
 }
 
 export interface TestUser {
@@ -177,16 +180,19 @@ export async function createAuthTestEnv() {
     const ok = async (): Promise<void> => undefined;
     // the real module routers, as server.ts mounts them
     const moduleRouters = [auth.router, createAuditModule({ prisma }).router];
+    const extraRouters = [
+      ...(extra.routers ?? []),
+      ...(extra.routerFactory ? [extra.routerFactory({ requireReauth: auth.requireReauth })] : []),
+    ];
     const app = createApp({
       readiness: { database: ok, redis: ok },
       v1: {
         sessionMiddleware: auth.sessionMiddleware,
         authContextMiddleware: authContextMiddleware(access),
-        routers: [...moduleRouters, ...(extra.routers ?? [])],
+        routers: [...moduleRouters, ...extraRouters],
       },
       ...(extra.auditCoverage ? { auditCoverage: extra.auditCoverage } : {}),
     });
-    const extraRouters = extra.routers ?? [];
     return { app, access, routers: [...moduleRouters, ...extraRouters], extraRouters };
   }
   function makeApp(

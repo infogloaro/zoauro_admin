@@ -203,6 +203,8 @@ export class AuthRepository implements SessionPersistence {
         revokedAt: true,
         createdAt: true,
         remember: true,
+        reauthAt: true,
+        reauthLevel: true,
         user: {
           select: {
             name: true,
@@ -223,6 +225,9 @@ export class AuthRepository implements SessionPersistence {
       lastSeenAt: s.lastSeenAt ?? s.createdAt,
       revokedAt: s.revokedAt,
       remember: s.remember,
+      reauthAt: s.reauthAt,
+      reauthLevel:
+        s.reauthLevel === 'PASSWORD' || s.reauthLevel === 'STRONG' ? s.reauthLevel : null,
       user: {
         name: s.user.name,
         roleName: s.user.role.name,
@@ -237,6 +242,21 @@ export class AuthRepository implements SessionPersistence {
       where: { id: sessionId, revokedAt: null },
       data: { lastSeenAt: at },
     });
+  }
+
+  async setSessionReauth(sessionId: string, at: Date, level: 'PASSWORD' | 'STRONG'): Promise<void> {
+    await this.db.session.updateMany({
+      where: { id: sessionId, revokedAt: null },
+      data: { reauthAt: at, reauthLevel: level },
+    });
+  }
+
+  async consumeStrongReauth(sessionId: string, since: Date): Promise<boolean> {
+    const r = await this.db.session.updateMany({
+      where: { id: sessionId, revokedAt: null, reauthLevel: 'STRONG', reauthAt: { gte: since } },
+      data: { reauthLevel: 'PASSWORD' },
+    });
+    return r.count === 1;
   }
 
   async revokeSession(sessionId: string, at: Date): Promise<boolean> {

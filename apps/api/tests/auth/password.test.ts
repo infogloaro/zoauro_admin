@@ -251,9 +251,9 @@ describe('POST /auth/reauth', () => {
       .set('X-CSRF-Token', csrf)
       .send({ password: PASSWORD });
     expect(ok.status).toBe(200);
-    expect(new Date(ok.body.reauthenticatedUntil).getTime() - env.clock.now().getTime()).toBe(
-      10 * MIN,
-    );
+    // the password alone: PASSWORD level for 10 minutes (doc 52 section 2.4)
+    expect(ok.body.level).toBe('PASSWORD');
+    expect(new Date(ok.body.validUntil).getTime() - env.clock.now().getTime()).toBe(10 * MIN);
     // success is not audited (allow-listed reason `reauth`)
     expect(await env.auditRows('actor_id = $1', [user.id])).toHaveLength(0);
   });
