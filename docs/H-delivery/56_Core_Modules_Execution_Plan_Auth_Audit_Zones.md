@@ -27,7 +27,9 @@ Based on the **Step 1 read-only audit of the repo** (commit `0d12141`, branch `m
 | P4 | **Complete** | `e00f8fb`, `6d4bda3` shared 2-step contracts and audit actions; `b45588e` schema + migration `20261012100000_auth_two_step`, applied to `zoauro` with `migrate deploy` after approval; verified: 6 migrations, 3 MFA tables, 2 enums, partial unique index, users 0. Recorded in `docs/handoff.md` |
 | P5 | **Complete** | `da0c1e8` shared zone contracts and audit actions; `0e45128` schema + migration `20261012110000_zones_schema`, applied to `zoauro` after approval; verified: 7 migrations, 4 CHECKs, UNIQUE(code) incl. soft-deleted, unique lower(name), UNIQUE(pincode). Recorded in `docs/handoff.md` |
 | P6 | **Complete** | `58f751d` zo_sid + hybrid CSRF; `bf5022c` SMTP mailer; `ed15836` change password; `754ce5b` sessions (remember me, cap 3, list/revoke); `6c10929` /me with zone permissions and limits. Recorded in `docs/handoff.md` |
-| P7 onwards | In progress | |
+| P7 | **Complete** | `e05c9a4` secret box, OTP hashing, TOTP, backup codes |
+| P8 | **Complete** | `2659f5f` two-step login (pending zo_mfa, verify with authenticator or backup code, lockout, replay guard) |
+| P9 onwards | In progress | |
 
 ## 2. Decisions I made so the prompts could be written (change them before the step that uses them)
 | # | Decision | Default used | Why / alternative |

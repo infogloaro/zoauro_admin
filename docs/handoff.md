@@ -362,3 +362,23 @@ Gate line status (pass/fail): pass — lint, typecheck, openapi:check; shared 73
 Open points: (1) Machine load: with vitest's default ~7 workers random tests hit 30 s on this 8 GB host (13 containers); all green with --maxWorkers=4; owner to choose: stop other projects' containers or cap workers in apps/api/vitest.config. (2) The system-logs Playwright e2e was updated for zo_sid + CSRF but not run (≈10 min, builds a 2M-row DB). (3) The web app has no login screen yet (P15) and its server-session forwards the whole Cookie header, so the rename needs no web change. (4) New-login mail goes out on every sign-in (Figma "Notify on new login" toggle not built). (5) /me preferences (doc 09) not included: user_preferences has no API yet
 Next step: P7 2-step libraries (crypto seal, TOTP via otplib 13.5.0, backup codes)
 Verify: pnpm lint && pnpm typecheck && pnpm openapi:check && pnpm --filter @zoauro/api exec vitest run --maxWorkers=4
+
+Date / task id: 2026-10-12 / P7 2-step building blocks (doc 56, doc 52 §2.2/§5/§7)
+Lane / files changed: A — apps/api/src/modules/auth/mfa/{secret-box, otp-hash, totp, backup-codes, mfa.test}.ts (new), src/lib/env.ts (+test), .env.example, apps/api/.env.example, doc 32
+Commits: e05c9a4 feat(api): 2-step building blocks (no routes, no database)
+Contract changes: none. Env: OTP_HMAC_KEY (required, ≥ 32, distinct from SESSION_SECRET and ENCRYPTION_KEY), ENCRYPTION_KEY_PREVIOUS (optional), MFA_ISSUER (default ZOAURO Admin) — all already in doc 12
+Decisions or [ASSUMPTION]s touched: doc 32 row (folder modules/auth/mfa; HKDF key; owner-bound associated data; kid)
+Gate line status (pass/fail): pass — RFC 6238 SHA-1 vectors, ±1 step accepted / ±2 refused, replay guard, AES-GCM tamper / wrong owner / rotation, timing-safe hasher, backup-code table, env rules; no Math.random in apps/api/src
+Open points: (1) the owner must add OTP_HMAC_KEY to the local apps/api/.env (the API refuses to start without it); generate with node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+Next step: P8
+Verify: pnpm --filter @zoauro/api exec vitest run src/modules/auth/mfa src/lib/env.test.ts
+
+Date / task id: 2026-10-13 / P8 two-step login (doc 56, doc 52 §2.1/2.2/2.5/8/10)
+Lane / files changed: A + shared — apps/api/src/modules/auth/{auth.service, auth.controller, auth.routes, auth.repository, auth.mails, index}.ts, mfa/{pending, policy}.ts (new), mfa/secret-box.ts, src/lib/auth/{config, cookies}.ts, src/openapi/operations.ts, src/server.ts; packages/shared/src/{auth, auth-mfa}.ts (+test); regenerated openapi.json + api-client (+ its test); tests: auth/mfa-login.test.ts (new), auth-env.ts, auth.test.ts, me-rbac, sessions, access-context, authorization-matrix, openapi, seed; doc 32
+Commits: 2659f5f feat(api): two-step login: no session until the second step
+Contract changes (docs 08/09/10/36): /auth/login response is a union OK | MFA_REQUIRED | ENROLMENT_REQUIRED (OK keeps user/mustChangePassword/csrfToken, redirectTo → redirect); new POST /auth/mfa/verify (pre-session CSRF + zo_mfa); /me mfa now real
+Decisions or [ASSUMPTION]s touched (D-numbers): D69, D77 applied; doc 32 row (zo_mfa Path=/api/v1; pending survives until the lockout; user.locked for the MFA lockout; OK body fields)
+Gate line status (pass/fail): pass — lint, typecheck, openapi:check; shared 73, api-client 7, API 454 passed / 14 skipped / 1 todo (--maxWorkers=2), web 52. Mutation checks (files restored byte-identical): skip replay guard → TC-AUTH-11 fails; skip attempts increment → TC-AUTH-10 fails; compare with === → hasher test fails; methods before the password check → both generic-error tests fail
+Open points: (1) Until P10 (enrolment) nobody can sign in through the API: the default policy requires 2-step for both roles and no user has a method; zoauro has 0 users. (2) The system-logs Playwright e2e seeds users without a method and signs in with the password only: it needs an enrolled authenticator in its fixture before it can run again (not run since P6). (3) Docker Desktop restarted on 2026-10-13: the zoauro containers were started again with pnpm infra:up (data volumes unchanged; zoauro read-only check: 7 migrations, 0 users)
+Next step: P9 OTP service, email OTP, SMS interface (off)
+Verify: pnpm infra:up && pnpm lint && pnpm typecheck && pnpm openapi:check && pnpm --filter @zoauro/api exec vitest run --maxWorkers=2
