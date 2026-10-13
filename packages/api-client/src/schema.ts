@@ -613,6 +613,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Zones with colour, place, status, pincode count, per-module counts and team avatars (cursor = id). partial=true while a counting module is not built */
+        get: operations["listZones"];
+        put?: never;
+        /** Create a zone (default UPCOMING). 409 ZONE_NAME_TAKEN, ZONE_CODE_TAKEN, PINCODE_OVERLAP (error.meta.conflicts); creating as ACTIVE needs the activation preconditions */
+        post: operations["createZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One zone with its pincodes (paged), counts and team summary */
+        get: operations["getZone"];
+        put?: never;
+        post?: never;
+        /** Soft-delete a pristine zone that is not live (PASSWORD re-authentication); its pincodes are released, the code stays reserved. 409 ZONE_HAS_HISTORY with error.meta.counts */
+        delete: operations["deleteZone"];
+        options?: never;
+        head?: never;
+        /** Edit name, city, state, charge, colour, description with `version`. 422 CODE_IMMUTABLE for `code`; 409 STALE_VERSION with error.meta.current. A charge change is audited as zone.delivery_charge_changed */
+        patch: operations["updateZone"];
+        trace?: never;
+    };
+    "/zones/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** UPCOMING or INACTIVE to ACTIVE (PASSWORD re-authentication). 422 ZONE_NOT_ACTIVATABLE with error.meta.missing */
+        post: operations["activateZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ACTIVE or UPCOMING to INACTIVE (PASSWORD re-authentication) with a reason and the impactVersion shown; no other record changes. 409 IMPACT_CHANGED, 422 REASON_REQUIRED */
+        post: operations["deactivateZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/{id}/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What deactivation would affect (open orders, vendors, partners, members, pending work) and impactVersion for the deactivate call. partial=true while a counting module is not built */
+        get: operations["getZoneImpact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/{id}/pincodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change coverage: a range (recomputes only RANGE rows), add, remove. ?preview=true is a dry run listing conflicts and mismatches; otherwise 409 PINCODE_OVERLAP. Vendors and partners are never moved (mismatches) */
+        put: operations["updateZonePincodes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/{id}/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Members of the zone with profile, overrides count and limits (read side of M03). Empty with partial=true until access management exists */
+        get: operations["getZoneTeam"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The zone that owns a pincode, or null (live overlap hint of the zone form) */
+        get: operations["lookupZonePincode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KPI cards: total, active, inactive, upcoming and zones without a team */
+        get: operations["getZoneSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -620,12 +776,15 @@ export interface components {
         ErrorBody: {
             error: {
                 /** @enum {string} */
-                code: "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "ZONE_NOT_FOUND" | "VALIDATION_ERROR" | "CONFLICT" | "RATE_LIMITED" | "INVALID_STATE_TRANSITION" | "REFUND_LIMIT_EXCEEDED" | "REAUTH_REQUIRED" | "PASSWORD_CHANGE_REQUIRED" | "SMS_NOT_AVAILABLE" | "PHONE_MISSING" | "LAST_METHOD_REQUIRED" | "INTERNAL";
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "ZONE_NOT_FOUND" | "VALIDATION_ERROR" | "CONFLICT" | "RATE_LIMITED" | "INVALID_STATE_TRANSITION" | "REFUND_LIMIT_EXCEEDED" | "REAUTH_REQUIRED" | "PASSWORD_CHANGE_REQUIRED" | "SMS_NOT_AVAILABLE" | "PHONE_MISSING" | "LAST_METHOD_REQUIRED" | "STALE_VERSION" | "ZONE_NAME_TAKEN" | "ZONE_CODE_TAKEN" | "PINCODE_OVERLAP" | "RANGE_TOO_LARGE" | "CODE_IMMUTABLE" | "ZONE_NOT_ACTIVATABLE" | "IMPACT_CHANGED" | "REASON_REQUIRED" | "ZONE_HAS_HISTORY" | "INTERNAL";
                 details?: {
                     field: string;
                     issue: string;
                 }[];
                 message: string;
+                meta?: {
+                    [key: string]: unknown;
+                };
                 requestId?: string;
             };
         };
@@ -2921,6 +3080,1115 @@ export interface operations {
                             provider: "none" | "console";
                         };
                         superAdminWarning: boolean;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listZones: {
+        parameters: {
+            query?: {
+                after?: string;
+                limit?: number;
+                q?: string;
+                state?: string;
+                status?: "UPCOMING" | "ACTIVE" | "INACTIVE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of zones */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            activatedAt: string | null;
+                            city: string;
+                            code: string;
+                            colorHex: string;
+                            counts: {
+                                customers: number;
+                                homemakers: number;
+                                members: number;
+                                partners: number;
+                                restaurants: number;
+                            };
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            deactivatedAt: string | null;
+                            deactivationReason: string | null;
+                            deliveryChargePaise: number;
+                            description: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            pincodeCount: number;
+                            pincodeFrom: string | null;
+                            pincodeTo: string | null;
+                            state: string | null;
+                            /** @enum {string} */
+                            status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                            team: {
+                                top: {
+                                    name: string;
+                                    /** Format: uuid */
+                                    userId: string;
+                                }[];
+                                total: number;
+                            };
+                            /** Format: date-time */
+                            updatedAt: string;
+                            version: number;
+                        }[];
+                        meta: {
+                            limit: number;
+                            nextCursor: string | null;
+                        };
+                        missingSources: ("restaurants" | "homemakers" | "delivery" | "customers" | "orders" | "access" | "registrations" | "refunds" | "payouts")[];
+                        partial: boolean;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    city: string;
+                    code: string;
+                    /** @enum {string} */
+                    colorHex: "#DC2626" | "#EA580C" | "#D97706" | "#65A30D" | "#16A34A" | "#059669" | "#0D9488" | "#0891B2" | "#2563EB" | "#4F46E5" | "#7C3AED" | "#DB2777";
+                    deliveryChargePaise: number;
+                    description?: string;
+                    name: string;
+                    pincodeFrom?: string;
+                    pincodes?: string[];
+                    pincodeTo?: string;
+                    state: string;
+                    /**
+                     * @default UPCOMING
+                     * @enum {string}
+                     */
+                    status?: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        activatedAt: string | null;
+                        city: string;
+                        code: string;
+                        colorHex: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        deactivatedAt: string | null;
+                        deactivationReason: string | null;
+                        deliveryChargePaise: number;
+                        description: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        pincodeCount: number;
+                        pincodeFrom: string | null;
+                        pincodeTo: string | null;
+                        state: string | null;
+                        /** @enum {string} */
+                        status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A pincode belongs to another zone (error.meta.conflicts); The zone code is taken (codes are never reused); Another zone has this name */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A range may hold at most 2000 pincodes; Invalid input; The zone cannot go live yet (error.meta.missing) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getZone: {
+        parameters: {
+            query?: {
+                pincodePage?: number;
+                pincodePageSize?: number;
+                pincodeQ?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The zone */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        activatedAt: string | null;
+                        city: string;
+                        code: string;
+                        colorHex: string;
+                        counts: {
+                            customers: number;
+                            homemakers: number;
+                            members: number;
+                            partners: number;
+                            restaurants: number;
+                        };
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        deactivatedAt: string | null;
+                        deactivationReason: string | null;
+                        deliveryChargePaise: number;
+                        description: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        missingSources: ("restaurants" | "homemakers" | "delivery" | "customers" | "orders" | "access" | "registrations" | "refunds" | "payouts")[];
+                        name: string;
+                        partial: boolean;
+                        pincodeCount: number;
+                        pincodeFrom: string | null;
+                        pincodes: {
+                            data: {
+                                /** Format: date-time */
+                                createdAt: string;
+                                pincode: string;
+                                /** @enum {string} */
+                                source: "RANGE" | "MANUAL" | "IMPORT";
+                            }[];
+                            meta: {
+                                page: number;
+                                pageSize: number;
+                                total: number;
+                            };
+                        };
+                        pincodeTo: string | null;
+                        state: string | null;
+                        /** @enum {string} */
+                        status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                        team: {
+                            top: {
+                                name: string;
+                                /** Format: uuid */
+                                userId: string;
+                            }[];
+                            total: number;
+                        };
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; The zone has history and cannot be deleted (error.meta.counts) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    city?: string;
+                    /** @enum {string} */
+                    colorHex?: "#DC2626" | "#EA580C" | "#D97706" | "#65A30D" | "#16A34A" | "#059669" | "#0D9488" | "#0891B2" | "#2563EB" | "#4F46E5" | "#7C3AED" | "#DB2777";
+                    deliveryChargePaise?: number;
+                    description?: string | null;
+                    name?: string;
+                    state?: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        activatedAt: string | null;
+                        city: string;
+                        code: string;
+                        colorHex: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        deactivatedAt: string | null;
+                        deactivationReason: string | null;
+                        deliveryChargePaise: number;
+                        description: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        pincodeCount: number;
+                        pincodeFrom: string | null;
+                        pincodeTo: string | null;
+                        state: string | null;
+                        /** @enum {string} */
+                        status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Changed by someone else since it was read (error.meta.current); Another zone has this name */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The zone code cannot be changed; Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    activateZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Active */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        activatedAt: string | null;
+                        city: string;
+                        code: string;
+                        colorHex: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        deactivatedAt: string | null;
+                        deactivationReason: string | null;
+                        deliveryChargePaise: number;
+                        description: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        pincodeCount: number;
+                        pincodeFrom: string | null;
+                        pincodeTo: string | null;
+                        state: string | null;
+                        /** @enum {string} */
+                        status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input; The zone cannot go live yet (error.meta.missing) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deactivateZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    impactVersion: string;
+                    reason: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Inactive */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        activatedAt: string | null;
+                        city: string;
+                        code: string;
+                        colorHex: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        deactivatedAt: string | null;
+                        deactivationReason: string | null;
+                        deliveryChargePaise: number;
+                        description: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        pincodeCount: number;
+                        pincodeFrom: string | null;
+                        pincodeTo: string | null;
+                        state: string | null;
+                        /** @enum {string} */
+                        status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The impact changed since it was shown (error.meta.impact); Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A reason is required; Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getZoneImpact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Impact */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        counts: {
+                            homemakers: number;
+                            members: number;
+                            openOrders: number;
+                            openOrdersByStatus: {
+                                [key: string]: number;
+                            };
+                            partners: number;
+                            partnersOnline: number;
+                            pendingPayouts: number;
+                            pendingRefunds: number;
+                            pendingRegistrations: number;
+                            restaurants: number;
+                            scheduledOrders: number;
+                        };
+                        impactVersion: string;
+                        missingSources: ("restaurants" | "homemakers" | "delivery" | "customers" | "orders" | "access" | "registrations" | "refunds" | "payouts")[];
+                        partial: boolean;
+                        /** Format: uuid */
+                        zoneId: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateZonePincodes: {
+        parameters: {
+            query?: {
+                preview?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    add?: string[];
+                    range?: {
+                        from: string;
+                        to: string;
+                    };
+                    remove?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Applied (or previewed) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        added: string[];
+                        conflicts: {
+                            pincode: string;
+                            /** Format: uuid */
+                            zoneId: string;
+                            zoneName: string;
+                        }[];
+                        mismatches: {
+                            /** @enum {string} */
+                            entityType: "restaurant" | "homemaker" | "partner";
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            pincode: string;
+                        }[];
+                        missingSources: ("restaurants" | "homemakers" | "delivery" | "customers" | "orders" | "access" | "registrations" | "refunds" | "payouts")[];
+                        partial: boolean;
+                        preview: boolean;
+                        removed: string[];
+                        zone: {
+                            /** Format: date-time */
+                            activatedAt: string | null;
+                            city: string;
+                            code: string;
+                            colorHex: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            deactivatedAt: string | null;
+                            deactivationReason: string | null;
+                            deliveryChargePaise: number;
+                            description: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            pincodeCount: number;
+                            pincodeFrom: string | null;
+                            pincodeTo: string | null;
+                            state: string | null;
+                            /** @enum {string} */
+                            status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            version: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A pincode belongs to another zone (error.meta.conflicts) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A range may hold at most 2000 pincodes; Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getZoneTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Zone team */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            limits: {
+                                canExport: boolean;
+                                canReveal: boolean;
+                                dailyRefundPaise: number;
+                                perRefundPaise: number;
+                            };
+                            name: string;
+                            overridesCount: number;
+                            profileName: string;
+                            /** Format: uuid */
+                            userId: string;
+                        }[];
+                        missingSources: ("restaurants" | "homemakers" | "delivery" | "customers" | "orders" | "access" | "registrations" | "refunds" | "payouts")[];
+                        partial: boolean;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    lookupZonePincode: {
+        parameters: {
+            query: {
+                pincode: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owning zone */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        pincode: string;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getZoneSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Zone counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        active: number;
+                        inactive: number;
+                        missingSources: ("restaurants" | "homemakers" | "delivery" | "customers" | "orders" | "access" | "registrations" | "refunds" | "payouts")[];
+                        partial: boolean;
+                        total: number;
+                        upcoming: number;
+                        withoutTeam: number;
                     };
                 };
             };

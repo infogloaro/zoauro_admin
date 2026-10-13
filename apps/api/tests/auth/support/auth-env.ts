@@ -15,6 +15,8 @@ import { authContextMiddleware, type AccessService } from '../../../src/lib/auth
 import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
 import { createAccessService } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
+import { createZonesModule, type ImpactSources } from '../../../src/modules/zones';
+import type { ZonesCacheVersion } from '../../../src/modules/zones/zones.events';
 import {
   createAuthModule,
   type AuthMailer,
@@ -69,6 +71,13 @@ interface AppExtras {
   sms?: SmsProvider;
   /** a router built with the module's own step-up guard (routes needing PASSWORD or STRONG re-authentication) */
   routerFactory?: (deps: { requireReauth: AuthModule['requireReauth'] }) => Router;
+  /** the zones module's ports and cache counter (default: stubs and this env's Redis), as server.ts mounts it */
+  zones?: {
+    impactSources?: ImpactSources;
+    cache?: ZonesCacheVersion;
+    /** a second connection pool (concurrency tests) */
+    prisma?: ReturnType<typeof createPrismaClient>;
+  };
 }
 
 export interface TestUser {
@@ -184,7 +193,16 @@ export async function createAuthTestEnv() {
     });
     const ok = async (): Promise<void> => undefined;
     // the real module routers, as server.ts mounts them
-    const moduleRouters = [auth.router, createAuditModule({ prisma }).router];
+    const zones = createZonesModule({
+      prisma: extra.zones?.prisma ?? prisma,
+      redis: appRedis,
+      appOrigin: APP_ORIGIN,
+      requireReauth: auth.requireReauth,
+      clock: clock.now,
+      ...(extra.zones?.impactSources ? { impactSources: extra.zones.impactSources } : {}),
+      ...(extra.zones?.cache ? { cache: extra.zones.cache } : {}),
+    });
+    const moduleRouters = [auth.router, createAuditModule({ prisma }).router, zones.router];
     const extraRouters = [
       ...(extra.routers ?? []),
       ...(extra.routerFactory ? [extra.routerFactory({ requireReauth: auth.requireReauth })] : []),

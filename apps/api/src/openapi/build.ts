@@ -30,6 +30,16 @@ const ERROR_DESCRIPTION: Record<ErrorCode, string> = {
   SMS_NOT_AVAILABLE: 'SMS codes are switched off, paused or have no provider',
   PHONE_MISSING: 'There is no mobile number on the account',
   LAST_METHOD_REQUIRED: 'The 2-step policy requires at least one method; this is the last one',
+  STALE_VERSION: 'Changed by someone else since it was read (error.meta.current)',
+  ZONE_NAME_TAKEN: 'Another zone has this name',
+  ZONE_CODE_TAKEN: 'The zone code is taken (codes are never reused)',
+  PINCODE_OVERLAP: 'A pincode belongs to another zone (error.meta.conflicts)',
+  RANGE_TOO_LARGE: 'A range may hold at most 2000 pincodes',
+  CODE_IMMUTABLE: 'The zone code cannot be changed',
+  ZONE_NOT_ACTIVATABLE: 'The zone cannot go live yet (error.meta.missing)',
+  IMPACT_CHANGED: 'The impact changed since it was shown (error.meta.impact)',
+  REASON_REQUIRED: 'A reason is required',
+  ZONE_HAS_HISTORY: 'The zone has history and cannot be deleted (error.meta.counts)',
   INTERNAL: 'Server error',
 };
 

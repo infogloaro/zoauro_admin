@@ -154,6 +154,13 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     [PLACEHOLDER_ID, zones.A],
   );
 
+  // /zones/{id} routes with the placeholder id: a zone the Super Admin can read (never an assigned zone of anyone)
+  await env.db.owner.query(
+    `INSERT INTO zones (id, name, code, city, color_hex, updated_at)
+     VALUES ($1, 'Matrix placeholder zone', 'MXPH', 'Chennai', '#2563EB', now())`,
+    [PLACEHOLDER_ID],
+  );
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,

@@ -41,7 +41,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
     expect(Object.keys(spec.components.schemas)).toContain('ErrorBody');
   });
 
-  it('contains every route that exists today (auth, audit read API)', () => {
+  it('contains every route that exists today (auth, audit read API, zones)', () => {
     const listed = Object.entries(spec.paths).flatMap(([p, ops]) =>
       Object.keys(ops).map((m) => `${m.toUpperCase()} ${p}`),
     );
@@ -84,6 +84,19 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /auth/reauth',
         'POST /auth/reset-password',
         'POST /me/sessions/revoke-others',
+        // M02 zones (P11, doc 53 section 5)
+        'GET /zones',
+        'GET /zones/summary',
+        'GET /zones/lookup',
+        'POST /zones',
+        'GET /zones/{id}',
+        'PATCH /zones/{id}',
+        'DELETE /zones/{id}',
+        'PUT /zones/{id}/pincodes',
+        'POST /zones/{id}/activate',
+        'GET /zones/{id}/impact',
+        'POST /zones/{id}/deactivate',
+        'GET /zones/{id}/team',
       ].sort(),
     );
   });

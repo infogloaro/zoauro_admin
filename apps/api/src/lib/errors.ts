@@ -19,6 +19,8 @@ export class AppError extends Error {
     message: string,
     readonly details?: ErrorDetail[],
     readonly headers?: Record<string, string>,
+    /** structured data for the client (error.meta, doc 32): conflicts, missing fields, counts, current values */
+    readonly meta?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'AppError';
@@ -80,7 +82,13 @@ export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, next)
   if (err instanceof AppError) {
     for (const [k, v] of Object.entries(err.headers ?? {})) res.setHeader(k, v);
     res.status(err.status).json({
-      error: { code: err.code, message: err.message, details: err.details, requestId },
+      error: {
+        code: err.code,
+        message: err.message,
+        details: err.details,
+        meta: err.meta,
+        requestId,
+      },
     });
     return;
   }

@@ -55,6 +55,16 @@
                   "SMS_NOT_AVAILABLE",
                   "PHONE_MISSING",
                   "LAST_METHOD_REQUIRED",
+                  "STALE_VERSION",
+                  "ZONE_NAME_TAKEN",
+                  "ZONE_CODE_TAKEN",
+                  "PINCODE_OVERLAP",
+                  "RANGE_TOO_LARGE",
+                  "CODE_IMMUTABLE",
+                  "ZONE_NOT_ACTIVATABLE",
+                  "IMPACT_CHANGED",
+                  "REASON_REQUIRED",
+                  "ZONE_HAS_HISTORY",
                   "INTERNAL"
                 ]
               },
@@ -78,6 +88,10 @@
                     "issue"
                   ]
                 }
+              },
+              "meta": {
+                "type": "object",
+                "additionalProperties": {}
               },
               "requestId": {
                 "type": "string"
@@ -5086,6 +5100,2793 @@
         },
         "x-access": {
           "kind": "session"
+        }
+      }
+    },
+    "/zones": {
+      "get": {
+        "operationId": "listZones",
+        "tags": [
+          "zones"
+        ],
+        "summary": "Zones with colour, place, status, pincode count, per-module counts and team avatars (cursor = id). partial=true while a counting module is not built",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "UPCOMING",
+                "ACTIVE",
+                "INACTIVE"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "after",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of zones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "city": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "pincodeFrom": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "pincodeTo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "pincodeCount": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "deliveryChargePaise": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "UPCOMING",
+                              "ACTIVE",
+                              "INACTIVE"
+                            ]
+                          },
+                          "colorHex": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "activatedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "deactivatedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "deactivationReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "counts": {
+                            "type": "object",
+                            "properties": {
+                              "restaurants": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "homemakers": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "partners": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "customers": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "members": {
+                                "type": "integer",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "restaurants",
+                              "homemakers",
+                              "partners",
+                              "customers",
+                              "members"
+                            ]
+                          },
+                          "team": {
+                            "type": "object",
+                            "properties": {
+                              "total": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "top": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "userId": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "userId",
+                                    "name"
+                                  ]
+                                },
+                                "maxItems": 3
+                              }
+                            },
+                            "required": [
+                              "total",
+                              "top"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code",
+                          "city",
+                          "state",
+                          "pincodeFrom",
+                          "pincodeTo",
+                          "pincodeCount",
+                          "deliveryChargePaise",
+                          "status",
+                          "colorHex",
+                          "description",
+                          "version",
+                          "activatedAt",
+                          "deactivatedAt",
+                          "deactivationReason",
+                          "createdAt",
+                          "updatedAt",
+                          "counts",
+                          "team"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "nextCursor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "limit",
+                        "nextCursor"
+                      ]
+                    },
+                    "partial": {
+                      "type": "boolean"
+                    },
+                    "missingSources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "restaurants",
+                          "homemakers",
+                          "delivery",
+                          "customers",
+                          "orders",
+                          "access",
+                          "registrations",
+                          "refunds",
+                          "payouts"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "partial",
+                    "missingSources"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:view",
+          "zone": "none"
+        }
+      },
+      "post": {
+        "operationId": "createZone",
+        "tags": [
+          "zones"
+        ],
+        "summary": "Create a zone (default UPCOMING). 409 ZONE_NAME_TAKEN, ZONE_CODE_TAKEN, PINCODE_OVERLAP (error.meta.conflicts); creating as ACTIVE needs the activation preconditions",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9]{1,5}$"
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "state": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "pincodeFrom": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]{5}$"
+                  },
+                  "pincodeTo": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]{5}$"
+                  },
+                  "pincodes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]{5}$"
+                    },
+                    "maxItems": 2000
+                  },
+                  "deliveryChargePaise": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "UPCOMING",
+                      "ACTIVE",
+                      "INACTIVE"
+                    ],
+                    "default": "UPCOMING"
+                  },
+                  "colorHex": {
+                    "type": "string",
+                    "enum": [
+                      "#DC2626",
+                      "#EA580C",
+                      "#D97706",
+                      "#65A30D",
+                      "#16A34A",
+                      "#059669",
+                      "#0D9488",
+                      "#0891B2",
+                      "#2563EB",
+                      "#4F46E5",
+                      "#7C3AED",
+                      "#DB2777"
+                    ]
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "name",
+                  "code",
+                  "city",
+                  "state",
+                  "deliveryChargePaise",
+                  "colorHex"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "city": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeFrom": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "deliveryChargePaise": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPCOMING",
+                        "ACTIVE",
+                        "INACTIVE"
+                      ]
+                    },
+                    "colorHex": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "activatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivationReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "code",
+                    "city",
+                    "state",
+                    "pincodeFrom",
+                    "pincodeTo",
+                    "pincodeCount",
+                    "deliveryChargePaise",
+                    "status",
+                    "colorHex",
+                    "description",
+                    "version",
+                    "activatedAt",
+                    "deactivatedAt",
+                    "deactivationReason",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A pincode belongs to another zone (error.meta.conflicts); The zone code is taken (codes are never reused); Another zone has this name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A range may hold at most 2000 pincodes; Invalid input; The zone cannot go live yet (error.meta.missing)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:add",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "zones",
+          "action": "zone.created"
+        }
+      }
+    },
+    "/zones/summary": {
+      "get": {
+        "operationId": "getZoneSummary",
+        "tags": [
+          "zones"
+        ],
+        "summary": "KPI cards: total, active, inactive, upcoming and zones without a team",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zone counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "active": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "inactive": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "upcoming": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "withoutTeam": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "partial": {
+                      "type": "boolean"
+                    },
+                    "missingSources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "restaurants",
+                          "homemakers",
+                          "delivery",
+                          "customers",
+                          "orders",
+                          "access",
+                          "registrations",
+                          "refunds",
+                          "payouts"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "active",
+                    "inactive",
+                    "upcoming",
+                    "withoutTeam",
+                    "partial",
+                    "missingSources"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/zones/lookup": {
+      "get": {
+        "operationId": "lookupZonePincode",
+        "tags": [
+          "zones"
+        ],
+        "summary": "The zone that owns a pincode, or null (live overlap hint of the zone form)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{5}$"
+            },
+            "required": true,
+            "name": "pincode",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owning zone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pincode": {
+                      "type": "string"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "UPCOMING",
+                            "ACTIVE",
+                            "INACTIVE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code",
+                        "status"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "pincode",
+                    "zone"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/zones/{id}": {
+      "get": {
+        "operationId": "getZone",
+        "tags": [
+          "zones"
+        ],
+        "summary": "One zone with its pincodes (paged), counts and team summary",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "pincodePage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            },
+            "required": false,
+            "name": "pincodePageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{1,6}$"
+            },
+            "required": false,
+            "name": "pincodeQ",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "city": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeFrom": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "deliveryChargePaise": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPCOMING",
+                        "ACTIVE",
+                        "INACTIVE"
+                      ]
+                    },
+                    "colorHex": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "activatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivationReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "restaurants": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "homemakers": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "partners": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "customers": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "members": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "restaurants",
+                        "homemakers",
+                        "partners",
+                        "customers",
+                        "members"
+                      ]
+                    },
+                    "team": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "top": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "userId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "userId",
+                              "name"
+                            ]
+                          },
+                          "maxItems": 3
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "top"
+                      ]
+                    },
+                    "pincodes": {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "pincode": {
+                                "type": "string"
+                              },
+                              "source": {
+                                "type": "string",
+                                "enum": [
+                                  "RANGE",
+                                  "MANUAL",
+                                  "IMPORT"
+                                ]
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            },
+                            "required": [
+                              "pincode",
+                              "source",
+                              "createdAt"
+                            ]
+                          }
+                        },
+                        "meta": {
+                          "type": "object",
+                          "properties": {
+                            "page": {
+                              "type": "integer"
+                            },
+                            "pageSize": {
+                              "type": "integer"
+                            },
+                            "total": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "page",
+                            "pageSize",
+                            "total"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "data",
+                        "meta"
+                      ]
+                    },
+                    "partial": {
+                      "type": "boolean"
+                    },
+                    "missingSources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "restaurants",
+                          "homemakers",
+                          "delivery",
+                          "customers",
+                          "orders",
+                          "access",
+                          "registrations",
+                          "refunds",
+                          "payouts"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "code",
+                    "city",
+                    "state",
+                    "pincodeFrom",
+                    "pincodeTo",
+                    "pincodeCount",
+                    "deliveryChargePaise",
+                    "status",
+                    "colorHex",
+                    "description",
+                    "version",
+                    "activatedAt",
+                    "deactivatedAt",
+                    "deactivationReason",
+                    "createdAt",
+                    "updatedAt",
+                    "counts",
+                    "team",
+                    "pincodes",
+                    "partial",
+                    "missingSources"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:view",
+          "zone": "none"
+        }
+      },
+      "patch": {
+        "operationId": "updateZone",
+        "tags": [
+          "zones"
+        ],
+        "summary": "Edit name, city, state, charge, colour, description with `version`. 422 CODE_IMMUTABLE for `code`; 409 STALE_VERSION with error.meta.current. A charge change is audited as zone.delivery_charge_changed",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "state": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "deliveryChargePaise": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "colorHex": {
+                    "type": "string",
+                    "enum": [
+                      "#DC2626",
+                      "#EA580C",
+                      "#D97706",
+                      "#65A30D",
+                      "#16A34A",
+                      "#059669",
+                      "#0D9488",
+                      "#0891B2",
+                      "#2563EB",
+                      "#4F46E5",
+                      "#7C3AED",
+                      "#DB2777"
+                    ]
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 0,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "city": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeFrom": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "deliveryChargePaise": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPCOMING",
+                        "ACTIVE",
+                        "INACTIVE"
+                      ]
+                    },
+                    "colorHex": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "activatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivationReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "code",
+                    "city",
+                    "state",
+                    "pincodeFrom",
+                    "pincodeTo",
+                    "pincodeCount",
+                    "deliveryChargePaise",
+                    "status",
+                    "colorHex",
+                    "description",
+                    "version",
+                    "activatedAt",
+                    "deactivatedAt",
+                    "deactivationReason",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed by someone else since it was read (error.meta.current); Another zone has this name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The zone code cannot be changed; Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "zones",
+          "action": "zone.updated"
+        }
+      },
+      "delete": {
+        "operationId": "deleteZone",
+        "tags": [
+          "zones"
+        ],
+        "summary": "Soft-delete a pristine zone that is not live (PASSWORD re-authentication); its pincodes are released, the code stays reserved. 409 ZONE_HAS_HISTORY with error.meta.counts",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; The zone has history and cannot be deleted (error.meta.counts)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:delete",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "zones",
+          "action": "zone.deleted"
+        }
+      }
+    },
+    "/zones/{id}/pincodes": {
+      "put": {
+        "operationId": "updateZonePincodes",
+        "tags": [
+          "zones"
+        ],
+        "summary": "Change coverage: a range (recomputes only RANGE rows), add, remove. ?preview=true is a dry run listing conflicts and mismatches; otherwise 409 PINCODE_OVERLAP. Vendors and partners are never moved (mismatches)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "preview",
+            "in": "query"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "range": {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]{5}$"
+                      },
+                      "to": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]{5}$"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ]
+                  },
+                  "add": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]{5}$"
+                    },
+                    "maxItems": 2000
+                  },
+                  "remove": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]{5}$"
+                    },
+                    "maxItems": 2000
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied (or previewed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "preview": {
+                      "type": "boolean"
+                    },
+                    "added": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "removed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "conflicts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "pincode": {
+                            "type": "string"
+                          },
+                          "zoneId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zoneName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "pincode",
+                          "zoneId",
+                          "zoneName"
+                        ]
+                      }
+                    },
+                    "mismatches": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "entityType": {
+                            "type": "string",
+                            "enum": [
+                              "restaurant",
+                              "homemaker",
+                              "partner"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "pincode": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "entityType",
+                          "id",
+                          "name",
+                          "pincode"
+                        ]
+                      }
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "pincodeFrom": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "pincodeTo": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "pincodeCount": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "deliveryChargePaise": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "UPCOMING",
+                            "ACTIVE",
+                            "INACTIVE"
+                          ]
+                        },
+                        "colorHex": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "activatedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "deactivatedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "deactivationReason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code",
+                        "city",
+                        "state",
+                        "pincodeFrom",
+                        "pincodeTo",
+                        "pincodeCount",
+                        "deliveryChargePaise",
+                        "status",
+                        "colorHex",
+                        "description",
+                        "version",
+                        "activatedAt",
+                        "deactivatedAt",
+                        "deactivationReason",
+                        "createdAt",
+                        "updatedAt"
+                      ]
+                    },
+                    "partial": {
+                      "type": "boolean"
+                    },
+                    "missingSources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "restaurants",
+                          "homemakers",
+                          "delivery",
+                          "customers",
+                          "orders",
+                          "access",
+                          "registrations",
+                          "refunds",
+                          "payouts"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "preview",
+                    "added",
+                    "removed",
+                    "conflicts",
+                    "mismatches",
+                    "zone",
+                    "partial",
+                    "missingSources"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A pincode belongs to another zone (error.meta.conflicts)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A range may hold at most 2000 pincodes; Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "zones",
+          "action": "zone.pincodes_changed"
+        }
+      }
+    },
+    "/zones/{id}/activate": {
+      "post": {
+        "operationId": "activateZone",
+        "tags": [
+          "zones"
+        ],
+        "summary": "UPCOMING or INACTIVE to ACTIVE (PASSWORD re-authentication). 422 ZONE_NOT_ACTIVATABLE with error.meta.missing",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "city": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeFrom": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "deliveryChargePaise": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPCOMING",
+                        "ACTIVE",
+                        "INACTIVE"
+                      ]
+                    },
+                    "colorHex": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "activatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivationReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "code",
+                    "city",
+                    "state",
+                    "pincodeFrom",
+                    "pincodeTo",
+                    "pincodeCount",
+                    "deliveryChargePaise",
+                    "status",
+                    "colorHex",
+                    "description",
+                    "version",
+                    "activatedAt",
+                    "deactivatedAt",
+                    "deactivationReason",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input; The zone cannot go live yet (error.meta.missing)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:status",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "zones",
+          "action": "zone.activated"
+        }
+      }
+    },
+    "/zones/{id}/impact": {
+      "get": {
+        "operationId": "getZoneImpact",
+        "tags": [
+          "zones"
+        ],
+        "summary": "What deactivation would affect (open orders, vendors, partners, members, pending work) and impactVersion for the deactivate call. partial=true while a counting module is not built",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Impact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "openOrders": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "openOrdersByStatus": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "scheduledOrders": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "restaurants": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "homemakers": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "partners": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "partnersOnline": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "members": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "pendingRegistrations": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "pendingRefunds": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "pendingPayouts": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "openOrders",
+                        "openOrdersByStatus",
+                        "scheduledOrders",
+                        "restaurants",
+                        "homemakers",
+                        "partners",
+                        "partnersOnline",
+                        "members",
+                        "pendingRegistrations",
+                        "pendingRefunds",
+                        "pendingPayouts"
+                      ]
+                    },
+                    "impactVersion": {
+                      "type": "string"
+                    },
+                    "partial": {
+                      "type": "boolean"
+                    },
+                    "missingSources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "restaurants",
+                          "homemakers",
+                          "delivery",
+                          "customers",
+                          "orders",
+                          "access",
+                          "registrations",
+                          "refunds",
+                          "payouts"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "counts",
+                    "impactVersion",
+                    "partial",
+                    "missingSources"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/zones/{id}/deactivate": {
+      "post": {
+        "operationId": "deactivateZone",
+        "tags": [
+          "zones"
+        ],
+        "summary": "ACTIVE or UPCOMING to INACTIVE (PASSWORD re-authentication) with a reason and the impactVersion shown; no other record changes. 409 IMPACT_CHANGED, 422 REASON_REQUIRED",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 500
+                  },
+                  "impactVersion": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "version",
+                  "reason",
+                  "impactVersion"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "city": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeFrom": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pincodeCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "deliveryChargePaise": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPCOMING",
+                        "ACTIVE",
+                        "INACTIVE"
+                      ]
+                    },
+                    "colorHex": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "activatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "deactivationReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "code",
+                    "city",
+                    "state",
+                    "pincodeFrom",
+                    "pincodeTo",
+                    "pincodeCount",
+                    "deliveryChargePaise",
+                    "status",
+                    "colorHex",
+                    "description",
+                    "version",
+                    "activatedAt",
+                    "deactivatedAt",
+                    "deactivationReason",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The impact changed since it was shown (error.meta.impact); Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A reason is required; Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:status",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "zones",
+          "action": "zone.deactivated"
+        }
+      }
+    },
+    "/zones/{id}/team": {
+      "get": {
+        "operationId": "getZoneTeam",
+        "tags": [
+          "zones"
+        ],
+        "summary": "Members of the zone with profile, overrides count and limits (read side of M03). Empty with partial=true until access management exists",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zone team",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "profileName": {
+                            "type": "string"
+                          },
+                          "overridesCount": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "limits": {
+                            "type": "object",
+                            "properties": {
+                              "perRefundPaise": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "dailyRefundPaise": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "canReveal": {
+                                "type": "boolean"
+                              },
+                              "canExport": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "perRefundPaise",
+                              "dailyRefundPaise",
+                              "canReveal",
+                              "canExport"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "userId",
+                          "name",
+                          "profileName",
+                          "overridesCount",
+                          "limits"
+                        ]
+                      }
+                    },
+                    "partial": {
+                      "type": "boolean"
+                    },
+                    "missingSources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "restaurants",
+                          "homemakers",
+                          "delivery",
+                          "customers",
+                          "orders",
+                          "access",
+                          "registrations",
+                          "refunds",
+                          "payouts"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "partial",
+                    "missingSources"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "access:view",
+          "zone": "none"
         }
       }
     }

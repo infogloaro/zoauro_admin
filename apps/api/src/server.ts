@@ -9,6 +9,7 @@ import { authContextMiddleware } from './lib/authz';
 import { createAccessService } from './modules/access';
 import { createAuditModule } from './modules/audit';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
+import { createZonesModule } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
 
 const env = loadEnvOrExit('api');
@@ -53,13 +54,20 @@ const auth = createAuthModule({
 
 const access = createAccessService({ prisma, redis });
 
+const zones = createZonesModule({
+  prisma,
+  redis,
+  appOrigin: new URL(env.APP_URL).origin,
+  requireReauth: auth.requireReauth,
+});
+
 const app = createApp({
   trustProxyHops: env.TRUST_PROXY_HOPS,
   readiness: createReadinessChecks({ databaseUrl: env.DATABASE_URL, redisUrl: env.REDIS_URL }),
   v1: {
     sessionMiddleware: auth.sessionMiddleware,
     authContextMiddleware: authContextMiddleware(access),
-    routers: [auth.router, createAuditModule({ prisma }).router],
+    routers: [auth.router, createAuditModule({ prisma }).router, zones.router],
   },
 });
 
