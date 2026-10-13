@@ -1,6 +1,7 @@
 import { cookies, headers } from 'next/headers';
 import { ApiError, createApiClient } from '@zoauro/api-client';
 import type { MeResponse, MeZone } from '@zoauro/shared';
+import { CHANGE_PASSWORD_PATH, loginUrl } from './redirects';
 
 // Server-side session lookup for route guards (Server Components). The browser's cookies are forwarded to the Express
 // API (doc 23 section 1); the web never reads the database. This is a convenience for choosing what to render: the API
@@ -55,17 +56,7 @@ export async function requestPath(): Promise<string> {
 }
 export const PATH_HEADER = 'x-zo-path';
 
-/** Only our own areas may be a ?next= target: never another site, never a protocol-relative URL. */
-export function safeNext(path: string): string | null {
-  return !path.includes('..') &&
-    /^\/(super-admin|zone|account|coming-soon)(\/[A-Za-z0-9/_\-.]*)?$/.test(path)
-    ? path
-    : null;
-}
-export const loginUrl = (path: string): string => {
-  const next = safeNext(path);
-  return next ? `/login?next=${encodeURIComponent(next)}` : '/login';
-};
+export { safeNext, loginUrl } from './redirects';
 
 export type Area = 'super-admin' | 'zone' | 'shared';
 export type Gate =
@@ -78,12 +69,14 @@ export type Gate =
 /**
  * Who may enter an area (owner's decision, P14, doc 32):
  *  - nobody signed in: /login?next=<this path>
+ *  - a first-login password change pending: /change-password (the API refuses everything else anyway, doc 52 2.1 [3])
  *  - /super-admin/* for anyone but a Super Admin: 404, as if it did not exist (doc 18 section 1)
  *  - /zone/* for a Super Admin: the 403 page (the same screens are reached inside /super-admin with a zone filter)
  *  - a Zonal Admin with no zone: /zone/no-zones
  */
 export function areaGate(area: Area, me: MeResponse | null, path: string): Gate {
   if (me === null) return { kind: 'login', to: loginUrl(path) };
+  if (me.mustChangePassword) return { kind: 'redirect', to: CHANGE_PASSWORD_PATH };
   const role = me.user.role;
   const zones = me.permissions.global ? [] : me.permissions.zones;
   if (area === 'super-admin' && role !== 'SUPER_ADMIN') return { kind: 'not-found' };

@@ -13,7 +13,7 @@
   --sidebar-to: #1e3a8a;
   --sidebar-text: #dbe4ff;
   --sidebar-active: #2563eb; /* Super Admin active item */
-  --accent-orange: #ea580c; /* Zonal Admin active item (doc 18 section 6) */
+  --accent-orange: #c2410c; /* Zonal Admin active item (doc 18 section 6); orange-700: white text 5.2:1 (axe, P15) */
   --bg: #f5f6f8;
   --surface: #ffffff;
   --border: #e3e5ea;
@@ -48,6 +48,21 @@
   --color-neutral-token: var(--neutral);
   --radius-input: var(--radius-input);
   --radius-card: var(--radius-card);
+  /* a wrong code shakes the cells (doc 52 section 9.2); reduced motion turns it off below */
+  --animate-shake: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
 }
 
 body {

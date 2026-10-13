@@ -3,6 +3,7 @@
 import { Menu, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
+import { setCsrfToken } from '../../lib/csrf';
 import type { MenuItem, ShellRole } from '../../lib/navigation';
 import { Sidebar } from './Sidebar';
 import { UserMenu } from './UserMenu';
@@ -32,6 +33,8 @@ export function AppShell({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
+  // the session's CSRF token for the pages' state-changing calls (lib/csrf.ts)
+  useEffect(() => setCsrfToken(csrfToken), [csrfToken]);
   // a navigation closes the drawer
   useEffect(() => setDrawerOpen(false), [pathname]);
   useEffect(() => {
