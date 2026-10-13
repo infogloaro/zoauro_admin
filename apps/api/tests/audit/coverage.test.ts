@@ -53,7 +53,7 @@ function buildApp(violations: CoverageViolation[]) {
 }
 const settle = () => new Promise((r) => setTimeout(r, 20));
 
-describe('TC-AUD-19 coverage guard (runtime)', () => {
+describe('TC-AUD-19 / TC-AUTH-43 coverage guard (runtime)', () => {
   it('passes when a declared route wrote a row, wrote an audited no-op, is allow-listed, failed, or is a read', async () => {
     const v: CoverageViolation[] = [];
     const app = buildApp(v);

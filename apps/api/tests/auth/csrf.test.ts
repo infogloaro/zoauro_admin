@@ -29,7 +29,7 @@ async function issued() {
   return { res, line: line ?? '', token: (res.body as { token: string }).token };
 }
 
-describe('GET /auth/csrf', () => {
+describe('TC-AUTH-42 GET /auth/csrf', () => {
   it('returns a token and sets the same value as zo_csrf: HttpOnly, Secure, SameSite=Strict, path /, no-store', async () => {
     const { res, line, token } = await issued();
     expect(res.status).toBe(200);

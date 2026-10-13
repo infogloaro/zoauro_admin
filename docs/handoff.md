@@ -402,3 +402,13 @@ Gate line status (pass/fail): pass — lint, typecheck, openapi:check; shared 88
 Open points: (1) PUT /settings/security changes only the 2-step part; password/lockout/session values are shown as in effect but still come from DEFAULT_AUTH_CONFIG. (2) Recovery and settings routes live in the auth module until M03 / a settings module exist. (3) The CLI was not run against zoauro (it writes); covered by tests on a throwaway database. (4) The system-logs e2e still needs an enrolled authenticator in its fixture. (5) No UI yet: login, 2-step, setup wizard and account security screens are P15
 Next step: M03 member and access management (spec pass on docs 04, 14, 36, 09 first)
 Verify: pnpm infra:up && pnpm lint && pnpm typecheck && pnpm openapi:check && pnpm --filter @zoauro/api exec vitest run --maxWorkers=2
+
+Date / task id: 2026-10-13 / P6 re-run audit (doc 56 P6 prompt run again by the owner; order is now doc 56 P11–P21 before M03)
+Lane / files changed: A — tests only: apps/api/tests/auth/{auth, csrf, mfa-login}.test.ts, tests/audit/coverage.test.ts (test names carry TC-AUTH-35, 42, 43; no assertion changed)
+Commits: see git log ("test(api): tag P6 tests with TC-AUTH-35, 42, 43")
+Contract changes (docs 08/09/10/36): none
+Decisions or [ASSUMPTION]s touched (D-numbers): none. The P6 prompt's /me placeholder mfa {enabled:false, required:false, enrolmentNeeded:false} and "no second-step logic" were superseded by P8–P10 (already built); /me keeps the real mfa state
+Gate line status (pass/fail): pass — audit of items 1–6 found every item implemented (58f751d, bf5022c, ed15836, 754ce5b, 6c10929, a691a13); lint, typecheck, openapi:generate + openapi:check (no diff); shared 88, api-client 7, API 500 passed / 14 skipped / 1 todo (--maxWorkers=2, 305 s), web 52
+Open points: (1) TC-AUTH-35 timing is not asserted (flaky on this host); unknown emails verify a dummy Argon2id hash (crypto.ts getDummyHash) so the work is equal. (2) Reset email "visible in Mailpit" not checked by hand in this run (tests use the capture mailer). (3) OTP_HMAC_KEY must be added to the local apps/api/.env before the API starts
+Next step: P11 Zones backend (doc 56)
+Verify: pnpm lint && pnpm typecheck && pnpm openapi:check && pnpm --filter @zoauro/api exec vitest run --maxWorkers=2

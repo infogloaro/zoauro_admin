@@ -38,7 +38,7 @@ const wrongCode = async (user: TestUser) => {
 };
 
 describe('TC-AUTH-6: correct password and a method -> pending, no session', () => {
-  it('MFA_REQUIRED, zo_mfa set (HttpOnly, Secure, SameSite=Strict, 5 min), no zo_sid; /me is 401', async () => {
+  it('TC-AUTH-42: MFA_REQUIRED, zo_mfa set (HttpOnly, Secure, SameSite=Strict, 5 min), no zo_sid; /me is 401', async () => {
     const user = await env.createUser('SUPER_ADMIN');
     const { res, cookie } = await pending(user);
     expect(res.body.status).toBe('MFA_REQUIRED');

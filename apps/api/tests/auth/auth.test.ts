@@ -68,7 +68,7 @@ describe('TC-AUTH-1 login and role-based redirect', () => {
     expect((await env.login(admin)).body.redirect).toBe('/zone/no-zones');
   });
 
-  it('wrong password, unknown email and a credential on the wrong tab all get the same generic error', async () => {
+  it('TC-AUTH-35: wrong password, unknown email and a credential on the wrong tab all get the same generic error', async () => {
     const sa = await env.createUser('SUPER_ADMIN');
     const wrongPassword = await env.login(sa, 'not the password at all');
     const unknown = await env.login({ email: 'nobody@example.test', role: 'SUPER_ADMIN' });
@@ -246,7 +246,7 @@ describe('TC-AUTH-4 sessions: idle 30 min, absolute 12 h', () => {
   });
 });
 
-describe('session cookie flags', () => {
+describe('TC-AUTH-42 session cookie flags', () => {
   it('is opaque, HTTP-only, Secure, SameSite=Lax, path /, 12 h, and only its hash is stored', async () => {
     const user = await env.createUser('SUPER_ADMIN');
     const res = await env.login(user);
