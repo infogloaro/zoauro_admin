@@ -510,6 +510,23 @@ export class AuthRepository implements SessionPersistence {
     });
   }
 
+  /** Recovery: every active method (confirmed or started) is disabled; returns how many. */
+  async disableAllMfaMethods(userId: string, at: Date): Promise<number> {
+    const r = await this.db.userMfaMethod.updateMany({
+      where: { userId, disabledAt: null },
+      data: { disabledAt: at, isPrimary: false },
+    });
+    return r.count;
+  }
+
+  async deleteBackupCodes(userId: string): Promise<void> {
+    await this.db.mfaBackupCode.deleteMany({ where: { userId } });
+  }
+
+  async clearPhoneVerified(userId: string): Promise<void> {
+    await this.db.user.update({ where: { id: userId }, data: { phoneVerifiedAt: null } });
+  }
+
   async setPhoneVerified(userId: string, at: Date): Promise<void> {
     await this.db.user.update({ where: { id: userId }, data: { phoneVerifiedAt: at } });
   }

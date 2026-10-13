@@ -18,7 +18,10 @@ import {
   authenticatorStartResponseSchema,
   backupCodesResponseSchema,
   enrolCompleteSchema,
+  memberIdParamsSchema,
+  memberMfaResetSchema,
   mfaChallengeResponseSchema,
+  mfaResetResponseSchema,
   mfaConfirmResponseSchema,
   mfaConfirmSchema,
   mfaOverviewSchema,
@@ -71,6 +74,8 @@ export type Access =
       kind: 'permission';
       permission: PermissionKey;
       zone: 'none' | 'query' | 'path';
+      /** the route also needs a recent step-up re-authentication (doc 52 section 2.4) */
+      reauth?: 'PASSWORD' | 'STRONG';
       /**
        * The audit read routes (doc 50 section 8): the permission is never grantable, yet a Zonal Admin may still read an
        * entity's Activity through the entity module's view permission. Without entity mode a Zonal Admin gets 403;
@@ -417,6 +422,19 @@ export const OPERATIONS: OperationDef[] = [
     params: mfaTypeParamsSchema,
     response: { status: 204, description: 'Removed' },
     errors: ['NOT_FOUND', 'LAST_METHOD_REQUIRED'],
+  },
+  {
+    operationId: 'resetMemberMfa',
+    method: 'post',
+    path: '/members/{id}/mfa/reset',
+    tags: ['auth'],
+    summary:
+      "Reset a member's 2-step verification (Super Admin, STRONG re-authentication, reason required): methods and backup codes removed, sessions revoked, member emailed",
+    access: { kind: 'permission', permission: 'admins:edit', zone: 'none', reauth: 'STRONG' },
+    audit: { module: 'auth', action: 'user.two_factor_reset' },
+    params: memberIdParamsSchema,
+    body: memberMfaResetSchema,
+    response: { status: 200, schema: mfaResetResponseSchema, description: 'Reset done' },
   },
   {
     operationId: 'getMe',

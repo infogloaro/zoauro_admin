@@ -1,5 +1,11 @@
 import type { Request, RequestHandler, Response } from 'express';
-import { mfaConfirmSchema, mfaPrimarySchema, mfaTypeParamsSchema } from '@zoauro/shared';
+import {
+  memberIdParamsSchema,
+  memberMfaResetSchema,
+  mfaConfirmSchema,
+  mfaPrimarySchema,
+  mfaTypeParamsSchema,
+} from '@zoauro/shared';
 import { AppError, parseBody, requestIdOf } from '../../lib/errors';
 import { mfaActorOf } from './mfa/actor';
 import type { EnrolmentService } from './mfa/enrolment.service';
@@ -61,7 +67,15 @@ export function createMfaController(enrolment: EnrolmentService) {
     res.setHeader('Cache-Control', 'no-store');
     res.json({ codes: await enrolment.regenerateBackupCodes(sessionUser(res), metaOf(req, res)) });
   };
+  /** POST /members/{id}/mfa/reset: Super Admin + STRONG (route guards), reason required */
+  const resetMember: RequestHandler = async (req, res) => {
+    const { id } = parseBody(memberIdParamsSchema, req.params);
+    const { reason } = parseBody(memberMfaResetSchema, req.body);
+    res.json(await enrolment.resetMember(id, reason));
+  };
+
   return {
+    resetMember,
     overview,
     emailStart,
     emailConfirm,

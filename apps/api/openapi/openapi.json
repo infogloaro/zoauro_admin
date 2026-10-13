@@ -2462,6 +2462,128 @@
         }
       }
     },
+    "/members/{id}/mfa/reset": {
+      "post": {
+        "operationId": "resetMemberMfa",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Reset a member's 2-step verification (Super Admin, STRONG re-authentication, reason required): methods and backup codes removed, sessions revoked, member emailed",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "methodsRemoved": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "sessionsRevoked": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "methodsRemoved",
+                    "sessionsRevoked"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "admins:edit",
+          "zone": "none",
+          "reauth": "STRONG"
+        },
+        "x-audit": {
+          "module": "auth",
+          "action": "user.two_factor_reset"
+        }
+      }
+    },
     "/me": {
       "get": {
         "operationId": "getMe",

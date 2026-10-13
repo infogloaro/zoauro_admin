@@ -19,6 +19,7 @@ import { isMfaRequired, usableMethodsFor, type MfaPolicyReader } from './policy'
 import { mfaSecretAad, type SecretBox } from './secret-box';
 import type { SmsCircuitBreaker, SmsProvider } from './sms';
 import { newTotpSecret, totpUri, verifyTotp } from './totp';
+import { resetMfa, type ResetOutcome } from './recovery';
 
 // Enrolment and management of 2-step methods (doc 52 sections 2.3, 2.4, 8). Reached with a full session, or during
 // sign-in with the pending cookie in stage ENROL. The first step for a pending login is always the mailbox proof
@@ -287,6 +288,27 @@ export class EnrolmentService {
     const codes = await this.inTransaction(user, meta, (tx) => this.issueBackupCodes(tx, user));
     this.notify(user, 'BACKUP_CODES_REGENERATED');
     return codes;
+  }
+
+  // ---- recovery (doc 52 section 2.5) ----------------------------------------------------------------------------
+
+  /**
+   * POST /members/{id}/mfa/reset (Super Admin + STRONG, route guards; doc 52 section 8). Audited in the Super Admin's
+   * request context as user.two_factor_reset (HIGH) with the reason.
+   */
+  async resetMember(targetId: string, reason: string): Promise<ResetOutcome> {
+    const target = await this.deps.db.repo.findUserById(targetId);
+    if (!target) throw new AppError('NOT_FOUND', 'Not found');
+    return resetMfa(
+      {
+        db: this.deps.db,
+        sessions: this.deps.sessions,
+        mailer: this.deps.mailer,
+        clock: this.deps.clock,
+      },
+      target,
+      reason,
+    );
   }
 
   // ---- internals ------------------------------------------------------------------------------------------------

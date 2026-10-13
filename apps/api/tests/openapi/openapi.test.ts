@@ -61,6 +61,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'GET /openapi.json',
         'DELETE /me/mfa/{type}',
         'POST /auth/mfa/enrol/complete',
+        'POST /members/{id}/mfa/reset',
         'POST /me/mfa/authenticator/confirm',
         'POST /me/mfa/authenticator/start',
         'POST /me/mfa/backup-codes/regenerate',

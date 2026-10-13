@@ -20,6 +20,7 @@ type AccessDecl =
       permission: PermissionKey;
       zone: 'none' | 'query' | 'path';
       zonalActivity?: true;
+      reauth?: 'PASSWORD' | 'STRONG';
     };
 
 interface OperationLike {
@@ -152,7 +153,15 @@ export function casesFor(
 
     if (actor.role === 'SUPER_ADMIN') {
       if (access.zone === 'none')
-        cases.push({ actor, zone: null, variant: 'default', expected: authorized });
+        cases.push({
+          actor,
+          zone: null,
+          variant: 'default',
+          // past the permission, a step-up route must still refuse a session that has not re-authenticated
+          expected: access.reauth
+            ? { kind: 'status', status: 401, codes: ['REAUTH_REQUIRED'] }
+            : authorized,
+        });
       else if (access.zone === 'query') {
         cases.push({
           actor,

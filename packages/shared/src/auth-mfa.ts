@@ -207,10 +207,15 @@ export type ReauthLevelResponse = z.infer<typeof reauthLevelResponseSchema>;
 // ---- member 2-step reset (POST /members/{id}/mfa/reset) ---------------------------------------------------------------
 
 export const MFA_RESET_REASON_MAX = 500;
+export const memberIdParamsSchema = z.object({ id: z.uuid() });
 export const memberMfaResetSchema = z.object({
   reason: z.string().trim().min(1, 'is required').max(MFA_RESET_REASON_MAX),
 });
 export type MemberMfaResetInput = z.infer<typeof memberMfaResetSchema>;
+export const mfaResetResponseSchema = z.object({
+  methodsRemoved: z.number().int().min(0),
+  sessionsRevoked: z.number().int().min(0),
+});
 
 // ---- security policy (settings keys security.*, doc 52 section 5) ----------------------------------------------------
 

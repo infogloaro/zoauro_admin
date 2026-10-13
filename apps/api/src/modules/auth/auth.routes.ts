@@ -7,6 +7,7 @@ import {
   requirePreSessionCsrf,
   requireSession,
 } from '../../lib/auth/middleware';
+import { requirePermission } from '../../lib/authz';
 import { auditOf } from '../../openapi/operations';
 import type { ReauthLevel } from '../../lib/auth/session-store';
 import type { createAuthController } from './auth.controller';
@@ -169,6 +170,19 @@ export function createAuthRoutes(
     opts.mfa.requireReauth('STRONG'),
     auditMeta(auditOf('mfaRemoveMethod')),
     m.removeMethod,
+  );
+
+  // recovery (doc 52 section 2.5): owned by M03's routes, specified in doc 52; admins:edit is never grantable to a Zonal
+  // Admin, so only a Super Admin passes, and only with a STRONG re-authentication
+  router.post(
+    '/members/:id/mfa/reset',
+    originCheck(opts.appOrigin),
+    requirePermission('admins', 'edit'),
+    requireCsrf,
+    requireJsonBody,
+    opts.mfa.requireReauth('STRONG'),
+    auditMeta(auditOf('resetMemberMfa')),
+    m.resetMember,
   );
   return router;
 }
