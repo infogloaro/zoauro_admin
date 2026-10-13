@@ -19,6 +19,9 @@ import {
   backupCodesResponseSchema,
   enrolCompleteSchema,
   memberIdParamsSchema,
+  securityPolicySchema,
+  securityPolicyUpdateSchema,
+  securityStatusSchema,
   memberMfaResetSchema,
   mfaChallengeResponseSchema,
   mfaResetResponseSchema,
@@ -435,6 +438,53 @@ export const OPERATIONS: OperationDef[] = [
     params: memberIdParamsSchema,
     body: memberMfaResetSchema,
     response: { status: 200, schema: mfaResetResponseSchema, description: 'Reset done' },
+  },
+  {
+    operationId: 'getSecurityPolicy',
+    method: 'get',
+    path: '/settings/security',
+    tags: ['settings'],
+    summary:
+      'Settings > Security: the 2-step policy (as stored, or the doc 52 defaults) and the password, lockout and session values in effect',
+    access: { kind: 'permission', permission: 'settings:view', zone: 'none' },
+    response: { status: 200, schema: securityPolicySchema, description: 'The security policy' },
+  },
+  {
+    operationId: 'updateSecurityPolicy',
+    method: 'put',
+    path: '/settings/security',
+    tags: ['settings'],
+    summary:
+      'Change the 2-step policy (STRONG re-authentication). SMS only with a real provider; members left without a usable method lose their sessions',
+    access: { kind: 'permission', permission: 'settings:edit', zone: 'none', reauth: 'STRONG' },
+    audit: { module: 'settings', action: 'settings.2fa_policy_changed' },
+    body: securityPolicyUpdateSchema,
+    response: {
+      status: 200,
+      schema: securityPolicySchema,
+      description: 'The policy now in effect',
+    },
+  },
+  {
+    operationId: 'getSecurityStatus',
+    method: 'get',
+    path: '/settings/security/status',
+    tags: ['settings'],
+    summary:
+      'Security Status card: members enrolled by role, method mix, active Super Admins (warning below 2), SMS state, failed second steps in 24 h',
+    access: { kind: 'permission', permission: 'settings:view', zone: 'none' },
+    response: { status: 200, schema: securityStatusSchema, description: 'Security status' },
+  },
+  {
+    operationId: 'resumeSms',
+    method: 'post',
+    path: '/settings/security/sms/resume',
+    tags: ['settings'],
+    summary:
+      'Resume SMS one-time codes after the hourly cap paused them (STRONG re-authentication)',
+    access: { kind: 'permission', permission: 'settings:edit', zone: 'none', reauth: 'STRONG' },
+    audit: { module: 'auth', action: 'sms.resumed' },
+    response: { status: 204, description: 'Resumed (or was not paused)' },
   },
   {
     operationId: 'getMe',

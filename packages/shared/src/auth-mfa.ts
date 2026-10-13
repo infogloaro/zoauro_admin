@@ -306,6 +306,31 @@ export const securityPolicySchema = z.object({
 });
 export type SecurityPolicy = z.infer<typeof securityPolicySchema>;
 
+/**
+ * PUT /settings/security: the 2-step part only (audit settings.2fa_policy_changed). Password, lockout and session values
+ * are shown by GET as they are in effect; editing them waits until the auth code reads them from settings (doc 32).
+ */
+export const securityPolicyUpdateSchema = z.object({ mfa: mfaPolicySchema }).strict();
+export type SecurityPolicyUpdate = z.infer<typeof securityPolicyUpdateSchema>;
+
+/** GET /settings/security/status (doc 52 section 8): the Security Status card. */
+export const securityStatusSchema = z.object({
+  members: z.array(
+    z.object({ role: z.enum(ROLES), enrolled: z.number().int(), notEnrolled: z.number().int() }),
+  ),
+  methods: z.array(z.object({ type: z.enum(MFA_TYPES), count: z.number().int() })),
+  /** doc 52 section 2.5 (D75): warn when fewer than 2 active Super Admins exist */
+  activeSuperAdmins: z.number().int(),
+  superAdminWarning: z.boolean(),
+  sms: z.object({
+    provider: z.enum(['none', 'console']),
+    enabled: z.boolean(),
+    paused: z.boolean(),
+  }),
+  failedSecondStepsLast24h: z.number().int(),
+});
+export type SecurityStatus = z.infer<typeof securityStatusSchema>;
+
 /** The defaults of doc 52 section 5. */
 export const DEFAULT_SECURITY_POLICY: SecurityPolicy = {
   password: { minLength: 12, denylist: true, maxAgeDays: null },

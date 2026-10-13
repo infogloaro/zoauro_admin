@@ -356,6 +356,75 @@ export class AuthRepository implements SessionPersistence {
     return row?.valueJson ?? null;
   }
 
+  /** Writes one setting (doc 12: business settings live in `settings`); the caller audits it. */
+  async upsertSetting(
+    key: string,
+    value: Prisma.InputJsonValue,
+    group: string,
+    updatedBy: string,
+  ): Promise<void> {
+    await this.db.setting.upsert({
+      where: { key },
+      create: { key, valueJson: value, group, updatedBy },
+      update: { valueJson: value, updatedBy },
+    });
+  }
+
+  /** Active members with an open (not revoked, not expired) session, by role: the ones a policy change can affect. */
+  async listUsersWithOpenSessions(role: Role, now: Date): Promise<AuthUser[]> {
+    const rows = await this.db.user.findMany({
+      where: {
+        deletedAt: null,
+        role: { name: role },
+        sessions: { some: { revokedAt: null, expiresAt: { gt: now } } },
+      },
+      select: userSelect,
+    });
+    return rows.map(toAuthUser);
+  }
+
+  // ---- security status (doc 52 section 8: GET /settings/security/status) ------------------------------------------
+
+  async countMembersByRoleAndMfa(): Promise<{ role: Role; mfaEnabled: boolean; count: number }[]> {
+    const users = await this.db.user.findMany({
+      where: { deletedAt: null, status: 'ACTIVE' },
+      select: { mfaEnabled: true, role: { select: { name: true } } },
+    });
+    const counts = new Map<string, { role: Role; mfaEnabled: boolean; count: number }>();
+    for (const u of users) {
+      const k = `${u.role.name}:${u.mfaEnabled}`;
+      const c = counts.get(k) ?? { role: u.role.name, mfaEnabled: u.mfaEnabled, count: 0 };
+      c.count += 1;
+      counts.set(k, c);
+    }
+    return [...counts.values()];
+  }
+
+  async countConfirmedMethodsByType(): Promise<{ type: MfaType; count: number }[]> {
+    const rows = await this.db.userMfaMethod.groupBy({
+      by: ['type'],
+      where: {
+        disabledAt: null,
+        verifiedAt: { not: null },
+        user: { deletedAt: null, status: 'ACTIVE' },
+      },
+      _count: { _all: true },
+    });
+    return rows.map((r) => ({ type: r.type, count: r._count._all }));
+  }
+
+  async countActiveSuperAdmins(): Promise<number> {
+    return this.db.user.count({
+      where: { deletedAt: null, status: 'ACTIVE', role: { name: 'SUPER_ADMIN' } },
+    });
+  }
+
+  async countSecondStepFailuresSince(since: Date): Promise<number> {
+    return this.db.loginHistory.count({
+      where: { createdAt: { gte: since }, reason: { in: ['MFA_FAILED', 'MFA_LOCKOUT'] } },
+    });
+  }
+
   /** Confirmed, not removed methods of the user (a half-finished enrolment is never offered, TC-AUTH-23). */
   async listActiveMfaMethods(userId: string) {
     return this.db.userMfaMethod.findMany({

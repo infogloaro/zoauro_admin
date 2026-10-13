@@ -46,6 +46,7 @@ const auth = createAuthModule({
   otpHmacKey: env.OTP_HMAC_KEY,
   sms: createSmsProvider(env.SMS_PROVIDER),
   mfaIssuer: env.MFA_ISSUER,
+  smsSettings: { provider: env.SMS_PROVIDER, dltTemplateIdOtp: env.SMS_DLT_TEMPLATE_ID_OTP },
   sessionSecret: env.SESSION_SECRET,
   appOrigin: new URL(env.APP_URL).origin,
 });

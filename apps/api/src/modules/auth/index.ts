@@ -18,7 +18,8 @@ import { createSecretBox } from './mfa/secret-box';
 import { OtpService } from './mfa/otp.service';
 import { EnrolmentService } from './mfa/enrolment.service';
 import { mfaActorMiddleware } from './mfa/actor';
-import { createMfaController } from './mfa.controller';
+import { createMfaController, createSecuritySettingsController } from './mfa.controller';
+import { SecurityPolicyService } from './mfa/policy-admin';
 import { disabledSmsProvider, SmsCircuitBreaker, type SmsProvider } from './mfa/sms';
 import { record, runAsSystem } from '../../lib/audit';
 
@@ -56,6 +57,8 @@ export function createAuthModule(deps: {
   sms?: SmsProvider;
   /** MFA_ISSUER: the name authenticator apps show (default ZOAURO Admin) */
   mfaIssuer?: string;
+  /** SMS_PROVIDER and SMS_DLT_TEMPLATE_ID_OTP: whether the policy may switch SMS on (doc 52 section 5) */
+  smsSettings?: { provider: 'none' | 'console'; dltTemplateIdOtp?: string | undefined };
 }): AuthModule {
   const config = deps.config ?? DEFAULT_AUTH_CONFIG;
   const clock = deps.clock ?? (() => new Date());
@@ -142,6 +145,18 @@ export function createAuthModule(deps: {
           clock,
         }),
         requireReauth,
+        settings: createSecuritySettingsController(
+          new SecurityPolicyService({
+            db,
+            sessions,
+            policy,
+            sms,
+            breaker,
+            smsSettings: deps.smsSettings ?? { provider: sms.name },
+            config,
+            clock,
+          }),
+        ),
       },
     }),
     sessionMiddleware: sessionMiddleware(sessions),

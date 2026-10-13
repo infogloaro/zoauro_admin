@@ -11,7 +11,7 @@ import { requirePermission } from '../../lib/authz';
 import { auditOf } from '../../openapi/operations';
 import type { ReauthLevel } from '../../lib/auth/session-store';
 import type { createAuthController } from './auth.controller';
-import type { createMfaController } from './mfa.controller';
+import type { createMfaController, createSecuritySettingsController } from './mfa.controller';
 
 type Controller = ReturnType<typeof createAuthController>;
 type MfaController = ReturnType<typeof createMfaController>;
@@ -32,6 +32,7 @@ export function createAuthRoutes(
       /** a full session or the pending cookie in stage ENROL, with the matching CSRF check (mfa/actor.ts) */
       actor: RequestHandler;
       requireReauth: (level: ReauthLevel) => RequestHandler;
+      settings: ReturnType<typeof createSecuritySettingsController>;
     };
   },
 ): Router {
@@ -183,6 +184,30 @@ export function createAuthRoutes(
     opts.mfa.requireReauth('STRONG'),
     auditMeta(auditOf('resetMemberMfa')),
     m.resetMember,
+  );
+
+  // Settings > Security (doc 52 sections 5 and 8): settings:* is never grantable, so Super Admin only; changes need STRONG
+  const st = opts.mfa.settings;
+  router.get('/settings/security', requirePermission('settings', 'view'), st.read);
+  router.get('/settings/security/status', requirePermission('settings', 'view'), st.status);
+  router.put(
+    '/settings/security',
+    originCheck(opts.appOrigin),
+    requirePermission('settings', 'edit'),
+    requireCsrf,
+    requireJsonBody,
+    opts.mfa.requireReauth('STRONG'),
+    auditMeta(auditOf('updateSecurityPolicy')),
+    st.update,
+  );
+  router.post(
+    '/settings/security/sms/resume',
+    originCheck(opts.appOrigin),
+    requirePermission('settings', 'edit'),
+    requireCsrf,
+    opts.mfa.requireReauth('STRONG'),
+    auditMeta(auditOf('resumeSms')),
+    st.resumeSms,
   );
   return router;
 }
