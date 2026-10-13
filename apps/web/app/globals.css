@@ -1,1 +1,65 @@
 @import 'tailwindcss';
+
+/*
+ * Design tokens (doc 19 section 2). Defaults until the exact Figma values replace them (task F0.6, doc 32): the neutral
+ * palette the screens already use, a blue brand accent, the navy sidebar gradient and the orange Zonal active item.
+ * Light mode only in this release (theme toggle is P2, D33). Components use the Tailwind names mapped below
+ * (bg-surface, text-muted, border-line, bg-primary ...), never raw hex values.
+ */
+:root {
+  --primary: #1d4ed8; /* blue-700: 6.7:1 on white */
+  --primary-foreground: #ffffff;
+  --sidebar-from: #0f1d3d;
+  --sidebar-to: #1e3a8a;
+  --sidebar-text: #dbe4ff;
+  --sidebar-active: #2563eb; /* Super Admin active item */
+  --accent-orange: #ea580c; /* Zonal Admin active item (doc 18 section 6) */
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --border: #e3e5ea;
+  --text: #111827;
+  --text-muted: #4b5563; /* 7.5:1 on white */
+  --success: #15803d;
+  --warning: #c2410c;
+  --danger: #b91c1c;
+  --neutral: #6b7280;
+
+  /* spacing is Tailwind's 4 px grid (4, 8, 12, 16, 24, 32, 48); radius: 6 inputs, 12 cards, 999 badges */
+  --radius-input: 6px;
+  --radius-card: 12px;
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-sidebar-from: var(--sidebar-from);
+  --color-sidebar-to: var(--sidebar-to);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-accent-orange: var(--accent-orange);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-neutral-token: var(--neutral);
+  --radius-input: var(--radius-input);
+  --radius-card: var(--radius-card);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
