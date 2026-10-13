@@ -148,6 +148,15 @@ describe('protected areas (owner decision P14: 404 for /super-admin, 403 for /zo
     expect(areaGate('shared', me('ZONAL_ADMIN', z), '/account/security').kind).toBe('ok');
   });
 
+  it('a pending first-login password change sends every area to /change-password (P15)', () => {
+    const restricted = { ...me('SUPER_ADMIN'), mustChangePassword: true };
+    for (const area of ['super-admin', 'zone', 'shared'] as const)
+      expect(areaGate(area, restricted, '/account/security')).toEqual({
+        kind: 'redirect',
+        to: '/change-password',
+      });
+  });
+
   it('?next= only ever names one of our own areas (no open redirect)', () => {
     for (const bad of [
       'https://evil.example',
