@@ -447,3 +447,14 @@ TC-ZONE-30 performance (10 ACTIVE zones × 1,000 pincodes = 10,000 rows in a thr
 Open points: (1) rate limit 429 per client and the route are it.todo until intake exists. (2) TC-ZONE-19 "intake order uses the zone row, not the cache" waits for order intake. (3) The cache holds one key per looked-up pincode (≤ 10,000 rows of serviceable_pincodes plus misses) for 300 s; invalid inputs are never cached or queried. (4) Perf numbers printed only with --disableConsoleIntercept (vitest hides console output of passing tests).
 Next step: P13 (doc 56)
 Verify: pnpm --filter @zoauro/api exec vitest run tests/zones --disableConsoleIntercept
+
+Date / task id: 2026-10-13 / P13 Demo accounts — scripts built, NOT run (doc 56)
+Lane / files changed: D — apps/api/prisma/demo-seed-run.ts (new: logic), apps/api/scripts/{demo-seed, demo-seed-prompt}.ts (new: entry, hidden terminal prompt), apps/api/package.json (demo:seed, demo:assign), tests/seed/demo-seed.test.ts (new, 16 tests); doc 32
+Commits: see git log ("feat(api): demo:seed and demo:assign…", "docs: p13…")
+Contract changes (docs 08/09/10/36): none; no schema change, no migration
+Decisions or [ASSUMPTION]s touched (D-numbers): none; doc 32 row lists the choices (prerequisites from db:seed, fixed sample emails, refusal on open sessions, audit actions, access_changes actor = the named Super Admin)
+Gate line status (pass/fail): pass — lint, typecheck (4 packages); demo-seed tests 16/16 three runs in a row (one earlier run hit a Redis ECONNRESET + 30 s timeout in setup, then 3 clean runs); API full suite 568 passed / 14 skipped / 2 todo on the second run (the first had two 30 s timeouts in tests/auth/mfa-otp and security-settings, not touched by P13; an isolated rerun I started in parallel with the full suite timed out on two other tests, i.e. load). Entry smoke test: `pnpm demo:seed` with a non-TTY stdin refuses before reading the target or connecting
+DATABASE: nothing was written to zoauro, zoauro_demo or zoauro_showcase; the scripts were never pointed at them. Tests used throwaway zoauro_audit_test_* databases only
+Open points: (1) WAITING for the owner's "approved" and the owner's own run in a terminal: first `pnpm --filter @zoauro/api db:seed` if the profiles are missing (zoauro had 0 users; profiles not verified), then `demo:seed --email admin@zoauro.local` (try --dry-run first), later `demo:assign` after zones exist (P16/P17 UI or the API). (2) Load-related 30 s test timeouts keep recurring on this machine (owner decision pending since P5: stop other containers or cap workers). (3) Raw-mode hidden input was verified only by its non-TTY refusal; the interactive path is exercised in tests through the injected prompter
+Next step: owner runs P13; P14 (doc 56)
+Verify: pnpm --filter @zoauro/api exec vitest run tests/seed/demo-seed.test.ts
