@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { DashboardStatus } from '../../../../components/shell/DashboardStatus';
+import { SuperAdminDashboard } from '../../../../features/dashboard/SuperAdminDashboard';
 import { getMe } from '../../../../lib/server-session';
 
 export const metadata: Metadata = { title: 'Dashboard · ZOAURO Admin' };
@@ -8,5 +8,5 @@ export const metadata: Metadata = { title: 'Dashboard · ZOAURO Admin' };
 export default async function Page() {
   const me = await getMe();
   if (!me) return null;
-  return <DashboardStatus name={me.user.name} userRole="SUPER_ADMIN" zones={[]} />;
+  return <SuperAdminDashboard name={me.user.name} />;
 }

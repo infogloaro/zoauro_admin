@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import type { MeResponse, MeZone, PermissionKey } from '@zoauro/shared';
-import { NAV_MODULES, comingSoonModule, homeFor, menuFor, visibleModules } from './navigation';
+import {
+  DOC39_MODULE_IDS,
+  NAV_GROUPS,
+  NAV_MODULES,
+  activeItem,
+  comingSoonModule,
+  groupedMenu,
+  homeFor,
+  menuFor,
+  visibleModules,
+} from './navigation';
 import { areaGate, loginUrl, safeNext } from './server-session';
 
-// P14 (doc 56): the menu config of doc 39 / doc 18, filtered by role and by /me, and the area guard.
+// P14 (doc 56): the menu config of doc 39 / doc 18 plus the owner's roadmap additions, filtered by role and by /me,
+// and the area guard.
 
 const zone = (code: string, permissions: PermissionKey[]): MeZone => ({
   zoneId: `0192f1d2-0000-7000-8000-00000000000${code.length}`,
@@ -23,57 +34,87 @@ const me = (role: 'SUPER_ADMIN' | 'ZONAL_ADMIN', zones: MeZone[] = []): MeRespon
   mfa: { enabled: true, required: true, enrolmentNeeded: false },
 });
 
-describe('module catalogue (doc 39)', () => {
-  it('has the 20 modules M01–M21 without M05 (the zone scope switcher), unique ids and slugs', () => {
+describe('module catalogue (doc 39 + roadmap)', () => {
+  it('keeps every doc 39 module (M01–M21 without M05) and the roadmap additions; ids and slugs are unique', () => {
     const ids = NAV_MODULES.map((m) => m.id);
-    expect(ids).toHaveLength(20);
-    expect(new Set(ids).size).toBe(20);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(new Set(NAV_MODULES.map((m) => m.slug)).size).toBe(ids.length);
     expect(ids).not.toContain('M05');
-    expect(
-      Array.from({ length: 21 }, (_, i) => `M${String(i + 1).padStart(2, '0')}`).filter(
-        (id) => id !== 'M05' && !ids.includes(id),
-      ),
-    ).toEqual([]);
-    expect(new Set(NAV_MODULES.map((m) => m.slug)).size).toBe(20);
+    for (const id of DOC39_MODULE_IDS) expect(ids).toContain(id);
+    for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('only Dashboard, Zones, Audit & Logs and Account security are live', () => {
+  it('live: Dashboard, Recent Activities, Zones, Security Settings, Audit & Logs and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
         .sort(),
-    ).toEqual(['M01', 'M02', 'M04', 'M16']);
+    ).toEqual(['M01', 'M02', 'M04', 'M04-ACT', 'M16', 'M19-SEC']);
+  });
+
+  it('every module not built yet has a plan with at least one screen; every module sits in a known group', () => {
+    const groups = new Set(NAV_GROUPS.map((g) => g.id));
+    for (const m of NAV_MODULES) {
+      expect(groups.has(m.group)).toBe(true);
+      if (m.status === 'coming-soon') expect(m.blueprint?.screens.length ?? 0).toBeGreaterThan(0);
+    }
+    // Phase 2 work is never presented as Phase 1 (roadmap R22, AC-16)
+    expect(NAV_MODULES.find((m) => m.id === 'M20-OFF')?.blueprint?.phase).toBe('Phase 2');
   });
 });
 
 describe('menu by role', () => {
   it('Super Admin: every module; live ones link to their page, the rest to /coming-soon/<slug>', () => {
     const menu = menuFor('SUPER_ADMIN', []);
-    expect(menu).toHaveLength(20);
+    expect(menu).toHaveLength(NAV_MODULES.length);
     const byId = Object.fromEntries(menu.map((m) => [m.id, m]));
     expect(byId['M16']).toMatchObject({ status: 'live', href: '/super-admin/dashboard' });
+    expect(byId['M04-ACT']).toMatchObject({ status: 'live', href: '/super-admin/activity' });
     expect(byId['M02']).toMatchObject({ status: 'live', href: '/super-admin/zones' });
     expect(byId['M04']).toMatchObject({ status: 'live', href: '/super-admin/settings/logs' });
+    expect(byId['M19-SEC']).toMatchObject({
+      status: 'live',
+      href: '/super-admin/settings/security',
+    });
     expect(byId['M01']).toMatchObject({ status: 'live', href: '/account/security' });
     expect(byId['M11']).toMatchObject({ status: 'coming-soon', href: '/coming-soon/orders' });
     expect(byId['M19']).toMatchObject({ status: 'coming-soon', href: '/coming-soon/settings' });
+    expect(byId['NEW-HOTEL']).toMatchObject({
+      status: 'coming-soon',
+      href: '/coming-soon/hotel-booking',
+    });
   });
 
-  it('Zonal Admin: never Zones, Audit, Access, Settings or Integrations; modules only where viewable in some zone', () => {
+  it('Zonal Admin: never Zones, Audit, Access, Settings, Integrations or the new hotel module; modules only where viewable in some zone', () => {
     const zones = [
       zone('A', ['orders:view', 'orders:edit', 'restaurants:view']),
       zone('BB', ['customers:view', 'payments:view']),
     ];
     expect(menuFor('ZONAL_ADMIN', zones).map((m) => m.label)).toEqual([
       'Dashboard',
-      'Orders',
+      'Restaurant Onboarding',
+      'Access Requests',
       'Restaurants',
+      'Orders',
       'Customers',
       'Payments',
       'Account security',
     ]);
     const ids = visibleModules('ZONAL_ADMIN', zones).map((m) => m.id);
-    for (const hidden of ['M02', 'M03', 'M04', 'M19', 'M21', 'M08', 'M13'])
+    for (const hidden of [
+      'M02',
+      'M03',
+      'M03-ACC',
+      'M04',
+      'M04-ACT',
+      'M19',
+      'M19-SEC',
+      'M21',
+      'M08',
+      'M13',
+      'NEW-HOTEL',
+      'R11',
+    ])
       expect(ids).not.toContain(hidden);
     expect(menuFor('ZONAL_ADMIN', zones)[0]).toMatchObject({
       href: '/zone/dashboard',
@@ -81,23 +122,43 @@ describe('menu by role', () => {
     });
   });
 
-  it('a module denied everywhere (payments:view removed) is not listed; no zone at all leaves Dashboard and Account security', () => {
+  it('a module denied everywhere (payments:view removed) is not listed; no zone at all leaves Dashboard, Access Requests and Account security', () => {
     expect(menuFor('ZONAL_ADMIN', [zone('A', ['orders:view'])]).map((m) => m.id)).toEqual([
       'M16',
+      'R13',
       'M11',
       'M01',
     ]);
-    expect(menuFor('ZONAL_ADMIN', []).map((m) => m.id)).toEqual(['M16', 'M01']);
+    expect(menuFor('ZONAL_ADMIN', []).map((m) => m.id)).toEqual(['M16', 'R13', 'M01']);
   });
 
   it('a Coming Soon page exists only for a module this person could see', () => {
     const zones = [zone('A', ['orders:view'])];
     expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)?.id).toBe('M11');
+    expect(comingSoonModule('access-requests', 'ZONAL_ADMIN', zones)?.id).toBe('R13');
     expect(comingSoonModule('settings', 'ZONAL_ADMIN', zones)).toBeNull();
     expect(comingSoonModule('customers', 'ZONAL_ADMIN', zones)).toBeNull();
+    expect(comingSoonModule('hotel-booking', 'ZONAL_ADMIN', zones)).toBeNull();
     expect(comingSoonModule('settings', 'SUPER_ADMIN', [])?.id).toBe('M19');
     expect(comingSoonModule('zones', 'SUPER_ADMIN', [])).toBeNull(); // live, not "coming soon"
+    expect(comingSoonModule('security-settings', 'SUPER_ADMIN', [])).toBeNull();
     expect(comingSoonModule('nope', 'SUPER_ADMIN', [])).toBeNull();
+  });
+
+  it('groups follow the sidebar order and leave out empty groups', () => {
+    const sa = groupedMenu(menuFor('SUPER_ADMIN', []));
+    expect(sa.map((g) => g.id)).toEqual(NAV_GROUPS.map((g) => g.id));
+    const zonal = groupedMenu(menuFor('ZONAL_ADMIN', []));
+    expect(zonal.map((g) => g.id)).toEqual(['overview', 'requests', 'account']);
+  });
+
+  it('the active entry is the longest matching link', () => {
+    const menu = menuFor('SUPER_ADMIN', []);
+    expect(activeItem(menu, '/super-admin/settings/security')?.id).toBe('M19-SEC');
+    expect(activeItem(menu, '/super-admin/zones/0192f1d2-0000-7000-8000-000000000001')?.id).toBe(
+      'M02',
+    );
+    expect(activeItem(menu, '/somewhere/else')).toBeNull();
   });
 
   it('role routing (doc 18 section 1)', () => {

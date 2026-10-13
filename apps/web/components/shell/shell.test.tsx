@@ -125,17 +125,19 @@ describe('protected layouts (server-side, every request)', () => {
 });
 
 describe('sidebar', () => {
-  it('Coming Soon items carry the badge and an accessible label; the active item is marked', () => {
+  it('Coming Soon items carry the Soon tag and an accessible label; groups fold; the active item is marked', () => {
+    const items = menuFor('SUPER_ADMIN', []);
     const html = renderToStaticMarkup(
-      <Sidebar
-        items={menuFor('SUPER_ADMIN', [])}
-        userRole="SUPER_ADMIN"
-        activePath="/super-admin/settings/logs"
-      />,
+      <Sidebar items={items} userRole="SUPER_ADMIN" activePath="/super-admin/settings/logs" />,
     );
+    const soon = items.filter((i) => i.status === 'coming-soon').length;
     expect(html).toContain('aria-label="Orders (coming soon)"');
     expect(html).toContain('href="/coming-soon/orders"');
-    expect(html.match(/Coming Soon/g)).toHaveLength(16);
+    expect(html.match(/data-status="coming-soon"/g)).toHaveLength(soon);
+    expect(html.match(/>Soon</g)).toHaveLength(soon);
+    expect(html).toContain('Requests &amp; Approvals');
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('/brand/zoauro-logo.jpeg');
     expect(html).toMatch(
       /aria-current="page"[^>]*>(<span>)?Audit &amp; Logs|href="\/super-admin\/settings\/logs" aria-current="page"/,
     );
