@@ -117,3 +117,105 @@ test('Zonal Admin: own dashboard from /me, Access Requests plan, no Super Admin 
   await page.goto('/zone/dashboard');
   await signOut(page);
 });
+
+/** Confirms with the password when the API asks for a re-authentication (PASSWORD is valid 10 minutes, then not asked). */
+async function confirmPasswordIfAsked(page: Page): Promise<void> {
+  const reauth = page
+    .getByRole('dialog')
+    .filter({ hasText: 'Confirm' })
+    .getByRole('textbox', { name: 'Password' });
+  if (await reauth.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await reauth.fill(state.password);
+    await page.getByRole('button', { name: 'Confirm' }).click();
+  }
+}
+
+test('Zone Management (TC-ZONE-28/29): overlap caught live and on save, create, activate, deactivate with impact, pincodes preview, activity', async ({
+  page,
+}) => {
+  await signInWithAuthenticator(page, state.superAdmin, 'Super Admin');
+  await expect(page).toHaveURL(/\/super-admin\/dashboard$/);
+  await page.goto('/super-admin/zones');
+  await expect(page.getByRole('heading', { name: 'Zone Management', level: 1 })).toBeVisible();
+  await look(page, 'sa-zones-list');
+
+  // zone A owns 600090
+  await page.getByRole('button', { name: 'Add zone' }).click();
+  const form = page.getByRole('dialog');
+  await form.getByLabel('Zone name').fill('E2E Adyar');
+  await form.getByLabel('Zone code').fill('EADY');
+  await form.getByLabel('City').fill('Chennai');
+  await form.getByLabel('State').fill('Tamil Nadu');
+  await form.getByLabel('Default delivery charge (₹)').fill('25');
+  await form.getByLabel('Add individual pincodes').fill('600090');
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await look(page, 'sa-zone-form');
+  await form.getByRole('button', { name: 'Create zone' }).click();
+  await expect(page).toHaveURL(/\/super-admin\/zones\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole('heading', { name: 'E2E Adyar', level: 1 })).toBeVisible();
+
+  // zone B asks for the same pincode: flagged while typing, refused on save; fixed, then created
+  await page.goto('/super-admin/zones?new=1');
+  const b = page.getByRole('dialog');
+  await b.getByLabel('Zone name').fill('E2E Velachery');
+  await b.getByLabel('Zone code').fill('EVEL');
+  await b.getByLabel('City').fill('Chennai');
+  await b.getByLabel('State').fill('Tamil Nadu');
+  await b.getByLabel('Default delivery charge (₹)').fill('30');
+  await b.getByLabel('Add individual pincodes').fill('600090 600091');
+  await b.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(b.getByText('in E2E Adyar')).toBeVisible();
+  await b.getByRole('button', { name: 'Create zone' }).click();
+  await expect(b.getByRole('alert')).toContainText('belong to another zone');
+  await b.getByRole('button', { name: 'Remove 600090' }).click();
+  await b.getByRole('button', { name: 'Create zone' }).click();
+  await expect(page.getByRole('heading', { name: 'E2E Velachery', level: 1 })).toBeVisible();
+  await expect(page.getByText('Upcoming').first()).toBeVisible();
+  await look(page, 'sa-zone-detail-overview');
+
+  // activate (password confirmation)
+  await page.getByRole('button', { name: 'Activate', exact: true }).click();
+  await page.getByRole('button', { name: 'Activate zone' }).click();
+  await confirmPasswordIfAsked(page);
+  await expect(page.getByText('E2E Velachery is live').first()).toBeAttached();
+  await expect(page.getByRole('button', { name: 'Deactivate' })).toBeVisible();
+
+  // deactivate: impact table, reason, acknowledgement
+  await page.getByRole('button', { name: 'Deactivate' }).click();
+  const d = page.getByRole('dialog');
+  await expect(d.getByRole('rowheader', { name: 'Open orders' })).toBeVisible();
+  await expect(d.getByText(/Some modules are not built yet/)).toBeVisible();
+  await look(page, 'sa-zone-deactivate');
+  await d.getByLabel('Reason').fill('Road works on the main street');
+  await d.getByLabel(/I understand open orders will continue/).check();
+  await d.getByRole('button', { name: 'Deactivate zone' }).click();
+  await confirmPasswordIfAsked(page);
+  await expect(page.getByText(/Paused/).first()).toBeVisible();
+
+  // pincodes: preview then save
+  await page.getByRole('tab', { name: 'Pincodes' }).click();
+  await page.getByLabel('Pincodes to add').fill('600092');
+  await page.getByRole('button', { name: 'Preview' }).click();
+  await expect(page.getByText('+1 added:')).toBeVisible();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('cell', { name: '600092' })).toBeVisible();
+  await look(page, 'sa-zone-detail-pincodes');
+
+  // activity: the changes made above are in the audit trail
+  await page.getByRole('tab', { name: 'Activity' }).click();
+  await expect(page.getByText(/Deactivated zone|zone.deactivated/i).first()).toBeVisible();
+  await look(page, 'sa-zone-detail-activity');
+
+  await page.getByRole('tab', { name: 'Team' }).click();
+  await look(page, 'sa-zone-detail-team');
+
+  // P17: System Logs inside the shell (one main landmark), with the zone just created in its rows; the Sign-ins tab
+  await page.goto('/super-admin/settings/logs');
+  await expect(page.getByRole('heading', { name: 'System Logs', level: 1 })).toBeVisible();
+  await expect(page.getByRole('main')).toHaveCount(1);
+  await expect(page.getByRole('row').filter({ hasText: 'E2E Velachery' }).first()).toBeVisible();
+  await look(page, 'sa-system-logs');
+  await page.getByRole('tab', { name: 'Sign-ins' }).click();
+  await look(page, 'sa-system-logs-signins');
+  await signOut(page);
+});

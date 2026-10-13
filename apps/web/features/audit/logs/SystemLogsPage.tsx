@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useMemo, useRef, useState } from 'react';
+import { PageHeader } from '../../../components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import {
   Tooltip,
@@ -50,7 +51,7 @@ function RelatedLinks() {
           <a
             key={l.href}
             href={l.href}
-            className="text-blue-700 underline-offset-2 hover:underline dark:text-blue-400"
+            className="font-medium text-primary-strong underline-offset-2 hover:underline"
           >
             {l.label}
           </a>
@@ -103,11 +104,23 @@ function SystemLogs({ timeZone }: { timeZone: string }) {
   };
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-4 p-6" ref={region}>
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold">System Logs</h1>
-        <RelatedLinks />
-      </header>
+    // inside the shell, whose <main> already wraps the page: one main landmark (P17)
+    <div className="flex flex-col gap-4" ref={region}>
+      <PageHeader
+        title="System Logs"
+        crumbs={[
+          { label: 'Dashboard', href: '/super-admin/dashboard' },
+          { label: 'Administration' },
+          { label: 'Audit & Logs' },
+        ]}
+        description={
+          <span className="flex flex-col gap-2">
+            Who did what, when and where: every change and every sign-in, with filters you can
+            share.
+            <RelatedLinks />
+          </span>
+        }
+      />
 
       <Tabs value={tab} onValueChange={switchTab}>
         <TabsList aria-label="Log type">
@@ -159,7 +172,7 @@ function SystemLogs({ timeZone }: { timeZone: string }) {
           },
         }}
       />
-    </main>
+    </div>
   );
 }
 
