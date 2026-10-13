@@ -1,3 +1,11 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# pnpm v10 blocks postinstall scripts by default; these are required by the
+# documented stack (Prisma engines, esbuild for tsup/tsx) — see doc 06.
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - 'prisma'
+  - 'esbuild'

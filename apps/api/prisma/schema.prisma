@@ -1,0 +1,285 @@
+// ZOAURO Admin — schema for SA-1.1 (Zone Management) + session auth + the
+// vendor tables of SA-2 (M06 Restaurants, M07 Homemakers).
+// Source of truth: docs 08 (schema), 09 (API), 10 §4 (vendor state machine),
+// 14 (auth). Remaining operational tables (menu, orders, …) arrive later.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Identity role only (doc 08: "no permissions here (v1.2)").
+enum RoleKey {
+  SUPER_ADMIN
+  ZONAL_ADMIN
+}
+
+/// doc 08 ZoneStatus (D35 adds UPCOMING).
+enum ZoneStatus {
+  ACTIVE
+  INACTIVE
+  UPCOMING
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Role {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      RoleKey  @unique
+  isSystem  Boolean  @default(true) @map("is_system")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  users     User[]
+
+  @@map("roles")
+}
+
+model User {
+  id                 String     @id @default(uuid()) @db.Uuid
+  name               String
+  email              String
+  phone              String?
+  passwordHash       String     @map("password_hash")
+  roleId             String     @map("role_id") @db.Uuid
+  role               Role       @relation(fields: [roleId], references: [id])
+  status             UserStatus @default(ACTIVE)
+  mustChangePassword Boolean    @default(false) @map("must_change_password")
+  failedAttempts     Int        @default(0) @map("failed_attempts")
+  lockedUntil        DateTime?  @map("locked_until")
+  lastLoginAt        DateTime?  @map("last_login_at")
+  deletedAt          DateTime?  @map("deleted_at")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  sessions     Session[]
+  loginHistory LoginHistory[]
+  auditLogs    AuditLog[]     @relation("AuditActor")
+
+  // Partial unique (email where deleted_at is null) is created in the SQL
+  // migration — Prisma cannot express WHERE clauses on indexes.
+  @@index([roleId])
+  @@map("users")
+}
+
+model Session {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  user               User      @relation(fields: [userId], references: [id])
+  tokenHash          String    @unique @map("token_hash")
+  csrfToken          String    @map("csrf_token")
+  ip                 String?
+  userAgent          String?   @map("user_agent")
+  expiresAt          DateTime  @map("expires_at")
+  absoluteExpiresAt  DateTime  @map("absolute_expires_at")
+  reauthenticatedAt  DateTime? @map("reauthenticated_at")
+  revokedAt          DateTime? @map("revoked_at")
+  lastSeenAt         DateTime  @default(now()) @map("last_seen_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model LoginHistory {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  user           User?    @relation(fields: [userId], references: [id])
+  emailAttempted String   @map("email_attempted")
+  success        Boolean
+  ip             String?
+  userAgent      String?  @map("user_agent")
+  reason         String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("login_history")
+}
+
+/// Operational zone (docs 08, 22). Deactivation is a status transition
+/// (doc 09: DELETE = deactivate); `deleted_at` is the architecture default
+/// for a future true soft-delete and keeps uniqueness semantics explicit.
+model Zone {
+  id            String     @id @default(uuid()) @db.Uuid
+  name          String     @unique
+  code          String     @unique
+  city          String
+  state         String
+  pincodeFrom   String?    @map("pincode_from") @db.VarChar(6)
+  pincodeTo     String?    @map("pincode_to") @db.VarChar(6)
+  deliveryCharge Int       @map("delivery_charge")
+  status        ZoneStatus @default(ACTIVE)
+  description   String?    @db.VarChar(500)
+  colorHex      String     @default("#2F6BFF") @map("color_hex") @db.VarChar(7)
+  deletedAt     DateTime?  @map("deleted_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  serviceablePincodes ServiceablePincode[]
+  auditLogs           AuditLog[]
+  restaurants         Restaurant[]
+  homemakers          Homemaker[]
+
+  @@index([status])
+  @@index([city])
+  @@index([state])
+  @@map("zones")
+}
+
+/// Explicitly serviceable pincodes (doc 08). Populated by the zone resolver
+/// (IH-2); SA-1.1 manages the pincode range on the zone itself.
+model ServiceablePincode {
+  id       String @id @default(uuid()) @db.Uuid
+  zoneId   String @map("zone_id") @db.Uuid
+  zone     Zone   @relation(fields: [zoneId], references: [id])
+  pincode  String @db.VarChar(6)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([zoneId, pincode])
+  @@index([pincode])
+  @@map("serviceable_pincodes")
+}
+
+/// Append-only (doc 08).
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String   @map("actor_id") @db.Uuid
+  actor      User     @relation("AuditActor", fields: [actorId], references: [id])
+  zoneId     String?  @map("zone_id") @db.Uuid
+  zone       Zone?    @relation(fields: [zoneId], references: [id])
+  module     String
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  beforeJson Json?    @map("before_json")
+  afterJson  Json?    @map("after_json")
+  ip         String?
+  requestId  String?  @map("request_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([actorId, createdAt])
+  @@index([module, action, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+/// Vendor lifecycle (doc 08 VendorStatus; doc 10 §4): PENDING → ACTIVE only
+/// after verification, ACTIVE → INACTIVE, ACTIVE → SUSPENDED → ACTIVE.
+enum VendorStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+/// Doc 08 VerificationStatus — independent of status (D22, doc 10 §4).
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+/// doc 08 `vendor_documents.vendor_type`.
+enum VendorType {
+  RESTAURANT
+  HOMEMAKER
+}
+
+/// M06 Restaurants (doc 08 "Vendors and menu"). Zone-owned: zone_id NOT NULL.
+model Restaurant {
+  id                 String             @id @default(uuid()) @db.Uuid
+  zoneId             String             @map("zone_id") @db.Uuid
+  zone               Zone               @relation(fields: [zoneId], references: [id])
+  name               String
+  ownerName          String             @map("owner_name")
+  phone              String
+  email              String?
+  address            String
+  area               String?            @db.VarChar(80)
+  lat                Float?
+  lng                Float?
+  cuisineTags        String[]           @map("cuisine_tags")
+  commissionPct      Float?             @map("commission_pct")
+  status             VendorStatus       @default(PENDING)
+  verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
+  verificationNote   String?            @map("verification_note") @db.VarChar(300)
+  verifiedAt         DateTime?          @map("verified_at")
+  verifiedBy         String?            @map("verified_by") @db.Uuid
+  openingHoursJson   Json?              @map("opening_hours_json")
+  logoKey            String?            @map("logo_key")
+  minOrder           Int?               @map("min_order")
+  gstNo              String?            @map("gst_no") @db.VarChar(20)
+  fssaiNo            String?            @map("fssai_no") @db.VarChar(20)
+  deletedAt          DateTime?          @map("deleted_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  // Zone-owned list indexes (doc 08 "Indexes and constraints").
+  @@index([zoneId, status])
+  @@index([zoneId, createdAt])
+  @@index([status])
+  @@index([verificationStatus])
+  @@map("restaurants")
+}
+
+/// M07 Homemakers (doc 08). Daily capacity and availability are homemaker-only.
+model Homemaker {
+  id                 String             @id @default(uuid()) @db.Uuid
+  zoneId             String             @map("zone_id") @db.Uuid
+  zone               Zone               @relation(fields: [zoneId], references: [id])
+  name               String
+  phone              String
+  email              String?
+  address            String
+  area               String?            @db.VarChar(80)
+  lat                Float?
+  lng                Float?
+  specialityTags     String[]           @map("speciality_tags")
+  foodCategory       String?            @map("food_category") @db.VarChar(60)
+  experienceYears    Int?               @map("experience_years")
+  isAvailable        Boolean            @default(true) @map("is_available")
+  dailyCapacity      Int?               @map("daily_capacity")
+  commissionPct      Float?             @map("commission_pct")
+  status             VendorStatus       @default(PENDING)
+  verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
+  verificationNote   String?            @map("verification_note") @db.VarChar(300)
+  verifiedAt         DateTime?          @map("verified_at")
+  verifiedBy         String?            @map("verified_by") @db.Uuid
+  openingHoursJson   Json?              @map("opening_hours_json")
+  photoKey           String?            @map("photo_key")
+  minOrder           Int?               @map("min_order")
+  fssaiNo            String?            @map("fssai_no") @db.VarChar(20)
+  deletedAt          DateTime?          @map("deleted_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  @@index([zoneId, status])
+  @@index([zoneId, createdAt])
+  @@index([status])
+  @@index([verificationStatus])
+  @@map("homemakers")
+}
+
+/// doc 08 vendor_documents. Polymorphic on purpose (vendor_type + vendor_id);
+/// rows are written once the SA-2.1 uploads service lands.
+model VendorDocument {
+  id            String     @id @default(uuid()) @db.Uuid
+  vendorType    VendorType @map("vendor_type")
+  vendorId      String     @map("vendor_id") @db.Uuid
+  docType       String     @map("doc_type") @db.VarChar(40)
+  fileKey       String     @map("file_key")
+  verified      Boolean    @default(false)
+  verifiedBy    String?    @map("verified_by") @db.Uuid
+  rejectionNote String?    @map("rejection_note") @db.VarChar(300)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  @@index([vendorType, vendorId])
+  @@map("vendor_documents")
+}

@@ -20,6 +20,9 @@
 | TD-15 | Hosting starts single-host; ECS/Terraform/Multi-AZ/WAF deferred (D31) | Architecture | DevOps | After pilot |
 | TD-16 | Partner sharing across zones not supported (R-DEL-2) | Limitation | Product owner | If operations need it |
 | TD-17 | Theme toggle, SMS OTP, Hotels tab not in v1 (D23, D33, doc 14) | Scope | Product owner | Post launch |
+| TD-18 | M06/M07 vendor routes return 403 for Zonal Admin until M03/SA-1.7 swaps the seam in `apps/api/src/modules/vendors/vendor.scope.ts` (Super Admin passes everything today) | Security / deferred | Dev 2 | M03 (SA-1.7) |
+| TD-19 | `POST /restaurants/{id}/documents` (doc 09) returns 404 until the SA-2.1 upload service; `vendor_documents` table exists and the UI Documents tab shows an empty state | Deferred contract gap | Dev 2 | SA-2.1 |
+| TD-20 | M06/M07 UI placeholders: Menu tab (M08), Orders tab (M11); no bulk status actions, no rating / today's-orders columns (doc 20) | Design gap | Dev 2 | M08, M11 |
 
 ## 2. Architecture decision records
 | ADR | Date | Decision | Status |
@@ -56,6 +59,7 @@
 | 2026-10-10 | Estimate corrected: about 62 dev-weeks, about 24 weeks with 3 developers (earlier 2-developer 26 weeks was optimistic, about 31 weeks) | Assistant | 35, 40 |
 | 2026-10-10 | **v2.0:** data fed by customer, vendor and partner apps; docs 41–48 and `contracts/` added; D50–D58; D51 changes bearer token to HMAC; R-VEN-3 refined | Product owner request | 03, 06, 08, 09, 12–14, 24, 25, 30, 31, 34, 39, 40 |
 | 2026-10-10 | Estimate: integration adds about 7.5 dev-weeks; about 26 weeks with 3 developers (was 24, doc 40 v1.2) | Assistant | 40 |
+| 2026-10-13 | M06/M07 shipped as one `modules/vendors` core with thin `/restaurants` + `/homemakers` routers; document upload endpoint intentionally 404 until SA-2.1; Zonal Admin 403 on vendor routes until the M03 seam swap | Assistant | 08 (structure), 09, 20–22 |
 
 ## 4. Process
 Any change to a decision, contract or convention adds a row here and updates the affected documents in the same PR. Post-mortem actions and deferred refactors are added as TD items with owner and revisit date. Review this file at the end of each phase.

@@ -1,1 +1,40 @@
 @import 'tailwindcss';
+
+/*
+ * ZOAURO admin tokens (doc 19 §1-2, hex values from doc 37 — approximate until
+ * Figma exact values land in F0.6; log replacements in doc 32).
+ */
+@theme {
+  --color-sidebar: #0d1527;
+  --color-sidebar-hover: #17203a;
+  --color-sidebar-text: #c7cede;
+  --color-nav-active: #2f6bff;
+  --color-primary: #ff5a1f;
+  --color-primary-hover: #e64e15;
+  --color-bg: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
+  --color-text: #111827;
+  --color-muted: #6b7280;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --color-neutral-badge: #9ca3af;
+
+  --radius-input: 6px;
+  --radius-card: 12px;
+
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-nav-active);
+  outline-offset: 1px;
+}

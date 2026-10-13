@@ -29,6 +29,10 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       'import/no-cycle': 'error',
       'no-restricted-syntax': [
         'error',
@@ -62,11 +66,26 @@ export default tseslint.config(
       ],
     },
   },
-  // API: Prisma only inside repository files.
+  // API: Prisma only inside repository files (+ the lib/db.ts client singleton
+  // and test-support helpers, per doc 07 module layout). Type-only imports are
+  // allowed everywhere (services/controllers may name Prisma types).
   {
     files: ['apps/api/**/*.ts'],
-    ignores: ['apps/api/**/repository.ts', 'apps/api/**/*.repository.ts', 'apps/api/prisma/**'],
-    rules: { 'no-restricted-imports': ['error', { patterns: [prismaRestriction] }] },
+    ignores: [
+      'apps/api/**/repository.ts',
+      'apps/api/**/*.repository.ts',
+      'apps/api/src/lib/db.ts',
+      'apps/api/src/test-support/**',
+      'apps/api/**/*.test.ts',
+      'apps/api/prisma/**',
+      'apps/api/vitest.*.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        { patterns: [{ ...prismaRestriction, allowTypeImports: true }] },
+      ],
+    },
   },
   // Shared: pure, no app or Prisma imports.
   {
