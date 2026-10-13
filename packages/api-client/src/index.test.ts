@@ -17,6 +17,8 @@ function fakeFetch(responses: { status: number; body?: unknown }[]) {
 }
 
 const LOGIN_OK = {
+  status: 'OK',
+  redirect: '/super-admin/dashboard',
   user: {
     id: '0192f1d2-0000-7000-8000-00000000000a',
     name: 'A',
@@ -25,7 +27,6 @@ const LOGIN_OK = {
   },
   mustChangePassword: false,
   csrfToken: 'csrf-123',
-  redirectTo: '/super-admin/dashboard',
 };
 
 describe('api client', () => {
@@ -44,7 +45,9 @@ describe('api client', () => {
       password: 'pw',
       tab: 'SUPER_ADMIN',
     });
-    expect(res.redirectTo).toBe('/super-admin/dashboard');
+    // the response is a union over the 2-step status (doc 52 section 8)
+    if (res.status !== 'OK') throw new Error('expected a signed-in response');
+    expect(res.redirect).toBe('/super-admin/dashboard');
     expectTypeOf(res.user.role).toEqualTypeOf<'SUPER_ADMIN' | 'ZONAL_ADMIN'>();
   });
 

@@ -28,10 +28,8 @@ const MIN = 60_000;
 const HOUR = 60 * MIN;
 
 async function signIn(user: TestUser, remember = false) {
-  const res = await env
-    .api(app)
-    .post('/auth/login')
-    .send({ email: user.email, password: PASSWORD, tab: user.role, remember });
+  // both steps (password + authenticator code), on this app with the real session cap
+  const res = await env.login(user, PASSWORD, user.role, { app, remember });
   expect(res.status).toBe(200);
   return { cookie: cookieOf(res), csrf: res.body.csrfToken as string, res };
 }

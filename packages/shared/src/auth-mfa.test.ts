@@ -12,8 +12,9 @@ import {
   passwordPolicySchema,
   reauthStepUpSchema,
   securityPolicySchema,
-  twoStepLoginResponseSchema,
-  twoStepLoginSchema,
+  LOGIN_STATUSES,
+  loginResponseSchema,
+  loginSchema,
 } from './index';
 
 const policy = DEFAULT_SECURITY_POLICY;
@@ -122,18 +123,38 @@ describe('codes', () => {
 describe('login, challenge and verify', () => {
   it('login takes remember (default false) on top of the existing fields', () => {
     const base = { email: 'A@Example.com', password: 'x', tab: 'ZONAL_ADMIN' };
-    expect(twoStepLoginSchema.parse(base)).toMatchObject({
+    expect(loginSchema.parse(base)).toMatchObject({
       email: 'a@example.com',
       remember: false,
     });
-    expect(twoStepLoginSchema.parse({ ...base, remember: true }).remember).toBe(true);
+    expect(loginSchema.parse({ ...base, remember: true }).remember).toBe(true);
   });
 
-  it('login status is OK | MFA_REQUIRED | ENROLMENT_REQUIRED', () => {
-    for (const status of ['OK', 'MFA_REQUIRED', 'ENROLMENT_REQUIRED']) {
-      expect(twoStepLoginResponseSchema.safeParse({ status }).success, status).toBe(true);
-    }
-    expect(twoStepLoginResponseSchema.safeParse({ status: 'LOCKED' }).success).toBe(false);
+  it('login response: OK with the session fields, MFA_REQUIRED with methods, ENROLMENT_REQUIRED alone', () => {
+    const ok = {
+      status: 'OK',
+      redirect: '/zone/dashboard',
+      user: {
+        id: '0192f1d2-0000-7000-8000-000000000001',
+        name: 'A',
+        email: 'a@x.test',
+        role: 'ZONAL_ADMIN',
+      },
+      mustChangePassword: false,
+      csrfToken: 't',
+    };
+    expect(loginResponseSchema.safeParse(ok).success).toBe(true);
+    expect(loginResponseSchema.safeParse({ status: 'OK' }).success).toBe(false);
+    expect(
+      loginResponseSchema.safeParse({
+        status: 'MFA_REQUIRED',
+        methods: [{ type: 'AUTHENTICATOR', hint: 'Authenticator app' }],
+        preferred: 'AUTHENTICATOR',
+      }).success,
+    ).toBe(true);
+    expect(loginResponseSchema.safeParse({ status: 'ENROLMENT_REQUIRED' }).success).toBe(true);
+    expect(loginResponseSchema.safeParse({ status: 'LOCKED' }).success).toBe(false);
+    expect(LOGIN_STATUSES).toEqual(['OK', 'MFA_REQUIRED', 'ENROLMENT_REQUIRED']);
   });
 
   it('a code can be sent only for EMAIL_OTP and SMS_OTP', () => {

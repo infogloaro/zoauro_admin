@@ -13,6 +13,8 @@ export interface AuthMailer {
     userAgent: string | null;
   }): Promise<void>;
   sendPasswordChanged(m: { to: string; name: string; at: Date; ip: string | null }): Promise<void>;
+  /** doc 52 sections 2.5 and 2.7: a backup code was used to sign in */
+  sendBackupCodeUsed(m: { to: string; name: string; at: Date; remaining: number }): Promise<void>;
 }
 
 /** Until a mailer is configured nothing is sent (and never logged). */
@@ -20,6 +22,7 @@ export const noopAuthMailer: AuthMailer = {
   sendPasswordReset: async () => undefined,
   sendNewLogin: async () => undefined,
   sendPasswordChanged: async () => undefined,
+  sendBackupCodeUsed: async () => undefined,
 };
 
 const UA_IN_MAIL_MAX = 120;
@@ -92,6 +95,18 @@ export function createAuthMailer(mailer: Mailer, opts: { appUrl: string }): Auth
         message(m.to, 'Your ZOAURO Admin password was changed', [
           `Hello ${m.name},`,
           `The password of your account was changed on ${formatIst(m.at)} (IP address: ${m.ip ?? 'unknown'}). Sessions on other devices were signed out.`,
+          IF_NOT_YOU,
+        ]),
+      ),
+
+    sendBackupCodeUsed: (m) =>
+      mailer.send(
+        message(m.to, 'A backup code was used to sign in', [
+          `Hello ${m.name},`,
+          `A backup code was used to sign in to your account on ${formatIst(m.at)}. Each code works once; you have ${m.remaining} left.`,
+          m.remaining <= 3
+            ? 'You are running low: generate new backup codes in Account security.'
+            : 'If you lost your phone, add a new authenticator in Account security.',
           IF_NOT_YOU,
         ]),
       ),

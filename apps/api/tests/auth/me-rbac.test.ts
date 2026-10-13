@@ -125,11 +125,11 @@ describe('GET /me for a Zonal Admin: zones with permissions and limits', () => {
 });
 
 describe('GET /me for every role', () => {
-  it('Super Admin is global; the 2-step placeholders are typed (P8 fills them)', async () => {
+  it('Super Admin is global; mfa reports the enrolled method and the policy (doc 52 section 8)', async () => {
     const sa = await env.createUser('SUPER_ADMIN');
     const { cookie } = await env.session(sa);
     const body = (await env.api().get('/me').set('Cookie', cookie)).body;
     expect(body.permissions).toEqual({ global: true });
-    expect(body.mfa).toEqual({ enabled: false, required: false, enrolmentNeeded: false });
+    expect(body.mfa).toEqual({ enabled: true, required: true, enrolmentNeeded: false });
   });
 });

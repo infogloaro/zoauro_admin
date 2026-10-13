@@ -41,6 +41,9 @@ const auth = createAuthModule({
   redis,
   audit,
   mailer: createAuthMailer(mailer, { appUrl: env.APP_URL }),
+  encryptionKey: env.ENCRYPTION_KEY,
+  ...(env.ENCRYPTION_KEY_PREVIOUS ? { encryptionKeyPrevious: env.ENCRYPTION_KEY_PREVIOUS } : {}),
+  otpHmacKey: env.OTP_HMAC_KEY,
   sessionSecret: env.SESSION_SECRET,
   appOrigin: new URL(env.APP_URL).origin,
 });

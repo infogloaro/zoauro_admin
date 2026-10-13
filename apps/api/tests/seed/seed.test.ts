@@ -270,14 +270,25 @@ describe('the admin account is optional and validated', () => {
 });
 
 describe('gate F1: both seeded roles can sign in and get their seeded access', () => {
-  it('the seeded Super Admin signs in on the Super Admin tab and must change the password', async () => {
-    const res = await env
-      .api()
-      .post('/auth/login')
-      .send({ email: 'first.admin@example.test', password: ADMIN.password, tab: 'SUPER_ADMIN' });
+  it('the seeded Super Admin must enrol a second step first, then signs in and must change the password', async () => {
+    const seeded = { email: 'first.admin@example.test', role: 'SUPER_ADMIN' as const };
+    // doc 52 section 2.3: the bootstrap account goes through enrolment like everyone (P10 builds the enrolment routes)
+    const first = await env.passwordStep(seeded, ADMIN.password);
+    expect(first.status).toBe(200);
+    expect(first.body).toEqual({ status: 'ENROLMENT_REQUIRED' });
+    expect(String(first.headers['set-cookie'])).not.toContain('zo_sid=');
+
+    const row = await prisma.user.findFirst({
+      where: { email: seeded.email },
+      select: { id: true },
+    });
+    const id = row?.id ?? '';
+    const totpSecret = await env.enrolAuthenticator(id);
+    const res = await env.login({ ...seeded, id, totpSecret }, ADMIN.password);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      redirectTo: '/super-admin/dashboard',
+      status: 'OK',
+      redirect: '/super-admin/dashboard',
       mustChangePassword: true,
       user: { role: 'SUPER_ADMIN' },
     });
@@ -306,6 +317,6 @@ describe('gate F1: both seeded roles can sign in and get their seeded access', (
     expect(held).toEqual((await seededMatrix())['Support']);
 
     const login = await env.login(member, PASSWORD);
-    expect(login.body.redirectTo).toBe('/zone/dashboard');
+    expect(login.body.redirect).toBe('/zone/dashboard');
   });
 });

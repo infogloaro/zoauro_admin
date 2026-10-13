@@ -3,17 +3,27 @@ import {
   changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
+  mfaVerifySchema,
   reauthSchema,
   resetPasswordSchema,
   sessionIdParamsSchema,
 } from '@zoauro/shared';
-import { clearedSessionCookie, preSessionCsrfCookie, sessionCookie } from '../../lib/auth/cookies';
+import { PENDING_LOGIN_COOKIE } from '../../lib/auth/config';
+import {
+  clearedPendingLoginCookie,
+  clearedSessionCookie,
+  parseCookies,
+  pendingLoginCookie,
+  preSessionCsrfCookie,
+  sessionCookie,
+} from '../../lib/auth/cookies';
 import { issuePreSessionCsrf } from '../../lib/auth/crypto';
 import { getAuth } from '../../lib/auth/middleware';
 import { authContextOf } from '../../lib/authz';
 import type { AuthSession } from '../../lib/auth/session-store';
 import { AppError, parseBody, requestIdOf } from '../../lib/errors';
-import type { AuthService, RequestMeta } from './auth.service';
+import type { AuthService, RequestMeta, StartedSession } from './auth.service';
+import { PENDING_LOGIN_TTL_MS } from './mfa/pending';
 
 // Parse (shared Zod schema) -> call the service -> shape the response. No rules live here.
 
@@ -40,15 +50,62 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
     res.json({ token });
   };
 
+  /** Signed in: zo_sid set, any pending login cleared, the LoginOk body (doc 52 section 8). */
+  const sendSignedIn = (res: Response, s: StartedSession): void => {
+    res.setHeader('Set-Cookie', [
+      sessionCookie(s.sessionToken, s.cookieMaxAgeSec),
+      clearedPendingLoginCookie(),
+    ]);
+    res.json({
+      status: 'OK',
+      redirect: s.redirect,
+      user: s.user,
+      mustChangePassword: s.mustChangePassword,
+      csrfToken: s.csrfToken,
+    });
+  };
+
   const login: RequestHandler = async (req, res) => {
     const result = await service.login(parseBody(loginSchema, req.body), metaOf(req, res));
-    res.setHeader('Set-Cookie', sessionCookie(result.sessionToken, result.cookieMaxAgeSec));
-    res.json({
-      user: result.user,
-      mustChangePassword: result.mustChangePassword,
-      csrfToken: result.csrfToken,
-      redirectTo: result.redirectTo,
-    });
+    if (result.status === 'OK') {
+      sendSignedIn(res, result.session);
+      return;
+    }
+    // no session yet: only the pending cookie (doc 52 section 2.1 rule 1)
+    res.setHeader(
+      'Set-Cookie',
+      pendingLoginCookie(result.pendingToken, Math.floor(PENDING_LOGIN_TTL_MS / 1000)),
+    );
+    res.json(
+      result.status === 'MFA_REQUIRED'
+        ? {
+            status: result.status,
+            methods: result.methods,
+            ...(result.preferred ? { preferred: result.preferred } : {}),
+          }
+        : { status: result.status },
+    );
+  };
+
+  /** POST /auth/mfa/verify: the pending cookie plus a code; the session is minted only here (doc 52 section 2.1 [3]). */
+  const verifyMfa: RequestHandler = async (req, res) => {
+    const input = parseBody(mfaVerifySchema, req.body);
+    const pendingToken = parseCookies(req.get('cookie'))[PENDING_LOGIN_COOKIE];
+    if (!pendingToken) {
+      throw new AppError('UNAUTHENTICATED', 'Your sign-in has expired. Sign in again.');
+    }
+    const result = await service.verifyMfa(pendingToken, input, metaOf(req, res));
+    if (result.ok) {
+      sendSignedIn(res, result.session);
+      return;
+    }
+    if (result.pendingEnded) res.setHeader('Set-Cookie', clearedPendingLoginCookie());
+    throw new AppError(
+      'UNAUTHENTICATED',
+      result.pendingEnded
+        ? 'That code didn’t work. Sign in again.'
+        : 'That code didn’t work. Check it and try again.',
+    );
   };
 
   const logout: RequestHandler = async (req, res) => {
@@ -107,6 +164,7 @@ export function createAuthController(service: AuthService, opts: { csrfSecret: s
   return {
     csrf,
     login,
+    verifyMfa,
     logout,
     forgotPassword,
     resetPassword,

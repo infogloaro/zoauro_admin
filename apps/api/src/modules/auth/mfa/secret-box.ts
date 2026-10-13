@@ -72,3 +72,7 @@ export function createSecretBox(keys: { current: string; previous?: string }): S
     },
   };
 }
+
+/** Associated data for an authenticator secret: it opens only for its owner (doc 32, P7). */
+export const mfaSecretAad = (userId: string): string =>
+  `user_mfa_methods.secret_encrypted:${userId}`;

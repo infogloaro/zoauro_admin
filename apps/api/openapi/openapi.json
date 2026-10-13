@@ -226,8 +226,257 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "OK"
+                          ]
+                        },
+                        "redirect": {
+                          "type": "string"
+                        },
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "SUPER_ADMIN",
+                                "ZONAL_ADMIN"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "email",
+                            "role"
+                          ]
+                        },
+                        "mustChangePassword": {
+                          "type": "boolean"
+                        },
+                        "csrfToken": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "redirect",
+                        "user",
+                        "mustChangePassword",
+                        "csrfToken"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "MFA_REQUIRED"
+                          ]
+                        },
+                        "methods": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "AUTHENTICATOR",
+                                  "EMAIL_OTP",
+                                  "SMS_OTP"
+                                ]
+                              },
+                              "hint": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "hint"
+                            ]
+                          }
+                        },
+                        "preferred": {
+                          "type": "string",
+                          "enum": [
+                            "AUTHENTICATOR",
+                            "EMAIL_OTP",
+                            "SMS_OTP"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "methods"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "ENROLMENT_REQUIRED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "public",
+          "preSessionCsrf": true
+        },
+        "x-audit": {
+          "none": "login"
+        }
+      }
+    },
+    "/auth/mfa/verify": {
+      "post": {
+        "operationId": "verifyMfa",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Second step of sign-in with the pending cookie zo_mfa: an authenticator code or a backup code. Creates the session",
+        "security": [
+          {
+            "preSessionCsrfCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": "string",
+                        "enum": [
+                          "AUTHENTICATOR",
+                          "EMAIL_OTP",
+                          "SMS_OTP"
+                        ]
+                      },
+                      "code": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "method",
+                      "code"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": "string",
+                        "enum": [
+                          "BACKUP_CODE"
+                        ]
+                      },
+                      "code": {
+                        "type": "string",
+                        "maxLength": 32
+                      }
+                    },
+                    "required": [
+                      "method",
+                      "code"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; session cookie set, pending cookie cleared",
+            "content": {
+              "application/json": {
+                "schema": {
                   "type": "object",
                   "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "redirect": {
+                      "type": "string"
+                    },
                     "user": {
                       "type": "object",
                       "properties": {
@@ -261,16 +510,14 @@
                     },
                     "csrfToken": {
                       "type": "string"
-                    },
-                    "redirectTo": {
-                      "type": "string"
                     }
                   },
                   "required": [
+                    "status",
+                    "redirect",
                     "user",
                     "mustChangePassword",
-                    "csrfToken",
-                    "redirectTo"
+                    "csrfToken"
                   ]
                 }
               }

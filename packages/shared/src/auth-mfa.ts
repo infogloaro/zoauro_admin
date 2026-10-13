@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, loginSchema } from './auth';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, userSummarySchema } from './auth';
 import { ROLES } from './enums';
 
 // 2-step verification contracts (doc 52 sections 2, 3, 5 and 8). Shared with the forms and the OpenAPI document.
@@ -75,16 +75,38 @@ export const BACKUP_CODE_COUNT = 10;
 
 // ---- login (POST /auth/login) -----------------------------------------------------------------------------------------
 
-export const twoStepLoginSchema = loginSchema.extend({ remember: z.boolean().default(false) });
-export type TwoStepLoginInput = z.infer<typeof twoStepLoginSchema>;
+// The request is loginSchema (auth.ts; it carries `remember`).
 
-/** Methods are listed only after the password is correct (doc 52 section 2.1 rule 4). */
-export const twoStepLoginResponseSchema = z.object({
-  status: z.enum(LOGIN_STATUSES),
-  methods: z.array(z.object({ type: z.enum(MFA_TYPES), hint: z.string() })).optional(),
-  preferred: z.enum(MFA_TYPES).optional(),
+/**
+ * Signed in: the session cookie is set. Returned by /auth/login when no second step applies, and by /auth/mfa/verify
+ * and /auth/mfa/enrol/complete (doc 52 section 8: {status:'OK', redirect}); user, mustChangePassword and csrfToken are
+ * the existing login fields, so a client needs no extra /me call.
+ */
+export const loginOkResponseSchema = z.object({
+  status: z.literal('OK'),
+  /** /super-admin/dashboard, /zone/dashboard or /zone/no-zones */
+  redirect: z.string(),
+  user: userSummarySchema,
+  mustChangePassword: z.boolean(),
+  /** send as X-CSRF-Token on every state-changing request of this session */
+  csrfToken: z.string(),
 });
-export type TwoStepLoginResponse = z.infer<typeof twoStepLoginResponseSchema>;
+export type LoginOkResponse = z.infer<typeof loginOkResponseSchema>;
+
+/**
+ * POST /auth/login (doc 52 sections 2.1 and 8). MFA_REQUIRED / ENROLMENT_REQUIRED: no session yet, only the pending
+ * cookie zo_mfa. Methods are listed only after the password was correct (rule 4).
+ */
+export const loginResponseSchema = z.discriminatedUnion('status', [
+  loginOkResponseSchema,
+  z.object({
+    status: z.literal('MFA_REQUIRED'),
+    methods: z.array(z.object({ type: z.enum(MFA_TYPES), hint: z.string() })),
+    preferred: z.enum(MFA_TYPES).optional(),
+  }),
+  z.object({ status: z.literal('ENROLMENT_REQUIRED') }),
+]);
+export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
 // ---- challenge and verify (POST /auth/mfa/challenge, /auth/mfa/verify) -----------------------------------------------
 
@@ -104,10 +126,6 @@ export const mfaVerifySchema = z.discriminatedUnion('method', [
   z.object({ method: z.literal('BACKUP_CODE'), code: backupCodeSchema }),
 ]);
 export type MfaVerifyInput = z.infer<typeof mfaVerifySchema>;
-
-/** /auth/mfa/verify and /auth/mfa/enrol/complete */
-export const mfaDoneResponseSchema = z.object({ status: z.literal('OK'), redirect: z.string() });
-export type MfaDoneResponse = z.infer<typeof mfaDoneResponseSchema>;
 
 // ---- enrolment (/me/mfa/*) --------------------------------------------------------------------------------------------
 

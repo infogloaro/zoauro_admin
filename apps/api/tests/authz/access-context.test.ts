@@ -318,10 +318,9 @@ describe('cache of at most 60 seconds with explicit invalidation', () => {
     });
     const user = await env.createUser('ZONAL_ADMIN');
     await env.assignZone(user.id, zoneA, sa.id, { profileId: fullProfile });
-    const login = await env
-      .api(longApp)
-      .post('/auth/login')
-      .send({ email: user.email, password: 'correct horse battery staple 1', tab: 'ZONAL_ADMIN' });
+    const login = await env.login(user, 'correct horse battery staple 1', 'ZONAL_ADMIN', {
+      app: longApp,
+    });
     expect(login.status).toBe(200);
     const cookie = (login.headers['set-cookie'] as unknown as string[])[0]?.split(';')[0] ?? '';
     await env.api(longApp).get('/_t/ctx').set('Cookie', cookie);
@@ -399,10 +398,9 @@ describe('cache of at most 60 seconds with explicit invalidation', () => {
     });
     const user = await env.createUser('ZONAL_ADMIN');
     const assignment = await env.assignZone(user.id, zoneA, sa.id, { profileId: fullProfile });
-    const login = await env
-      .api(shortApp)
-      .post('/auth/login')
-      .send({ email: user.email, password: 'correct horse battery staple 1', tab: 'ZONAL_ADMIN' });
+    const login = await env.login(user, 'correct horse battery staple 1', 'ZONAL_ADMIN', {
+      app: shortApp,
+    });
     const cookie = (login.headers['set-cookie'] as unknown as string[])[0]?.split(';')[0] ?? '';
     const call = () =>
       request(shortApp).patch(`/api/v1/_t/orders/in/${zoneA}`).set('Cookie', cookie).send({});

@@ -20,6 +20,8 @@ export interface AuthConfig {
   loginLimitPerEmail: { limit: number; windowSec: number };
   forgotLimitPerIp: { limit: number; windowSec: number };
   forgotLimitPerEmail: { limit: number; windowSec: number };
+  /** doc 52 section 8: /auth/mfa/verify 30 per 15 minutes per IP (the pending login itself ends at the lockout) */
+  mfaVerifyLimitPerIp: { limit: number; windowSec: number };
 }
 
 const MIN = 60 * 1000;
@@ -39,6 +41,7 @@ export const DEFAULT_AUTH_CONFIG: AuthConfig = {
   loginLimitPerEmail: { limit: 10, windowSec: 60 },
   forgotLimitPerIp: { limit: 10, windowSec: 60 },
   forgotLimitPerEmail: { limit: 3, windowSec: 15 * 60 },
+  mfaVerifyLimitPerIp: { limit: 30, windowSec: 15 * 60 },
 };
 
 /** Session cookie name (doc 52 section 2.6). */
@@ -46,5 +49,7 @@ export const SESSION_COOKIE = 'zo_sid';
 /** Pre-session CSRF cookie (double submit) for POSTs made before a session exists: login, password reset, 2-step. */
 export const PRE_SESSION_CSRF_COOKIE = 'zo_csrf';
 export const CSRF_HEADER = 'x-csrf-token';
+/** Pending login between password and second step (doc 52 section 2.1): not a session. */
+export const PENDING_LOGIN_COOKIE = 'zo_mfa';
 
 export type Clock = () => Date;

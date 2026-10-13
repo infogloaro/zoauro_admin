@@ -27,13 +27,14 @@ describe('TC-AUTH-1 login and role-based redirect', () => {
     const res = await env.login(sa);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      redirectTo: '/super-admin/dashboard',
+      status: 'OK',
+      redirect: '/super-admin/dashboard',
       mustChangePassword: false,
       user: { id: sa.id, email: sa.email, role: 'SUPER_ADMIN' },
     });
     expect(typeof res.body.csrfToken).toBe('string');
     expect(await env.loginHistory(sa.id)).toEqual([
-      expect.objectContaining({ success: true, reason: 'LOGIN', email_attempted: sa.email }),
+      expect.objectContaining({ success: true, reason: 'OK', email_attempted: sa.email }),
     ]);
     expect(await env.auditRows('actor_id = $1', [sa.id])).toHaveLength(0);
     expect((await env.userRow(sa.id)).last_login_at).not.toBeNull();
@@ -50,9 +51,9 @@ describe('TC-AUTH-1 login and role-based redirect', () => {
     await env.assignZone(adminAB.id, zoneA, sa.id);
     await env.assignZone(adminAB.id, zoneB, sa.id);
 
-    expect((await env.login(adminA)).body.redirectTo).toBe('/zone/dashboard');
-    expect((await env.login(adminAB)).body.redirectTo).toBe('/zone/dashboard');
-    expect((await env.login(adminNone)).body.redirectTo).toBe('/zone/no-zones');
+    expect((await env.login(adminA)).body.redirect).toBe('/zone/dashboard');
+    expect((await env.login(adminAB)).body.redirect).toBe('/zone/dashboard');
+    expect((await env.login(adminNone)).body.redirect).toBe('/zone/no-zones');
   });
 
   it('a revoked assignment does not count as an active zone', async () => {
@@ -64,7 +65,7 @@ describe('TC-AUTH-1 login and role-based redirect', () => {
       `UPDATE admin_zone_assignments SET revoked_at = now() WHERE user_id = $1`,
       [admin.id],
     );
-    expect((await env.login(admin)).body.redirectTo).toBe('/zone/no-zones');
+    expect((await env.login(admin)).body.redirect).toBe('/zone/no-zones');
   });
 
   it('wrong password, unknown email and a credential on the wrong tab all get the same generic error', async () => {
@@ -101,11 +102,16 @@ describe('TC-AUTH-1 login and role-based redirect', () => {
     expect(res.body.error).toMatchObject(GENERIC);
   });
 
-  it('refuses an account with 2FA enabled while 2FA is not built (fail closed)', async () => {
-    const user = await env.createUser('SUPER_ADMIN', { mfaEnabled: true });
-    const res = await env.login(user);
-    expect(res.status).toBe(401);
-    expect(res.body.error).toMatchObject(GENERIC);
+  it('a password alone never opens a session for an account with a second step (doc 52 section 2.1)', async () => {
+    const user = await env.createUser('SUPER_ADMIN');
+    const res = await env.passwordStep(user);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      status: 'MFA_REQUIRED',
+      methods: [{ type: 'AUTHENTICATOR', hint: 'Authenticator app' }],
+      preferred: 'AUTHENTICATOR',
+    });
+    expect(String(res.headers['set-cookie'])).not.toContain('zo_sid=');
   });
 
   it('validates input with the shared schema (422, no echo of values)', async () => {
@@ -292,7 +298,7 @@ describe('logout', () => {
       (await env.api().post('/auth/logout').set('Cookie', cookie).set('X-CSRF-Token', csrf)).status,
     ).toBe(204);
 
-    expect((await env.loginHistory(user.id)).map((h) => h.reason)).toEqual(['LOGIN', 'LOGOUT']);
+    expect((await env.loginHistory(user.id)).map((h) => h.reason)).toEqual(['OK', 'LOGOUT']);
     expect(await env.auditRows('actor_id = $1', [user.id])).toHaveLength(0);
     const s = await env.db.owner.query(`SELECT revoked_at FROM sessions WHERE user_id = $1`, [
       user.id,

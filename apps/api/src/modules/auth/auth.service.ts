@@ -2,6 +2,9 @@ import type {
   ChangePasswordInput,
   ForgotPasswordInput,
   MeZone,
+  MfaMethodUsed,
+  MfaType,
+  MfaVerifyInput,
   SessionListItem,
   LoginInput,
   ReauthInput,
@@ -23,7 +26,14 @@ import {
 import type { AuthSession, SessionStore } from '../../lib/auth/session-store';
 import { AppError } from '../../lib/errors';
 import type { RateLimiter } from '../../lib/rate-limiter';
+import { maskEmail } from '../../lib/audit/redact';
 import type { AuthMailer } from './auth.mails';
+import { findBackupCode } from './mfa/backup-codes';
+import type { OtpHasher } from './mfa/otp-hash';
+import type { PendingLogin, PendingLoginStore } from './mfa/pending';
+import { isMfaRequired, usableMethodsFor, type MfaPolicyReader } from './mfa/policy';
+import { mfaSecretAad, type SecretBox } from './mfa/secret-box';
+import { verifyTotp } from './mfa/totp';
 import type { AuthDatabase, AuthTx, AuthUser } from './auth.repository';
 
 export interface RequestMeta {
@@ -41,13 +51,44 @@ function notify(send: Promise<void>, what: string, requestId: string | undefined
   );
 }
 
-export interface LoginResult {
+/** A session just opened: the cookie value and the LoginOk response fields. */
+export interface StartedSession {
   sessionToken: string;
   cookieMaxAgeSec: number;
   csrfToken: string;
-  redirectTo: string;
+  redirect: string;
   mustChangePassword: boolean;
   user: { id: string; name: string; email: string; role: Role };
+}
+
+/** The password step's outcome (doc 52 section 2.1): a session, or a pending login waiting for the second step. */
+export type LoginStepResult =
+  | { status: 'OK'; session: StartedSession }
+  | {
+      status: 'MFA_REQUIRED';
+      pendingToken: string;
+      methods: { type: MfaType; hint: string }[];
+      preferred?: MfaType;
+    }
+  | { status: 'ENROLMENT_REQUIRED'; pendingToken: string };
+
+/** pendingEnded: the controller clears zo_mfa and the person starts again with the password. */
+export type VerifyResult =
+  { ok: true; session: StartedSession } | { ok: false; pendingEnded: boolean };
+
+/** An accepted second step; `consume` runs inside the login transaction (single use, replay guard). */
+interface SecondStep {
+  consume: (tx: AuthTx) => Promise<boolean>;
+}
+
+/** The second step was used by a concurrent request between the check and the commit. */
+class SecondStepRace extends Error {}
+
+/** Shown next to each method on the 2-step screen; never more than a masked hint (doc 52 section 8). */
+function methodHint(type: MfaType, user: AuthUser): string {
+  if (type === 'AUTHENTICATOR') return 'Authenticator app';
+  if (type === 'EMAIL_OTP') return maskEmail(user.email);
+  return 'SMS to the phone on your account';
 }
 
 export interface MeResult {
@@ -103,6 +144,13 @@ export class AuthService {
       mailer: AuthMailer;
       config: AuthConfig;
       clock: Clock;
+      /** 2-step (doc 52): pending logins, the policy, sealed secrets and code hashing */
+      mfa: {
+        pending: PendingLoginStore;
+        policy: MfaPolicyReader;
+        secretBox: SecretBox;
+        hasher: OtpHasher;
+      };
     },
   ) {}
 
@@ -125,7 +173,7 @@ export class AuthService {
 
   // ---- login ----------------------------------------------------------------------------------------------------
 
-  async login(input: LoginInput, meta: RequestMeta): Promise<LoginResult> {
+  async login(input: LoginInput, meta: RequestMeta): Promise<LoginStepResult> {
     await this.enforceLoginLimits(meta.ip, input.email);
 
     const user = await this.deps.db.repo.findUserByEmail(input.email);
@@ -143,17 +191,70 @@ export class AuthService {
     }
     if (!user) throw new AppError('UNAUTHENTICATED', GENERIC_LOGIN_ERROR); // unreachable: reason would be UNKNOWN_USER
 
+    // Second step (doc 52 section 2.1 [2]): only now, after the password, are the user's methods looked at or listed.
+    const policy = await this.deps.mfa.policy.read();
+    const usable = usableMethodsFor(policy, user.roleName);
+    const methods = (await this.deps.db.repo.listActiveMfaMethods(user.id)).filter((m) =>
+      usable.includes(m.type),
+    );
+    const pendingBase = {
+      userId: user.id,
+      tab: input.tab,
+      remember: input.remember,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+    };
+    if (methods.length > 0) {
+      const pendingToken = await this.deps.mfa.pending.create({ ...pendingBase, stage: 'VERIFY' });
+      return {
+        status: 'MFA_REQUIRED',
+        pendingToken,
+        methods: methods.map((m) => ({ type: m.type, hint: methodHint(m.type, user) })),
+        ...(methods[0] ? { preferred: methods[0].type } : {}),
+      };
+    }
+    if (isMfaRequired(policy, user.roleName)) {
+      const pendingToken = await this.deps.mfa.pending.create({ ...pendingBase, stage: 'ENROL' });
+      return { status: 'ENROLMENT_REQUIRED', pendingToken };
+    }
+    // TC-AUTH-7: no method and the policy does not require one for this role
+    return {
+      status: 'OK',
+      session: await this.startSession(user, meta, now, {
+        remember: input.remember,
+        typedEmail: input.email,
+        mfaMethod: null,
+      }),
+    };
+  }
+
+  /**
+   * Opens a session (doc 52 section 2.1 [3]): a new id every time, failed-attempt counter reset, login_history OK with the
+   * method used, the 3-session cap, the new-login notice. `inTransaction` runs in the same transaction (TOTP replay
+   * guard, backup code): if it returns false nothing is committed and SecondStepRace is thrown.
+   */
+  private async startSession(
+    user: AuthUser,
+    meta: RequestMeta,
+    now: Date,
+    opts: {
+      remember: boolean;
+      typedEmail: string;
+      mfaMethod: MfaMethodUsed | null;
+      inTransaction?: (tx: AuthTx) => Promise<boolean>;
+    },
+  ): Promise<StartedSession> {
     const sessionToken = randomToken(32);
     const tokenHash = sha256Hex(sessionToken);
     const sessionId = uuidv7();
-    const remember = input.remember;
-    const absoluteMs = remember
+    const absoluteMs = opts.remember
       ? this.config.rememberAbsoluteTimeoutMs
       : this.config.absoluteTimeoutMs;
     const expiresAt = new Date(now.getTime() + absoluteMs);
 
-    const { redirectTo, capped } = await this.asUser(user, meta, () =>
+    const { redirect, capped } = await this.asUser(user, meta, () =>
       this.deps.db.transaction(async (tx) => {
+        if (opts.inTransaction && !(await opts.inTransaction(tx))) throw new SecondStepRace();
         await this.releaseExpiredLock(tx, user, now);
         await tx.repo.recordSuccessfulLogin(user.id, now);
         await tx.repo.createSession({
@@ -165,16 +266,25 @@ export class AuthService {
           expiresAt,
           lastSeenAt: now,
           restricted: user.mustChangePassword ? 'PASSWORD_CHANGE' : null,
-          remember,
+          remember: opts.remember,
+          mfaVerifiedAt: opts.mfaMethod ? now : null,
+          mfaMethod: opts.mfaMethod,
         });
         const capped = await this.enforceSessionCap(tx, user, now);
         await tx.repo.addLoginHistory(
-          this.historyEntry(user.id, emailForHistory(user, input.email), true, 'LOGIN', meta, now),
+          this.historyEntry(
+            user.id,
+            emailForHistory(user, opts.typedEmail),
+            true,
+            'OK',
+            meta,
+            now,
+            opts.mfaMethod,
+          ),
         );
-        if (user.roleName === 'SUPER_ADMIN')
-          return { redirectTo: '/super-admin/dashboard', capped };
+        if (user.roleName === 'SUPER_ADMIN') return { redirect: '/super-admin/dashboard', capped };
         const zones = await tx.repo.countActiveZoneAssignments(user.id);
-        return { redirectTo: zones > 0 ? '/zone/dashboard' : '/zone/no-zones', capped };
+        return { redirect: zones > 0 ? '/zone/dashboard' : '/zone/no-zones', capped };
       }),
     );
     await this.deps.sessions.evictMany(capped);
@@ -186,7 +296,7 @@ export class AuthService {
       role: user.roleName,
       mustChangePassword: user.mustChangePassword,
       expiresAt,
-      remember,
+      remember: opts.remember,
     });
 
     // New-login notice with time, IP and device (doc 14 section 2, doc 52 section 2.7).
@@ -206,10 +316,180 @@ export class AuthService {
       sessionToken,
       cookieMaxAgeSec: Math.floor(absoluteMs / 1000),
       csrfToken: this.deps.sessions.csrfFor(tokenHash),
-      redirectTo,
+      redirect,
       mustChangePassword: user.mustChangePassword,
       user: { id: user.id, name: user.name, email: user.email, role: user.roleName },
     };
+  }
+
+  // ---- second step (doc 52 sections 2.1, 2.2, 2.5) --------------------------------------------------------------
+
+  /**
+   * POST /auth/mfa/verify with the pending cookie. One generic answer for a wrong, expired, reused or unknown code and
+   * for a method the user may not use or did not enrol (TC-AUTH-21). Every wrong code counts like a wrong password
+   * (D77); the 5th locks the account for 30 minutes and ends the pending login.
+   */
+  async verifyMfa(
+    pendingToken: string,
+    input: MfaVerifyInput,
+    meta: RequestMeta,
+  ): Promise<VerifyResult> {
+    if (meta.ip) {
+      const { limit, windowSec } = this.config.mfaVerifyLimitPerIp;
+      const r = await this.deps.limiter.hit(`mfa-verify:ip:${meta.ip}`, limit, windowSec);
+      if (!r.allowed) throw this.rateLimited(r.retryAfterSec);
+    }
+    const pending = await this.deps.mfa.pending.get(pendingToken);
+    if (!pending || pending.stage !== 'VERIFY') return { ok: false, pendingEnded: true };
+    // a pending login continues only from the browser that entered the password (TC-AUTH-9)
+    if (pending.ip !== meta.ip || pending.userAgent !== meta.userAgent) {
+      await this.deps.mfa.pending.end(pendingToken);
+      return { ok: false, pendingEnded: true };
+    }
+    const user = await this.deps.db.repo.findUserById(pending.userId);
+    const now = this.deps.clock();
+    if (!user || user.status !== 'ACTIVE' || (user.lockedUntil && user.lockedUntil > now)) {
+      await this.deps.mfa.pending.end(pendingToken);
+      return { ok: false, pendingEnded: true };
+    }
+
+    if (input.method === 'EMAIL_OTP' || input.method === 'SMS_OTP') {
+      // P9 builds the one-time-code channels; until then they are refused without counting as a failed attempt
+      throw new AppError('VALIDATION_ERROR', 'This method is not available yet', [
+        { field: 'method', issue: 'not_available' },
+      ]);
+    }
+
+    const step =
+      input.method === 'AUTHENTICATOR'
+        ? await this.checkAuthenticator(user, input.code, now)
+        : await this.checkBackupCode(user, input.code);
+    if (!step) return this.secondStepFailed(user, pending, pendingToken, input.method, meta, now);
+
+    // single use: the first successful request takes the pending login; any other gets nothing
+    if (!(await this.deps.mfa.pending.consume(pendingToken)))
+      return { ok: false, pendingEnded: true };
+    let session: StartedSession;
+    try {
+      session = await this.startSession(user, meta, now, {
+        remember: pending.remember,
+        typedEmail: user.email,
+        mfaMethod: input.method,
+        inTransaction: step.consume,
+      });
+    } catch (err) {
+      if (!(err instanceof SecondStepRace)) throw err;
+      // used by a concurrent request between the check and the commit: a failure like any other
+      return this.secondStepFailed(user, pending, pendingToken, input.method, meta, now);
+    }
+    if (input.method === 'BACKUP_CODE') {
+      const remaining = await this.deps.db.repo.countUnusedBackupCodes(user.id);
+      notify(
+        this.deps.mailer.sendBackupCodeUsed({
+          to: user.email,
+          name: user.name,
+          at: now,
+          remaining,
+        }),
+        'backup code used',
+        meta.requestId,
+      );
+    }
+    return { ok: true, session };
+  }
+
+  /** An accepted authenticator code, with the replay-guard update to run in the login transaction. */
+  private async checkAuthenticator(
+    user: AuthUser,
+    code: string,
+    now: Date,
+  ): Promise<SecondStep | null> {
+    const policy = await this.deps.mfa.policy.read();
+    if (!usableMethodsFor(policy, user.roleName).includes('AUTHENTICATOR')) return null;
+    const method = (await this.deps.db.repo.listActiveMfaMethods(user.id)).find(
+      (m) => m.type === 'AUTHENTICATOR',
+    );
+    if (!method?.secretEncrypted) return null;
+    let secret: string;
+    try {
+      secret = this.deps.mfa.secretBox.open(method.secretEncrypted, mfaSecretAad(user.id));
+    } catch {
+      return null; // a value that does not open is a failed code, never an error page
+    }
+    const r = await verifyTotp({
+      secret,
+      code,
+      now,
+      lastUsedStep: method.lastUsedStep === null ? null : Number(method.lastUsedStep),
+    });
+    if (!r.ok) return null;
+    return { consume: (tx) => tx.repo.advanceTotpStep(method.id, r.step) };
+  }
+
+  /** A matching unused backup code, consumed and audited in the login transaction (doc 52 section 2.5). */
+  private async checkBackupCode(user: AuthUser, code: string): Promise<SecondStep | null> {
+    const unused = await this.deps.db.repo.listUnusedBackupCodes(user.id);
+    const match = findBackupCode(this.deps.mfa.hasher, code, unused);
+    if (!match) return null;
+    return {
+      consume: async (tx) => {
+        if (!(await tx.repo.useBackupCode(match.id, this.deps.clock()))) return false;
+        await record(tx.audit, {
+          module: 'auth',
+          action: 'user.backup_code_used',
+          entity: userEntity(user),
+          note: 'Signed in with a backup code',
+        });
+        return true;
+      },
+    };
+  }
+
+  /**
+   * A wrong second step: counts toward the lockout (D77), login_history MFA_FAILED (MFA_LOCKOUT when it locked),
+   * user.mfa_challenge_failed as a rate-limited DENIED row. The pending login ends when the account locks, or after as
+   * many wrong codes as the lockout allows.
+   */
+  private async secondStepFailed(
+    user: AuthUser,
+    pending: PendingLogin,
+    pendingToken: string,
+    method: MfaMethodUsed,
+    meta: RequestMeta,
+    now: Date,
+  ): Promise<VerifyResult> {
+    const locked = await this.asUser(user, meta, () =>
+      this.deps.db.transaction(async (tx) => {
+        const lockedNow = await this.countFailureAndMaybeLock(tx, user, now, 'second-step');
+        await tx.repo.addLoginHistory(
+          this.historyEntry(
+            user.id,
+            user.email.toLowerCase(),
+            false,
+            lockedNow ? 'MFA_LOCKOUT' : 'MFA_FAILED',
+            meta,
+            now,
+            method,
+          ),
+        );
+        return lockedNow;
+      }),
+    );
+    await this.asUser(user, meta, () =>
+      this.deps.audit.recordDenied({
+        module: 'auth',
+        action: 'user.mfa_challenge_failed',
+        entity: userEntity(user),
+        note: `Wrong second-step code (${method})`,
+      }),
+    );
+    const attempts = pending.attempts + 1;
+    if (locked || attempts >= this.config.maxFailedAttempts) {
+      await this.deps.mfa.pending.end(pendingToken);
+      return { ok: false, pendingEnded: true };
+    }
+    await this.deps.mfa.pending.update(pendingToken, { ...pending, attempts });
+    return { ok: false, pendingEnded: false };
   }
 
   private loginFailureReason(
@@ -223,8 +503,6 @@ export class AuthService {
     if (user.lockedUntil && user.lockedUntil > now) return 'LOCKED';
     if (!passwordOk) return 'BAD_PASSWORD';
     if (user.roleName !== tab) return 'WRONG_TAB';
-    // 2FA is not built yet (SA-7.2): an account with MFA enabled must not get in on a password alone.
-    if (user.mfaEnabled) return 'MFA_UNSUPPORTED';
     return null;
   }
 
@@ -256,17 +534,23 @@ export class AuthService {
    * when this call moves the account into the locked state. Further failures while locked neither extend the lock nor
    * write another user.locked, and of two concurrent failures crossing the limit only one locks.
    */
-  private async countFailureAndMaybeLock(tx: AuthTx, user: AuthUser, now: Date): Promise<void> {
+  private async countFailureAndMaybeLock(
+    tx: AuthTx,
+    user: AuthUser,
+    now: Date,
+    kind: 'password' | 'second-step' = 'password',
+  ): Promise<boolean> {
     const attempts = await tx.repo.incrementFailedAttempts(user.id);
-    if (attempts < this.config.maxFailedAttempts) return;
+    if (attempts < this.config.maxFailedAttempts) return false;
     const until = new Date(now.getTime() + this.config.lockDurationMs);
-    if (!(await tx.repo.lockUserIfNotLocked(user.id, until, now))) return;
+    if (!(await tx.repo.lockUserIfNotLocked(user.id, until, now))) return false;
     await record(tx.audit, {
       module: 'auth',
       action: 'user.locked',
       entity: userEntity(user),
-      note: `Locked for ${Math.round(this.config.lockDurationMs / 60000)} minutes after ${attempts} failed attempts`,
+      note: `Locked for ${Math.round(this.config.lockDurationMs / 60000)} minutes after ${attempts} failed attempts${kind === 'second-step' ? ' (the last a wrong second-step code)' : ''}`,
     });
+    return true;
   }
 
   /** A lock that has run out is cleared on the next attempt, and that is audited as user.unlocked. */
@@ -289,6 +573,7 @@ export class AuthService {
     reason: string,
     meta: RequestMeta,
     at: Date,
+    mfaMethod: MfaMethodUsed | null = null,
   ) {
     return {
       id: uuidv7(),
@@ -298,6 +583,7 @@ export class AuthService {
       ip: meta.ip,
       userAgent: meta.userAgent?.slice(0, UA_MAX) ?? null,
       reason,
+      mfaMethod,
       createdAt: at,
     };
   }
@@ -355,9 +641,19 @@ export class AuthService {
       permissions: ctx.isSuperAdmin
         ? { global: true }
         : { global: false, zones: await this.meZones(ctx) },
-      // placeholders until the second step exists (P8)
-      mfa: { enabled: user.mfaEnabled, required: false, enrolmentNeeded: false },
+      mfa: await this.mfaState(user),
     };
+  }
+
+  /** /me mfa (doc 52 section 8): from the confirmed methods the policy lets this role use, not from users.mfa_enabled. */
+  private async mfaState(user: AuthUser) {
+    const policy = await this.deps.mfa.policy.read();
+    const usable = usableMethodsFor(policy, user.roleName);
+    const enabled = (await this.deps.db.repo.listActiveMfaMethods(user.id)).some((m) =>
+      usable.includes(m.type),
+    );
+    const required = isMfaRequired(policy, user.roleName);
+    return { enabled, required, enrolmentNeeded: required && !enabled };
   }
 
   /** Every active assignment of a Zonal Admin with its permissions and limits from the AuthContext (doc 09, doc 14). */

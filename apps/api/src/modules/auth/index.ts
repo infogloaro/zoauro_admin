@@ -10,8 +10,13 @@ import { createAuthController } from './auth.controller';
 import { createAuthRoutes } from './auth.routes';
 import { noopAuthMailer, type AuthMailer } from './auth.mails';
 import { AuthService } from './auth.service';
+import { createOtpHasher } from './mfa/otp-hash';
+import { PendingLoginStore } from './mfa/pending';
+import { createMfaPolicyReader, type MfaPolicyReader } from './mfa/policy';
+import { createSecretBox } from './mfa/secret-box';
 
 export { createAuthMailer, noopAuthMailer, type AuthMailer } from './auth.mails';
+export { staticMfaPolicy, type MfaPolicyReader } from './mfa/policy';
 
 export interface AuthModule {
   router: Router;
@@ -30,6 +35,13 @@ export function createAuthModule(deps: {
   mailer?: AuthMailer;
   config?: AuthConfig;
   clock?: Clock;
+  /** 2-step (doc 52 section 5, doc 12): ENCRYPTION_KEY (+ previous while rotating) seals authenticator secrets */
+  encryptionKey: string;
+  encryptionKeyPrevious?: string;
+  /** OTP_HMAC_KEY: one-time and backup codes are stored only as HMACs */
+  otpHmacKey: string;
+  /** default: the settings key security.mfa with the doc 52 defaults; tests pass a fixed policy */
+  mfaPolicy?: MfaPolicyReader;
 }): AuthModule {
   const config = deps.config ?? DEFAULT_AUTH_CONFIG;
   const clock = deps.clock ?? (() => new Date());
@@ -49,6 +61,20 @@ export function createAuthModule(deps: {
     mailer: deps.mailer ?? noopAuthMailer,
     config,
     clock,
+    mfa: {
+      pending: new PendingLoginStore({ redis: deps.redis, clock }),
+      policy:
+        deps.mfaPolicy ??
+        createMfaPolicyReader({
+          load: (key) => db.repo.getSettingValue(key),
+          onInvalid: () => console.error('settings security.mfa is invalid: the defaults apply'),
+        }),
+      secretBox: createSecretBox({
+        current: deps.encryptionKey,
+        ...(deps.encryptionKeyPrevious ? { previous: deps.encryptionKeyPrevious } : {}),
+      }),
+      hasher: createOtpHasher(deps.otpHmacKey),
+    },
   });
   return {
     router: createAuthRoutes(createAuthController(service, { csrfSecret: deps.sessionSecret }), {

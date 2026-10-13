@@ -170,6 +170,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Second step of sign-in with the pending cookie zo_mfa: an authenticator code or a backup code. Creates the session */
+        post: operations["verifyMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/reauth": {
         parameters: {
             query?: never;
@@ -894,7 +911,9 @@ export interface operations {
                     "application/json": {
                         csrfToken: string;
                         mustChangePassword: boolean;
-                        redirectTo: string;
+                        redirect: string;
+                        /** @enum {string} */
+                        status: "OK";
                         user: {
                             email: string;
                             /** Format: uuid */
@@ -903,6 +922,19 @@ export interface operations {
                             /** @enum {string} */
                             role: "SUPER_ADMIN" | "ZONAL_ADMIN";
                         };
+                    } | {
+                        methods: {
+                            hint: string;
+                            /** @enum {string} */
+                            type: "AUTHENTICATOR" | "EMAIL_OTP" | "SMS_OTP";
+                        }[];
+                        /** @enum {string} */
+                        preferred?: "AUTHENTICATOR" | "EMAIL_OTP" | "SMS_OTP";
+                        /** @enum {string} */
+                        status: "MFA_REQUIRED";
+                    } | {
+                        /** @enum {string} */
+                        status: "ENROLMENT_REQUIRED";
                     };
                 };
             };
@@ -971,6 +1003,88 @@ export interface operations {
             };
             /** @description Not allowed (missing permission, bad CSRF token or Origin) */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    verifyMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                    /** @enum {string} */
+                    method: "AUTHENTICATOR" | "EMAIL_OTP" | "SMS_OTP";
+                } | {
+                    code: string;
+                    /** @enum {string} */
+                    method: "BACKUP_CODE";
+                };
+            };
+        };
+        responses: {
+            /** @description Signed in; session cookie set, pending cookie cleared */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        csrfToken: string;
+                        mustChangePassword: boolean;
+                        redirect: string;
+                        /** @enum {string} */
+                        status: "OK";
+                        user: {
+                            email: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            role: "SUPER_ADMIN" | "ZONAL_ADMIN";
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

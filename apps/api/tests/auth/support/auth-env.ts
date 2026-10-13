@@ -15,7 +15,11 @@ import { authContextMiddleware, type AccessService } from '../../../src/lib/auth
 import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
 import { createAccessService } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
-import { createAuthModule, type AuthMailer } from '../../../src/modules/auth';
+import { createAuthModule, type AuthMailer, type MfaPolicyReader } from '../../../src/modules/auth';
+import { generateBackupCodes, hashBackupCode } from '../../../src/modules/auth/mfa/backup-codes';
+import { createOtpHasher } from '../../../src/modules/auth/mfa/otp-hash';
+import { createSecretBox, mfaSecretAad } from '../../../src/modules/auth/mfa/secret-box';
+import { newTotpSecret, totpAt } from '../../../src/modules/auth/mfa/totp';
 import { createTestDatabase, type TestDatabase } from '../../audit/support/db';
 
 // Integration environment for the auth tests: a throwaway PostgreSQL database built by `prisma migrate deploy`, the
@@ -25,6 +29,9 @@ import { createTestDatabase, type TestDatabase } from '../../audit/support/db';
 export const APP_ORIGIN = 'http://localhost:3000';
 /** The session secret every test app is built with; also signs the pre-session CSRF token. */
 export const TEST_SESSION_SECRET = 'test-session-secret-0123456789-abcdef';
+/** 2-step keys of every test app (seal authenticator secrets, hash codes) */
+export const TEST_ENCRYPTION_KEY = 'test-encryption-key-0123456789-abcdefgh';
+export const TEST_OTP_HMAC_KEY = 'test-otp-hmac-key-0123456789-abcdefghij';
 
 /** What a browser holds after GET /auth/csrf: the zo_csrf cookie and the same token for X-CSRF-Token. */
 export function preSessionCsrf(): { cookie: string; token: string } {
@@ -50,6 +57,8 @@ interface AppExtras {
   /** default: Redis-backed, as server.ts (keys under this env's private prefix) */
   deniedLimiter?: DeniedRateLimiter;
   onDeniedFailure?: (err: unknown) => void;
+  /** default: the settings row (none in the test database) = the doc 52 defaults, 2-step required for both roles */
+  mfaPolicy?: MfaPolicyReader;
 }
 
 export interface TestUser {
@@ -57,6 +66,8 @@ export interface TestUser {
   email: string;
   name: string;
   role: PersonaRole;
+  /** base32 secret of the user's authenticator (enrolled by createUser unless { mfa: false }) */
+  totpSecret?: string;
 }
 
 /**
@@ -70,6 +81,7 @@ export const TEST_CONFIG: AuthConfig = {
   loginLimitPerEmail: { limit: 10_000, windowSec: 60 },
   forgotLimitPerIp: { limit: 10_000, windowSec: 60 },
   forgotLimitPerEmail: { limit: 3, windowSec: 900 },
+  mfaVerifyLimitPerIp: { limit: 10_000, windowSec: 60 },
 };
 
 export async function createAuthTestEnv() {
@@ -93,7 +105,11 @@ export async function createAuthTestEnv() {
   };
   const mails: ResetMail[] = [];
   /** new-login and password-changed notices, in order */
-  const notices: { kind: 'NEW_LOGIN' | 'PASSWORD_CHANGED'; to: string; ip: string | null }[] = [];
+  const notices: {
+    kind: 'NEW_LOGIN' | 'PASSWORD_CHANGED' | 'BACKUP_CODE_USED';
+    to: string;
+    ip: string | null;
+  }[] = [];
   const mailer: AuthMailer = {
     sendPasswordReset: async (m: ResetMail) => {
       mails.push(m);
@@ -103,6 +119,9 @@ export async function createAuthTestEnv() {
     },
     sendPasswordChanged: async (m) => {
       notices.push({ kind: 'PASSWORD_CHANGED', to: m.to, ip: m.ip });
+    },
+    sendBackupCodeUsed: async (m) => {
+      notices.push({ kind: 'BACKUP_CODE_USED', to: m.to, ip: null });
     },
   };
 
@@ -131,6 +150,9 @@ export async function createAuthTestEnv() {
       sessionSecret: TEST_SESSION_SECRET,
       appOrigin: APP_ORIGIN,
       mailer,
+      encryptionKey: TEST_ENCRYPTION_KEY,
+      otpHmacKey: TEST_OTP_HMAC_KEY,
+      ...(extra.mfaPolicy ? { mfaPolicy: extra.mfaPolicy } : {}),
       config,
       clock: clock.now,
     });
@@ -154,8 +176,12 @@ export async function createAuthTestEnv() {
     const extraRouters = extra.routers ?? [];
     return { app, access, routers: [...moduleRouters, ...extraRouters], extraRouters };
   }
-  function makeApp(config: AuthConfig = TEST_CONFIG, scope?: string): Express {
-    return build(config, scope).app;
+  function makeApp(
+    config: AuthConfig = TEST_CONFIG,
+    scope?: string,
+    extra: AppExtras = {},
+  ): Express {
+    return build(config, scope, extra).app;
   }
   /** App with extra routers and direct access to the AccessService (cache invalidation tests). */
   function makeAuthzApp(extra: AppExtras = {}) {
@@ -191,7 +217,8 @@ export async function createAuthTestEnv() {
       password?: string;
       status?: string;
       mustChangePassword?: boolean;
-      mfaEnabled?: boolean;
+      /** default true: a confirmed authenticator (as after enrolment), so sign-in takes a real second step */
+      mfa?: boolean;
       emailPrefix?: string;
     } = {},
   ): Promise<TestUser> {
@@ -209,11 +236,42 @@ export async function createAuthTestEnv() {
         await hashOf(opts.password ?? PASSWORD),
         roleIds[role],
         opts.status ?? 'ACTIVE',
-        opts.mfaEnabled ?? false,
+        opts.mfa ?? true,
         opts.mustChangePassword ?? false,
       ],
     );
-    return { id, email, name, role };
+    if (opts.mfa === false) return { id, email, name, role };
+    const totpSecret = await enrolAuthenticator(id);
+    return { id, email, name, role, totpSecret };
+  }
+
+  /** A confirmed, primary authenticator with a fresh secret sealed exactly as enrolment will seal it (doc 52). */
+  async function enrolAuthenticator(userId: string): Promise<string> {
+    const secret = newTotpSecret();
+    await db.owner.query(
+      `INSERT INTO user_mfa_methods (id, user_id, type, secret_encrypted, verified_at, is_primary, updated_at)
+       VALUES ($1, $2, 'AUTHENTICATOR', $3, now(), true, now())`,
+      [
+        uuidv7(),
+        userId,
+        createSecretBox({ current: TEST_ENCRYPTION_KEY }).seal(secret, mfaSecretAad(userId)),
+      ],
+    );
+    await db.owner.query(`UPDATE users SET mfa_enabled = true WHERE id = $1`, [userId]);
+    return secret;
+  }
+
+  /** Backup codes for a user, stored as the server stores them; returns what the user would have written down. */
+  async function addBackupCodes(userId: string, count = 10): Promise<string[]> {
+    const codes = generateBackupCodes(count);
+    const batch = uuidv7();
+    for (const c of codes) {
+      await db.owner.query(
+        `INSERT INTO mfa_backup_codes (id, user_id, code_hash, batch_id) VALUES ($1, $2, $3, $4)`,
+        [uuidv7(), userId, hashBackupCode(createOtpHasher(TEST_OTP_HMAC_KEY), c.normalised), batch],
+      );
+    }
+    return codes.map((c) => c.display);
   }
 
   async function createZone(): Promise<string> {
@@ -318,12 +376,61 @@ export async function createAuthTestEnv() {
     delete: (path: string) => request(a).delete(`/api/v1${path}`).set('Origin', APP_ORIGIN),
   });
 
-  async function login(
+  /** The password step only (doc 52 section 2.1 [1]): OK, MFA_REQUIRED or ENROLMENT_REQUIRED, or an error. */
+  async function passwordStep(
     user: { email: string; role: PersonaRole },
     password = PASSWORD,
     tab: PersonaRole = user.role,
+    opts: { app?: Express; remember?: boolean } = {},
   ) {
-    return api().post('/auth/login').send({ email: user.email, password, tab });
+    return api(opts.app)
+      .post('/auth/login')
+      .send({ email: user.email, password, tab, ...(opts.remember ? { remember: true } : {}) });
+  }
+
+  /** zo_mfa=<value> from a response, for the next request's Cookie header ('' when none). */
+  function pendingCookieOf(res: { headers: Record<string, unknown> }): string {
+    const raw = res.headers['set-cookie'];
+    const list = Array.isArray(raw) ? raw.map(String) : [];
+    return (
+      list.find((c) => c.startsWith('zo_mfa=') && !c.startsWith('zo_mfa=;'))?.split(';')[0] ?? ''
+    );
+  }
+
+  /** POST /auth/mfa/verify as a browser would: the pending cookie plus the pre-session CSRF pair. */
+  function verify(pendingCookie: string, body: object, target?: Express) {
+    const csrf = preSessionCsrf();
+    return request(target ?? app)
+      .post('/api/v1/auth/mfa/verify')
+      .set('Origin', APP_ORIGIN)
+      .set('Cookie', `${csrf.cookie}; ${pendingCookie}`)
+      .set('X-CSRF-Token', csrf.token)
+      .send(body);
+  }
+
+  /**
+   * A full sign-in: the password, then (when asked) the authenticator code at the test clock. The user's replay marker is
+   * reset first so a test can sign the same user in many times; replay protection has its own tests (mfa-login).
+   */
+  async function login(
+    user: { id?: string; email: string; role: PersonaRole; totpSecret?: string },
+    password = PASSWORD,
+    tab: PersonaRole = user.role,
+    opts: { app?: Express; remember?: boolean } = {},
+  ) {
+    const first = await passwordStep(user, password, tab, opts);
+    if (
+      first.status !== 200 ||
+      first.body.status !== 'MFA_REQUIRED' ||
+      !user.totpSecret ||
+      !user.id
+    )
+      return first;
+    await db.owner.query(`UPDATE user_mfa_methods SET last_used_step = NULL WHERE user_id = $1`, [
+      user.id,
+    ]);
+    const code = await totpAt(user.totpSecret, clock.now());
+    return verify(pendingCookieOf(first), { method: 'AUTHENTICATOR', code }, opts.app);
   }
 
   /** Logs in and returns the cookie pair and CSRF token for follow-up requests. */
@@ -415,6 +522,11 @@ export async function createAuthTestEnv() {
     createProfile,
     addOverride,
     login,
+    passwordStep,
+    verify,
+    pendingCookieOf,
+    enrolAuthenticator,
+    addBackupCodes,
     session,
     auditRows,
     userRow,

@@ -71,6 +71,9 @@ export interface NewSession {
   restricted?: 'PASSWORD_CHANGE' | null;
   /** "remember me" (D79) */
   remember: boolean;
+  /** the second step that opened this session (doc 52 section 3), null when none applied */
+  mfaVerifiedAt?: Date | null;
+  mfaMethod?: string | null;
 }
 
 /** A session that is not revoked and not past its absolute expiry (idle expiry is judged by the caller). */
@@ -316,6 +319,65 @@ export class AuthRepository implements SessionPersistence {
     restricted: 'PASSWORD_CHANGE' | null,
   ): Promise<void> {
     await this.db.session.updateMany({ where: { id: sessionId }, data: { restricted } });
+  }
+
+  // ---- 2-step (doc 52 section 3) ----------------------------------------------------------------------------------
+
+  /** A setting's stored JSON, or null (the policy reader applies the defaults). */
+  async getSettingValue(key: string): Promise<unknown> {
+    const row = await this.db.setting.findUnique({ where: { key }, select: { valueJson: true } });
+    return row?.valueJson ?? null;
+  }
+
+  /** Confirmed, not removed methods of the user (a half-finished enrolment is never offered, TC-AUTH-23). */
+  async listActiveMfaMethods(userId: string) {
+    return this.db.userMfaMethod.findMany({
+      where: { userId, verifiedAt: { not: null }, disabledAt: null },
+      select: {
+        id: true,
+        type: true,
+        secretEncrypted: true,
+        lastUsedStep: true,
+        isPrimary: true,
+      },
+      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  /**
+   * TOTP replay guard (doc 52 section 2.2): records the accepted step only if it is higher than the stored one. False
+   * when a concurrent login already used this step or a later one, i.e. the code must be refused.
+   */
+  async advanceTotpStep(methodId: string, step: number): Promise<boolean> {
+    const r = await this.db.userMfaMethod.updateMany({
+      where: {
+        id: methodId,
+        disabledAt: null,
+        OR: [{ lastUsedStep: null }, { lastUsedStep: { lt: BigInt(step) } }],
+      },
+      data: { lastUsedStep: BigInt(step) },
+    });
+    return r.count === 1;
+  }
+
+  async listUnusedBackupCodes(userId: string) {
+    return this.db.mfaBackupCode.findMany({
+      where: { userId, usedAt: null },
+      select: { id: true, codeHash: true },
+    });
+  }
+
+  /** Single use: true only for the call that marked it used. */
+  async useBackupCode(codeId: string, at: Date): Promise<boolean> {
+    const r = await this.db.mfaBackupCode.updateMany({
+      where: { id: codeId, usedAt: null },
+      data: { usedAt: at },
+    });
+    return r.count === 1;
+  }
+
+  async countUnusedBackupCodes(userId: string): Promise<number> {
+    return this.db.mfaBackupCode.count({ where: { userId, usedAt: null } });
   }
 
   // ---- password reset tokens -----------------------------------------------------------------------------------

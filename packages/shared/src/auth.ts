@@ -71,15 +71,7 @@ export const userSummarySchema = z.object({
 });
 export type UserSummary = z.infer<typeof userSummarySchema>;
 
-export const loginResponseSchema = z.object({
-  user: userSummarySchema,
-  mustChangePassword: z.boolean(),
-  /** send as X-CSRF-Token on every state-changing request */
-  csrfToken: z.string(),
-  /** where the UI goes next: /super-admin/dashboard, /zone/dashboard or /zone/no-zones */
-  redirectTo: z.string(),
-});
-export type LoginResponse = z.infer<typeof loginResponseSchema>;
+// The login response (a union over the 2-step status) lives in auth-mfa.ts.
 
 /** Every `module:action` key (doc 04), as an enum for the contract. */
 export const PERMISSION_KEYS = PERMISSION_MODULES.flatMap((m) =>
