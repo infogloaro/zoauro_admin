@@ -69,6 +69,28 @@ const AVATAR_TONES = [
 
 export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
+const MONTH_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/** Figma date format "21 Sep 2026", rendered from the UTC stored value (doc 08). */
+function formatDate(iso: string): string {
+  const date = new Date(iso);
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${day} ${MONTH_SHORT[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+}
+
 /** Deterministic avatar colour per record (Figma: solid circle + initial). */
 function avatarTone(id: string): string {
   let hash = 0;
@@ -207,13 +229,7 @@ export function VendorsTable({
             <TableCell className="text-center">
               <Badge tone={statusTone(vendor.status)}>{STATUS_LABELS[vendor.status]}</Badge>
             </TableCell>
-            <TableCell className="text-muted">
-              {new Date(vendor.createdAt).toLocaleDateString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              })}
-            </TableCell>
+            <TableCell className="text-muted">{formatDate(vendor.createdAt)}</TableCell>
             <TableCell>
               <div className="flex items-center justify-end">
                 <DropdownMenu>
@@ -347,7 +363,7 @@ export function VendorsPagination({
         </Button>
       </div>
       <Select value={String(pageSize)} onValueChange={(v) => onPageSize(Number(v))}>
-        <SelectTrigger className="h-8 w-24" aria-label="Rows per page">
+        <SelectTrigger className="h-8 w-28" aria-label="Rows per page">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

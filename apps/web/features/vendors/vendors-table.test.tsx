@@ -93,6 +93,7 @@ describe('VendorsTable', () => {
     expect(html).toContain('Pending review');
     expect(html).toContain('Pending');
     expect(html).toContain('Biryani, Chinese +1');
+    expect(html).toContain('01 Oct 2026');
   });
 
   it('renders homemaker specialities without an owner column', () => {
