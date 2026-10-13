@@ -4,6 +4,7 @@ import type { AuditTx } from '../../lib/audit';
 import { zonesFor, type AuthContext } from '../../lib/authz';
 import { auditTx } from '../../lib/db';
 import { AppError } from '../../lib/errors';
+import { RESOLVE_SCOPE, type ResolveCaller } from './resolve.caller';
 
 // The only file of the zones module that imports Prisma (doc 53 section 7). Zones are Super Admin data: `zones:*` is
 // never grantable (R-ZONE-1), so reads are bounded by zonesFor(ctx, 'zones:view') (a Zonal Admin's scope is always
@@ -223,6 +224,37 @@ export class ZonesRepository {
       select: { zone: { select: { id: true, name: true, code: true, status: true } } },
     });
     return row?.zone ?? null;
+  }
+
+  /**
+   * Zone resolution for the apps (doc 53 section 2.3). The caller is an integration client, not an admin: its context
+   * is the client and its scopes (doc 42), so without `zones:resolve` nothing is read. Deleted zones never match.
+   */
+  async resolvePincode(
+    caller: ResolveCaller,
+    pincode: string,
+  ): Promise<{
+    id: string;
+    name: string;
+    status: ZoneDto['status'];
+    deliveryCharge: number;
+  } | null> {
+    if (!caller.scopes.includes(RESOLVE_SCOPE)) return null;
+    const row = await this.db.serviceablePincode.findUnique({
+      where: { pincode },
+      select: {
+        zone: {
+          select: { id: true, name: true, status: true, deliveryCharge: true, deletedAt: true },
+        },
+      },
+    });
+    if (!row || row.zone.deletedAt !== null) return null;
+    return {
+      id: row.zone.id,
+      name: row.zone.name,
+      status: row.zone.status,
+      deliveryCharge: row.zone.deliveryCharge,
+    };
   }
 
   // ---- inside a write transaction -----------------------------------------------------------------------------------

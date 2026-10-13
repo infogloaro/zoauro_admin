@@ -160,7 +160,13 @@ export async function createAuthTestEnv() {
     config: AuthConfig,
     scope: string | undefined,
     extra: AppExtras = {},
-  ): { app: Express; access: AccessService; routers: Router[]; extraRouters: Router[] } {
+  ): {
+    app: Express;
+    access: AccessService;
+    zones: ReturnType<typeof createZonesModule>;
+    routers: Router[];
+    extraRouters: Router[];
+  } {
     let appRedis = redis;
     if (scope) {
       appRedis = new Redis(redisUrl, { keyPrefix: `${prefix}${scope}:` });
@@ -216,7 +222,7 @@ export async function createAuthTestEnv() {
       },
       ...(extra.auditCoverage ? { auditCoverage: extra.auditCoverage } : {}),
     });
-    return { app, access, routers: [...moduleRouters, ...extraRouters], extraRouters };
+    return { app, access, zones, routers: [...moduleRouters, ...extraRouters], extraRouters };
   }
   function makeApp(
     config: AuthConfig = TEST_CONFIG,
