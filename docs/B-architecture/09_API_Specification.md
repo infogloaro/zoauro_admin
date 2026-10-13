@@ -15,7 +15,8 @@ Base path `/api/v1`, served by the Express API. JSON only. OpenAPI 3.1 generated
 ```json
 { "error": { "code": "VALIDATION_ERROR", "message": "Invalid input", "details": [{"field":"email","issue":"invalid"}], "requestId": "…" } }
 ```
-Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VALIDATION_ERROR 422, CONFLICT 409, RATE_LIMITED 429, INVALID_STATE_TRANSITION 409, REFUND_LIMIT_EXCEEDED 403, REAUTH_REQUIRED 401, INTERNAL 500.
+Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VALIDATION_ERROR 422, CONFLICT 409, RATE_LIMITED 429, INVALID_STATE_TRANSITION 409, REFUND_LIMIT_EXCEEDED 403, REAUTH_REQUIRED 401, INTERNAL 500. Also STALE_VERSION 409 (optimistic locking) and the zone codes of doc 53 §5 (ZONE_NAME_TAKEN, ZONE_CODE_TAKEN, PINCODE_OVERLAP, IMPACT_CHANGED, ZONE_HAS_HISTORY 409; RANGE_TOO_LARGE, CODE_IMMUTABLE, ZONE_NOT_ACTIVATABLE, REASON_REQUIRED 422); the full list is `ERROR_STATUS` in `packages/shared/src/errors.ts`.
+- **Error data (v1.2, additive, P11):** a few codes carry structured data in an optional `error.meta` object: `PINCODE_OVERLAP {conflicts:[{pincode, zoneId, zoneName}]}`, `ZONE_NOT_ACTIVATABLE {missing:[…]}`, `ZONE_HAS_HISTORY {counts}`, `STALE_VERSION {current}` (the newer record), `IMPACT_CHANGED {impact}`. `details[]` still carries the field-level hints for forms.
 
 ## Endpoint catalogue
 | Method | Path | Permission | Notes |
@@ -38,7 +39,7 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /dashboard/revenue-overview, /top-restaurants, /top-categories, /new-registrations | dashboard:view | Super Admin dashboard widgets (Figma) |
 | GET | /search?q= | session | global search (P1, D32); per-entity permission + scope |
 | GET/POST | /zones | zones:view/add | Super Admin |
-| GET/PATCH/DELETE | /zones/{id} | zones:* | delete = deactivate with impact check |
+| GET/PATCH/DELETE | /zones/{id} | zones:* | PATCH carries `version` (409 STALE_VERSION), `code` is 422 CODE_IMMUTABLE; DELETE (+ PASSWORD re-auth) soft-deletes a pristine zone that is not ACTIVE and releases its pincodes, else 409 ZONE_HAS_HISTORY / INVALID_STATE_TRANSITION (doc 53 §2.2) |
 | GET | /zones/{id}/impact | zones:view | counts of open orders, vendors, partners, admins before deactivate |
 | GET | /zones/summary, /zones/lookup?pincode= | zones:view | KPI counts; owning zone of a pincode (live overlap hint) |
 | PUT | /zones/{id}/pincodes (`?preview=true` dry run) | zones:edit | range / add / remove; overlap check under advisory lock; returns vendor mismatches |
