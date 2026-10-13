@@ -412,3 +412,17 @@ Gate line status (pass/fail): pass — audit of items 1–6 found every item imp
 Open points: (1) TC-AUTH-35 timing is not asserted (flaky on this host); unknown emails verify a dummy Argon2id hash (crypto.ts getDummyHash) so the work is equal. (2) Reset email "visible in Mailpit" not checked by hand in this run (tests use the capture mailer). (3) OTP_HMAC_KEY must be added to the local apps/api/.env before the API starts
 Next step: P11 Zones backend (doc 56)
 Verify: pnpm lint && pnpm typecheck && pnpm openapi:check && pnpm --filter @zoauro/api exec vitest run --maxWorkers=2
+
+Date / task id: 2026-10-13 / P0–P10 re-verification requested by the owner (doc 56)
+Lane / files changed: tests only — apps/api/tests/auth/enrolment.test.ts (TC-AUTH-24: method active and primary, a repeated confirm returns no backup codes)
+Commits: see git log ("test(api): TC-AUTH-24 asserts active, primary and codes returned once")
+Contract changes (docs 08/09/10/36): none
+Decisions or [ASSUMPTION]s touched (D-numbers): none
+Gate line status (pass/fail): pass —
+  zoauro (read-only, zoauro_owner@zoauro on localhost:5441): 7 migrations, 0 failed, checksums equal the files on disk; audit_logs 10 indexes incl. audit_logs_zone_id_module_action_id_idx; users 0, zones 0; 3 MFA tables, old users MFA columns gone, 6 session columns, partial unique on user_mfa_methods; zones CHECKs (code, delivery charge, pincode range), serviceable_pincodes pincode CHECK + UNIQUE, zones_code_key (full), zones_name_lower_active_key, status default UPCOMING, color_hex NOT NULL.
+  Code: .env/.env.* ignored at every level, examples tracked, no Neon line; recordDenied production call sites; TRUST_PROXY_HOPS; DB role boot guard; otplib 13.5.0 / nodemailer 10.0.11 pinned; no Math.random in src; TC-AUTH-1…44 all present in tests.
+  Checks: lint, typecheck, openapi:check; API full suite three consecutive runs 500 passed / 14 skipped / 1 todo each (--maxWorkers=2); shared 88, api-client 7, web 52; pnpm build green (api tsup, web next build).
+  Runtime: API from source (tsx, apps/api/.env plus an in-memory OTP_HMAC_KEY) starts; /api/health 200; /api/ready 200 (database ok, redis ok); GET /api/v1/auth/csrf 200; /me without cookie 401; login POST without CSRF 403.
+Open points: (1) `pnpm --filter @zoauro/api start` (node dist/server.js) fails with ERR_MODULE_NOT_FOUND: tsup leaves @zoauro/shared external and that package exports TypeScript source. Present since the scaffold (869c70b / 3623ca3), not a P0–P10 change; belongs to P20 (startup). (2) apps/api/.env has no OTP_HMAC_KEY; the API refuses to start until the owner adds one. (3) P0 items 4 and 5 now checked (gitignore ok; home/claude holds two M04 files, reported, untouched). (4) The untracked root copy of doc 56 is older than docs/H-delivery/56 and is left untouched.
+Next step: P11 Zones backend (doc 56)
+Verify: pnpm lint && pnpm typecheck && pnpm openapi:check && pnpm --filter @zoauro/api exec vitest run --maxWorkers=2 && pnpm build
