@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ZONE_ERROR_STATUS } from './zones/errors';
 
 // Error codes and the standard error body (doc 09 "Errors"). Single definition for the API, the generated OpenAPI
 // document and the web client. PASSWORD_CHANGE_REQUIRED (first-login password change pending) is added to doc 09's list.
@@ -19,6 +20,10 @@ export const ERROR_STATUS = {
   SMS_NOT_AVAILABLE: 409,
   PHONE_MISSING: 409,
   LAST_METHOD_REQUIRED: 409,
+  /** optimistic locking: the record changed since it was read; meta.current holds the newer values (R-ZONE-9) */
+  STALE_VERSION: 409,
+  // doc 53 section 5 (zones)
+  ...ZONE_ERROR_STATUS,
   INTERNAL: 500,
 } as const;
 
@@ -30,6 +35,11 @@ export const errorBodySchema = z.object({
     code: z.enum(ERROR_CODES as [ErrorCode, ...ErrorCode[]]),
     message: z.string(),
     details: z.array(z.object({ field: z.string(), issue: z.string() })).optional(),
+    /**
+     * Structured data of a few codes (additive to doc 09's envelope, doc 32): PINCODE_OVERLAP { conflicts },
+     * ZONE_NOT_ACTIVATABLE { missing }, ZONE_HAS_HISTORY { counts }, STALE_VERSION { current }, IMPACT_CHANGED { impact }.
+     */
+    meta: z.record(z.string(), z.unknown()).optional(),
     requestId: z.string().optional(),
   }),
 });

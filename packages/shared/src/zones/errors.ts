@@ -1,18 +1,20 @@
-// Zone error codes and their HTTP status (doc 53 section 5). The zones API (P11) adds them to the shared error list
-// (ERROR_STATUS) when its routes exist; until then they are defined here only, so the OpenAPI document is unchanged.
+// Zone error codes and their HTTP status (doc 53 section 5). Part of the shared error list (ERROR_STATUS in ../errors.ts)
+// since the zones API exists (P11). Structured data (conflicts, missing, counts) travels in `error.meta` (doc 32).
 
 export const ZONE_ERROR_STATUS = {
   ZONE_NAME_TAKEN: 409,
   ZONE_CODE_TAKEN: 409,
-  /** details: conflicts [{ pincode, zoneName }] */
+  /** meta: conflicts [{ pincode, zoneId, zoneName }] */
   PINCODE_OVERLAP: 409,
   RANGE_TOO_LARGE: 422,
-  /** details: missing [...] (name, city, state, pincodes, deliveryCharge) */
+  /** PATCH tried to change `code` (R-ZONE-3, TC-ZONE-12) */
+  CODE_IMMUTABLE: 422,
+  /** meta: missing [...] (name, city, state, pincodes, deliveryCharge) */
   ZONE_NOT_ACTIVATABLE: 422,
-  /** the impact counts moved since the deactivate dialog loaded */
+  /** the impact counts moved since the deactivate dialog loaded; meta: impact (the current one) */
   IMPACT_CHANGED: 409,
   REASON_REQUIRED: 422,
-  /** details: counts; delete is allowed only for a pristine zone */
+  /** meta: counts; delete is allowed only for a pristine zone */
   ZONE_HAS_HISTORY: 409,
 } as const;
 

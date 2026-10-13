@@ -14,6 +14,7 @@ import {
   patchZoneSchema,
   zonePincodesSchema,
 } from './index';
+import { ERROR_STATUS, errorBodySchema } from '../errors';
 
 describe('pincodes', () => {
   it.each([
@@ -191,10 +192,23 @@ describe('error codes', () => {
       ZONE_CODE_TAKEN: 409,
       PINCODE_OVERLAP: 409,
       RANGE_TOO_LARGE: 422,
+      CODE_IMMUTABLE: 422,
       ZONE_NOT_ACTIVATABLE: 422,
       IMPACT_CHANGED: 409,
       REASON_REQUIRED: 422,
       ZONE_HAS_HISTORY: 409,
     });
+  });
+
+  it('are part of the shared error list (P11), with STALE_VERSION and error.meta', () => {
+    expect(ERROR_STATUS).toMatchObject({ ...ZONE_ERROR_STATUS, STALE_VERSION: 409 });
+    const body = {
+      error: {
+        code: 'PINCODE_OVERLAP',
+        message: 'Pincode already in another zone',
+        meta: { conflicts: [{ pincode: '560001', zoneId: 'z', zoneName: 'Zone A' }] },
+      },
+    };
+    expect(errorBodySchema.safeParse(body).success).toBe(true);
   });
 });
