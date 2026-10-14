@@ -18,6 +18,7 @@ import {
   SIGN_IN_ENDED,
   TRY_AGAIN,
 } from './errors';
+import { DevMailHint } from './DevMailHint';
 import { MethodChoice, METHOD_ORDER } from './MethodChoice';
 import { OtpInput } from './OtpInput';
 import { clearPending, readPending, type PendingSignIn } from './pending';
@@ -211,6 +212,7 @@ export function TwoStepVerify() {
                   ? 'Sending a code…'
                   : `We will send a code to ${current?.hint ?? 'your account'}.`}
           </p>
+          {mode === 'EMAIL_OTP' && otp ? <DevMailHint /> : null}
           <div key={shake}>
             <OtpInput
               value={code}

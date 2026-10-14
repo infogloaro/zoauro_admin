@@ -433,6 +433,10 @@ describe('/2fa/setup', () => {
     const sms = await screen.findByRole('button', { name: /Text message/ });
     expect((sms as HTMLButtonElement).disabled).toBe(true);
     expect(sms.textContent).toContain('Not switched on yet');
+    // owner 2026-10-14: with email allowed, the first sign-in uses it; the app is added after signing in
+    const app = screen.getByRole('button', { name: /Authenticator app/ });
+    expect((app as HTMLButtonElement).disabled).toBe(true);
+    expect(app.textContent).toContain('Add it after you sign in, in Account security.');
     await user.click(screen.getByRole('button', { name: /Email code/ }));
     await user.click(await screen.findByRole('button', { name: 'Send code' }));
     await user.click(cells()[0] as HTMLElement);

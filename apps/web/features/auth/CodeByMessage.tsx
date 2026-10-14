@@ -4,6 +4,7 @@ import { useId, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { GENERIC_CODE_ERROR, isApiError, TRY_AGAIN } from './errors';
 import { linkClass } from './AuthCard';
+import { DevMailHint } from './DevMailHint';
 import { OtpInput } from './OtpInput';
 import { useCountdown } from './useCountdown';
 
@@ -110,6 +111,7 @@ export function CodeByMessage({
       <p className="text-sm text-muted">
         We sent a code to {sent.hint}. It is valid for {Math.round(sent.ttl / 60)} minutes.
       </p>
+      {channel === 'email' ? <DevMailHint /> : null}
       <div key={attempt}>
         <OtpInput
           value={code}

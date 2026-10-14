@@ -98,13 +98,18 @@ export function SetupWizard() {
   if (!overview) return <AuthCard title="Set up 2-step verification">Loading…</AuthCard>;
 
   const enrolled = new Set(overview.methods.map((m) => m.type));
-  // while SMS is off the policy cannot list it, so for SMS "off" comes first
+  // While SMS is off the policy cannot list it, so for SMS "off" comes first. Owner 2026-10-14: the first sign-in uses
+  // the email code; the authenticator (and SMS) are added afterwards in Account security. Only a policy without email
+  // offers them here (they then ask for the email proof first, as the API requires).
+  const emailFirst = overview.policy.allowed.includes('EMAIL_OTP');
   const unavailable = (t: MfaType): string | null =>
     t === 'SMS_OTP' && !overview.policy.smsAvailable
       ? 'Not switched on yet. Choose another method.'
       : !overview.policy.allowed.includes(t)
         ? 'Not allowed by your security policy.'
-        : null;
+        : t !== 'EMAIL_OTP' && emailFirst
+          ? 'Add it after you sign in, in Account security.'
+          : null;
   const done = (r?: { backupCodes?: string[] | undefined }) => {
     if (r) keepCodes(r);
     void load();
