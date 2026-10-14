@@ -20,12 +20,22 @@ import { EnrolmentService } from './mfa/enrolment.service';
 import { mfaActorMiddleware } from './mfa/actor';
 import { createMfaController, createSecuritySettingsController } from './mfa.controller';
 import { SecurityPolicyService } from './mfa/policy-admin';
-import { disabledSmsProvider, SmsCircuitBreaker, type SmsProvider } from './mfa/sms';
+import {
+  disabledSmsProvider,
+  SmsCircuitBreaker,
+  type SmsProvider,
+  type SmsProviderName,
+} from './mfa/sms';
 import { record, runAsSystem } from '../../lib/audit';
 
 export { createAuthMailer, noopAuthMailer, type AuthMailer } from './auth.mails';
 export { staticMfaPolicy, type MfaPolicyReader } from './mfa/policy';
-export { ConsoleSmsProvider, createSmsProvider, type SmsProvider } from './mfa/sms';
+export {
+  ConsoleSmsProvider,
+  createSmsProvider,
+  type SmsProvider,
+  type SmsProviderName,
+} from './mfa/sms';
 
 export interface AuthModule {
   router: Router;
@@ -60,7 +70,7 @@ export function createAuthModule(deps: {
   /** MFA_ISSUER: the name authenticator apps show (default ZOAURO Admin) */
   mfaIssuer?: string;
   /** SMS_PROVIDER and SMS_DLT_TEMPLATE_ID_OTP: whether the policy may switch SMS on (doc 52 section 5) */
-  smsSettings?: { provider: 'none' | 'console'; dltTemplateIdOtp?: string | undefined };
+  smsSettings?: { provider: SmsProviderName; dltTemplateIdOtp?: string | undefined };
 }): AuthModule {
   const config = deps.config ?? DEFAULT_AUTH_CONFIG;
   const clock = deps.clock ?? (() => new Date());

@@ -2,16 +2,29 @@ import type { Redis } from 'ioredis';
 import type { MfaPolicy } from '@zoauro/shared';
 import { phoneHint } from '@zoauro/shared';
 
-// SMS one-time codes (doc 52 sections 2.2, 5, 6): an interface only. No vendor is chosen (D68 is open) and no real
-// adapter exists, so SMS stays off: 'none' fails closed; 'console' (local work and tests) keeps messages in memory and
-// prints them, and the API refuses to start with it in production (env.ts).
+// SMS one-time codes (doc 52 sections 2.2, 5, 6) behind a provider interface. 'none' (the default) fails closed;
+// 'console' (local work and tests) keeps messages in memory and prints them, and the API refuses to start with it in
+// production (env.ts); 'msg91' is the real adapter (D68, owner 2026-10-14). MSG91 sends a DLT-registered template, so a
+// provider receives the code and its lifetime, never free text.
+
+export const SMS_PROVIDERS = ['none', 'console', 'msg91'] as const;
+export type SmsProviderName = (typeof SMS_PROVIDERS)[number];
+
+export interface SmsOtp {
+  code: string;
+  minutes: number;
+}
 
 export interface SmsProvider {
-  readonly name: 'none' | 'console';
+  readonly name: SmsProviderName;
   /** true when a message can actually be handed to someone */
   readonly canSend: boolean;
-  send(toE164: string, body: string): Promise<void>;
+  sendOtp(toE164: string, otp: SmsOtp): Promise<void>;
 }
+
+/** The wording to register on the DLT portal (doc 52 section 6); the console provider prints exactly this. */
+export const otpSmsText = (otp: SmsOtp): string =>
+  `${otp.code} is your ZOAURO Admin verification code. It expires in ${otp.minutes} minutes. Never share it.`;
 
 export class SmsUnavailableError extends Error {
   constructor() {
@@ -24,7 +37,7 @@ export class SmsUnavailableError extends Error {
 export const disabledSmsProvider: SmsProvider = {
   name: 'none',
   canSend: false,
-  send: async () => {
+  sendOtp: async () => {
     throw new SmsUnavailableError();
   },
 };
@@ -35,23 +48,87 @@ export class ConsoleSmsProvider implements SmsProvider {
   readonly canSend = true;
   readonly sent: { to: string; body: string }[] = [];
   constructor(private readonly opts: { print?: boolean } = {}) {}
-  async send(toE164: string, body: string): Promise<void> {
+  async sendOtp(toE164: string, otp: SmsOtp): Promise<void> {
+    const body = otpSmsText(otp);
     this.sent.push({ to: toE164, body });
     if (this.opts.print) console.log(`[console SMS] to ${phoneHint(toE164)}: ${body}`);
   }
 }
 
-export function createSmsProvider(name: 'none' | 'console'): SmsProvider {
-  return name === 'console' ? new ConsoleSmsProvider({ print: true }) : disabledSmsProvider;
+export class SmsDeliveryError extends Error {
+  constructor(readonly status: number) {
+    super(`SMS provider refused the message (HTTP ${status})`);
+    this.name = 'SmsDeliveryError';
+  }
+}
+
+export interface Msg91Config {
+  authKey: string;
+  /** the MSG91 template id of the OTP flow (mapped to the DLT template inside MSG91) */
+  templateId: string;
+  /** default https://control.msg91.com/api/v5/flow */
+  url?: string;
+  fetch?: typeof fetch;
+  timeoutMs?: number;
+}
+
+/**
+ * MSG91 Flow API: POST {template_id, recipients:[{mobiles, otp, minutes}]} with the `authkey` header. The template in
+ * MSG91 must use the variables ##otp## and ##minutes##. Neither the number nor the code is ever logged.
+ */
+export class Msg91SmsProvider implements SmsProvider {
+  readonly name = 'msg91' as const;
+  readonly canSend = true;
+  constructor(private readonly cfg: Msg91Config) {}
+  async sendOtp(toE164: string, otp: SmsOtp): Promise<void> {
+    const res = await (this.cfg.fetch ?? fetch)(
+      this.cfg.url ?? 'https://control.msg91.com/api/v5/flow',
+      {
+        method: 'POST',
+        headers: {
+          authkey: this.cfg.authKey,
+          'content-type': 'application/json',
+          accept: 'application/json',
+        },
+        body: JSON.stringify({
+          template_id: this.cfg.templateId,
+          short_url: '0',
+          recipients: [
+            { mobiles: toE164.replace(/^\+/, ''), otp: otp.code, minutes: String(otp.minutes) },
+          ],
+        }),
+        signal: AbortSignal.timeout(this.cfg.timeoutMs ?? 10_000),
+      },
+    );
+    if (!res.ok) throw new SmsDeliveryError(res.status);
+    // MSG91 can answer 200 with {"type":"error"}
+    const data: unknown = await res.json().catch(() => null);
+    if (typeof data === 'object' && data !== null && 'type' in data && data.type === 'error')
+      throw new SmsDeliveryError(res.status);
+  }
+}
+
+export interface SmsEnv {
+  SMS_PROVIDER: SmsProviderName;
+  SMS_API_KEY?: string | undefined;
+  /** the provider's own template id (MSG91 flow template); the DLT id lives inside it */
+  SMS_TEMPLATE_ID_OTP?: string | undefined;
+}
+
+/** env.ts already refuses 'msg91' without SMS_API_KEY and SMS_TEMPLATE_ID_OTP; fail closed if called without them. */
+export function createSmsProvider(env: SmsEnv): SmsProvider {
+  if (env.SMS_PROVIDER === 'console') return new ConsoleSmsProvider({ print: true });
+  if (env.SMS_PROVIDER === 'msg91' && env.SMS_API_KEY && env.SMS_TEMPLATE_ID_OTP)
+    return new Msg91SmsProvider({ authKey: env.SMS_API_KEY, templateId: env.SMS_TEMPLATE_ID_OTP });
+  return disabledSmsProvider;
 }
 
 /**
  * Doc 52 section 5 / doc 56 P9: the policy may switch SMS on only with a REAL provider and SMS_DLT_TEMPLATE_ID_OTP.
- * 'none' and 'console' are not real providers, and no real adapter exists yet (D68), so today this always returns a
- * reason. Used by PUT /settings/security (P10).
+ * 'none' and 'console' are not real providers. Used by PUT /settings/security (P10).
  */
 export function smsEnablementProblem(env: {
-  SMS_PROVIDER: 'none' | 'console';
+  SMS_PROVIDER: SmsProviderName;
   SMS_DLT_TEMPLATE_ID_OTP?: string | undefined;
 }): string | null {
   if (env.SMS_PROVIDER === 'none' || env.SMS_PROVIDER === 'console')

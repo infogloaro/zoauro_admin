@@ -124,10 +124,10 @@ export class OtpService {
           purpose,
         });
       } else {
-        await this.deps.sms.send(
-          to.to,
-          `${code} is your ZOAURO Admin verification code. It expires in ${Math.round(policy.otpTtlSeconds / 60)} minutes. Never share it.`,
-        );
+        await this.deps.sms.sendOtp(to.to, {
+          code,
+          minutes: Math.round(policy.otpTtlSeconds / 60),
+        });
       }
     } catch (err) {
       sent = false; // the code itself is never logged; only that delivery failed

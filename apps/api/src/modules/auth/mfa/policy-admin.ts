@@ -11,7 +11,12 @@ import type { SessionStore } from '../../../lib/auth/session-store';
 import { AppError } from '../../../lib/errors';
 import type { AuthDatabase } from '../auth.repository';
 import { MFA_POLICY_SETTING_KEY, usableMethodsFor, type MfaPolicyReader } from './policy';
-import { smsEnablementProblem, type SmsCircuitBreaker, type SmsProvider } from './sms';
+import {
+  smsEnablementProblem,
+  type SmsCircuitBreaker,
+  type SmsProvider,
+  type SmsProviderName,
+} from './sms';
 
 // Settings > Security (doc 52 sections 5 and 8): read the policy, change the 2-step part (Super Admin, STRONG, audited,
 // effective at once in this process and within 60 s elsewhere), the status card, and resuming SMS after the breaker.
@@ -28,7 +33,7 @@ export class SecurityPolicyService {
       policy: MfaPolicyReader & { invalidate?: () => void };
       sms: SmsProvider;
       breaker: SmsCircuitBreaker;
-      smsSettings: { provider: 'none' | 'console'; dltTemplateIdOtp?: string | undefined };
+      smsSettings: { provider: SmsProviderName; dltTemplateIdOtp?: string | undefined };
       config: AuthConfig;
       clock: () => Date;
     },

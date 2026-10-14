@@ -323,7 +323,7 @@ export const securityStatusSchema = z.object({
   activeSuperAdmins: z.number().int(),
   superAdminWarning: z.boolean(),
   sms: z.object({
-    provider: z.enum(['none', 'console']),
+    provider: z.enum(['none', 'console', 'msg91']),
     enabled: z.boolean(),
     paused: z.boolean(),
   }),
@@ -344,7 +344,11 @@ export const DEFAULT_SECURITY_POLICY: SecurityPolicy = {
   },
   mfa: {
     required: { SUPER_ADMIN: true, ZONAL_ADMIN: true },
-    allowed: { SUPER_ADMIN: ['AUTHENTICATOR'], ZONAL_ADMIN: ['AUTHENTICATOR', 'EMAIL_OTP'] },
+    // D66 (owner 2026-10-14): every admin picks any one allowed method; SMS joins once smsEnabled is switched on
+    allowed: {
+      SUPER_ADMIN: ['AUTHENTICATOR', 'EMAIL_OTP'],
+      ZONAL_ADMIN: ['AUTHENTICATOR', 'EMAIL_OTP'],
+    },
     smsEnabled: false,
     otpTtlSeconds: 300,
     otpMaxAttempts: 5,

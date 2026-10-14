@@ -147,24 +147,67 @@ describe('first-time enrolment during sign-in (doc 52 section 2.3)', () => {
     expect(audit).toHaveLength(2);
   });
 
-  it('TC-AUTH-24: Super Admin: the mailbox proof adds no email method (not allowed); the authenticator brings the codes', async () => {
+  it('D66 default: a Super Admin may finish enrolment with the email code alone', async () => {
     const user = await env.createUser('SUPER_ADMIN', { mfa: false });
     const pending = await enrolmentPending(user);
     await asPending(pending, 'post', '/me/mfa/email/start');
     const proof = await asPending(pending, 'post', '/me/mfa/email/confirm', {
       code: lastCode(user, 'ENROL_PROOF'),
     });
-    expect(proof.body).toEqual({});
+    expect(proof.body.backupCodes).toHaveLength(10);
     expect(
       (
         await asPending(pending, 'post', '/auth/mfa/enrol/complete', {
           backupCodesAcknowledged: true,
         })
       ).status,
+    ).toBe(200);
+  });
+
+  it('TC-AUTH-24: Super Admin under an authenticator-only policy: the mailbox proof adds no email method; the authenticator brings the codes', async () => {
+    const strictApp = env.makeApp(TEST_CONFIG, 'enrol-sa-strict', {
+      mfaPolicy: staticMfaPolicy({
+        ...DEFAULT_SECURITY_POLICY.mfa,
+        allowed: { ...DEFAULT_SECURITY_POLICY.mfa.allowed, SUPER_ADMIN: ['AUTHENTICATOR'] },
+      }),
+    });
+    const user = await env.createUser('SUPER_ADMIN', { mfa: false });
+    const pending = await enrolmentPending(user, strictApp);
+    await asPending(pending, 'post', '/me/mfa/email/start', undefined, strictApp);
+    const proof = await asPending(
+      pending,
+      'post',
+      '/me/mfa/email/confirm',
+      { code: lastCode(user, 'ENROL_PROOF') },
+      strictApp,
+    );
+    expect(proof.body).toEqual({});
+    expect(
+      (
+        await asPending(
+          pending,
+          'post',
+          '/auth/mfa/enrol/complete',
+          { backupCodesAcknowledged: true },
+          strictApp,
+        )
+      ).status,
     ).toBe(409);
-    const started = await asPending(pending, 'post', '/me/mfa/authenticator/start');
+    const started = await asPending(
+      pending,
+      'post',
+      '/me/mfa/authenticator/start',
+      undefined,
+      strictApp,
+    );
     const code = await totpAt(started.body.secretBase32, env.clock.now());
-    const confirmed = await asPending(pending, 'post', '/me/mfa/authenticator/confirm', { code });
+    const confirmed = await asPending(
+      pending,
+      'post',
+      '/me/mfa/authenticator/confirm',
+      { code },
+      strictApp,
+    );
     expect(confirmed.body.backupCodes).toHaveLength(10);
     // TC-AUTH-24: active and primary; the codes are returned once, a repeated confirm returns none
     const row = await env.db.owner.query(
@@ -173,13 +216,23 @@ describe('first-time enrolment during sign-in (doc 52 section 2.3)', () => {
       [user.id],
     );
     expect(row.rows).toEqual([{ active: true, is_primary: true }]);
-    const repeat = await asPending(pending, 'post', '/me/mfa/authenticator/confirm', { code });
+    const repeat = await asPending(
+      pending,
+      'post',
+      '/me/mfa/authenticator/confirm',
+      { code },
+      strictApp,
+    );
     expect(repeat.body).not.toHaveProperty('backupCodes');
     expect(
       (
-        await asPending(pending, 'post', '/auth/mfa/enrol/complete', {
-          backupCodesAcknowledged: true,
-        })
+        await asPending(
+          pending,
+          'post',
+          '/auth/mfa/enrol/complete',
+          { backupCodesAcknowledged: true },
+          strictApp,
+        )
       ).status,
     ).toBe(200);
   });
