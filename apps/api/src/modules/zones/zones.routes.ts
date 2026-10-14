@@ -74,6 +74,16 @@ export function createZonesRoutes(
     auditMeta(auditOf('deactivateZone')),
     c.deactivate,
   );
+  // D92 service switches: a Super Admin only; switching off stops new business for the service in the zone (PASSWORD)
+  router.get('/zones/:id/services', requirePermission('zones', 'view'), c.services);
+  router.put(
+    '/zones/:id/services',
+    ...write('edit'),
+    opts.requireReauth('PASSWORD'),
+    requireJsonBody,
+    auditMeta(auditOf('putZoneServices')),
+    c.putServices,
+  );
   // read side of M03 (doc 53 section 5): access:view, also never grantable
   router.get('/zones/:id/team', requirePermission('access', 'view'), c.team);
   return router;

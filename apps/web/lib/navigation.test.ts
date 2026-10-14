@@ -145,6 +145,16 @@ describe('menu by role', () => {
     expect(menuFor('ZONAL_ADMIN', []).map((m) => m.id)).toEqual(['M16', 'R13', 'M01']);
   });
 
+  it('owner decisions D36, D93, D94: refunds, COD settlement, support and notifications appear for a Zonal Admin granted them', () => {
+    const granted = [
+      zone('A', ['refunds:view', 'settlements:view', 'support:view', 'notifications:view']),
+    ];
+    const ids = menuFor('ZONAL_ADMIN', granted).map((m) => m.id);
+    for (const id of ['M13', 'M14', 'M20-SUP', 'M17']) expect(ids).toContain(id);
+    const none = menuFor('ZONAL_ADMIN', [zone('A', ['orders:view'])]).map((m) => m.id);
+    for (const id of ['M13', 'M14', 'M20-SUP', 'M17']) expect(none).not.toContain(id);
+  });
+
   it('a Coming Soon page exists only for a module this person could see', () => {
     const zones = [zone('A', ['orders:view'])];
     expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)?.id).toBe('M11');

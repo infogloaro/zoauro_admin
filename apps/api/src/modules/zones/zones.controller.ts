@@ -12,6 +12,7 @@ import {
   zoneLookupQuerySchema,
   zonePincodesQuerySchema,
   zonePincodesSchema,
+  putZoneServicesSchema,
 } from '@zoauro/shared';
 import { authContextOf } from '../../lib/authz';
 import { AppError, parseBody } from '../../lib/errors';
@@ -62,6 +63,18 @@ export function createZonesController(service: ZonesService) {
   };
   const impact: RequestHandler = async (req, res) => {
     res.json(await service.impact(authContextOf(res), id(req.params)));
+  };
+  const services: RequestHandler = async (req, res) => {
+    res.json(await service.services(authContextOf(res), id(req.params)));
+  };
+  const putServices: RequestHandler = async (req, res) => {
+    res.json(
+      await service.putServices(
+        authContextOf(res),
+        id(req.params),
+        parseBody(putZoneServicesSchema, req.body),
+      ),
+    );
   };
   const team: RequestHandler = async (req, res) => {
     res.json(await service.team(authContextOf(res), id(req.params)));
@@ -132,6 +145,8 @@ export function createZonesController(service: ZonesService) {
     lookup,
     impact,
     team,
+    services,
+    putServices,
     create,
     patch,
     pincodes,

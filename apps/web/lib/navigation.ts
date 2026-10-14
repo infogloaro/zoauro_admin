@@ -429,6 +429,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'banknote',
     description: 'Delivery partners’ cash in hand against cash handed in, with variances.',
     status: 'coming-soon',
+    zonal: { permission: 'settlements' },
     blueprint: {
       phase: 'Phase 1',
       screens: ['Cash in hand by partner', 'Settlement entry and variance report'],
@@ -472,6 +473,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Refund cases from request to provider-confirmed completion, within each member’s limits, with refund letters.',
     status: 'coming-soon',
+    zonal: { permission: 'refunds' },
     blueprint: {
       phase: 'Phase 1',
       roadmap: ['R15', 'R16', 'R17'],
@@ -523,6 +525,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Administrative ticket workspace: queues, ticket detail with customer context, assignment, SLA and escalation.',
     status: 'coming-soon',
+    zonal: { permission: 'support' },
     blueprint: {
       phase: 'Phase 1',
       roadmap: ['R17', 'R18', 'R19'],
@@ -548,6 +551,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Categorised manual, automated and scheduled notifications with templates, delivery outcomes and history.',
     status: 'coming-soon',
+    zonal: { permission: 'notifications' },
     blueprint: {
       phase: 'Phase 1',
       roadmap: ['R25'],
