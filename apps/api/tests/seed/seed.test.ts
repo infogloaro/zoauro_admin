@@ -103,6 +103,7 @@ describe('runSeed on a fresh database', () => {
       ...keys('refunds', 'view'),
       ...keys('settlements', 'view'),
       ...keys('payouts', 'view'),
+      ...keys('notifications', 'view'), // grantable since D94
       ...keys('support', 'view'), // grantable since D93
     ].sort();
 
