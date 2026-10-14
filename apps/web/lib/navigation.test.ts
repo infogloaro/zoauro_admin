@@ -44,12 +44,13 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Zonal Admins, Access Profiles, Access History, Security Settings, Audit & Logs and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Zonal Admins, Access Profiles, Access History, Security Settings, Audit & Logs and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
         .sort(),
     ).toEqual([
+      'CP',
       'M01',
       'M02',
       'M03',

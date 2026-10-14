@@ -625,6 +625,17 @@ export const NAV_MODULES: readonly NavModule[] = [
 
   // ---- Administration -----------------------------------------------------------------------------------------------
   {
+    id: 'CP',
+    slug: 'control-panel',
+    label: 'Control Panel',
+    group: 'administration',
+    icon: 'settings',
+    description:
+      'Which services run in each zone, and every control the Super Admin allocates: accounts, access, teams, settings.',
+    status: 'live',
+    superAdminHref: '/super-admin/control-panel',
+  },
+  {
     id: 'M03',
     slug: 'zonal-admins',
     label: 'Zonal Admins',

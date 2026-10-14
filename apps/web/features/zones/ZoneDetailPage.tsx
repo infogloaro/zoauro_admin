@@ -35,6 +35,7 @@ import {
   missingLabel,
   pincodeSummary,
 } from './format';
+import { ServicesTab } from '../control-panel/ServicesTab';
 import { PincodesTab } from './PincodesTab';
 import { ZoneFormDialog } from './ZoneFormDialog';
 import { ImpactTable, ZoneStatusDialog, type ZoneAction } from './ZoneStatusDialogs';
@@ -43,7 +44,7 @@ import { ImpactTable, ZoneStatusDialog, type ZoneAction } from './ZoneStatusDial
 // (facts, counts, operational snapshot), Pincodes, Team (read-only until Access Control, M03) and Activity (the audit
 // trail of this zone). The tab is kept in the URL so a reload or a shared link opens the same view.
 
-const TABS = ['overview', 'pincodes', 'team', 'activity'] as const;
+const TABS = ['overview', 'pincodes', 'services', 'team', 'activity'] as const;
 type Tab = (typeof TABS)[number];
 
 export function ZoneDetailPage({ id }: { id: string }) {
@@ -148,6 +149,7 @@ export function ZoneDetailPage({ id }: { id: string }) {
         <TabsList aria-label="Zone sections" className="mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="pincodes">Pincodes</TabsTrigger>
+          <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
@@ -156,6 +158,9 @@ export function ZoneDetailPage({ id }: { id: string }) {
         </TabsContent>
         <TabsContent value="pincodes">
           <PincodesTab zone={z} />
+        </TabsContent>
+        <TabsContent value="services">
+          <ServicesTab zone={{ id: z.id, name: z.name }} />
         </TabsContent>
         <TabsContent value="team">
           <TeamTab zoneId={z.id} />
@@ -338,8 +343,15 @@ function TeamTab({ zoneId }: { zoneId: string }) {
     <Card>
       <CardHeader
         title="Team"
-        subtitle="Zonal Admins assigned to this zone, with their access profile and limits. Editing arrives with Access Control."
-        actions={<Badge tone="brand">Read-only</Badge>}
+        subtitle="Zonal Admins assigned to this zone, with their access profile and limits."
+        actions={
+          <a
+            href={`/super-admin/access/teams?zone=${zoneId}`}
+            className="text-sm font-medium text-primary-strong hover:underline"
+          >
+            Manage team
+          </a>
+        }
       />
       <CardBody>
         {team.data.partial ? (
