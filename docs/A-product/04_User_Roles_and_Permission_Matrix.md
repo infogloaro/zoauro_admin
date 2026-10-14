@@ -42,7 +42,8 @@ Key: V view, A add, E edit, D soft delete, S status change (approve, verify, sus
 | Commission rates | V A E | not grantable | — |
 | Zone Management | V A E D | not grantable | — |
 | Zonal Admins, Zone Teams, Access Profiles, Access control | V A E D | not grantable | — |
-| Offers, Notifications (compose), Analytics, Reviews, Support | V A E D | not grantable in v1 (D15) | — |
+| Offers, Notifications (compose), Analytics, Reviews | V A E D | not grantable in v1 (D15) | — |
+| Support tickets (own zones) | V A E D | V E when granted (D93, owner 2026-10-14) | — |
 | Settings (all sections) | V E | not grantable | — |
 | Integrations (clients, webhooks, event monitor, retry/replay) | V E | not grantable (D57) | — |
 | Pending registrations inbox | derived from restaurants/homemakers/delivery view and status | per module permission | — |

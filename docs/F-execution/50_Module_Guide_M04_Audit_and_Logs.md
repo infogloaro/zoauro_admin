@@ -184,7 +184,7 @@ Defined once in `packages/shared/src/audit/actions.ts` as `AUDIT_ACTIONS: Record
 |---|---|
 | auth | `user.two_factor_enrolled`, `user.two_factor_disabled`*, `user.two_factor_reset`*, `user.backup_codes_generated`*, `user.backup_code_used`*, `user.mfa_challenge_failed` (DENIED, rate limited), `user.password_changed`, `user.password_reset_requested`, `user.locked`, `user.unlocked`, `session.revoked`, `reauth.failed`*, `sms.paused`*, `sms.resumed`* (doc 52 §4) |
 | zones | `zone.created`, `zone.updated`, `zone.deactivated`*, `zone.activated`, `zone.delivery_charge_changed`*, `zone.pincodes_changed`*, `zone.deleted` (doc 53 §4) |
-| admins / access | `member.created`, `member.updated`, `member.suspended`, `member.reactivated`, `member.password_reset`*, `access.profile_set`*, `access.override_set`*, `access.limit_set`*, `access.zone_added`*, `access.zone_removed`*, `access_profile.created/updated/deleted`* |
+| admins / access | `member.created`, `member.updated`, `member.suspended`, `member.reactivated`, `member.password_reset`*, `member.deleted`* (D102, added with M03), `access.profile_set`*, `access.override_set`*, `access.limit_set`*, `access.zone_added`*, `access.zone_removed`*, `access_profile.created/updated/deleted`* |
 | restaurants, homemakers | `restaurant.created/updated/deleted`, `restaurant.verified`*, `restaurant.rejected`*, `restaurant.activated/deactivated/suspended`*, `restaurant.commission_changed`*, `restaurant.zone_moved`*, `restaurant.document_added`, `restaurant.document_viewed`* (and `homemaker.*`) |
 | menu | `menu_item.created/updated/deleted`, `menu_item.admin_disabled`, `menu_item.bulk_updated` |
 | customers | `customer.created`, `customer.updated`, `customer.blocked`*, `customer.unblocked`*, `customer.contact_revealed`* |
