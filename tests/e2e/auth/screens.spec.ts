@@ -305,3 +305,35 @@ test('Access Control (M03): create a Zonal Admin, give a zone with a profile (pa
   await look(page, 'sa-access-history');
   await signOut(page);
 });
+
+test('Control Panel (D92): switch Hotel Booking on and off in a zone (password, confirmation before off), Services tab', async ({
+  page,
+}) => {
+  await signInWithAuthenticator(page, state.superAdmin, 'Super Admin');
+  await expect(page).toHaveURL(/\/super-admin\/dashboard$/);
+  await page.goto('/super-admin/control-panel');
+  await expect(page.getByRole('heading', { name: 'Control Panel', level: 1 })).toBeVisible();
+  await look(page, 'sa-control-panel');
+
+  // Hotel Booking is off by default (D92): switch it on in the first zone
+  const hotel = page.getByRole('switch', { name: /^Hotel Booking in / }).first();
+  await expect(hotel).toHaveAttribute('aria-checked', 'false');
+  await hotel.click();
+  await confirmPasswordIfAsked(page, page.getByText(/^Hotel Booking on in /));
+  await expect(hotel).toHaveAttribute('aria-checked', 'true');
+
+  // switching off asks first
+  await hotel.click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByText(/Switch off Hotel Booking in /)).toBeVisible();
+  await dialog.getByRole('button', { name: 'Switch off' }).click();
+  await confirmPasswordIfAsked(page, page.getByText(/^Hotel Booking off in /));
+  await expect(hotel).toHaveAttribute('aria-checked', 'false');
+
+  // the zone page's Services tab shows who changed it
+  await page.getByRole('table', { name: 'Services by zone' }).getByRole('link').first().click();
+  await expect(page.getByRole('tab', { name: 'Services', selected: true })).toBeVisible();
+  await expect(page.getByText(/Changed by /).first()).toBeVisible();
+  await look(page, 'sa-zone-services');
+  await signOut(page);
+});

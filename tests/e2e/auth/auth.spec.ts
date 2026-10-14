@@ -32,7 +32,7 @@ test('login screen: axe, wrong tab and wrong password give the same message', as
   await axe(page, '/forgot-password');
 });
 
-test('TC-AUTH-46: a new Super Admin sets up an authenticator in the wizard and lands on the dashboard', async ({
+test('TC-AUTH-46: a new Super Admin signs in with an email code first, then adds an authenticator in Account security', async ({
   page,
 }) => {
   const u = state.superNew;
@@ -40,22 +40,16 @@ test('TC-AUTH-46: a new Super Admin sets up an authenticator in the wizard and l
   await expect(page).toHaveURL(/\/2fa\/setup$/);
   await expect(page.getByRole('heading', { name: 'Set up 2-step verification' })).toBeVisible();
   await axe(page, '/2fa/setup (method cards)');
+  // owner's flow (b1f7cae): the first sign-in uses the email code; the authenticator is added after signing in
+  await expect(page.getByRole('button', { name: /Authenticator app/ })).toBeDisabled();
 
-  // 1. pick the authenticator; it first asks for the mailbox proof once
-  await pickMethod(page, 'Authenticator app');
+  // 1. email code: send, type the code from Mailpit
+  await pickMethod(page, 'Email code');
   const before = await ids(u.email);
   await page.getByRole('button', { name: 'Send code' }).click();
   await typeCode(page, await emailedCode(u.email, before));
 
-  // 2. the authenticator: the key shown on the screen feeds the test TOTP generator
-  await page.getByRole('button', { name: 'Set up authenticator app' }).click();
-  await expect(page.getByRole('img', { name: /QR code/ })).toBeVisible();
-  await axe(page, '/2fa/setup (authenticator)');
-  const key = ((await page.locator('code').textContent()) ?? '').replace(/\s/g, '');
-  expect(key).toMatch(/^[A-Z2-7]{16,}$/);
-  await typeCode(page, await freshTotp(key), 'Code from the app');
-
-  // 3. success goes straight to the backup codes, acknowledged
+  // 2. backup codes, acknowledged
   await expect(page.getByRole('list', { name: 'Backup codes' }).getByRole('listitem')).toHaveCount(
     10,
   );
@@ -66,7 +60,21 @@ test('TC-AUTH-46: a new Super Admin sets up an authenticator in the wizard and l
   await finish.click();
   await expect(page).toHaveURL(/\/super-admin\/dashboard$/);
 
-  // the next sign-in shows the method cards (D66: the mailbox proof also enrolled email codes); pick the authenticator
+  // 3. Account security: add the authenticator (password re-auth); the key on the screen feeds the test TOTP generator
+  await page.goto('/account/security');
+  await page.getByRole('button', { name: 'Add authenticator app' }).click();
+  await page.getByRole('button', { name: 'Start' }).click();
+  const reauth = page.getByRole('dialog');
+  await reauth.getByRole('textbox', { name: 'Password' }).fill(state.password);
+  await reauth.getByRole('button', { name: 'Confirm' }).click();
+  await expect(page.getByRole('img', { name: /QR code/ })).toBeVisible();
+  await axe(page, '/account/security (add authenticator)');
+  const key = ((await page.locator('code').textContent()) ?? '').replace(/\s/g, '');
+  expect(key).toMatch(/^[A-Z2-7]{16,}$/);
+  await typeCode(page, await freshTotp(key), 'Code from the app');
+  await expect(page.getByText('Method added.')).toBeVisible();
+
+  // the next sign-in offers both; pick the authenticator
   await signOut(page);
   await passwordStep(page, u.email, 'Super Admin');
   await expect(page).toHaveURL(/\/2fa$/);
