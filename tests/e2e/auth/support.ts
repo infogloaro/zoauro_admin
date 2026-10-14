@@ -126,6 +126,17 @@ export async function typeCode(
   await page.keyboard.type(code);
 }
 
+/**
+ * The 2-step method picker (owner's instruction, 2026-10-14): /2fa and /2fa/setup open on one card per method and
+ * nothing is preselected or sent until a card is clicked. Card names are title + description, so match by title.
+ */
+export async function pickMethod(
+  page: Page,
+  method: 'Authenticator app' | 'Email code' | 'Text message',
+): Promise<void> {
+  await page.getByRole('button', { name: new RegExp(method) }).click();
+}
+
 export async function signInWithAuthenticator(
   page: Page,
   user: User,
@@ -133,6 +144,7 @@ export async function signInWithAuthenticator(
 ) {
   await passwordStep(page, user.email, tab);
   await expect(page).toHaveURL(/\/2fa$/);
+  await pickMethod(page, 'Authenticator app');
   await typeCode(page, await freshTotp(user.totpSecret ?? ''));
 }
 

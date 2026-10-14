@@ -8,6 +8,7 @@ import {
   emailedCode,
   axe,
   passwordStep,
+  pickMethod,
   typeCode,
   signInWithAuthenticator,
   signOut,
@@ -38,9 +39,10 @@ test('TC-AUTH-46: a new Super Admin sets up an authenticator in the wizard and l
   await passwordStep(page, u.email, 'Super Admin');
   await expect(page).toHaveURL(/\/2fa\/setup$/);
   await expect(page.getByRole('heading', { name: 'Set up 2-step verification' })).toBeVisible();
-  await axe(page, '/2fa/setup (email step)');
+  await axe(page, '/2fa/setup (method cards)');
 
-  // 1. the mailbox proof
+  // 1. pick the authenticator; it first asks for the mailbox proof once
+  await pickMethod(page, 'Authenticator app');
   const before = await ids(u.email);
   await page.getByRole('button', { name: 'Send code' }).click();
   await typeCode(page, await emailedCode(u.email, before));
@@ -52,10 +54,8 @@ test('TC-AUTH-46: a new Super Admin sets up an authenticator in the wizard and l
   const key = ((await page.locator('code').textContent()) ?? '').replace(/\s/g, '');
   expect(key).toMatch(/^[A-Z2-7]{16,}$/);
   await typeCode(page, await freshTotp(key), 'Code from the app');
-  await expect(page.getByText('Added')).toBeVisible();
-  await page.getByRole('button', { name: 'Continue' }).click();
 
-  // 3. backup codes, acknowledged
+  // 3. success goes straight to the backup codes, acknowledged
   await expect(page.getByRole('list', { name: 'Backup codes' }).getByRole('listitem')).toHaveCount(
     10,
   );
@@ -66,10 +66,11 @@ test('TC-AUTH-46: a new Super Admin sets up an authenticator in the wizard and l
   await finish.click();
   await expect(page).toHaveURL(/\/super-admin\/dashboard$/);
 
-  // the next sign-in asks for the authenticator
+  // the next sign-in shows the method cards (D66: the mailbox proof also enrolled email codes); pick the authenticator
   await signOut(page);
   await passwordStep(page, u.email, 'Super Admin');
   await expect(page).toHaveURL(/\/2fa$/);
+  await pickMethod(page, 'Authenticator app');
   await typeCode(page, await freshTotp(key));
   await expect(page).toHaveURL(/\/super-admin\/dashboard$/);
 });
@@ -80,13 +81,11 @@ test('TC-AUTH-45: a Zonal Admin enrols email codes and signs in with an emailed 
   const u = state.zonalNew;
   await passwordStep(page, u.email, 'Zonal Admin');
   await expect(page).toHaveURL(/\/2fa\/setup$/);
+  // pick email codes: confirming the mailbox enrols them and goes straight to the backup codes
+  await pickMethod(page, 'Email code');
   let before = await ids(u.email);
   await page.getByRole('button', { name: 'Send code' }).click();
   await typeCode(page, await emailedCode(u.email, before));
-  // email is allowed for Zonal Admins: confirming the mailbox enrolled it
-  await expect(page.getByRole('heading', { name: 'Add a method' })).toBeVisible();
-  await expect(page.getByText('Added')).toBeVisible();
-  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('I have saved these codes').check();
   await page.getByRole('button', { name: 'Finish and sign in' }).click();
   await expect(page).toHaveURL(/\/zone\/dashboard$/);
@@ -95,7 +94,8 @@ test('TC-AUTH-45: a Zonal Admin enrols email codes and signs in with an emailed 
   before = await ids(u.email);
   await passwordStep(page, u.email, 'Zonal Admin');
   await expect(page).toHaveURL(/\/2fa$/);
-  await expect(page.getByText(/We sent a code to/)).toBeVisible(); // sent when the method is shown
+  await pickMethod(page, 'Email code'); // nothing is sent until the card is picked
+  await expect(page.getByText(/We sent a code to/)).toBeVisible();
   await axe(page, '/2fa (email code)');
   await typeCode(page, await emailedCode(u.email, before));
   await expect(page).toHaveURL(/\/zone\/dashboard$/);
@@ -117,6 +117,14 @@ test('keyboard only: sign in, second step, the shell, Account security (axe), lo
   await page.keyboard.type(state.password);
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/2fa$/);
+  // the method cards: Tab to the authenticator card and press Enter
+  const card = page.getByRole('button', { name: /Authenticator app/ });
+  for (let i = 0; i < 12; i += 1) {
+    if (await card.evaluate((el) => el.matches(':focus'))) break;
+    await page.keyboard.press('Tab');
+  }
+  await expect(card).toBeFocused();
+  await page.keyboard.press('Enter');
   // the first cell has focus: just type, the sixth digit submits
   await expect(
     page.getByRole('textbox', { name: 'Verification code, digit 1 of 6' }),

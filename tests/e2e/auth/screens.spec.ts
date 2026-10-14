@@ -1,7 +1,16 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { expect, test, type Page } from '@playwright/test';
-import { axe, freshTotp, signInWithAuthenticator, signOut, state } from './support';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import {
+  axe,
+  freshTotp,
+  passwordStep,
+  pickMethod,
+  signInWithAuthenticator,
+  signOut,
+  state,
+  typeCode,
+} from './support';
 
 // The themed shell and the live screens after sign-in (owner's prototype theme + roadmap navigation): both roles'
 // dashboards, Recent Activities, Settings > Security with a real STRONG-confirmed save, a module plan page, the page
@@ -18,6 +27,30 @@ async function look(page: Page, name: string): Promise<void> {
 }
 
 test.use({ viewport: { width: 1440, height: 900 } });
+
+test('sign-in screens in the ZOAURO theme: login, forgot password, the second step, phone width', async ({
+  page,
+}) => {
+  await page.goto('/login');
+  await expect(page.getByRole('heading', { name: 'Welcome back', level: 1 })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Super Admin' })).toBeChecked();
+  await page.getByText('Zonal Admin', { exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sign in as Zonal Admin' })).toBeVisible();
+  await page.getByText('Super Admin', { exact: true }).click();
+  await look(page, 'login');
+  await page.goto('/forgot-password');
+  await look(page, 'forgot-password');
+  await passwordStep(page, state.superAdmin.email, 'Super Admin');
+  await expect(page).toHaveURL(/\/2fa$/);
+  await look(page, 'two-step');
+  await pickMethod(page, 'Authenticator app');
+  await typeCode(page, await freshTotp(state.superAdmin.totpSecret ?? ''));
+  await expect(page).toHaveURL(/\/super-admin\/dashboard$/);
+  await signOut(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/login');
+  await look(page, 'login-phone');
+});
 
 test('Super Admin: dashboard, Recent Activities, Security settings save (STRONG), a module plan, page finder, folding menu', async ({
   page,
@@ -118,16 +151,21 @@ test('Zonal Admin: own dashboard from /me, Access Requests plan, no Super Admin 
   await signOut(page);
 });
 
-/** Confirms with the password when the API asks for a re-authentication (PASSWORD is valid 10 minutes, then not asked). */
-async function confirmPasswordIfAsked(page: Page): Promise<void> {
+/**
+ * Confirms with the password when the API asks for a re-authentication (PASSWORD is valid 10 minutes, then not asked):
+ * waits for whichever comes first, the password dialog or `done` (what the page shows once the action succeeded).
+ */
+async function confirmPasswordIfAsked(page: Page, done: Locator): Promise<void> {
   const reauth = page
     .getByRole('dialog')
     .filter({ hasText: 'Confirm' })
     .getByRole('textbox', { name: 'Password' });
-  if (await reauth.isVisible({ timeout: 3_000 }).catch(() => false)) {
+  await expect(reauth.or(done).first()).toBeVisible({ timeout: 20_000 });
+  if (await reauth.isVisible()) {
     await reauth.fill(state.password);
     await page.getByRole('button', { name: 'Confirm' }).click();
   }
+  await expect(done.first()).toBeVisible({ timeout: 20_000 });
 }
 
 test('Zone Management (TC-ZONE-28/29): overlap caught live and on save, create, activate, deactivate with impact, pincodes preview, activity', async ({
@@ -176,9 +214,8 @@ test('Zone Management (TC-ZONE-28/29): overlap caught live and on save, create, 
   // activate (password confirmation)
   await page.getByRole('button', { name: 'Activate', exact: true }).click();
   await page.getByRole('button', { name: 'Activate zone' }).click();
-  await confirmPasswordIfAsked(page);
+  await confirmPasswordIfAsked(page, page.getByRole('button', { name: 'Deactivate' }));
   await expect(page.getByText('E2E Velachery is live').first()).toBeAttached();
-  await expect(page.getByRole('button', { name: 'Deactivate' })).toBeVisible();
 
   // deactivate: impact table, reason, acknowledgement
   await page.getByRole('button', { name: 'Deactivate' }).click();
@@ -189,8 +226,7 @@ test('Zone Management (TC-ZONE-28/29): overlap caught live and on save, create, 
   await d.getByLabel('Reason').fill('Road works on the main street');
   await d.getByLabel(/I understand open orders will continue/).check();
   await d.getByRole('button', { name: 'Deactivate zone' }).click();
-  await confirmPasswordIfAsked(page);
-  await expect(page.getByText(/Paused/).first()).toBeVisible();
+  await confirmPasswordIfAsked(page, page.getByText(/Paused/));
 
   // pincodes: preview then save
   await page.getByRole('tab', { name: 'Pincodes' }).click();
@@ -217,5 +253,55 @@ test('Zone Management (TC-ZONE-28/29): overlap caught live and on save, create, 
   await look(page, 'sa-system-logs');
   await page.getByRole('tab', { name: 'Sign-ins' }).click();
   await look(page, 'sa-system-logs-signins');
+  await signOut(page);
+});
+
+test('Access Control (M03): create a Zonal Admin, give a zone with a profile (password), preview, profiles, teams, history', async ({
+  page,
+}) => {
+  await signInWithAuthenticator(page, state.superAdmin, 'Super Admin');
+  await expect(page).toHaveURL(/\/super-admin\/dashboard$/);
+  await page.goto('/super-admin/zonal-admins');
+  await expect(page.getByRole('heading', { name: 'Zonal Admins', level: 1 })).toBeVisible();
+  await look(page, 'sa-zonal-admins');
+
+  // a new account with a generated temporary password; the access page opens next (D103)
+  const email = `e2e-m03-${Date.now()}@example.test`;
+  await page.getByRole('button', { name: 'Add Zonal Admin' }).click();
+  const form = page.getByRole('dialog');
+  await form.getByLabel('Full name').fill('E2E Zonal Member');
+  await form.getByLabel('Email').fill(email);
+  await form.getByRole('button', { name: /Generate a strong password/ }).click();
+  await form.getByRole('button', { name: 'Create account' }).click();
+  await expect(page).toHaveURL(/\/super-admin\/access\/members\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole('heading', { name: 'E2E Zonal Member', level: 1 })).toBeVisible();
+
+  // give the run's zone with the first profile, save with the password (PUT access, D107)
+  await page.getByRole('button', { name: 'Add zone' }).first().click();
+  const add = page.getByRole('dialog');
+  const zoneSelect = add.getByLabel('Zone');
+  const firstZone = await zoneSelect
+    .locator('option:not([value=""])')
+    .first()
+    .getAttribute('value');
+  await zoneSelect.selectOption(firstZone ?? '');
+  await add.getByRole('button', { name: 'Add zone' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await confirmPasswordIfAsked(page, page.getByText('Access saved'));
+  await expect(page.getByRole('heading', { name: 'Effective access' })).toBeVisible();
+  await look(page, 'sa-member-access');
+
+  // the list shows the zone chip; profiles, teams and history open on the theme with axe
+  await page.goto(`/super-admin/zonal-admins?q=${encodeURIComponent('E2E Zonal')}`);
+  await expect(page.getByRole('row').filter({ hasText: 'E2E Zonal Member' })).toBeVisible();
+  await page.goto('/super-admin/access/profiles');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await look(page, 'sa-access-profiles');
+  await page.goto('/super-admin/access/teams');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await look(page, 'sa-zone-teams');
+  await page.goto('/super-admin/access/history');
+  await expect(page.getByRole('link', { name: 'E2E Zonal Member' }).first()).toBeVisible();
+  await look(page, 'sa-access-history');
   await signOut(page);
 });
