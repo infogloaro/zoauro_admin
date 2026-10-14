@@ -10,6 +10,9 @@ import { countOrDash, missingLabel, pincodeSummary } from './format';
 import { PincodeEditor, rangeSize, type PincodeValue } from './PincodeEditor';
 import { parseRupees } from './ZoneFormDialog';
 
+// jsdom + userEvent are slow when every test file runs in parallel (same budget as the sign-in tests)
+vi.setConfig({ testTimeout: 20_000 });
+
 // Zone Management screens (P16, doc 53 section 6): the display rules and the pincode editor's live overlap hint.
 
 afterEach(cleanup);

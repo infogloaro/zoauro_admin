@@ -118,7 +118,7 @@ export function LoginForm({ next }: { next?: string | undefined }) {
                     </span>
                     <span
                       id={`tab-hint-${t.value}`}
-                      className={cn('text-xs', on ? 'text-white/85' : 'text-muted')}
+                      className={cn('text-xs', on ? 'text-white' : 'text-muted')}
                     >
                       {t.hint}
                     </span>

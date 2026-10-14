@@ -71,6 +71,14 @@ const NUMBERS: { key: NumberKey; label: string; unit: string }[] = [
   { key: 'sendsPerDay', label: 'Codes per day', unit: 'per member' },
 ];
 
+/** "authenticator app or email code" for the defaults text (follows DEFAULT_SECURITY_POLICY, D66). */
+export function methodNames(types: readonly MfaType[]): string {
+  const names = types.map((t) => METHODS.find((m) => m.type === t)?.label.toLowerCase() ?? t);
+  return names.length > 1
+    ? `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`
+    : (names[0] ?? '');
+}
+
 /** The policy is stricter than before in a way that can leave a member without a usable method. */
 export function tightens(before: MfaPolicy, after: MfaPolicy): boolean {
   if (!before.required.ZONAL_ADMIN && after.required.ZONAL_ADMIN) return true;
@@ -523,8 +531,9 @@ export function SecuritySettings() {
               <CardHeader id="defaults" title="Recommended defaults" />
               <CardBody className="text-sm text-muted">
                 <p>
-                  2-step required for both roles, authenticator for Super Admins, authenticator or
-                  email for Zonal Admins, codes valid{' '}
+                  2-step required for both roles; Super Admins:{' '}
+                  {methodNames(DEFAULT_SECURITY_POLICY.mfa.allowed.SUPER_ADMIN)}; Zonal Admins:{' '}
+                  {methodNames(DEFAULT_SECURITY_POLICY.mfa.allowed.ZONAL_ADMIN)}; codes valid{' '}
                   {DEFAULT_SECURITY_POLICY.mfa.otpTtlSeconds / 60} minutes.
                 </p>
                 <Button

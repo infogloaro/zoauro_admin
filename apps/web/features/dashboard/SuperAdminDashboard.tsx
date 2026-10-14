@@ -332,7 +332,9 @@ export function SuperAdminDashboard({ name }: { name: string }) {
                       On
                     </Badge>
                   ) : (
-                    <Badge dot>Off (no provider yet)</Badge>
+                    <Badge dot>
+                      {sec.sms.provider === 'none' ? 'Off (no provider yet)' : 'Off'}
+                    </Badge>
                   )}
                 </p>
               </>

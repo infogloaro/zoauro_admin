@@ -32,7 +32,7 @@ const RELATED_LINKS = [
   {
     label: 'Access change history',
     href: '/super-admin/access/history',
-    available: false,
+    available: true,
     reason: 'Available once the Access Control screens are built.',
   },
   {

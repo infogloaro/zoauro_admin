@@ -9,6 +9,9 @@ import { ApiClientProvider } from '../../../lib/api-client';
 import { defaultRange } from './filters';
 import { SystemLogsPage } from './SystemLogsPage';
 
+// jsdom + userEvent are slow when every test file runs in parallel (same budget as the sign-in tests)
+vi.setConfig({ testTimeout: 20_000 });
+
 // AU-6 System Logs page against a fake API client. The router is replaced by a tiny URL store backed by the real
 // window.history, so every filter really goes through the address bar and back, as it does in the app.
 
@@ -182,20 +185,18 @@ describe('first load', () => {
     expect(screen.queryByText(/\btotal\b|\d+ (rows|results|entries)/i)).toBeNull();
   });
 
-  it('links to Access change history and Integration events are disabled, with the reason in a tooltip', async () => {
+  it('Access change history links to its page (M03); Integration events stays disabled with the reason in a tooltip', async () => {
     setup();
     await rowsReady();
     const nav = screen.getByRole('navigation', { name: 'Related logs' });
-    for (const [name, reason] of [
-      ['Access change history', /Access Control screens/],
-      ['Integration events', /Integration Hub/],
-    ] as const) {
-      const link = within(nav).getByRole('link', { name });
-      expect(link.getAttribute('aria-disabled')).toBe('true');
-      expect(link.getAttribute('href')).toBeNull();
-      link.focus();
-      expect((await screen.findAllByText(reason)).length).toBeGreaterThan(0);
-    }
+    const history = within(nav).getByRole('link', { name: 'Access change history' });
+    expect(history.getAttribute('href')).toBe('/super-admin/access/history');
+    expect(history.getAttribute('aria-disabled')).toBeNull();
+    const integrations = within(nav).getByRole('link', { name: 'Integration events' });
+    expect(integrations.getAttribute('aria-disabled')).toBe('true');
+    expect(integrations.getAttribute('href')).toBeNull();
+    integrations.focus();
+    expect((await screen.findAllByText(/Integration Hub/)).length).toBeGreaterThan(0);
   });
 });
 
