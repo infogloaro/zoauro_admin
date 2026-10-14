@@ -8,7 +8,6 @@ import { Input } from '../../components/ui/input';
 import { hardNavigate } from '../../lib/navigate';
 import { useApiClient } from '../../lib/api-client';
 import { afterSignIn } from '../../lib/redirects';
-import { cn } from '../../lib/utils';
 import { AuthCard, linkClass } from './AuthCard';
 import {
   codeFailure,
@@ -19,6 +18,7 @@ import {
   SIGN_IN_ENDED,
   TRY_AGAIN,
 } from './errors';
+import { MethodChoice, METHOD_ORDER } from './MethodChoice';
 import { OtpInput } from './OtpInput';
 import { clearPending, readPending, type PendingSignIn } from './pending';
 import { useCountdown } from './useCountdown';
@@ -39,7 +39,8 @@ export function TwoStepVerify() {
   const client = useApiClient();
   // read after mount: sessionStorage does not exist on the server
   const [pending, setPending] = useState<PendingSignIn | null | undefined>(undefined);
-  const [mode, setMode] = useState<Mode>('AUTHENTICATOR');
+  // null = the method cards; the member picks one (D66), nothing is sent before that
+  const [mode, setMode] = useState<Mode | null>(null);
   const [code, setCode] = useState('');
   const [backup, setBackup] = useState('');
   const [busy, setBusy] = useState(false);
@@ -54,8 +55,14 @@ export function TwoStepVerify() {
   useEffect(() => {
     const p = readPending();
     setPending(p && p.status === 'MFA_REQUIRED' && p.methods.length > 0 ? p : null);
-    if (p?.methods.length) setMode(p.preferred ?? p.methods[0]?.type ?? 'AUTHENTICATOR');
   }, []);
+
+  const choose = (next: Mode | null) => {
+    setMode(next);
+    setCode('');
+    setBackup('');
+    setError(null);
+  };
 
   const send = useCallback(
     async (method: 'EMAIL_OTP' | 'SMS_OTP') => {
@@ -171,39 +178,20 @@ export function TwoStepVerify() {
         </a>
       }
     >
-      {mode !== 'BACKUP_CODE' && methods.length > 1 ? (
-        <fieldset>
-          <legend className="mb-1.5 text-sm font-medium">Method</legend>
-          <div className="flex flex-wrap gap-1 rounded-input border border-line bg-bg p-1">
-            {methods.map((m) => (
-              <label
-                key={m.type}
-                className={cn(
-                  'flex-1 cursor-pointer rounded-input px-3 py-1.5 text-center text-sm font-medium',
-                  'has-focus-visible:outline-2 has-focus-visible:outline-primary',
-                  mode === m.type ? 'bg-surface text-text shadow-sm' : 'text-muted hover:text-text',
-                )}
-              >
-                <input
-                  type="radio"
-                  name="method"
-                  value={m.type}
-                  checked={mode === m.type}
-                  onChange={() => {
-                    setMode(m.type);
-                    setCode('');
-                    setError(null);
-                  }}
-                  className="sr-only"
-                />
-                {METHOD_LABEL[m.type]}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ) : null}
-
-      {mode === 'BACKUP_CODE' ? (
+      {mode === null ? (
+        <MethodChoice
+          legend="Choose how to verify it's you"
+          options={METHOD_ORDER.map((type) => {
+            const m = methods.find((x) => x.type === type);
+            return {
+              type,
+              unavailable: m ? null : 'Not set up on your account. Add it in Account security.',
+              detail: m?.hint ? `Code goes to ${m.hint}` : undefined,
+            };
+          })}
+          onChoose={choose}
+        />
+      ) : mode === 'BACKUP_CODE' ? (
         <BackupCodeEntry
           busy={busy}
           error={error}
@@ -213,6 +201,7 @@ export function TwoStepVerify() {
         />
       ) : (
         <>
+          <h2 className="text-base font-semibold">{METHOD_LABEL[mode]}</h2>
           <p className="text-sm text-muted">
             {mode === 'AUTHENTICATOR'
               ? 'Enter the 6-digit code from your authenticator app.'
@@ -257,29 +246,16 @@ export function TwoStepVerify() {
       )}
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-        {mode === 'BACKUP_CODE' ? (
-          <button
-            type="button"
-            className={linkClass}
-            onClick={() => {
-              setMode(pending.preferred ?? methods[0]?.type ?? 'AUTHENTICATOR');
-              setError(null);
-            }}
-          >
+        {mode !== null ? (
+          <button type="button" className={linkClass} onClick={() => choose(null)}>
             Use another method
           </button>
-        ) : (
-          <button
-            type="button"
-            className={linkClass}
-            onClick={() => {
-              setMode('BACKUP_CODE');
-              setError(null);
-            }}
-          >
+        ) : null}
+        {mode !== 'BACKUP_CODE' ? (
+          <button type="button" className={linkClass} onClick={() => choose('BACKUP_CODE')}>
             Use a backup code
           </button>
-        )}
+        ) : null}
       </div>
     </AuthCard>
   );

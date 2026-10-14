@@ -282,6 +282,14 @@ describe('/2fa', () => {
     );
     expect(await screen.findByText('Signing in as a***@x.test')).toBeTruthy();
     const user = userEvent.setup();
+    // D66: the three methods are cards; one not set up on the account cannot be chosen
+    expect((screen.getByRole('button', { name: /Email code/ }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    expect(
+      (screen.getByRole('button', { name: /Text message/ }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    await user.click(screen.getByRole('button', { name: /Authenticator app/ }));
     await user.click(cells()[0] as HTMLElement);
     await user.paste('111111');
     expect(await screen.findByText(GENERIC_CODE_ERROR)).toBeTruthy();
@@ -314,6 +322,7 @@ describe('/2fa', () => {
       </Providers>,
     );
     const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /Authenticator app/ }));
     await user.click(
       (await screen.findAllByRole('textbox', { name: /digit 1 of 6/ }))[0] as HTMLElement,
     );
@@ -323,7 +332,7 @@ describe('/2fa', () => {
     expect(readPending()).toBeNull();
   });
 
-  it('email: choosing it sends a code once, shows where, and counts down to Resend', async () => {
+  it('email: nothing is sent before a card is chosen; choosing it sends a code once, shows where, and counts down to Resend', async () => {
     pending([
       { type: 'AUTHENTICATOR', hint: 'Authenticator app' },
       { type: 'EMAIL_OTP', hint: 'a***@x.test' },
@@ -343,13 +352,18 @@ describe('/2fa', () => {
       </Providers>,
     );
     const user = userEvent.setup();
-    await user.click(await screen.findByLabelText('Email code'));
+    const emailCard = await screen.findByRole('button', { name: /Email code/ });
+    expect(emailCard.textContent).toContain('Code goes to a***@x.test');
+    expect(api.routes('POST /auth/mfa/challenge')).toEqual([]);
+    await user.click(emailCard);
     expect(await screen.findByText(/We sent a code to a\*\*\*@x.test/)).toBeTruthy();
     expect(screen.getByText('You can resend in 30 s')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Resend code' })).toBeNull();
     // switching away and back does not send a second code
-    await user.click(screen.getByLabelText('Authenticator app'));
-    await user.click(screen.getByLabelText('Email code'));
+    await user.click(screen.getByRole('button', { name: 'Use another method' }));
+    await user.click(screen.getByRole('button', { name: /Authenticator app/ }));
+    await user.click(screen.getByRole('button', { name: 'Use another method' }));
+    await user.click(screen.getByRole('button', { name: /Email code/ }));
     expect(api.routes('POST /auth/mfa/challenge')).toEqual([
       { route: 'POST /auth/mfa/challenge', body: { method: 'EMAIL_OTP' }, params: undefined },
     ]);
@@ -386,7 +400,52 @@ describe('/2fa/setup', () => {
   });
   const CODES = Array.from({ length: 10 }, (_, i) => `ABCDE-${String(i).padStart(5, '0')}`);
 
-  it('Super Admin: email proof, authenticator with QR and key, backup codes acknowledged, then the session starts', async () => {
+  it('email chosen: the email code is both the proof and the method, then backup codes and the session', async () => {
+    let state = overview({
+      policy: { allowed: ['AUTHENTICATOR', 'EMAIL_OTP'], required: true, smsAvailable: false },
+    });
+    const api = fakeClient({
+      ...CSRF,
+      'GET /me/mfa': () => state,
+      'POST /me/mfa/email/start': () => ({
+        sent: true,
+        hint: 'a***@x.test',
+        resendAfterSeconds: 30,
+        expiresInSeconds: 300,
+      }),
+      'POST /me/mfa/email/confirm': () => {
+        state = overview({
+          mailboxProved: true,
+          methods: [{ type: 'EMAIL_OTP', hint: 'a***@x.test', primary: true }],
+          policy: { allowed: ['AUTHENTICATOR', 'EMAIL_OTP'], required: true, smsAvailable: false },
+        });
+        return { backupCodes: CODES };
+      },
+      'POST /auth/mfa/enrol/complete': () => OK,
+    });
+    savePending({ status: 'ENROLMENT_REQUIRED', methods: [], who: 'a***@x.test' });
+    render(
+      <Providers client={api.client}>
+        <SetupWizard />
+      </Providers>,
+    );
+    const user = userEvent.setup();
+    const sms = await screen.findByRole('button', { name: /Text message/ });
+    expect((sms as HTMLButtonElement).disabled).toBe(true);
+    expect(sms.textContent).toContain('Not switched on yet');
+    await user.click(screen.getByRole('button', { name: /Email code/ }));
+    await user.click(await screen.findByRole('button', { name: 'Send code' }));
+    await user.click(cells()[0] as HTMLElement);
+    await user.paste('123456');
+    const list = await screen.findByRole('list', { name: 'Backup codes' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(10);
+    await user.click(screen.getByLabelText('I have saved these codes'));
+    await user.click(screen.getByRole('button', { name: 'Finish and sign in' }));
+    await waitFor(() => expect(nav.hard).toHaveBeenCalled());
+    expect(api.routes('POST /me/mfa/authenticator/start')).toEqual([]);
+  });
+
+  it('Super Admin: authenticator chosen, email proof once, QR and key, backup codes acknowledged, then the session starts', async () => {
     let state = overview();
     const api = fakeClient({
       ...CSRF,
@@ -424,20 +483,21 @@ describe('/2fa/setup', () => {
     );
     const user = userEvent.setup();
 
-    // 1. confirm the email
+    // 1. choose: under an authenticator-only policy the other cards cannot be chosen
+    expect(
+      ((await screen.findByRole('button', { name: /Email code/ })) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    await user.click(screen.getByRole('button', { name: /Authenticator app/ }));
+
+    // 2. confirm the email once, then add the authenticator
     await user.click(await screen.findByRole('button', { name: 'Send code' }));
     await user.click(cells()[0] as HTMLElement);
     await user.paste('123456');
-
-    // 2. add the authenticator (the only card a Super Admin gets)
     await user.click(await screen.findByRole('button', { name: 'Set up authenticator app' }));
     expect(await screen.findByText('JBSW Y3DP EHPK 3PXP JBSW Y3DP EHPK 3PXP')).toBeTruthy();
-    expect(screen.queryByText('Email code')).toBeNull();
     const appCode = screen.getAllByRole('textbox', { name: /Code from the app, digit/ });
     await user.click(appCode[0] as HTMLElement);
     await user.paste('654321');
-    expect(await screen.findByText('Added')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     // 3. backup codes: Finish stays disabled until they are acknowledged
     const list = await screen.findByRole('list', { name: 'Backup codes' });

@@ -14,15 +14,17 @@ import { AuthenticatorSetup } from './AuthenticatorSetup';
 import { BackupCodes } from './BackupCodes';
 import { CodeByMessage } from './CodeByMessage';
 import { GENERIC_CODE_ERROR, isApiError, preSession, TRY_AGAIN } from './errors';
+import { MethodChoice, METHOD_ORDER } from './MethodChoice';
 import { clearPending, readPending } from './pending';
 import { METHOD_LABEL } from './TwoStepVerify';
 
 // /2fa/setup, the first-time 2-step set-up (doc 52 sections 2.3 and 9.3), reached when the password was right but the
 // account has no method yet and the policy requires one. There is no session yet: every call rides on the pending
-// sign-in (zo_mfa). The order is the API's: prove the mailbox, add a method, acknowledge the backup codes, then the
-// session starts. Cancel leaves without a session.
+// sign-in (zo_mfa). The member chooses ONE method (D66); the API still wants the mailbox proved before an
+// authenticator or SMS is added (doc 52 section 2.3), so those ask for an email code first, and choosing email IS that
+// proof. Then the backup codes are acknowledged and the session starts. Cancel leaves without a session.
 
-const STEPS = ['Confirm your email', 'Add a method', 'Save backup codes'] as const;
+const STEPS = ['Choose a method', 'Set it up', 'Save backup codes'] as const;
 
 export function SetupWizard() {
   const client = useApiClient();
@@ -30,6 +32,7 @@ export function SetupWizard() {
   const [ended, setEnded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [chosen, setChosen] = useState<MfaType | null>(null);
   const [codes, setCodes] = useState<string[] | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [finishing, setFinishing] = useState(false);
@@ -48,9 +51,7 @@ export function SetupWizard() {
   }, [client]);
 
   useEffect(() => {
-    void load().then((o) => {
-      if (o) setStep(o.mailboxProved ? 1 : 0);
-    });
+    void load();
   }, [load]);
 
   const keepCodes = (r: { backupCodes?: string[] | undefined }) => {
@@ -97,8 +98,30 @@ export function SetupWizard() {
   if (!overview) return <AuthCard title="Set up 2-step verification">Loading…</AuthCard>;
 
   const enrolled = new Set(overview.methods.map((m) => m.type));
-  const offered = overview.policy.allowed.filter(
-    (t) => t !== 'SMS_OTP' || overview.policy.smsAvailable,
+  // while SMS is off the policy cannot list it, so for SMS "off" comes first
+  const unavailable = (t: MfaType): string | null =>
+    t === 'SMS_OTP' && !overview.policy.smsAvailable
+      ? 'Not switched on yet. Choose another method.'
+      : !overview.policy.allowed.includes(t)
+        ? 'Not allowed by your security policy.'
+        : null;
+  const done = (r?: { backupCodes?: string[] | undefined }) => {
+    if (r) keepCodes(r);
+    void load();
+    setStep(2);
+  };
+  const emailProof = (onConfirmed: () => void) => (
+    <CodeByMessage
+      channel="email"
+      start={() => preSession(client, () => client.post('/me/mfa/email/start'))}
+      confirm={async (code) =>
+        keepCodes(
+          await preSession(client, () => client.post('/me/mfa/email/confirm', { body: { code } })),
+        )
+      }
+      onConfirmed={onConfirmed}
+      onEnded={() => setEnded(true)}
+    />
   );
 
   return (
@@ -124,49 +147,69 @@ export function SetupWizard() {
       </ol>
 
       {step === 0 ? (
-        <section aria-labelledby="step-email" className="flex flex-col gap-3">
-          <h2 id="step-email" className="text-base font-semibold">
-            Confirm your email
-          </h2>
-          <CodeByMessage
-            channel="email"
-            start={() => preSession(client, () => client.post('/me/mfa/email/start'))}
-            confirm={async (code) =>
-              keepCodes(
-                await preSession(client, () =>
-                  client.post('/me/mfa/email/confirm', { body: { code } }),
-                ),
-              )
-            }
-            onConfirmed={() => {
-              void load();
-              setStep(1);
-            }}
-            onEnded={() => setEnded(true)}
-          />
-        </section>
+        <MethodChoice
+          legend="Choose how you want to verify it's you at every sign-in. One method is enough."
+          options={METHOD_ORDER.map((type) => ({ type, unavailable: unavailable(type) }))}
+          onChoose={(type) => {
+            setChosen(type);
+            setStep(1);
+          }}
+        />
       ) : null}
 
-      {step === 1 ? (
-        <section aria-labelledby="step-method" className="flex flex-col gap-4">
+      {step === 1 && chosen ? (
+        <section aria-labelledby="step-method" className="flex flex-col gap-3">
           <h2 id="step-method" className="text-base font-semibold">
-            Add a method
+            {METHOD_LABEL[chosen]}
           </h2>
-          {offered.map((type) => (
-            <MethodCard
-              key={type}
-              type={type}
-              added={enrolled.has(type)}
-              onAdded={(r) => {
-                keepCodes(r);
-                void load();
-              }}
-              onEnded={() => setEnded(true)}
-            />
-          ))}
-          <Button disabled={enrolled.size === 0} onClick={() => setStep(2)}>
-            Continue
-          </Button>
+          {enrolled.has(chosen) ? (
+            <>
+              <p className="flex items-center gap-1 text-sm font-medium text-success">
+                <CheckCircle2 aria-hidden className="size-4" /> Added
+              </p>
+              <Button onClick={() => setStep(2)}>Continue</Button>
+            </>
+          ) : chosen === 'EMAIL_OTP' ? (
+            emailProof(() => done())
+          ) : !overview.mailboxProved ? (
+            <>
+              <p className="text-sm text-muted">
+                First, confirm it&apos;s you with a code sent to your email. This is asked once.
+              </p>
+              {emailProof(() => void load())}
+            </>
+          ) : chosen === 'AUTHENTICATOR' ? (
+            <AddAuthenticator onAdded={done} onEnded={() => setEnded(true)} />
+          ) : (
+            <>
+              <p className="text-sm text-muted">
+                Codes go to the mobile number on your account. To change it, ask your administrator.
+              </p>
+              <CodeByMessage
+                channel="text message"
+                start={() => preSession(client, () => client.post('/me/mfa/sms/start'))}
+                confirm={async (code) =>
+                  keepCodes(
+                    await preSession(client, () =>
+                      client.post('/me/mfa/sms/confirm', { body: { code } }),
+                    ),
+                  )
+                }
+                onConfirmed={() => done()}
+                onEnded={() => setEnded(true)}
+              />
+            </>
+          )}
+          <button
+            type="button"
+            className={`${linkClass} self-start text-sm`}
+            onClick={() => {
+              setChosen(null);
+              setStep(0);
+            }}
+          >
+            Choose another method
+          </button>
         </section>
       ) : null}
 
@@ -205,56 +248,6 @@ export function SetupWizard() {
         </section>
       ) : null}
     </AuthCard>
-  );
-}
-
-function MethodCard({
-  type,
-  added,
-  onAdded,
-  onEnded,
-}: {
-  type: MfaType;
-  added: boolean;
-  onAdded: (r: { backupCodes?: string[] | undefined }) => void;
-  onEnded: () => void;
-}) {
-  const client = useApiClient();
-  return (
-    <div className="rounded-card border border-line p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">{METHOD_LABEL[type]}</h3>
-        {added ? (
-          <span className="flex items-center gap-1 text-xs font-medium text-success">
-            <CheckCircle2 aria-hidden className="size-4" /> Added
-          </span>
-        ) : null}
-      </div>
-      {added ? null : type === 'AUTHENTICATOR' ? (
-        <AddAuthenticator onAdded={onAdded} onEnded={onEnded} />
-      ) : type === 'EMAIL_OTP' ? (
-        <p className="mt-2 text-sm text-muted">Added when you confirmed your email.</p>
-      ) : (
-        <div className="mt-3">
-          <p className="mb-2 text-sm text-muted">
-            Codes go to the mobile number on your account. To change it, ask your administrator.
-          </p>
-          <CodeByMessage
-            channel="text message"
-            start={() => preSession(client, () => client.post('/me/mfa/sms/start'))}
-            confirm={async (code) =>
-              onAdded(
-                await preSession(client, () =>
-                  client.post('/me/mfa/sms/confirm', { body: { code } }),
-                ),
-              )
-            }
-            onConfirmed={() => undefined}
-            onEnded={onEnded}
-          />
-        </div>
-      )}
-    </div>
   );
 }
 

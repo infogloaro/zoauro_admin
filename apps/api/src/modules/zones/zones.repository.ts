@@ -1,5 +1,11 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
-import type { PincodeConflict, PincodeSource, ZoneDto, ZoneListQuery } from '@zoauro/shared';
+import type {
+  PincodeConflict,
+  PincodeSource,
+  ZoneDto,
+  ZoneListQuery,
+  ZoneServiceKind,
+} from '@zoauro/shared';
 import type { AuditTx } from '../../lib/audit';
 import { zonesFor, type AuthContext } from '../../lib/authz';
 import { auditTx } from '../../lib/db';
@@ -101,6 +107,13 @@ export type ZoneChanges = Partial<{
   deactivationReason: string;
   deletedAt: Date;
 }>;
+
+export interface ZoneServiceRow {
+  service: ZoneServiceKind;
+  enabled: boolean;
+  updatedAt: Date;
+  updater: { id: string; name: string } | null;
+}
 
 export interface OutboxRow {
   id: string;
@@ -390,6 +403,60 @@ export class ZonesRepository {
       select: zoneSelect,
     });
     return row ? toDto(row) : null;
+  }
+
+  // ---- service switches (D92) ------------------------------------------------------------------------------------
+
+  /** Stored switches per zone (a service without a row uses its default), for zones this actor can see. */
+  async serviceRows(
+    ctx: AuthContext,
+    zoneIds: readonly string[],
+  ): Promise<Map<string, ZoneServiceRow[]>> {
+    const out = new Map<string, ZoneServiceRow[]>();
+    const base = this.visible(ctx);
+    if (!base || zoneIds.length === 0) return out;
+    const rows = await this.db.zoneService.findMany({
+      where: { zoneId: { in: [...zoneIds] }, zone: base },
+      select: {
+        zoneId: true,
+        service: true,
+        enabled: true,
+        updatedAt: true,
+        updater: { select: { id: true, name: true } },
+      },
+    });
+    for (const r of rows) out.set(r.zoneId, [...(out.get(r.zoneId) ?? []), r]);
+    return out;
+  }
+
+  async upsertServices(
+    ctx: AuthContext,
+    zoneId: string,
+    changes: readonly { service: ZoneServiceKind; enabled: boolean }[],
+  ): Promise<void> {
+    this.writable(ctx);
+    for (const c of changes)
+      await this.db.zoneService.upsert({
+        where: { zoneId_service: { zoneId, service: c.service } },
+        create: { zoneId, service: c.service, enabled: c.enabled, updatedBy: ctx.userId },
+        update: { enabled: c.enabled, updatedBy: ctx.userId },
+      });
+  }
+
+  /**
+   * For the order and onboarding paths (no admin AuthContext, like the resolver): is the service switched on in the
+   * zone? null when the zone does not exist (deleted or unknown).
+   */
+  async serviceSwitchForIntake(
+    zoneId: string,
+    service: ZoneServiceKind,
+  ): Promise<{ enabled: boolean | null } | null> {
+    const zone = await this.db.zone.findFirst({
+      where: { id: zoneId, deletedAt: null },
+      select: { services: { where: { service }, select: { enabled: true } } },
+    });
+    if (!zone) return null;
+    return { enabled: zone.services[0]?.enabled ?? null };
   }
 
   async insertOutbox(ctx: AuthContext, rows: readonly OutboxRow[]): Promise<void> {
