@@ -518,3 +518,13 @@ Gate line status (pass/fail): pass — web lint, typecheck, prettier; web 149 te
 Open points: (1) colleagues' branches dev_cb and feature/m06-m07-restaurants-homemakers fork from the scaffold 869c70b: port their modules onto main (doc 57), do not merge. (2) Workstream 2 (per-zone services D92, dynamic settings) is in progress in the API lane; its migration 20261014090000_zone_services needs the owner's "approved". (3) Shared checkout with up to five sessions: the e2e runner builds from the working tree, so another lane's half-finished edits can fail a run — run it when the tree compiles. (4) Login photo is a demo image (public/brand/README.md)
 Next step: web for workstream 2 (Super Admin Control Panel: per-zone services and settings screens) once its API contract lands
 Verify: pnpm lint && pnpm typecheck && pnpm --filter @zoauro/web test && pnpm e2e:auth
+
+Date / task id: 2026-10-14 / P20 item: production start of the API (doc 56 P20; asked by the web lane for a working build)
+Lane / files changed: backend — apps/api/tsup.config.ts (new: bundles @zoauro/* into dist, npm dependencies stay external, node22 ESM, sourcemaps), apps/api/package.json (build = tsup; new script smoke:start), apps/api/scripts/smoke-start.mjs (new)
+Commits: see git log ("fix(api): production start …")
+Contract changes (docs 08/09/10/36): none
+Decisions or [ASSUMPTION]s touched (D-numbers): none
+Gate line status (pass/fail): pass — `pnpm --filter @zoauro/api smoke:start` builds, starts dist/server.js with plain node (no tsx) on port 4799 against apps/api/.env and gets /api/health 200, /api/ready 200 {database ok, redis ok}; lint, prettier, typecheck. Cause of the old failure (ERR_MODULE_NOT_FOUND since the scaffold): tsup left @zoauro/shared external and that package exports TypeScript source. Read-only against zoauro (boot role check + two probes)
+Open points: (1) The D92 migration 20261014090000_zone_services still waits for the owner's "approved"; until then routes that read zone services fail on zoauro. (2) dist/worker.js has no jobs yet (no job runner). (3) Docker image / Nginx (rest of P20) not built
+Next step: owner's "approved" for the D92 migration; then the dynamic settings API (D13, D68, D88, D95–D101)
+Verify: pnpm --filter @zoauro/api smoke:start
