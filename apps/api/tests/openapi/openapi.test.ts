@@ -97,6 +97,8 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'GET /zones/{id}/impact',
         'POST /zones/{id}/deactivate',
         'GET /zones/{id}/team',
+        'GET /zones/{id}/services',
+        'PUT /zones/{id}/services',
         // M03 Access Control (doc 09, D102–D108)
         'POST /zones/{id}/team/{userId}',
         'DELETE /zones/{id}/team/{userId}',

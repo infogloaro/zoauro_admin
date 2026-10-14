@@ -121,7 +121,15 @@ export class AuthRepository implements SessionPersistence {
     if (zoneIds.length === 0) return [];
     return this.db.zone.findMany({
       where: { id: { in: [...zoneIds] }, deletedAt: null },
-      select: { id: true, name: true, code: true, colorHex: true, status: true },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        colorHex: true,
+        status: true,
+        // D92 switches; a service without a row uses its default
+        services: { select: { service: true, enabled: true } },
+      },
     });
   }
 

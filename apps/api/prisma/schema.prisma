@@ -44,6 +44,13 @@ enum AccessChangeType {
   PROFILE_EDITED
 }
 
+// D92: services a zone can run (the list also lives in @zoauro/shared ZONE_SERVICES)
+enum ZoneServiceKind {
+  RESTAURANTS
+  HOME_FOOD
+  HOTEL_BOOKING
+}
+
 enum ZoneStatus {
   ACTIVE
   INACTIVE
@@ -286,6 +293,7 @@ model User {
   exportsRequested              Export[]
   dataSubjectRequestsHandled    DataSubjectRequest[]
   integrationAlertsAcknowledged IntegrationAlert[]
+  zoneServicesUpdated           ZoneService[]
 
   @@index([roleId])
   @@map("users")
@@ -615,9 +623,27 @@ model Zone {
   notifications     Notification[]
   outbox            Outbox[]
   inboundLogs       IntegrationInboundLog[]
+  services          ZoneService[]
 
   @@index([status])
   @@map("zones")
+}
+
+// D92 (owner, 2026-10-14): which services run in a zone, switched by a Super Admin only. A row exists only once a
+// service was switched; without one the default of ZONE_SERVICE_DEFAULTS (@zoauro/shared) applies.
+model ZoneService {
+  zoneId    String          @map("zone_id") @db.Uuid
+  service   ZoneServiceKind
+  enabled   Boolean
+  updatedBy String?         @map("updated_by") @db.Uuid
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  zone    Zone  @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  updater User? @relation(fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@id([zoneId, service])
+  @@map("zone_services")
 }
 
 // doc 53 section 3. A pincode belongs to at most one zone, forever, unless removed (R-ZONE-2): the unique index is global,

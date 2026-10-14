@@ -6,6 +6,7 @@ import {
   pageMetaSchema,
 } from '../pagination';
 import { ZONE_PLACE_MAX, PINCODE_SOURCES, ZONE_STATUSES } from './schemas';
+import { zoneServiceFlagsSchema } from './services';
 
 // Zone API parameters and responses (doc 53 section 5), shared with the zone screens and the OpenAPI document.
 
@@ -109,6 +110,8 @@ export const zoneTeamSummarySchema = z.object({
 export const zoneListItemSchema = zoneSchema.extend({
   counts: zoneCountsSchema,
   team: zoneTeamSummarySchema,
+  /** D92 service switches (defaults filled in); always sent, optional in the type (additive) */
+  services: zoneServiceFlagsSchema.optional(),
 });
 export const zoneListResponseSchema = z.object({
   data: z.array(zoneListItemSchema),
@@ -134,6 +137,7 @@ export const zonePincodeRowSchema = z.object({
 export const zoneDetailResponseSchema = zoneSchema.extend({
   counts: zoneCountsSchema,
   team: zoneTeamSummarySchema,
+  services: zoneServiceFlagsSchema.optional(),
   pincodes: z.object({ data: z.array(zonePincodeRowSchema), meta: pageMetaSchema }),
   ...partialFields,
 });

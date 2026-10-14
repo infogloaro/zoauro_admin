@@ -65,6 +65,7 @@
                   "IMPACT_CHANGED",
                   "REASON_REQUIRED",
                   "ZONE_HAS_HISTORY",
+                  "ZONE_SERVICE_DISABLED",
                   "INTERNAL"
                 ]
               },
@@ -3293,7 +3294,8 @@
                           "type": "string",
                           "enum": [
                             "none",
-                            "console"
+                            "console",
+                            "msg91"
                           ]
                         },
                         "enabled": {
@@ -3674,6 +3676,25 @@
                                       "dailyRefund",
                                       "canReveal",
                                       "canExport"
+                                    ]
+                                  },
+                                  "services": {
+                                    "type": "object",
+                                    "properties": {
+                                      "RESTAURANTS": {
+                                        "type": "boolean"
+                                      },
+                                      "HOME_FOOD": {
+                                        "type": "boolean"
+                                      },
+                                      "HOTEL_BOOKING": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "required": [
+                                      "RESTAURANTS",
+                                      "HOME_FOOD",
+                                      "HOTEL_BOOKING"
                                     ]
                                   }
                                 },
@@ -5335,6 +5356,25 @@
                               "total",
                               "top"
                             ]
+                          },
+                          "services": {
+                            "type": "object",
+                            "properties": {
+                              "RESTAURANTS": {
+                                "type": "boolean"
+                              },
+                              "HOME_FOOD": {
+                                "type": "boolean"
+                              },
+                              "HOTEL_BOOKING": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "RESTAURANTS",
+                              "HOME_FOOD",
+                              "HOTEL_BOOKING"
+                            ]
                           }
                         },
                         "required": [
@@ -6191,6 +6231,25 @@
                       "required": [
                         "total",
                         "top"
+                      ]
+                    },
+                    "services": {
+                      "type": "object",
+                      "properties": {
+                        "RESTAURANTS": {
+                          "type": "boolean"
+                        },
+                        "HOME_FOOD": {
+                          "type": "boolean"
+                        },
+                        "HOTEL_BOOKING": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "RESTAURANTS",
+                        "HOME_FOOD",
+                        "HOTEL_BOOKING"
                       ]
                     },
                     "pincodes": {
@@ -7914,6 +7973,343 @@
           "kind": "permission",
           "permission": "access:view",
           "zone": "none"
+        }
+      }
+    },
+    "/zones/{id}/services": {
+      "get": {
+        "operationId": "getZoneServices",
+        "tags": [
+          "zones"
+        ],
+        "summary": "D92 service switches of the zone, with defaults marked and who last changed each",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Services",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "service": {
+                            "type": "string",
+                            "enum": [
+                              "RESTAURANTS",
+                              "HOME_FOOD",
+                              "HOTEL_BOOKING"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "isDefault": {
+                            "type": "boolean"
+                          },
+                          "updatedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "updatedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "service",
+                          "label",
+                          "enabled",
+                          "isDefault",
+                          "updatedAt",
+                          "updatedBy"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "services"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:view",
+          "zone": "none"
+        }
+      },
+      "put": {
+        "operationId": "putZoneServices",
+        "tags": [
+          "zones"
+        ],
+        "summary": "Switch services on or off in the zone (PASSWORD re-auth, D92). Off: new onboarding and new orders for it are refused (ZONE_SERVICE_DISABLED); the apps are not told yet",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "services": {
+                    "type": "object",
+                    "properties": {
+                      "RESTAURANTS": {
+                        "type": "boolean"
+                      },
+                      "HOME_FOOD": {
+                        "type": "boolean"
+                      },
+                      "HOTEL_BOOKING": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "services"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "service": {
+                            "type": "string",
+                            "enum": [
+                              "RESTAURANTS",
+                              "HOME_FOOD",
+                              "HOTEL_BOOKING"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "isDefault": {
+                            "type": "boolean"
+                          },
+                          "updatedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "updatedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "service",
+                          "label",
+                          "enabled",
+                          "isDefault",
+                          "updatedAt",
+                          "updatedBy"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "services"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "zones",
+          "action": "zone.services_changed"
         }
       }
     },

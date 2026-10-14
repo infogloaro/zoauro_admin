@@ -16,6 +16,8 @@ export const ZONE_ERROR_STATUS = {
   REASON_REQUIRED: 422,
   /** meta: counts; delete is allowed only for a pristine zone */
   ZONE_HAS_HISTORY: 409,
+  /** D92: the service is switched off in this zone; new onboarding and new orders for it are refused. meta: { service } */
+  ZONE_SERVICE_DISABLED: 409,
 } as const;
 
 export type ZoneErrorCode = keyof typeof ZONE_ERROR_STATUS;

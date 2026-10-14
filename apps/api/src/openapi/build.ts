@@ -38,6 +38,7 @@ const ERROR_DESCRIPTION: Record<ErrorCode, string> = {
   CODE_IMMUTABLE: 'The zone code cannot be changed',
   ZONE_NOT_ACTIVATABLE: 'The zone cannot go live yet (error.meta.missing)',
   IMPACT_CHANGED: 'The impact changed since it was shown (error.meta.impact)',
+  ZONE_SERVICE_DISABLED: 'The service is switched off in this zone (error.meta.service, D92)',
   REASON_REQUIRED: 'A reason is required',
   ZONE_HAS_HISTORY: 'The zone has history and cannot be deleted (error.meta.counts)',
   INTERNAL: 'Server error',

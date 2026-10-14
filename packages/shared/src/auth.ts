@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ROLES } from './enums';
+import { zoneServiceFlagsSchema } from './zones/services';
 import { isCommonPassword } from './password-policy';
 import {
   PERMISSION_ACTIONS,
@@ -98,6 +99,11 @@ export const meZoneSchema = z.object({
   /** profile + GRANT overrides − DENY overrides (deny wins), sorted */
   permissions: z.array(permissionKeySchema),
   limits: zoneLimitsSchema,
+  /**
+   * D92: services running in the zone; the screens hide a switched-off service there. Always sent by the API; optional
+   * in the type only so that older clients and fixtures keep compiling (additive change, doc 32).
+   */
+  services: zoneServiceFlagsSchema.optional(),
 });
 export type MeZone = z.infer<typeof meZoneSchema>;
 

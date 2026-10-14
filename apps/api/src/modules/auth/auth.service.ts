@@ -14,6 +14,7 @@ import type {
   ResetPasswordInput,
   Role,
 } from '@zoauro/shared';
+import { zoneServiceFlags } from '@zoauro/shared';
 import { noteAuditNoop, record, recordMany, runWithAuditContext, uuidv7 } from '../../lib/audit';
 import type { AuditActor, AuditEntry } from '../../lib/audit';
 import type { Audit } from '../../lib/audit/audit.service';
@@ -760,6 +761,7 @@ export class AuthService {
         status: z.status,
         permissions: [...(ctx.permissionsByZone.get(z.id) ?? [])].sort(),
         limits: ctx.limitsByZone.get(z.id) ?? NO_LIMITS,
+        services: zoneServiceFlags(z.services),
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }

@@ -17,7 +17,9 @@ export type ZoneChange =
   | 'pincodes_changed'
   | 'activated'
   | 'deactivated'
-  | 'deleted';
+  | 'deleted'
+  /** D92: a service switched on or off; internal only until the apps' contract carries services (doc 32) */
+  | 'services_changed';
 
 /**
  * `pincodeRange` of the catalogue is one string and cannot express a list (doc 53 section 2.5): the range when the
@@ -79,6 +81,29 @@ export function zoneEventRows(input: {
       },
     },
   ];
+}
+
+/** admin.zones_changed alone: a change the apps are not told about (yet), such as the D92 service switches. */
+export function zoneInternalEventRow(input: {
+  zoneId: string;
+  change: ZoneChange;
+  actorId: string;
+  occurredAt: Date;
+}): OutboxRow {
+  const id = uuidv7();
+  return {
+    id,
+    eventType: ADMIN_ZONES_CHANGED,
+    zoneId: input.zoneId,
+    payload: {
+      eventId: id,
+      type: ADMIN_ZONES_CHANGED,
+      schemaVersion: 1,
+      occurredAt: input.occurredAt.toISOString(),
+      actor: { type: 'ADMIN', id: input.actorId },
+      data: { zoneId: input.zoneId, change: input.change },
+    },
+  };
 }
 
 /** The global counter the resolver cache is keyed with (doc 53 section 2.3). Bumped after every committed change. */

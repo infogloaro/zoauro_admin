@@ -59,6 +59,8 @@ export const AUDIT_ACTIONS = {
   'zone.delivery_charge_changed': a('zones', 'Changed delivery charge', H),
   'zone.pincodes_changed': a('zones', 'Changed pincodes', H),
   'zone.deleted': a('zones', 'Deleted zone'),
+  // D92: a service switched on or off in a zone (switching off stops new business for it there)
+  'zone.services_changed': a('zones', 'Changed zone services', H),
   // members and access
   'member.created': a('admins', 'Created member account'),
   'member.updated': a('admins', 'Updated member account'),

@@ -9,13 +9,25 @@ import {
   type ZoneListQuery,
   type ZonePincodesInput,
   type AuditActionKey,
+  type PutZoneServicesInput,
+  type ZoneServiceKind,
+  type ZoneServicesResponse,
+  ZONE_SERVICE_DEFAULTS,
+  ZONE_SERVICE_LABELS,
+  ZONE_SERVICES,
+  zoneServiceFlags,
 } from '@zoauro/shared';
-import { record, uuidv7 } from '../../lib/audit';
+import { noteAuditNoop, record, uuidv7 } from '../../lib/audit';
 import type { AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
 import type { ImpactService } from './impact.service';
 import { assertNoOverlap, initialPincodes, planPincodeChange } from './pincodes.service';
-import { zoneEventRows, type ZoneChange, type ZonesCacheVersion } from './zones.events';
+import {
+  zoneEventRows,
+  zoneInternalEventRow,
+  type ZoneChange,
+  type ZonesCacheVersion,
+} from './zones.events';
 import {
   uniqueViolationOn,
   type ZoneChanges,
@@ -118,13 +130,15 @@ export class ZonesService {
   async list(ctx: AuthContext, q: ZoneListQuery) {
     const rows = await this.deps.db.repo.list(ctx, q);
     const page = buildCursorPage(rows, q.limit, (z) => z.id);
-    const figures = await this.deps.impact.listFigures(
-      ctx,
-      page.data.map((z) => z.id),
-    );
+    const ids = page.data.map((z) => z.id);
+    const [figures, services] = await Promise.all([
+      this.deps.impact.listFigures(ctx, ids),
+      this.deps.db.repo.serviceRows(ctx, ids),
+    ]);
     return {
       data: page.data.map((z) => ({
         ...z,
+        services: zoneServiceFlags(services.get(z.id) ?? []),
         counts: figures.counts.get(z.id) ?? {
           restaurants: 0,
           homemakers: 0,
@@ -161,12 +175,14 @@ export class ZonesService {
     const zone = await this.deps.db.repo.findById(ctx, id);
     if (!zone) throw notFound();
     const window = pageWindow({ page: q.pincodePage, pageSize: q.pincodePageSize });
-    const [pincodes, figures] = await Promise.all([
+    const [pincodes, figures, services] = await Promise.all([
       this.deps.db.repo.pincodePage(ctx, id, { ...window, prefix: q.pincodeQ }),
       this.deps.impact.listFigures(ctx, [id]),
+      this.deps.db.repo.serviceRows(ctx, [id]),
     ]);
     return {
       ...zone,
+      services: zoneServiceFlags(services.get(id) ?? []),
       counts: figures.counts.get(id) ?? {
         restaurants: 0,
         homemakers: 0,
@@ -201,6 +217,84 @@ export class ZonesService {
   // ---- writes --------------------------------------------------------------------------------------------------------
 
   /** One transaction; the cache counter is bumped only after a commit that changed something. */
+  // ---- service switches (D92) ------------------------------------------------------------------------------------
+
+  async services(ctx: AuthContext, id: string): Promise<ZoneServicesResponse> {
+    if (!(await this.deps.db.repo.findById(ctx, id))) throw notFound();
+    const stored = (await this.deps.db.repo.serviceRows(ctx, [id])).get(id) ?? [];
+    return {
+      zoneId: id,
+      services: ZONE_SERVICES.map((service) => {
+        const row = stored.find((r) => r.service === service);
+        return {
+          service,
+          label: ZONE_SERVICE_LABELS[service],
+          enabled: row?.enabled ?? ZONE_SERVICE_DEFAULTS[service],
+          isDefault: row === undefined,
+          updatedAt: row?.updatedAt.toISOString() ?? null,
+          updatedBy: row?.updater ?? null,
+        };
+      }),
+    };
+  }
+
+  /**
+   * PUT /zones/{id}/services (D92): switch services on or off. Only real changes are written; one audit row
+   * (zone.services_changed, HIGH) and one internal admin.zones_changed event; nothing is told to the apps yet.
+   */
+  async putServices(
+    ctx: AuthContext,
+    id: string,
+    input: PutZoneServicesInput,
+  ): Promise<ZoneServicesResponse> {
+    await this.write(async (tx) => {
+      const zone = await this.current(tx, ctx, id, null);
+      const before = zoneServiceFlags((await tx.repo.serviceRows(ctx, [id])).get(id) ?? []);
+      const changes = ZONE_SERVICES.flatMap((service) => {
+        const wanted = input.services[service];
+        return wanted === undefined || wanted === before[service]
+          ? []
+          : [{ service, enabled: wanted }];
+      });
+      if (changes.length === 0) {
+        noteAuditNoop();
+        return { result: undefined, changed: false };
+      }
+      await tx.repo.upsertServices(ctx, id, changes);
+      const after = { ...before };
+      for (const c of changes) after[c.service] = c.enabled;
+      await this.audit(tx, 'zone.services_changed', zone, before, after);
+      await tx.repo.insertOutbox(ctx, [
+        zoneInternalEventRow({
+          zoneId: id,
+          change: 'services_changed',
+          actorId: ctx.userId,
+          occurredAt: this.deps.clock(),
+        }),
+      ]);
+      // the resolver cache does not hold services: nothing to bump
+      return { result: undefined, changed: false };
+    });
+    return this.services(ctx, id);
+  }
+
+  /**
+   * For the order and onboarding modules (D92): refuses with 409 ZONE_SERVICE_DISABLED when the service is off in the
+   * zone, 404 when the zone does not exist.
+   */
+  async assertServiceEnabled(zoneId: string, service: ZoneServiceKind): Promise<void> {
+    const sw = await this.deps.db.repo.serviceSwitchForIntake(zoneId, service);
+    if (!sw) throw notFound();
+    if (!(sw.enabled ?? ZONE_SERVICE_DEFAULTS[service]))
+      throw new AppError(
+        'ZONE_SERVICE_DISABLED',
+        `${ZONE_SERVICE_LABELS[service]} is switched off in this zone`,
+        undefined,
+        undefined,
+        { service },
+      );
+  }
+
   private async write<T>(
     fn: (tx: ZonesTx) => Promise<{ result: T; changed: boolean }>,
   ): Promise<T> {
