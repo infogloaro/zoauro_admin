@@ -114,7 +114,7 @@ async function fillLogin(email: string, password: string, tab: 'Super Admin' | '
   await user.click(screen.getByLabelText(tab));
   await user.type(screen.getByLabelText('Email'), email);
   await user.type(screen.getByLabelText('Password'), password);
-  await user.click(screen.getByRole('button', { name: 'Sign in' }));
+  await user.click(screen.getByRole('button', { name: /^Sign in as / }));
 }
 
 describe('/login', () => {
@@ -137,7 +137,7 @@ describe('/login', () => {
     const user = userEvent.setup();
     await user.clear(screen.getByLabelText('Password'));
     await user.type(screen.getByLabelText('Password'), 'wrong-password-1');
-    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    await user.click(screen.getByRole('button', { name: /^Sign in as / }));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain(LOCK_POLICY_HINT));
     expect(screen.getByRole('alert').textContent?.startsWith(GENERIC_SIGN_IN_ERROR)).toBe(true);
 

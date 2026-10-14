@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type Role } from '@zoauro/shared';
+import { ArrowRight, MapPinned, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -24,9 +25,9 @@ import { PasswordInput } from './PasswordInput';
 
 type LoginValues = z.input<typeof loginSchema>;
 
-const TABS: { value: Role; label: string }[] = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin' },
-  { value: 'ZONAL_ADMIN', label: 'Zonal Admin' },
+const TABS: { value: Role; label: string; hint: string; icon: typeof ShieldCheck }[] = [
+  { value: 'SUPER_ADMIN', label: 'Super Admin', hint: 'Full platform access', icon: ShieldCheck },
+  { value: 'ZONAL_ADMIN', label: 'Zonal Admin', hint: 'Assigned zone access', icon: MapPinned },
 ];
 
 /** The lock rule is explained from the second failure in a row on. */
@@ -72,24 +73,59 @@ export function LoginForm({ next }: { next?: string | undefined }) {
   });
 
   return (
-    <AuthCard title="Sign in" subtitle="Use the account your administrator created for you.">
+    <AuthCard
+      title="Welcome back"
+      subtitle="Sign in with the account your administrator created for you."
+    >
       <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
         <fieldset>
-          <legend className="mb-1.5 text-sm font-medium text-text">Sign in as</legend>
-          <div className="grid grid-cols-2 gap-1 rounded-input border border-line bg-bg p-1">
-            {TABS.map((t) => (
-              <label
-                key={t.value}
-                className={cn(
-                  'cursor-pointer rounded-input px-3 py-1.5 text-center text-sm font-medium',
-                  'has-focus-visible:outline-2 has-focus-visible:outline-primary',
-                  tab === t.value ? 'bg-surface text-text shadow-sm' : 'text-muted hover:text-text',
-                )}
-              >
-                <input type="radio" value={t.value} {...register('tab')} className="sr-only" />
-                {t.label}
-              </label>
-            ))}
+          <legend className="mb-2 text-sm font-medium text-text">Sign in as</legend>
+          <div className="grid grid-cols-2 gap-3">
+            {TABS.map((t) => {
+              const on = tab === t.value;
+              const Icon = t.icon;
+              return (
+                <label
+                  key={t.value}
+                  className={cn(
+                    'flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-colors',
+                    'has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary',
+                    on
+                      ? 'border-primary bg-primary text-white shadow-md'
+                      : 'border-line bg-surface-muted text-text hover:border-line-strong',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    value={t.value}
+                    aria-label={t.label}
+                    aria-describedby={`tab-hint-${t.value}`}
+                    {...register('tab')}
+                    className="sr-only"
+                  />
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'hidden size-9 shrink-0 items-center justify-center rounded-lg sm:flex',
+                      on ? 'bg-white/20' : 'bg-surface text-primary-strong ring-1 ring-line',
+                    )}
+                  >
+                    <Icon className="size-[18px]" />
+                  </span>
+                  <span className="flex min-w-0 flex-col leading-tight">
+                    <span aria-hidden className="text-sm font-semibold">
+                      {t.label}
+                    </span>
+                    <span
+                      id={`tab-hint-${t.value}`}
+                      className={cn('text-xs', on ? 'text-white/85' : 'text-muted')}
+                    >
+                      {t.hint}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </fieldset>
 
@@ -119,8 +155,15 @@ export function LoginForm({ next }: { next?: string | undefined }) {
           </a>
         </div>
 
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
+        <Button type="submit" disabled={isSubmitting} className="h-12 w-full text-base">
+          {isSubmitting ? (
+            'Signing in…'
+          ) : (
+            <>
+              Sign in as {TABS.find((t) => t.value === tab)?.label ?? 'Super Admin'}
+              <ArrowRight aria-hidden className="size-4" />
+            </>
+          )}
         </Button>
       </form>
     </AuthCard>
