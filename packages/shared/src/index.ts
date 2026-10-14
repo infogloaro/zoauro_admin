@@ -6,6 +6,7 @@ export * from './password-policy';
 export * from './phone';
 export * from './auth-mfa';
 export * from './zones';
+export * from './access';
 export * from './permissions';
 export * from './errors';
 export * from './pagination';

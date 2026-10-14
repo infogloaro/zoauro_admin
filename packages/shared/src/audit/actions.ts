@@ -65,6 +65,8 @@ export const AUDIT_ACTIONS = {
   'member.suspended': a('admins', 'Suspended member'),
   'member.reactivated': a('admins', 'Reactivated member'),
   'member.password_reset': a('admins', 'Reset member password', H),
+  // D102: soft delete that ends assignments and sessions (not named in doc 50 section 4; doc 32)
+  'member.deleted': a('admins', 'Deleted member account', H),
   'access.profile_set': a('access', 'Set access profile', H),
   'access.override_set': a('access', 'Set access override', H),
   'access.limit_set': a('access', 'Set access limit', H),

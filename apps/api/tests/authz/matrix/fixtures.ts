@@ -161,6 +161,19 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     [PLACEHOLDER_ID],
   );
 
+  // M03 routes with the placeholder id: a Zonal Admin account no actor signs in as (/zonal-admins/{id}) and an access
+  // profile (/access-profiles/{id}), so a Super Admin's read answers 200 and nobody else's
+  await env.db.owner.query(
+    `INSERT INTO users (id, name, email, password_hash, role_id, status, updated_at)
+     SELECT $1, 'Matrix placeholder member', 'matrix-placeholder@example.test', 'not-a-login', id, 'ACTIVE', now()
+     FROM roles WHERE name = 'ZONAL_ADMIN'`,
+    [PLACEHOLDER_ID],
+  );
+  await env.db.owner.query(
+    `INSERT INTO access_profiles (id, name, updated_at) VALUES ($1, 'Matrix placeholder profile', now())`,
+    [PLACEHOLDER_ID],
+  );
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,

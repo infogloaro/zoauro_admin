@@ -103,6 +103,7 @@ describe('runSeed on a fresh database', () => {
       ...keys('refunds', 'view'),
       ...keys('settlements', 'view'),
       ...keys('payouts', 'view'),
+      ...keys('support', 'view'), // grantable since D93
     ].sort();
 
     // Zone Manager: D2 full operations, refunds within limits

@@ -41,7 +41,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
     expect(Object.keys(spec.components.schemas)).toContain('ErrorBody');
   });
 
-  it('contains every route that exists today (auth, audit read API, zones)', () => {
+  it('contains every route that exists today (auth, audit read API, zones, access)', () => {
     const listed = Object.entries(spec.paths).flatMap(([p, ops]) =>
       Object.keys(ops).map((m) => `${m.toUpperCase()} ${p}`),
     );
@@ -97,6 +97,27 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'GET /zones/{id}/impact',
         'POST /zones/{id}/deactivate',
         'GET /zones/{id}/team',
+        // M03 Access Control (doc 09, D102–D108)
+        'POST /zones/{id}/team/{userId}',
+        'DELETE /zones/{id}/team/{userId}',
+        'GET /zonal-admins',
+        'POST /zonal-admins',
+        'GET /zonal-admins/{id}',
+        'PATCH /zonal-admins/{id}',
+        'DELETE /zonal-admins/{id}',
+        'POST /zonal-admins/{id}/reset-password',
+        'POST /zonal-admins/{id}/revoke-sessions',
+        'GET /zonal-admins/{id}/access',
+        'PUT /zonal-admins/{id}/access',
+        'GET /zonal-admins/{id}/access/preview',
+        'GET /access-changes',
+        'GET /access-profiles',
+        'POST /access-profiles',
+        'GET /access-profiles/{id}',
+        'PATCH /access-profiles/{id}',
+        'DELETE /access-profiles/{id}',
+        'GET /access-profiles/{id}/permissions',
+        'PUT /access-profiles/{id}/permissions',
       ].sort(),
     );
   });

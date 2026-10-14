@@ -5,7 +5,9 @@ import type {
   ZoneCounts,
   ZoneImpact,
   ZoneImpactCounts,
+  zoneTeamMemberSchema,
 } from '@zoauro/shared';
+import type { z } from 'zod';
 import type { AuthContext } from '../../lib/authz';
 
 // What a zone holds, counted by the modules that own the records (doc 53 section 7): Restaurants, Homemakers, Delivery
@@ -30,18 +32,8 @@ export interface ZoneCountPort {
   ): Promise<ReadonlyMap<string, ZoneFigures>>;
 }
 
-export interface ZoneTeamMember {
-  userId: string;
-  name: string;
-  profileName: string;
-  overridesCount: number;
-  limits: {
-    perRefundPaise: number;
-    dailyRefundPaise: number;
-    canReveal: boolean;
-    canExport: boolean;
-  };
-}
+/** One row of GET /zones/{id}/team (the contract type; the access module supplies the rows). */
+export type ZoneTeamMember = z.infer<typeof zoneTeamMemberSchema>;
 
 /** Members of a zone: the read side of M03 (Access). */
 export interface ZoneTeamPort {

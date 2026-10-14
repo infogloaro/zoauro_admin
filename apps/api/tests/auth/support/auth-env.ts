@@ -13,9 +13,18 @@ import { DEFAULT_AUTH_CONFIG, type AuthConfig } from '../../../src/lib/auth/conf
 import { hashPassword, issuePreSessionCsrf } from '../../../src/lib/auth/crypto';
 import { authContextMiddleware, type AccessService } from '../../../src/lib/authz';
 import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
-import { createAccessService } from '../../../src/modules/access';
+import {
+  createAccessModule,
+  createAccessService,
+  createZoneTeamPort,
+  type AccessMailer,
+} from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
-import { createZonesModule, type ImpactSources } from '../../../src/modules/zones';
+import {
+  createZonesModule,
+  stubImpactSources,
+  type ImpactSources,
+} from '../../../src/modules/zones';
 import type { ZonesCacheVersion } from '../../../src/modules/zones/zones.events';
 import {
   createAuthModule,
@@ -154,6 +163,29 @@ export async function createAuthTestEnv() {
     },
   };
 
+  /** M03 member emails (TC-AC-13): captured, never sent */
+  const accessMails: {
+    kind: 'access' | 'reset';
+    to: string;
+    added: string[];
+    removed: string[];
+    changed: string[];
+  }[] = [];
+  const accessMailer: AccessMailer = {
+    sendAccessChanged: async (m) => {
+      accessMails.push({
+        kind: 'access',
+        to: m.to,
+        added: m.added,
+        removed: m.removed,
+        changed: m.changed,
+      });
+    },
+    sendPasswordResetByAdmin: async (m) => {
+      accessMails.push({ kind: 'reset', to: m.to, added: [], removed: [], changed: [] });
+    },
+  };
+
   const extraClients: Redis[] = [];
   /** `scope` gives the app its own Redis key space, so IP-based rate-limit counters start from zero. */
   function build(
@@ -205,10 +237,28 @@ export async function createAuthTestEnv() {
       appOrigin: APP_ORIGIN,
       requireReauth: auth.requireReauth,
       clock: clock.now,
-      ...(extra.zones?.impactSources ? { impactSources: extra.zones.impactSources } : {}),
+      // as server.ts: the real zone team (M03), every other source a stub, unless a test brings its own
+      impactSources: extra.zones?.impactSources ?? {
+        ...stubImpactSources(),
+        team: createZoneTeamPort(prisma),
+      },
       ...(extra.zones?.cache ? { cache: extra.zones.cache } : {}),
     });
-    const moduleRouters = [auth.router, createAuditModule({ prisma }).router, zones.router];
+    const accessControl = createAccessModule({
+      prisma,
+      access,
+      appOrigin: APP_ORIGIN,
+      requireReauth: auth.requireReauth,
+      evictSessions: auth.evictSessions,
+      mailer: accessMailer,
+      clock: clock.now,
+    });
+    const moduleRouters = [
+      auth.router,
+      createAuditModule({ prisma }).router,
+      zones.router,
+      accessControl.router,
+    ];
     const extraRouters = [
       ...(extra.routers ?? []),
       ...(extra.routerFactory ? [extra.routerFactory({ requireReauth: auth.requireReauth })] : []),
@@ -564,6 +614,7 @@ export async function createAuthTestEnv() {
     mails,
     otpMails,
     mfaChanges,
+    accessMails,
     notices,
     db,
     createUser,

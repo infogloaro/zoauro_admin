@@ -39,7 +39,7 @@ Files inside the task's module and lane (doc 38), its tests, shared components w
 
 - Inventing endpoints, fields, enums, roles or permissions not in the docs; ask instead.
 - Weakening or bypassing authorization, zone scoping, CSRF, rate limits, validation.
-- Resolving items marked **[ASSUMPTION]**, Assumed or Open in doc 03 without asking (current Open: D6, D18, D36, D47, D54, D68, D88; Assumed but not yet confirmed by the owner: D16, D17, D41, D52, D53, D66, D73, D75, D78–D87, D89, D90).
+- Resolving items marked **[ASSUMPTION]**, Assumed or Open in doc 03 without asking (current Open: D6, D18, D36, D47, D54, D68, D88; Assumed but not yet confirmed by the owner: D16, D17, D41, D52, D53, D73, D75, D78–D87, D89, D90).
 - Editing shipped migrations; destructive DB commands; touching production config.
 - Secrets in code, logs, tests or commits; PII in logs.
 - `any`, non-null `!`, `dangerouslySetInnerHTML`, raw SQL string concatenation.

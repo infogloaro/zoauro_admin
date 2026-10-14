@@ -50,6 +50,11 @@ export class ApiError extends Error {
     message: string,
     readonly details: { field: string; issue: string }[] = [],
     readonly requestId?: string,
+    /**
+     * Structured data of a few codes (doc 09 envelope, doc 32): PINCODE_OVERLAP { conflicts }, ZONE_NOT_ACTIVATABLE
+     * { missing }, ZONE_HAS_HISTORY { counts }, STALE_VERSION { current }, IMPACT_CHANGED { impact }, CONFLICT …
+     */
+    readonly meta?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -114,6 +119,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
         err?.message ?? res.statusText,
         err?.details,
         err?.requestId,
+        err?.meta,
       );
     }
     if (

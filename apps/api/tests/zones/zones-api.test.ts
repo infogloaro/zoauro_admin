@@ -1,6 +1,7 @@
 import type { Express } from 'express';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { ZoneDto } from '@zoauro/shared';
+import { stubImpactSources } from '../../src/modules/zones';
 import { ZonesRepository } from '../../src/modules/zones/zones.repository';
 import { createAuthTestEnv, type AuthTestEnv, type TestUser } from '../auth/support/auth-env';
 import {
@@ -23,7 +24,7 @@ import {
 
 let env: AuthTestEnv;
 let app: Express; // real ports answered by the test (fakeSources)
-let stubApp: Express; // the default wiring: every port a stub
+let stubApp: Express; // every port a stub (the team is real by default since M03)
 let fake: ReturnType<typeof fakeSources>;
 let sa: Signed;
 const actors: { name: string; s: Signed }[] = [];
@@ -41,7 +42,7 @@ beforeAll(async () => {
   ({ app } = env.makeAuthzApp({
     zones: { impactSources: fake.sources, cache: countingCache() },
   }));
-  stubApp = env.app;
+  ({ app: stubApp } = env.makeAuthzApp({ zones: { impactSources: stubImpactSources() } }));
   const superAdmin = await env.createUser('SUPER_ADMIN');
   sa = await signIn(superAdmin);
   await reauth(env, sa);

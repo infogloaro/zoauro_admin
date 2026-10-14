@@ -1,5 +1,77 @@
 // GENERATED from apps/api/openapi/openapi.json by `pnpm openapi:generate`. Do not edit by hand.
 export interface paths {
+    "/access-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access change history, newest first; filters member, zone, actor, type, date; cursor paging */
+        get: operations["listAccessChanges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access profiles (templates) with defaults and how many members use them */
+        get: operations["listAccessProfiles"];
+        put?: never;
+        /** Create a profile (PASSWORD re-auth). Name unique ignoring case (409); never-grantable actions 422 listing every offender */
+        post: operations["createAccessProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One profile with its permission matrix */
+        get: operations["getAccessProfile"];
+        put?: never;
+        post?: never;
+        /** Delete a profile (PASSWORD re-auth); refused with 409 while any active assignment uses it (meta.members, meta.assignments) */
+        delete: operations["deleteAccessProfile"];
+        options?: never;
+        head?: never;
+        /** Rename or describe a profile (PASSWORD re-auth); name unique ignoring case (409) */
+        patch: operations["updateAccessProfile"];
+        trace?: never;
+    };
+    "/access-profiles/{id}/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The permission matrix and default limits of a profile */
+        get: operations["getAccessProfilePermissions"];
+        /** Replace the matrix and default limits (PASSWORD re-auth). One PROFILE_EDITED access change per affected member, their caches cleared; never-grantable actions 422 */
+        put: operations["putAccessProfilePermissions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/audit-logs": {
         parameters: {
             query?: never;
@@ -613,6 +685,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/zonal-admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Zonal Admin accounts (not deleted) with their zones; filters q, status, zoneId */
+        get: operations["listZonalAdmins"];
+        put?: never;
+        /** Create a Zonal Admin with a temporary password (must be changed at first sign-in; never emailed, D103). Zones are given with PUT /access. Email in use 409 */
+        post: operations["createZonalAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zonal-admins/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One Zonal Admin with zones and the number of open sessions */
+        get: operations["getZonalAdmin"];
+        put?: never;
+        post?: never;
+        /** Soft delete (PASSWORD re-auth): every assignment and session ends (D102). Never a Super Admin or oneself (404 for a non-member id) */
+        delete: operations["deleteZonalAdmin"];
+        options?: never;
+        head?: never;
+        /** Change name, phone, email or status. An email change needs STRONG re-auth (401 REAUTH_REQUIRED otherwise, D107); SUSPENDED ends every session (D102). Email in use 409 */
+        patch: operations["updateZonalAdmin"];
+        trace?: never;
+    };
+    "/zonal-admins/{id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The member's assignments: zone, profile, overrides, stored and effective limits, permissions, version */
+        get: operations["getMemberAccess"];
+        /** Replace the member's assignments (PASSWORD re-auth). Diff → access_changes + audit in one transaction, cache cleared, admin.zones_changed, email to the member. Never-grantable GRANT or zone not ACTIVE/UPCOMING 422; stale version 409 */
+        put: operations["putMemberAccess"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zonal-admins/{id}/access/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Effective permissions, limits, per-cell explanation and visible modules of the member in one zone (same resolver as every request, TC-AC-11) */
+        get: operations["previewMemberAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zonal-admins/{id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** New temporary password (PASSWORD re-auth): forced change at next sign-in, every session ends, email without the password (D103) */
+        post: operations["resetZonalAdminPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zonal-admins/{id}/revoke-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End every open session of the member (PASSWORD re-auth); one session.revoked row each */
+        post: operations["revokeZonalAdminSessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/zones": {
         parameters: {
             query?: never;
@@ -725,11 +903,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Members of the zone with profile, overrides count and limits (read side of M03). Empty with partial=true until access management exists */
+        /** Members with an active assignment in the zone: profile, overrides count, effective limits (M03) */
         get: operations["getZoneTeam"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/{id}/team/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a Zonal Admin to the zone with a profile (PASSWORD re-auth). Zone ACTIVE or UPCOMING, member a Zonal Admin (422); already in the zone 409 */
+        post: operations["addZoneTeamMember"];
+        /** Remove a member from the zone (PASSWORD re-auth): the assignment ends; the member's next request no longer sees the zone */
+        delete: operations["removeZoneTeamMember"];
         options?: never;
         head?: never;
         patch?: never;
@@ -797,6 +993,678 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listAccessChanges: {
+        parameters: {
+            query?: {
+                actorId?: string;
+                after?: string;
+                changeType?: "PROFILE_SET" | "OVERRIDE_SET" | "LIMIT_SET" | "ZONE_ADDED" | "ZONE_REMOVED" | "PROFILE_EDITED";
+                from?: string;
+                limit?: number;
+                memberId?: string;
+                to?: string;
+                zoneId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description History */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            actor: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            after?: unknown;
+                            before?: unknown;
+                            /** @enum {string} */
+                            changeType: "PROFILE_SET" | "OVERRIDE_SET" | "LIMIT_SET" | "ZONE_ADDED" | "ZONE_REMOVED" | "PROFILE_EDITED";
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            member: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            zone: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string | null;
+                            } | null;
+                        }[];
+                        meta: {
+                            limit: number;
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listAccessProfiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profiles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            assignmentsCount: number;
+                            defaults: {
+                                canExport: boolean;
+                                canReveal: boolean;
+                                dailyRefund: number | null;
+                                perRefund: number | null;
+                            };
+                            description: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isSeed: boolean;
+                            membersCount: number;
+                            name: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createAccessProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @default {
+                     *       "perRefund": null,
+                     *       "dailyRefund": null,
+                     *       "canReveal": false,
+                     *       "canExport": false
+                     *     }
+                     */
+                    defaults?: {
+                        canExport: boolean;
+                        canReveal: boolean;
+                        dailyRefund: number | null;
+                        perRefund: number | null;
+                    };
+                    description?: string | null;
+                    name: string;
+                    /** @default [] */
+                    permissions?: {
+                        actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                        /** @enum {string} */
+                        module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        assignmentsCount: number;
+                        defaults: {
+                            canExport: boolean;
+                            canReveal: boolean;
+                            dailyRefund: number | null;
+                            perRefund: number | null;
+                        };
+                        description: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isSeed: boolean;
+                        membersCount: number;
+                        name: string;
+                        permissions: {
+                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            /** @enum {string} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                        }[];
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getAccessProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        assignmentsCount: number;
+                        defaults: {
+                            canExport: boolean;
+                            canReveal: boolean;
+                            dailyRefund: number | null;
+                            perRefund: number | null;
+                        };
+                        description: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isSeed: boolean;
+                        membersCount: number;
+                        name: string;
+                        permissions: {
+                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            /** @enum {string} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                        }[];
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteAccessProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateAccessProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    description?: string | null;
+                    name?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        assignmentsCount: number;
+                        defaults: {
+                            canExport: boolean;
+                            canReveal: boolean;
+                            dailyRefund: number | null;
+                            perRefund: number | null;
+                        };
+                        description: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isSeed: boolean;
+                        membersCount: number;
+                        name: string;
+                        permissions: {
+                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            /** @enum {string} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                        }[];
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getAccessProfilePermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Permissions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        defaults: {
+                            canExport: boolean;
+                            canReveal: boolean;
+                            dailyRefund: number | null;
+                            perRefund: number | null;
+                        };
+                        permissions: {
+                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            /** @enum {string} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                        }[];
+                        /** Format: uuid */
+                        profileId: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    putAccessProfilePermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    defaults: {
+                        canExport: boolean;
+                        canReveal: boolean;
+                        dailyRefund: number | null;
+                        perRefund: number | null;
+                    };
+                    permissions: {
+                        actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                        /** @enum {string} */
+                        module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        defaults: {
+                            canExport: boolean;
+                            canReveal: boolean;
+                            dailyRefund: number | null;
+                            perRefund: number | null;
+                        };
+                        permissions: {
+                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            /** @enum {string} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                        }[];
+                        /** Format: uuid */
+                        profileId: string;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listAuditLogs: {
         parameters: {
             query?: {
@@ -3112,6 +3980,943 @@ export interface operations {
             };
         };
     };
+    listZonalAdmins: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: "name" | "-name" | "createdAt" | "-createdAt" | "lastLoginAt" | "-lastLoginAt";
+                status?: "ACTIVE" | "SUSPENDED";
+                zoneId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Members */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            email: string;
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: date-time */
+                            lastLoginAt: string | null;
+                            /** Format: date-time */
+                            lockedUntil: string | null;
+                            mfaEnabled: boolean;
+                            mustChangePassword: boolean;
+                            name: string;
+                            phone: string | null;
+                            /** @enum {string} */
+                            status: "ACTIVE" | "SUSPENDED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            zones: {
+                                code: string;
+                                colorHex: string;
+                                name: string;
+                                /** Format: uuid */
+                                profileId: string;
+                                profileName: string;
+                                /** @enum {string} */
+                                status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                                /** Format: uuid */
+                                zoneId: string;
+                            }[];
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createZonalAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                    name: string;
+                    phone?: string;
+                    /**
+                     * @default ACTIVE
+                     * @enum {string}
+                     */
+                    status?: "ACTIVE" | "SUSPENDED";
+                    temporaryPassword: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        activeSessions: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string;
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: date-time */
+                        lastLoginAt: string | null;
+                        /** Format: date-time */
+                        lockedUntil: string | null;
+                        mfaEnabled: boolean;
+                        mustChangePassword: boolean;
+                        name: string;
+                        phone: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        zones: {
+                            code: string;
+                            colorHex: string;
+                            name: string;
+                            /** Format: uuid */
+                            profileId: string;
+                            profileName: string;
+                            /** @enum {string} */
+                            status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                            /** Format: uuid */
+                            zoneId: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getZonalAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Member */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        activeSessions: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string;
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: date-time */
+                        lastLoginAt: string | null;
+                        /** Format: date-time */
+                        lockedUntil: string | null;
+                        mfaEnabled: boolean;
+                        mustChangePassword: boolean;
+                        name: string;
+                        phone: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        zones: {
+                            code: string;
+                            colorHex: string;
+                            name: string;
+                            /** Format: uuid */
+                            profileId: string;
+                            profileName: string;
+                            /** @enum {string} */
+                            status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                            /** Format: uuid */
+                            zoneId: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteZonalAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateZonalAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email?: string;
+                    name?: string;
+                    phone?: string | null;
+                    /** @enum {string} */
+                    status?: "ACTIVE" | "SUSPENDED";
+                };
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        activeSessions: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string;
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: date-time */
+                        lastLoginAt: string | null;
+                        /** Format: date-time */
+                        lockedUntil: string | null;
+                        mfaEnabled: boolean;
+                        mustChangePassword: boolean;
+                        name: string;
+                        phone: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        zones: {
+                            code: string;
+                            colorHex: string;
+                            name: string;
+                            /** Format: uuid */
+                            profileId: string;
+                            profileName: string;
+                            /** @enum {string} */
+                            status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                            /** Format: uuid */
+                            zoneId: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getMemberAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Access */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        assignments: {
+                            /** Format: date-time */
+                            assignedAt: string;
+                            assignedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** Format: uuid */
+                            assignmentId: string;
+                            effectiveLimits: {
+                                canExport: boolean;
+                                canReveal: boolean;
+                                dailyRefund: number;
+                                perRefund: number;
+                            };
+                            limits: {
+                                canExport: boolean | null;
+                                canReveal: boolean | null;
+                                dailyRefund: number | null;
+                                perRefund: number | null;
+                            };
+                            note: string | null;
+                            overrides: {
+                                /** @enum {string} */
+                                action: "view" | "add" | "edit" | "delete" | "status";
+                                /** @enum {string} */
+                                effect: "GRANT" | "DENY";
+                                /** @enum {string} */
+                                module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                            }[];
+                            permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status")[];
+                            profile: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            zone: {
+                                code: string;
+                                colorHex: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                            };
+                        }[];
+                        /** Format: uuid */
+                        memberId: string;
+                        version: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    putMemberAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    assignments: {
+                        /**
+                         * @default {
+                         *       "perRefund": null,
+                         *       "dailyRefund": null,
+                         *       "canReveal": null,
+                         *       "canExport": null
+                         *     }
+                         */
+                        limits?: {
+                            canExport: boolean | null;
+                            canReveal: boolean | null;
+                            dailyRefund: number | null;
+                            perRefund: number | null;
+                        };
+                        note?: string | null;
+                        /** @default [] */
+                        overrides?: {
+                            /** @enum {string} */
+                            action: "view" | "add" | "edit" | "delete" | "status";
+                            /** @enum {string} */
+                            effect: "GRANT" | "DENY";
+                            /** @enum {string} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                        }[];
+                        /** Format: uuid */
+                        profileId: string;
+                        /** Format: uuid */
+                        zoneId: string;
+                    }[];
+                    version?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        assignments: {
+                            /** Format: date-time */
+                            assignedAt: string;
+                            assignedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** Format: uuid */
+                            assignmentId: string;
+                            effectiveLimits: {
+                                canExport: boolean;
+                                canReveal: boolean;
+                                dailyRefund: number;
+                                perRefund: number;
+                            };
+                            limits: {
+                                canExport: boolean | null;
+                                canReveal: boolean | null;
+                                dailyRefund: number | null;
+                                perRefund: number | null;
+                            };
+                            note: string | null;
+                            overrides: {
+                                /** @enum {string} */
+                                action: "view" | "add" | "edit" | "delete" | "status";
+                                /** @enum {string} */
+                                effect: "GRANT" | "DENY";
+                                /** @enum {string} */
+                                module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                            }[];
+                            permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status")[];
+                            profile: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            zone: {
+                                code: string;
+                                colorHex: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                            };
+                        }[];
+                        /** Format: uuid */
+                        memberId: string;
+                        version: string;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    previewMemberAccess: {
+        parameters: {
+            query: {
+                zoneId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        assigned: boolean;
+                        limits: {
+                            canExport: boolean;
+                            canReveal: boolean;
+                            dailyRefund: number;
+                            perRefund: number;
+                        };
+                        matrix: {
+                            /** @enum {string} */
+                            action: "view" | "add" | "edit" | "delete" | "status";
+                            effective: boolean;
+                            fromProfile: boolean;
+                            grantable: boolean;
+                            /** @enum {string} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                            /** @enum {string|null} */
+                            override: "GRANT" | "DENY" | null;
+                        }[];
+                        /** Format: uuid */
+                        memberId: string;
+                        permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status")[];
+                        visibleModules: ("dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit")[];
+                        /** Format: uuid */
+                        zoneId: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    resetZonalAdminPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    temporaryPassword: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Reset */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        sessionsRevoked: number;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    revokeZonalAdminSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        sessionsRevoked: number;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listZones: {
         parameters: {
             query?: {
@@ -4043,6 +5848,11 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: {
+                            /** Format: date-time */
+                            assignedAt: string;
+                            /** Format: uuid */
+                            assignmentId: string;
+                            email: string;
                             limits: {
                                 canExport: boolean;
                                 canReveal: boolean;
@@ -4051,7 +5861,11 @@ export interface operations {
                             };
                             name: string;
                             overridesCount: number;
+                            /** Format: uuid */
+                            profileId: string;
                             profileName: string;
+                            /** @enum {string} */
+                            status: "ACTIVE" | "SUSPENDED";
                             /** Format: uuid */
                             userId: string;
                         }[];
@@ -4061,6 +5875,191 @@ export interface operations {
                 };
             };
             /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    addZoneTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    limits?: {
+                        canExport: boolean | null;
+                        canReveal: boolean | null;
+                        dailyRefund: number | null;
+                        perRefund: number | null;
+                    };
+                    note?: string | null;
+                    /** Format: uuid */
+                    profileId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        assignedAt: string;
+                        assignedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        assignmentId: string;
+                        effectiveLimits: {
+                            canExport: boolean;
+                            canReveal: boolean;
+                            dailyRefund: number;
+                            perRefund: number;
+                        };
+                        limits: {
+                            canExport: boolean | null;
+                            canReveal: boolean | null;
+                            dailyRefund: number | null;
+                            perRefund: number | null;
+                        };
+                        note: string | null;
+                        overrides: {
+                            /** @enum {string} */
+                            action: "view" | "add" | "edit" | "delete" | "status";
+                            /** @enum {string} */
+                            effect: "GRANT" | "DENY";
+                            /** @enum {string} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                        }[];
+                        permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status")[];
+                        profile: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        zone: {
+                            code: string;
+                            colorHex: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                        };
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    removeZoneTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
             401: {
                 headers: {
                     [name: string]: unknown;

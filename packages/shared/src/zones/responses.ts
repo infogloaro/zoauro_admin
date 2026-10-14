@@ -202,10 +202,16 @@ export const zoneImpactSchema = z.object({
 });
 export type ZoneImpact = z.infer<typeof zoneImpactSchema>;
 
-/** GET /zones/{id}/team: read side of M03 (doc 53 section 5). */
+/** GET /zones/{id}/team: the members with an active assignment in the zone (M03, doc 09). */
 export const zoneTeamMemberSchema = z.object({
   userId: z.uuid(),
   name: z.string(),
+  email: z.string(),
+  /** the member account: ACTIVE or SUSPENDED (D102) */
+  status: z.enum(['ACTIVE', 'SUSPENDED']),
+  assignmentId: z.uuid(),
+  assignedAt: iso,
+  profileId: z.uuid(),
   profileName: z.string(),
   overridesCount: count,
   limits: z.object({

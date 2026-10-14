@@ -33,6 +33,8 @@ export interface AuthModule {
   sessionMiddleware: ReturnType<typeof sessionMiddleware>;
   /** Step-up guard for high-risk routes of any module (doc 14 section 4, doc 52 section 2.4); after requireSession */
   requireReauth: (level: ReauthLevel) => RequestHandler;
+  /** Drops sessions another module revoked in the database from the session cache (M03 suspend, delete, reset) */
+  evictSessions: (tokenHashes: string[]) => Promise<void>;
 }
 
 export function createAuthModule(deps: {
@@ -161,5 +163,6 @@ export function createAuthModule(deps: {
     }),
     sessionMiddleware: sessionMiddleware(sessions),
     requireReauth,
+    evictSessions: (tokenHashes) => sessions.evictMany(tokenHashes),
   };
 }

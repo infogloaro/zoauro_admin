@@ -6,10 +6,15 @@ import { auditTransaction, createPrismaClient, currentDatabaseRole } from './lib
 import { assertDatabaseRole, DatabaseRoleError } from './lib/db-role-guard';
 import { createReadinessChecks } from './lib/health';
 import { authContextMiddleware } from './lib/authz';
-import { createAccessService } from './modules/access';
+import {
+  createAccessMailer,
+  createAccessModule,
+  createAccessService,
+  createZoneTeamPort,
+} from './modules/access';
 import { createAuditModule } from './modules/audit';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
-import { createZonesModule } from './modules/zones';
+import { createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
 
 const env = loadEnvOrExit('api');
@@ -59,6 +64,17 @@ const zones = createZonesModule({
   redis,
   appOrigin: new URL(env.APP_URL).origin,
   requireReauth: auth.requireReauth,
+  // M03 supplies the real zone team; the other sources stay stubs until their modules exist (partial: true)
+  impactSources: { ...stubImpactSources(), team: createZoneTeamPort(prisma) },
+});
+
+const accessControl = createAccessModule({
+  prisma,
+  access,
+  appOrigin: new URL(env.APP_URL).origin,
+  requireReauth: auth.requireReauth,
+  evictSessions: auth.evictSessions,
+  mailer: createAccessMailer(mailer, { appUrl: env.APP_URL }),
 });
 
 const app = createApp({
@@ -67,7 +83,12 @@ const app = createApp({
   v1: {
     sessionMiddleware: auth.sessionMiddleware,
     authContextMiddleware: authContextMiddleware(access),
-    routers: [auth.router, createAuditModule({ prisma }).router, zones.router],
+    routers: [
+      auth.router,
+      createAuditModule({ prisma }).router,
+      zones.router,
+      accessControl.router,
+    ],
   },
 });
 

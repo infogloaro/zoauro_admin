@@ -105,6 +105,19 @@ describe('api client', () => {
     });
   });
 
+  it('keeps error.meta (PINCODE_OVERLAP conflicts and the like)', async () => {
+    const conflicts = [{ pincode: '600001', zoneId: 'z', zoneName: 'Chennai' }];
+    const f = fakeFetch([
+      {
+        status: 409,
+        body: { error: { code: 'PINCODE_OVERLAP', message: 'taken', meta: { conflicts } } },
+      },
+    ]);
+    const client = createApiClient({ fetch: f.fn });
+    const err = await client.get('/zones').catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 409, code: 'PINCODE_OVERLAP', meta: { conflicts } });
+  });
+
   it('survives a non-JSON error (gateway page) as UNKNOWN', async () => {
     const client = createApiClient({
       fetch: (async () =>

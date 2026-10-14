@@ -14,14 +14,16 @@ import {
 export const PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 128;
 
-const email = z
+/** An account email: trimmed, lower-cased, at most 254 characters. Also used by member management (M03). */
+export const emailSchema = z
   .string()
   .trim()
   .toLowerCase()
   .pipe(z.email())
   .refine((v) => v.length <= 254, 'too long');
-/** Doc 14 section 2 + the local denylist (password-policy.ts); used by reset and change. */
-const newPassword = z
+const email = emailSchema;
+/** Doc 14 section 2 + the local denylist (password-policy.ts); used by reset, change and M03 temporary passwords. */
+export const newPasswordSchema = z
   .string()
   .min(PASSWORD_MIN_LENGTH)
   .max(PASSWORD_MAX_LENGTH)
@@ -42,7 +44,7 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(20).max(200),
-  newPassword,
+  newPassword: newPasswordSchema,
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
@@ -50,7 +52,7 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export const changePasswordSchema = z
   .object({
     current: z.string().min(1).max(PASSWORD_MAX_LENGTH),
-    new: newPassword,
+    new: newPasswordSchema,
   })
   .refine((v) => v.new !== v.current, {
     path: ['new'],
