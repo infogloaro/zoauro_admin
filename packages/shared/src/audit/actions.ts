@@ -143,6 +143,10 @@ export const AUDIT_ACTIONS = {
   // settings
   'settings.updated': a('settings', 'Updated setting', H),
   'settings.2fa_policy_changed': a('settings', 'Changed two-factor policy', H),
+  // doc 59 §5 (D109): reset to the default rule, and per-zone overrides
+  'settings.reset': a('settings', 'Reset setting to default', H),
+  'settings.zone_override_set': a('settings', 'Set zone setting', H),
+  'settings.zone_override_removed': a('settings', 'Removed zone setting', H),
   // integrations
   'integration_client.created': a('integrations', 'Created integration client', H),
   'integration_client.rotated': a('integrations', 'Rotated integration secret', H),
