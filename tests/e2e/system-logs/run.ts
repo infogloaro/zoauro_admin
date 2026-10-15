@@ -20,6 +20,8 @@ const WEB_PORT = Number(process.env['E2E_WEB_PORT'] ?? 3720);
 const WEB = `http://localhost:${WEB_PORT}`;
 const API = `http://localhost:${API_PORT}`;
 const ROWS = Number(process.env['E2E_ROWS'] ?? 2_000_000);
+// always Mailpit, whatever SMTP_URL apps/api/.env holds: the run's addresses are fake and must never reach a real mailbox
+const SMTP = process.env['E2E_SMTP_URL'] ?? 'smtp://localhost:1025';
 
 const apiDir = process.cwd();
 const root = path.resolve(apiDir, '../..');
@@ -180,6 +182,7 @@ async function main(): Promise<number> {
     start('api', process.execPath, ['--import', 'tsx', 'src/server.ts'], apiDir, {
       ...stackEnv,
       NODE_ENV: 'development',
+      SMTP_URL: SMTP,
     });
     await waitFor(`${API}/api/ready`, 'the API');
     start(

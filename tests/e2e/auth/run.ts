@@ -22,6 +22,8 @@ const WEB_PORT = Number(process.env['E2E_WEB_PORT'] ?? 3721);
 const WEB = `http://localhost:${WEB_PORT}`;
 const API = `http://localhost:${API_PORT}`;
 const MAILPIT = process.env['E2E_MAILPIT_URL'] ?? 'http://localhost:8025';
+// always Mailpit, whatever SMTP_URL apps/api/.env holds: the run's addresses are fake and its codes are read from Mailpit
+const SMTP = process.env['E2E_SMTP_URL'] ?? 'smtp://localhost:1025';
 
 const apiDir = process.cwd();
 const root = path.resolve(apiDir, '../..');
@@ -88,7 +90,6 @@ function start(name: string, args: string[], cwd: string, env: Record<string, st
 async function main(): Promise<number> {
   const mailpit = await fetch(`${MAILPIT}/api/v1/messages?limit=1`).catch(() => null);
   if (!mailpit?.ok) throw new Error(`Mailpit is not reachable at ${MAILPIT} (pnpm infra:up)`);
-  if (!process.env['SMTP_URL']) throw new Error('apps/api/.env has no SMTP_URL (Mailpit)');
 
   console.log('creating a throwaway database …');
   const env = await createAuthTestEnv();
@@ -156,6 +157,7 @@ async function main(): Promise<number> {
     start('api', ['--import', 'tsx', 'src/server.ts'], apiDir, {
       ...stackEnv,
       NODE_ENV: 'development',
+      SMTP_URL: SMTP,
       ENCRYPTION_KEY: TEST_ENCRYPTION_KEY,
       OTP_HMAC_KEY: TEST_OTP_HMAC_KEY,
     });
