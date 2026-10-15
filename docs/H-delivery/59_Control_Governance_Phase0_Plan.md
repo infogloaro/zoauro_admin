@@ -1,6 +1,7 @@
 # 59 — Control & Governance module: Phase 0 implementation map and schema/API plan
 
-Status: **proposal, waiting for the owner's approval** (gate of Phase 0). Nothing below is built or migrated yet.
+Status: **approved by the owner on 2026-10-15** ("approve default"): the plan and decisions Q1–Q8, recorded as
+D109–D116 in doc 03. Phase 0 gate passed. The migration still needs its own "approved" with the SQL shown.
 Source: the owner's "Zoauro Super Admin Control & Governance Module" specification (2026-10-15) and the rule
 "until the Super Admin defines a rule, the default rule is followed; once the Super Admin changes it, that one is
 followed". Inspection was read-only (code at a8d3c9a, docs 03, 08, 09, 12, 18, 36, 43, events catalogue).
