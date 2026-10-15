@@ -12,6 +12,7 @@ export const AUDIT_NONE_REASONS = {
   'mfa-enrolment-step':
     'Starting an authenticator set-up changes nothing until it is confirmed (audited as user.two_factor_enrolled)',
   'mfa-preference': 'Choosing the preferred 2-step method changes no security setting',
+  preview: 'A dry run: validates and shows the effect, writes nothing (doc 59 §5)',
 } as const;
 export type AuditNoneReason = keyof typeof AUDIT_NONE_REASONS;
 

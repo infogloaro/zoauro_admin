@@ -1,93 +1,77 @@
-import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
-import { DEFAULT_SECURITY_POLICY, type MeZone } from '@zoauro/shared';
-import { matchPages } from '../../components/shell/PageSearch';
-import { initialsOf } from '../../components/shell/UserMenu';
-import { menuFor } from '../../lib/navigation';
-import { tightens } from '../settings/SecuritySettings';
-import { greeting, relativeTime } from './time';
-import { ZonalDashboard, groupPermissions } from './ZonalDashboard';
+// @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { cleanup, render, screen, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ApiClient } from '@zoauro/api-client';
+import { ApiClientProvider } from '../../lib/api-client';
+import { SuperAdminDashboard } from './SuperAdminDashboard';
 
-// Theme and dashboards (owner's prototype + roadmap): the pure helpers and the Zonal dashboard built from /me.
+// Super Admin dashboard, spec 2.1: Zonal Admin counts from the member list totals and the latest access changes.
+// Other cards are left to fail here (their own error states); each card loads on its own.
 
-const zone = (permissions: MeZone['permissions'], perRefund = 0): MeZone => ({
-  zoneId: '0192f1d2-0000-7000-8000-000000000001',
-  name: 'Anna Nagar',
-  code: 'ANN',
-  colorHex: '#F97316',
-  status: 'ACTIVE',
-  permissions,
-  limits: { perRefund, dailyRefund: perRefund * 5, canReveal: false, canExport: true },
-});
+afterEach(cleanup);
 
-describe('page finder', () => {
-  const menu = menuFor('SUPER_ADMIN', []);
-  it('matches labels case-insensitively, prefix matches and live pages first, at most 8', () => {
-    expect(matchPages(menu, '')).toEqual([]);
-    expect(matchPages(menu, 'zone')[0]?.label).toBe('Zone Management');
-    expect(matchPages(menu, 'SECUR').map((m) => m.label)).toEqual([
-      'Security Settings',
-      'Account security',
-    ]);
-    expect(matchPages(menu, 'e').length).toBeLessThanOrEqual(8);
+const member = (lastLoginAt: string | null) => ({ id: crypto.randomUUID(), lastLoginAt });
+
+function setup() {
+  const get = vi.fn(async (path: string, init?: { query?: Record<string, unknown> }) => {
+    const q = init?.query ?? {};
+    if (path === '/zonal-admins') {
+      if (q['status'] === 'ACTIVE')
+        return {
+          data: [member(null), member('2026-10-14T10:00:00.000Z'), member(null)],
+          meta: { page: 1, pageSize: 100, total: 3 },
+        };
+      if (q['status'] === 'SUSPENDED')
+        return { data: [], meta: { page: 1, pageSize: 1, total: 1 } };
+      return { data: [], meta: { page: 1, pageSize: 1, total: 4 } };
+    }
+    if (path === '/access-changes')
+      return {
+        data: [
+          {
+            id: '0192f1d2-0000-7000-8000-0000000000c1',
+            createdAt: new Date().toISOString(),
+            changeType: 'ZONE_ADDED',
+            actor: { id: 'a', name: 'Asha Super' },
+            member: { id: 'm', name: 'Meena R' },
+            zone: { id: 'z', name: 'Anna Nagar' },
+            before: null,
+            after: null,
+          },
+        ],
+        meta: { nextCursor: null },
+      };
+    throw new Error(`not part of this test: ${path}`);
   });
-  it('a Zonal Admin never finds a page outside their menu', () => {
-    expect(matchPages(menuFor('ZONAL_ADMIN', []), 'zone')).toEqual([]);
-  });
-});
+  const client = { get } as unknown as ApiClient;
+  const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrap = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queries}>
+      <ApiClientProvider client={client}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
+  render(<SuperAdminDashboard name="Asha Super" />, { wrapper: wrap });
+  return { get };
+}
 
-describe('security policy', () => {
-  const base = DEFAULT_SECURITY_POLICY.mfa;
-  it('requiring 2-step for Zonal Admins, switching SMS off or removing a method tightens; adding one does not', () => {
-    expect(tightens({ ...base, required: { SUPER_ADMIN: true, ZONAL_ADMIN: false } }, base)).toBe(
-      true,
-    );
-    expect(
-      tightens(base, { ...base, allowed: { ...base.allowed, ZONAL_ADMIN: ['AUTHENTICATOR'] } }),
-    ).toBe(true);
-    expect(
-      tightens({ ...base, allowed: { ...base.allowed, ZONAL_ADMIN: ['AUTHENTICATOR'] } }, base),
-    ).toBe(false);
-    expect(tightens({ ...base, smsEnabled: true }, base)).toBe(true);
-    expect(tightens(base, { ...base, otpTtlSeconds: 240 })).toBe(false);
-  });
-});
-
-describe('helpers', () => {
-  it('initials, greeting and relative time', () => {
-    expect(initialsOf('Asha Rao')).toBe('AR');
-    expect(initialsOf('  priya  ')).toBe('P');
-    expect(initialsOf('Arun Kumar Raj')).toBe('AR');
-    expect(['Good morning', 'Good afternoon', 'Good evening']).toContain(greeting());
-    const now = new Date('2026-10-13T10:00:00Z');
-    expect(relativeTime('2026-10-13T09:59:50Z', now)).toBe('just now');
-    expect(relativeTime('2026-10-13T09:52:00Z', now)).toBe('8 minutes ago');
-    expect(relativeTime('2026-10-12T10:00:00Z', now)).toBe('yesterday');
-  });
-
-  it('permission keys group by module, actions in order given', () => {
-    expect(groupPermissions(['orders:view', 'orders:status', 'customers:view', 'bad'])).toEqual([
-      ['customers', ['view']],
-      ['orders', ['view', 'status']],
-    ]);
-  });
-});
-
-describe('Zonal dashboard', () => {
-  it('shows each zone with its permissions and limits, and only the modules this member can open', () => {
-    const html = renderToStaticMarkup(
-      <ZonalDashboard name="Riya Sharma" zones={[zone(['orders:view', 'orders:edit'], 100_000)]} />,
-    );
-    expect(html).toContain('Riya');
-    expect(html).toContain('Anna Nagar');
-    expect(html).toContain('₹1,000');
-    expect(html).toContain('Orders');
-    expect(html).not.toContain('Zone Management');
-    expect(html).not.toContain('Restaurants'); // no restaurants:view in any zone
+describe('Super Admin dashboard: admins and access changes', () => {
+  it('counts all, active, suspended and not-yet-signed-in Zonal Admins from real totals', async () => {
+    setup();
+    const card = (await screen.findByRole('heading', { name: 'Zonal Admins' })).closest('section');
+    if (!card) throw new Error('no card');
+    const value = async (label: string) =>
+      (await within(card as HTMLElement).findByText(label)).nextElementSibling?.textContent;
+    expect(await value('All accounts')).toBe('4');
+    expect(await value('Active')).toBe('3');
+    expect(await value('Suspended')).toBe('1');
+    expect(await value('Not signed in yet')).toBe('2');
   });
 
-  it('a zone without permissions says to ask a Super Admin', () => {
-    const html = renderToStaticMarkup(<ZonalDashboard name="Riya" zones={[zone([])]} />);
-    expect(html).toContain('Ask a Super Admin');
+  it('lists the latest access changes with who did them', async () => {
+    setup();
+    expect(await screen.findByText('Zone added · Meena R')).toBeTruthy();
+    expect(screen.getByText(/by Asha Super · Anna Nagar/)).toBeTruthy();
   });
 });

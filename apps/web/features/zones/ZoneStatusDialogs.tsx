@@ -168,7 +168,7 @@ export function ZoneStatusDialog({
                 {action === 'activate'
                   ? 'Customers in its pincodes can order as soon as you confirm.'
                   : action === 'deactivate'
-                    ? 'New orders from its pincodes are refused. Open orders, vendors and partners are not changed, so reactivating needs no repair.'
+                    ? 'This is also how a zone is suspended (D111). New orders from its pincodes are refused. Open orders, vendors and partners are not changed, so reactivating needs no repair.'
                     : 'Only a zone that never had vendors, partners, addresses, orders or members can be deleted. Its pincodes are released; its code stays reserved.'}
               </DialogDescription>
             </div>

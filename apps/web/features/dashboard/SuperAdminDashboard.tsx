@@ -23,7 +23,10 @@ import { NAV_GROUPS, NAV_MODULES, comingSoonHref } from '../../lib/navigation';
 import { formatPaise } from '../audit/format';
 import { CardError, CardSkeleton, EmptyState, ProportionBar } from './parts';
 import { greeting, relativeTime, todayLabel } from './time';
+import { CHANGE_TYPE_LABEL } from '../access/history/filters';
 import {
+  useAdminCounts,
+  useRecentAccessChanges,
   useRecentActivity,
   useSecurityStatus,
   useZonePreview,
@@ -56,6 +59,8 @@ export function SuperAdminDashboard({ name }: { name: string }) {
   const zones = useZonePreview();
   const security = useSecurityStatus();
   const activity = useRecentActivity();
+  const admins = useAdminCounts();
+  const accessChanges = useRecentAccessChanges();
 
   const s = summary.data;
   const sec = security.data;
@@ -338,6 +343,108 @@ export function SuperAdminDashboard({ name }: { name: string }) {
                   )}
                 </p>
               </>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* administrators (spec 2.1) */}
+        <Card aria-labelledby="admin-accounts">
+          <CardHeader
+            id="admin-accounts"
+            title="Zonal Admins"
+            subtitle="Accounts the Super Admin manages"
+            actions={
+              <a
+                href="/super-admin/zonal-admins"
+                className="text-sm font-medium text-primary-strong hover:underline"
+              >
+                Manage
+              </a>
+            }
+          />
+          <CardBody>
+            {admins.isError ? (
+              <CardError what="Admin counts" onRetry={() => void admins.refetch()} />
+            ) : !admins.data ? (
+              <CardSkeleton rows={2} />
+            ) : (
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                {[
+                  ['All accounts', admins.data.total, '/super-admin/zonal-admins'],
+                  ['Active', admins.data.active, '/super-admin/zonal-admins?status=ACTIVE'],
+                  [
+                    'Suspended',
+                    admins.data.suspended,
+                    '/super-admin/zonal-admins?status=SUSPENDED',
+                  ],
+                  [
+                    'Not signed in yet',
+                    admins.data.capped
+                      ? `${admins.data.neverSignedIn}+`
+                      : admins.data.neverSignedIn,
+                    null,
+                  ],
+                ].map(([label, value, href]) => (
+                  <div key={String(label)} className="rounded-input bg-surface-muted p-3">
+                    <dt className="text-xs text-muted">{label}</dt>
+                    <dd className="mt-0.5 text-lg font-bold tabular-nums">
+                      {href ? (
+                        <a href={String(href)} className="hover:underline">
+                          {value}
+                        </a>
+                      ) : (
+                        value
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* recent access changes (spec 2.1) */}
+        <Card className="xl:col-span-2" aria-labelledby="recent-access">
+          <CardHeader
+            id="recent-access"
+            title="Recent access changes"
+            subtitle="Zones, profiles, permissions and limits given or taken away"
+            actions={
+              <a
+                href="/super-admin/access/history"
+                className="text-sm font-medium text-primary-strong hover:underline"
+              >
+                Access history
+              </a>
+            }
+          />
+          <CardBody>
+            {accessChanges.isError ? (
+              <CardError what="Access changes" onRetry={() => void accessChanges.refetch()} />
+            ) : !accessChanges.data ? (
+              <CardSkeleton rows={3} />
+            ) : accessChanges.data.data.length === 0 ? (
+              <p className="text-sm text-muted">No access changes yet.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {accessChanges.data.data.map((c) => (
+                  <li key={c.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <UsersRound aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">
+                        {CHANGE_TYPE_LABEL[c.changeType]} · {c.member.name}
+                      </p>
+                      <p className="truncate text-xs text-muted">
+                        by {c.actor.name}
+                        {c.zone?.name ? ` · ${c.zone.name}` : ''}
+                      </p>
+                    </div>
+                    <time dateTime={c.createdAt} className="shrink-0 text-xs text-muted">
+                      {relativeTime(c.createdAt)}
+                    </time>
+                  </li>
+                ))}
+              </ul>
             )}
           </CardBody>
         </Card>
