@@ -695,20 +695,19 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'administration',
     icon: 'settings',
     description:
-      'General, business, payment and commission, orders, users, notifications and integrations settings.',
-    status: 'coming-soon',
-    blueprint: {
-      phase: 'Phase 1',
-      screens: [
-        'General',
-        'Business & Operations',
-        'Payment & Commission',
-        'Orders',
-        'Users',
-        'Notifications',
-      ],
-      rules: ['Settings can never be granted to a Zonal Admin'],
-    },
+      'Refund caps, refund rules, onboarding documents, support times, notifications, order numbers, SMS and loyalty: the default rule until you change it, per zone where allowed.',
+    status: 'live',
+    superAdminHref: '/super-admin/settings/platform',
+  },
+  {
+    id: 'M19-HIST',
+    slug: 'settings-history',
+    label: 'Settings History',
+    group: 'administration',
+    icon: 'activity',
+    description: 'Every setting change: before and after, platform or zone, who, why and when.',
+    status: 'live',
+    superAdminHref: '/super-admin/settings/history',
   },
   {
     id: 'M04',

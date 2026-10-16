@@ -850,6 +850,159 @@ export class AccessAdminRepository {
     if (rows.length > 0) await this.db.profilePermission.createMany({ data: rows });
   }
 
+  // ---- access requests (R13, D115) and the zone scope preference (D116) -------------------------------------------
+
+  private readonly requestSelect = {
+    id: true,
+    kind: true,
+    status: true,
+    module: true,
+    action: true,
+    reason: true,
+    decidedAt: true,
+    decisionReason: true,
+    version: true,
+    createdAt: true,
+    requester: { select: { id: true, name: true, email: true } },
+    decider: { select: { id: true, name: true } },
+    zone: { select: { id: true, name: true, code: true, colorHex: true, status: true } },
+  } as const satisfies Prisma.AccessRequestSelect;
+
+  private toRequest(r: Prisma.AccessRequestGetPayload<{ select: AccessAdminRepository['requestSelect'] }>) {
+    return {
+      ...r,
+      action: r.action ? PERMISSION_ACTION[r.action] : null,
+      module: r.module && isPermissionModule(r.module) ? r.module : null,
+    };
+  }
+
+  /** A Zonal Admin's own requests (requester = the caller), newest first. */
+  async myRequests(ctx: AuthContext) {
+    const rows = await this.db.accessRequest.findMany({
+      where: { requesterId: ctx.userId },
+      select: this.requestSelect,
+      orderBy: { id: 'desc' },
+      take: 100,
+    });
+    return rows.map((r) => this.toRequest(r));
+  }
+
+  /** ACTIVE or UPCOMING zones the caller has no active assignment in (what a Zonal Admin may ask for, D115). */
+  async requestableZones(ctx: AuthContext) {
+    return this.db.zone.findMany({
+      where: {
+        deletedAt: null,
+        status: { in: ['ACTIVE', 'UPCOMING'] },
+        assignments: { none: { userId: ctx.userId, revokedAt: null } },
+      },
+      select: { id: true, name: true, code: true, status: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async insertRequest(
+    ctx: AuthContext,
+    r: {
+      id: string;
+      kind: 'ZONE' | 'PERMISSION';
+      zoneId: string;
+      module: string | null;
+      action: PermissionAction | null;
+      reason: string;
+    },
+  ): Promise<void> {
+    // the caller files a request for themselves only
+    await this.db.accessRequest.create({
+      data: {
+        id: r.id,
+        requesterId: ctx.userId,
+        kind: r.kind,
+        zoneId: r.zoneId,
+        module: r.module,
+        action: r.action ? OVERRIDE_ACTION[r.action] : null,
+        reason: r.reason,
+      },
+    });
+  }
+
+  /** One request with a row lock; own requests for a Zonal Admin, any for a Super Admin. */
+  async lockRequest(ctx: AuthContext, id: string) {
+    await this.db.$queryRaw`SELECT id FROM access_requests WHERE id = ${id}::uuid FOR UPDATE`;
+    return this.findRequest(ctx, id);
+  }
+
+  async findRequest(ctx: AuthContext, id: string) {
+    const r = await this.db.accessRequest.findFirst({
+      where: { id, ...(ctx.isSuperAdmin ? {} : { requesterId: ctx.userId }) },
+      select: this.requestSelect,
+    });
+    return r ? this.toRequest(r) : null;
+  }
+
+  async listRequests(
+    ctx: AuthContext,
+    q: { status?: string | undefined; zoneId?: string | undefined; requesterId?: string | undefined; limit: number; after?: string | undefined },
+  ) {
+    this.superAdminOnly(ctx);
+    const rows = await this.db.accessRequest.findMany({
+      where: {
+        ...(q.status ? { status: q.status as 'PENDING' } : {}),
+        ...(q.zoneId ? { zoneId: q.zoneId } : {}),
+        ...(q.requesterId ? { requesterId: q.requesterId } : {}),
+        ...(q.after ? { id: { lt: q.after } } : {}),
+      },
+      select: this.requestSelect,
+      orderBy: { id: 'desc' },
+      take: cursorFetchSize(q.limit),
+    });
+    return rows.map((r) => this.toRequest(r));
+  }
+
+  async countPendingRequests(ctx: AuthContext): Promise<number> {
+    this.superAdminOnly(ctx);
+    return this.db.accessRequest.count({ where: { status: 'PENDING' } });
+  }
+
+  /** Moves a request out of PENDING; the caller checked status and version under the row lock. */
+  async decideRequest(
+    ctx: AuthContext,
+    id: string,
+    d: { status: 'APPROVED' | 'REJECTED' | 'CANCELLED'; reason: string | null; at: Date; byRequester: boolean },
+  ): Promise<void> {
+    if (!d.byRequester) this.superAdminOnly(ctx);
+    await this.db.accessRequest.update({
+      where: { id },
+      data: {
+        status: d.status,
+        decidedBy: d.byRequester ? null : ctx.userId,
+        decidedAt: d.at,
+        decisionReason: d.reason,
+        version: { increment: 1 },
+      },
+    });
+  }
+
+  /** Active Super Admins (new-request emails go to them). */
+  async activeSuperAdmins(): Promise<{ email: string; name: string }[]> {
+    return this.db.user.findMany({
+      where: { deletedAt: null, status: 'ACTIVE', role: { name: 'SUPER_ADMIN' } },
+      select: { email: true, name: true },
+    });
+  }
+
+  /** user_preferences.last_zone_scope: one zone or null = all (D116, doc 59 §4). The caller's own row only. */
+  async setZoneScope(ctx: AuthContext, zoneId: string | null): Promise<void> {
+    await this.db.userPreference.upsert({
+      where: { userId: ctx.userId },
+      create: { userId: ctx.userId, lastZoneScope: zoneId },
+      update: { lastZoneScope: zoneId },
+    });
+  }
+
+  async zoneLive(id: string): Promise<boolean> {
+    return (await this.db.zone.count({ where: { id, deletedAt: null } })) > 0;
+  }
+
   // ---- history and events ---------------------------------------------------------------------------------------
 
   async insertAccessChanges(

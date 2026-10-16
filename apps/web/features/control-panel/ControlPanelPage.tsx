@@ -29,7 +29,9 @@ import { Card, CardBody, CardHeader } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
 import { Switch } from '../../components/ui/switch';
 import { cn } from '../../lib/utils';
-import { CardError, EmptyState } from '../dashboard/parts';
+import { CardError, CardSkeleton, EmptyState } from '../dashboard/parts';
+import { usePlatformSettings } from '../platform-settings/api';
+import { effectBadge } from '../platform-settings/PlatformSettingsPage';
 import { useZoneList } from '../zones/api';
 import { ZONE_STATUS_LABEL, ZONE_STATUS_TONE } from '../zones/format';
 import { ServiceSwitchConfirm } from './ServiceSwitchConfirm';
@@ -38,8 +40,8 @@ import { useSwitchService } from './useZoneServices';
 // Super Admin Control Panel (owner's D92: "all settings and control under the Super Admin"): which services run in
 // each zone (switch per zone × service, PASSWORD re-auth, confirmation before switching off), and one place to reach
 // every control the Super Admin allocates: Zonal Admin accounts, access profiles, zone teams, access history, zones and
-// security. Platform settings (refund limits, documents, SLAs, notification timing, order numbers) are listed with the
-// decided defaults until their screens arrive with the settings API (doc 57 workstream 2).
+// security. The Platform settings card lists every setting with whether it was changed and whether it is enforced yet;
+// they are edited on /super-admin/settings/platform (doc 59).
 
 const SERVICE_ICON: Record<ZoneServiceKind, LucideIcon> = {
   RESTAURANTS: Store,
@@ -86,27 +88,9 @@ const CONTROLS: { href: string; title: string; text: string; icon: LucideIcon }[
   },
 ];
 
-const DEFAULTS: { title: string; value: string; ref: string }[] = [
-  { title: 'Refund limits per zone', value: '₹1,000 per refund · ₹5,000 per day', ref: 'D13' },
-  { title: 'Second approver', value: 'Refunds above ₹10,000', ref: 'D95' },
-  { title: 'Restaurant documents', value: 'FSSAI, GST, PAN, bank details', ref: 'D97' },
-  { title: 'Delivery partner documents', value: 'Licence, RC, ID, bank details', ref: 'D97' },
-  {
-    title: 'Support SLAs',
-    value: 'Reply 2 h · resolve 24 h · escalate 12 h · reopen 7 days',
-    ref: 'D98',
-  },
-  {
-    title: 'Notification timing',
-    value: 'Order updates any time · promotions 09:00–21:00',
-    ref: 'D100',
-  },
-  { title: 'Order number', value: 'ZO-<zone code>-<number>', ref: 'D88' },
-  { title: 'SMS provider', value: 'MSG91 (needs the DLT template)', ref: 'D68' },
-];
-
 export function ControlPanelPage() {
   const [q, setQ] = useState('');
+  const settings = usePlatformSettings();
   const zones = useZoneList(q.trim() ? { q: q.trim() } : {});
   const { switchService, dialog } = useSwitchService();
   const [confirm, setConfirm] = useState<{
@@ -316,23 +300,44 @@ export function ControlPanelPage() {
           <CardHeader
             id="defaults-title"
             title="Platform settings"
-            subtitle="Decided defaults. Each becomes editable here, per zone where it applies, when the settings API lands."
-            actions={<Badge tone="brand">Soon</Badge>}
+            subtitle="The default rule applies until you save a value (D109)."
+            actions={
+              <a
+                href="/super-admin/settings/platform"
+                className="text-sm font-medium text-primary-strong hover:underline"
+              >
+                Open
+              </a>
+            }
           />
           <CardBody>
-            <dl className="divide-y divide-line text-sm">
-              {DEFAULTS.map((d) => (
-                <div
-                  key={d.title}
-                  className="flex flex-wrap items-baseline justify-between gap-2 py-2.5"
-                >
-                  <dt className="text-muted">
-                    {d.title} <span className="text-xs">({d.ref})</span>
-                  </dt>
-                  <dd className="font-medium">{d.value}</dd>
-                </div>
-              ))}
-            </dl>
+            {settings.isError ? (
+              <CardError what="Settings" onRetry={() => void settings.refetch()} />
+            ) : !settings.data ? (
+              <CardSkeleton rows={4} />
+            ) : (
+              <ul className="divide-y divide-line text-sm">
+                {settings.data.data
+                  .filter((s) => s.editable)
+                  .map((s) => {
+                    const effect = effectBadge(s);
+                    return (
+                      <li
+                        key={s.key}
+                        className="flex flex-wrap items-center justify-between gap-2 py-2.5"
+                      >
+                        <span>{s.label}</span>
+                        <span className="flex gap-1.5">
+                          {s.source !== 'DEFAULT' ? <Badge tone="brand">Changed</Badge> : null}
+                          <Badge tone={effect.tone} dot>
+                            {effect.label}
+                          </Badge>
+                        </span>
+                      </li>
+                    );
+                  })}
+              </ul>
+            )}
           </CardBody>
         </Card>
       </div>

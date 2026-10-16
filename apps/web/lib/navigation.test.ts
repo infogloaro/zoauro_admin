@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Zonal Admins, Access Profiles, Access History, Security Settings, Audit & Logs and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -60,6 +60,8 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M04',
       'M04-ACT',
       'M16',
+      'M19',
+      'M19-HIST',
       'M19-SEC',
     ]);
   });
@@ -90,7 +92,11 @@ describe('menu by role', () => {
     });
     expect(byId['M01']).toMatchObject({ status: 'live', href: '/account/security' });
     expect(byId['M11']).toMatchObject({ status: 'coming-soon', href: '/coming-soon/orders' });
-    expect(byId['M19']).toMatchObject({ status: 'coming-soon', href: '/coming-soon/settings' });
+    expect(byId['M19']).toMatchObject({ status: 'live', href: '/super-admin/settings/platform' });
+    expect(byId['M19-HIST']).toMatchObject({
+      status: 'live',
+      href: '/super-admin/settings/history',
+    });
     expect(byId['NEW-HOTEL']).toMatchObject({
       status: 'coming-soon',
       href: '/coming-soon/hotel-booking',
@@ -122,6 +128,7 @@ describe('menu by role', () => {
       'M04',
       'M04-ACT',
       'M19',
+      'M19-HIST',
       'M19-SEC',
       'M21',
       'M08',
@@ -163,7 +170,8 @@ describe('menu by role', () => {
     expect(comingSoonModule('settings', 'ZONAL_ADMIN', zones)).toBeNull();
     expect(comingSoonModule('customers', 'ZONAL_ADMIN', zones)).toBeNull();
     expect(comingSoonModule('hotel-booking', 'ZONAL_ADMIN', zones)).toBeNull();
-    expect(comingSoonModule('settings', 'SUPER_ADMIN', [])?.id).toBe('M19');
+    expect(comingSoonModule('integrations', 'SUPER_ADMIN', [])?.id).toBe('M21');
+    expect(comingSoonModule('settings', 'SUPER_ADMIN', [])).toBeNull(); // live since doc 59
     expect(comingSoonModule('zones', 'SUPER_ADMIN', [])).toBeNull(); // live, not "coming soon"
     expect(comingSoonModule('security-settings', 'SUPER_ADMIN', [])).toBeNull();
     expect(comingSoonModule('nope', 'SUPER_ADMIN', [])).toBeNull();
