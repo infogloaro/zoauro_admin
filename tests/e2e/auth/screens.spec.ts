@@ -338,3 +338,94 @@ test('Control Panel (D92): switch Hotel Booking on and off in a zone (password, 
   await look(page, 'sa-zone-services');
   await signOut(page);
 });
+
+test('Control & Governance (doc 59): a Zonal Admin asks for a permission, the Super Admin approves; a setting is changed, shown in history and reset; the zone switcher', async ({
+  page,
+}) => {
+  // 1. the Zonal Admin asks for one permission in their zone (R13)
+  await signInWithAuthenticator(page, state.zonalAdmin, 'Zonal Admin');
+  await expect(page).toHaveURL(/\/zone\/dashboard$/);
+  await page.goto('/zone/access-requests');
+  const form = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Request access' }) });
+  await form.getByLabel('In my zone').selectOption({ index: 1 });
+  await form.getByLabel('Module').selectOption({ index: 1 });
+  await form.getByLabel('Action').selectOption({ index: 1 });
+  await form.getByLabel('Business reason').fill('Weekend rush in my zone needs this permission');
+  await form.getByRole('button', { name: 'Send request' }).click();
+  await expect(page.getByText('Request sent').first()).toBeAttached();
+  const mine = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'My requests' }) });
+  await expect(mine.getByText('Waiting for a decision')).toBeVisible();
+  await look(page, 'za-access-request-sent');
+  await signOut(page);
+
+  // 2. the Super Admin sees it on the dashboard and approves it with a reason and the password
+  await signInWithAuthenticator(page, state.superAdmin, 'Super Admin');
+  await expect(page).toHaveURL(/\/super-admin\/dashboard$/);
+  await page.getByRole('link', { name: /access request.* waiting for your decision/ }).click();
+  await expect(page).toHaveURL(/\/super-admin\/access\/requests$/);
+  await look(page, 'sa-access-requests');
+  await page
+    .getByRole('button', { name: /^Review the request of / })
+    .first()
+    .click();
+  const decision = page.getByRole('dialog');
+  await decision.getByLabel('Reason for your decision').fill('Approved for the weekend rush');
+  await decision.getByRole('button', { name: 'Approve' }).click();
+  await confirmPasswordIfAsked(page, page.getByText('Request approved'));
+  await page.getByLabel('Show').selectOption('APPROVED');
+  await expect(
+    page.getByRole('list', { name: 'Access requests' }).getByText('Approved', { exact: true }),
+  ).toBeVisible();
+
+  // 3. a platform setting: the default rule until changed, then the Super Admin's value, history, reset (D109)
+  await page.goto('/super-admin/settings/platform');
+  const sla = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Support response times' }) });
+  await expect(sla.getByText('Default rule')).toBeVisible();
+  await look(page, 'sa-platform-settings');
+  await sla.getByRole('button', { name: 'Edit Support response times' }).click();
+  const editor = page.getByRole('dialog');
+  await editor.getByLabel('First reply within').fill('180');
+  await editor.getByRole('button', { name: /Review change/ }).click();
+  await editor.getByLabel('Reason for the change').fill('Smaller team on weekends');
+  await editor.getByRole('button', { name: 'Save' }).click();
+  await confirmPasswordIfAsked(page, page.getByText('Support response times saved'));
+  await expect(sla.getByText('Set by Super Admin')).toBeVisible();
+  await expect(sla.getByText('3 h')).toBeVisible();
+
+  await page.goto('/super-admin/settings/history');
+  const changes = page.getByRole('list', { name: 'Setting changes' });
+  await expect(changes.getByText(/Support response times/).first()).toBeVisible();
+  await expect(changes.getByText(/Smaller team on weekends/)).toBeVisible();
+  await look(page, 'sa-settings-history');
+
+  await page.goto('/super-admin/settings/platform');
+  await sla.getByRole('button', { name: 'Reset Support response times to the default' }).click();
+  await page.getByRole('dialog').getByLabel('Reason').fill('Back to the decided rule');
+  await page.getByRole('dialog').getByRole('button', { name: 'Reset' }).click();
+  await confirmPasswordIfAsked(
+    page,
+    page.getByText('Support response times is back to the default'),
+  );
+  await expect(sla.getByText('Default rule')).toBeVisible();
+
+  // 4. the zone switcher puts the zone code in the URL; "all zones" removes it
+  await page.goto('/super-admin/settings/platform');
+  await page.getByRole('button', { name: /Zone shown/ }).click();
+  await page
+    .getByRole('list', { name: 'Choose the zone to show' })
+    .getByRole('button')
+    .nth(1)
+    .click();
+  await expect(page).toHaveURL(/[?&]zone=[A-Z0-9]+/);
+  await expect(page.getByText(/Only settings a zone may override are listed/)).toBeVisible();
+  await page.getByRole('button', { name: /Zone shown/ }).click();
+  await page.getByRole('button', { name: /All zones/ }).click();
+  await expect(page).not.toHaveURL(/zone=/);
+  await signOut(page);
+});
