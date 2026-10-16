@@ -121,7 +121,7 @@ test('Super Admin: dashboard, Recent Activities, Security settings save (STRONG)
   await signOut(page);
 });
 
-test('Zonal Admin: own dashboard from /me, Access Requests plan, no Super Admin pages', async ({
+test('Zonal Admin: own dashboard from /me, Access Requests page, no Super Admin pages', async ({
   page,
 }) => {
   await signInWithAuthenticator(page, state.zonalAdmin, 'Zonal Admin');
@@ -134,10 +134,11 @@ test('Zonal Admin: own dashboard from /me, Access Requests plan, no Super Admin 
   await expect(nav.getByRole('link', { name: /Zone Management/ })).toHaveCount(0);
   await look(page, 'za-dashboard');
 
-  await nav.getByRole('link', { name: 'Access Requests (coming soon)' }).click();
-  await expect(page).toHaveURL(/\/coming-soon\/access-requests$/);
-  await expect(page.getByText('Nobody can approve their own request')).toBeVisible();
-  await look(page, 'za-plan-access-requests');
+  await nav.getByRole('link', { name: 'Access Requests' }).click();
+  await expect(page).toHaveURL(/\/zone\/access-requests$/);
+  await expect(page.getByRole('heading', { name: 'Access Requests', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'My requests' })).toBeVisible();
+  await look(page, 'za-access-requests');
 
   // a Super Admin page does not exist for a Zonal Admin (404), and neither does a hidden module's plan
   const sa = await page.goto('/super-admin/settings/security');

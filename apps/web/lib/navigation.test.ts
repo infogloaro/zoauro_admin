@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -63,6 +63,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M19',
       'M19-HIST',
       'M19-SEC',
+      'R13',
     ]);
   });
 
@@ -166,7 +167,10 @@ describe('menu by role', () => {
   it('a Coming Soon page exists only for a module this person could see', () => {
     const zones = [zone('A', ['orders:view'])];
     expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)?.id).toBe('M11');
-    expect(comingSoonModule('access-requests', 'ZONAL_ADMIN', zones)?.id).toBe('R13');
+    expect(
+      comingSoonModule('restaurant-requests', 'ZONAL_ADMIN', [zone('A', ['restaurants:view'])])?.id,
+    ).toBe('R01');
+    expect(comingSoonModule('access-requests', 'ZONAL_ADMIN', zones)).toBeNull(); // live
     expect(comingSoonModule('settings', 'ZONAL_ADMIN', zones)).toBeNull();
     expect(comingSoonModule('customers', 'ZONAL_ADMIN', zones)).toBeNull();
     expect(comingSoonModule('hotel-booking', 'ZONAL_ADMIN', zones)).toBeNull();

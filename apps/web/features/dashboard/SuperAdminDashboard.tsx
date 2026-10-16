@@ -5,6 +5,7 @@ import {
   ArrowRight,
   CircleAlert,
   Clock,
+  KeyRound,
   Layers,
   Map,
   MapPin,
@@ -24,6 +25,7 @@ import { formatPaise } from '../audit/format';
 import { CardError, CardSkeleton, EmptyState, ProportionBar } from './parts';
 import { greeting, relativeTime, todayLabel } from './time';
 import { CHANGE_TYPE_LABEL } from '../access/history/filters';
+import { usePendingRequestCount } from '../access/requests/api';
 import {
   useAdminCounts,
   useRecentAccessChanges,
@@ -61,6 +63,7 @@ export function SuperAdminDashboard({ name }: { name: string }) {
   const activity = useRecentActivity();
   const admins = useAdminCounts();
   const accessChanges = useRecentAccessChanges();
+  const pendingRequests = usePendingRequestCount();
 
   const s = summary.data;
   const sec = security.data;
@@ -130,6 +133,23 @@ export function SuperAdminDashboard({ name }: { name: string }) {
           loading={security.isPending}
         />
       </div>
+
+      {pendingRequests.data ? (
+        <a
+          href="/super-admin/access/requests"
+          className="flex items-center gap-3 rounded-card border border-orange-200 bg-primary-soft p-4 text-sm hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          <KeyRound aria-hidden className="size-5 shrink-0 text-primary-strong" />
+          <span className="flex-1">
+            <span className="font-semibold">
+              {pendingRequests.data} access request{pendingRequests.data === 1 ? '' : 's'} waiting
+              for your decision
+            </span>
+            <span className="block text-muted">Zonal Admins asked for a zone or a permission.</span>
+          </span>
+          <ArrowRight aria-hidden className="size-4 text-primary-strong" />
+        </a>
+      ) : null}
 
       {sec?.superAdminWarning ? (
         <div

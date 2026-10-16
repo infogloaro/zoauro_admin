@@ -222,25 +222,10 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'requests',
     icon: 'key',
     description:
-      'Zonal Admins ask for another zone or an extra permission; the Super Admin decides with an impact preview.',
-    status: 'coming-soon',
-    zonal: {},
-    blueprint: {
-      phase: 'Phase 1',
-      roadmap: ['R13'],
-      screens: [
-        'Zonal Admin: “Request access” form (zone or permission, business reason) and my requests',
-        'Super Admin: queue with requester, current access, requested access, reason and impact preview',
-        'Decision dialog with a mandatory reason',
-      ],
-      flow: ['Requested', 'Approved', 'Rejected'],
-      rules: [
-        'Nobody can approve their own request',
-        'Access changes only after the approval is recorded and enforced by the API',
-        'Super-Admin-initiated changes and requested changes are shown separately in the history',
-      ],
-      dependsOn: ['Zonal Admins & Access Control (M03)'],
-    },
+      'Zonal Admins ask for another zone or an extra permission; the Super Admin decides with a reason.',
+    status: 'live',
+    superAdminHref: '/super-admin/access/requests',
+    zonal: { href: '/zone/access-requests' },
   },
 
   // ---- Service Management ------------------------------------------------------------------------------------------

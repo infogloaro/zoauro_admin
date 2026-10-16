@@ -56,10 +56,11 @@ export function useZoneSettings(zoneId: string | null) {
   });
 }
 
-export function useZoneOptions() {
+export function useZoneOptions(enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: ['zones', 'list', 'global', { limit: 100, picker: true }],
+    enabled,
     queryFn: ({ signal }) => client.get('/zones', { query: { limit: 100 }, signal }),
     staleTime: 60_000,
     retry: retryTransient,
