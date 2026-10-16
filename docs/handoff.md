@@ -539,3 +539,13 @@ DATABASE: migration NOT applied to zoauro yet — waiting for the owner's "appro
 Open points: (1) Docker Desktop stopped twice on 2026-10-16 (exit 255, memory pressure on the 8 GB machine); `pnpm infra:up` restores it, data volumes unchanged. (2) Refund execution, onboarding, support, notifications, orders and loyalty modules will read the stored values when they ship (effect state PENDING_MODULE). (3) 7d3f73e also committed the owner's untracked 56_… .md and the .xlsx (owner to decide)
 Next step: owner's "approved" for the migration on zoauro; then the remaining doc 57 work as the owner directs
 Verify: pnpm --filter @zoauro/api exec vitest run tests/settings tests/access tests/authz --maxWorkers=1
+
+Date / task id: 2026-10-16 / Doc 59 migration applied to zoauro (owner "approved")
+Lane / files changed: backend — none (database only)
+Commits: this docs commit
+Contract changes (docs 08/09/10/36): none
+Decisions or [ASSUMPTION]s touched (D-numbers): none
+Gate line status (pass/fail): pass — `pnpm --filter @zoauro/api db:migrate migrate deploy` on zoauro_owner@zoauro (localhost:5441) applied 20261015090000_settings_access_requests only. Verified read-only as zoauro_app: 9 migrations, none unfinished; zone_settings and access_requests exist with app read/write; settings.version present; access_requests_one_pending index and access_requests_kind_fields_check present; settings 0 rows, users 3 (no data changed)
+Open points: none for the migration. Settings, access requests and the zone scope now work against zoauro
+Next step: as the owner directs (doc 57)
+Verify: read-only check of _prisma_migrations (9 rows)
