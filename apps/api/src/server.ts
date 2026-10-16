@@ -14,6 +14,7 @@ import {
 } from './modules/access';
 import { createAuditModule } from './modules/audit';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
+import { createSettingsModule } from './modules/settings';
 import { createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
 
@@ -57,7 +58,16 @@ const auth = createAuthModule({
   appOrigin: new URL(env.APP_URL).origin,
 });
 
-const access = createAccessService({ prisma, redis });
+// Platform settings (doc 59, D109): built first, because its reader gives the access context the zone refund caps (D110)
+const settings = createSettingsModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  requireReauth: auth.requireReauth,
+  smsReady: () => env.SMS_PROVIDER !== 'none',
+});
+const refundCaps = (zoneIds: readonly string[]) => settings.reader.refundCaps(zoneIds);
+
+const access = createAccessService({ prisma, redis, refundCaps });
 
 const zones = createZonesModule({
   prisma,
@@ -75,6 +85,7 @@ const accessControl = createAccessModule({
   requireReauth: auth.requireReauth,
   evictSessions: auth.evictSessions,
   mailer: createAccessMailer(mailer, { appUrl: env.APP_URL }),
+  refundCaps,
 });
 
 const app = createApp({
@@ -88,6 +99,7 @@ const app = createApp({
       createAuditModule({ prisma }).router,
       zones.router,
       accessControl.router,
+      settings.router,
     ],
   },
 });

@@ -1,7 +1,7 @@
 import type { RequestHandler, Router } from 'express';
 import type { Redis } from 'ioredis';
 import type { ReauthLevel } from '../../lib/auth/session-store';
-import { AccessService } from '../../lib/authz';
+import { AccessService, type RefundCapsReader } from '../../lib/authz';
 import type { ZoneTeamPort } from '../zones';
 import { AccessRepository } from './access.repository';
 import { createAccessAdminController } from './access-admin.controller';
@@ -22,11 +22,14 @@ export function createAccessService(deps: {
   redis: Redis;
   /** cache lifetime, clamped to at most 60 seconds */
   cacheTtlSec?: number;
+  /** D110: zone refund caps (settings refunds.limits) that every Zonal Admin's limits are clamped to */
+  refundCaps?: RefundCapsReader;
 }): AccessService {
   return new AccessService({
     source: new AccessRepository(deps.prisma),
     redis: deps.redis,
     ...(deps.cacheTtlSec === undefined ? {} : { cacheTtlSec: deps.cacheTtlSec }),
+    ...(deps.refundCaps ? { refundCaps: deps.refundCaps } : {}),
   });
 }
 
@@ -64,6 +67,8 @@ export function createAccessModule(deps: {
   evictSessions: (tokenHashes: string[]) => Promise<void>;
   mailer?: AccessMailer;
   clock?: () => Date;
+  /** D110: zone refund caps (the settings module's reader) */
+  refundCaps?: RefundCapsReader;
 }): { router: Router; service: AccessAdminService } {
   const service = new AccessAdminService({
     db: new AccessAdminDatabase(deps.prisma),
@@ -71,6 +76,7 @@ export function createAccessModule(deps: {
     evictSessions: deps.evictSessions,
     mailer: deps.mailer ?? noopAccessMailer,
     clock: deps.clock ?? (() => new Date()),
+    ...(deps.refundCaps ? { refundCaps: deps.refundCaps } : {}),
   });
   return {
     router: createAccessAdminRoutes(createAccessAdminController(service), {

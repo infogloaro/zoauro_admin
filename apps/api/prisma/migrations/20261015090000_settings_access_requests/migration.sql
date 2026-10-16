@@ -67,9 +67,10 @@ ALTER TABLE "access_requests" ADD CONSTRAINT "access_requests_zone_id_fkey" FORE
 
 
 -- Written by hand (Prisma cannot express them):
--- one open request per requester + zone + permission (doc 59 §4)
+-- one open request per requester + zone + permission (doc 59 §4). NULLS NOT DISTINCT (PostgreSQL 15+) so that two
+-- pending ZONE requests (module and action null) also collide; no expression, so no IMMUTABLE requirement.
 CREATE UNIQUE INDEX "access_requests_one_pending"
-  ON "access_requests" ("requester_id", "zone_id", "kind", coalesce("module", ''), coalesce("action"::text, ''))
+  ON "access_requests" ("requester_id", "zone_id", "kind", "module", "action") NULLS NOT DISTINCT
   WHERE "status" = 'PENDING';
 
 -- a PERMISSION request names one module action; a ZONE request names none

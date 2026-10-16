@@ -2,7 +2,7 @@ import type { Redis } from 'ioredis';
 import type { PermissionKey, Role } from '@zoauro/shared';
 import { AppError } from '../errors';
 import { resolveAccess, type AccessAssignment, type ResolvedAccess } from './resolver';
-import type { AuthContext } from './types';
+import type { AuthContext, ZoneLimits } from './types';
 
 /** Implemented by the access repository (the only place that reads the access tables through Prisma). */
 export interface AccessDataSource {
@@ -13,6 +13,11 @@ export interface AccessDataSource {
   /** members currently assigned to this zone (for invalidation after a team change) */
   findUserIdsByZone(zoneId: string): Promise<string[]>;
 }
+
+/** D110: per zone, the most any Zonal Admin may refund at once and per day (settings refunds.limits), in paise. */
+export type RefundCapsReader = (
+  zoneIds: readonly string[],
+) => Promise<ReadonlyMap<string, { perRefundPaise: number; perDayPaise: number }>>;
 
 /** Doc 14 section 4: cache TTL is at most 60 seconds. */
 export const MAX_ACCESS_CACHE_TTL_SEC = 60;
@@ -32,6 +37,8 @@ export class AccessService {
       redis: Redis;
       /** clamped to 1..60 */
       cacheTtlSec?: number;
+      /** D110: a member's effective refund limits never exceed the zone caps (absent: no caps, tests) */
+      refundCaps?: RefundCapsReader;
     },
   ) {
     this.ttlSec = Math.min(
@@ -89,9 +96,30 @@ export class AccessService {
           ([zone, keys]): [string, ReadonlySet<PermissionKey>] => [zone, new Set(keys)],
         ),
       ),
-      limitsByZone: new Map(Object.entries(access.limits)),
+      limitsByZone: await this.capped(access),
       requestedZoneIds,
     };
+  }
+
+  /** D110: the member's own limits, never above the zone caps; unreadable caps fail closed (no refund allowance). */
+  private async capped(access: ResolvedAccess): Promise<Map<string, ZoneLimits>> {
+    const limits = new Map(Object.entries(access.limits));
+    if (!this.deps.refundCaps || limits.size === 0) return limits;
+    let caps: ReadonlyMap<string, { perRefundPaise: number; perDayPaise: number }> | null = null;
+    try {
+      caps = await this.deps.refundCaps([...limits.keys()]);
+    } catch {
+      caps = null;
+    }
+    for (const [zone, l] of limits) {
+      const cap = caps?.get(zone);
+      limits.set(zone, {
+        ...l,
+        perRefund: cap ? Math.min(l.perRefund, cap.perRefundPaise) : 0,
+        dailyRefund: cap ? Math.min(l.dailyRefund, cap.perDayPaise) : 0,
+      });
+    }
+    return limits;
   }
 
   // ---- explicit invalidation (called by the Access Control module after every access change) ---------------------

@@ -8313,6 +8313,2271 @@
         }
       }
     },
+    "/settings": {
+      "get": {
+        "operationId": "listSettings",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Every registered setting: default, platform value, effective value with its source (DEFAULT / PLATFORM) and effect state (D109)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "refunds",
+                              "onboarding",
+                              "support",
+                              "notifications",
+                              "orders",
+                              "sms",
+                              "loyalty",
+                              "security"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "zoneOverride": {
+                            "type": "boolean"
+                          },
+                          "reauth": {
+                            "type": "string",
+                            "enum": [
+                              "PASSWORD",
+                              "STRONG"
+                            ]
+                          },
+                          "editable": {
+                            "type": "boolean"
+                          },
+                          "default": {},
+                          "platform": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "effective": {},
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "DEFAULT",
+                              "PLATFORM",
+                              "ZONE"
+                            ]
+                          },
+                          "effect": {
+                            "type": "object",
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "ENFORCED",
+                                  "PENDING_MODULE",
+                                  "NOT_CONFIGURED"
+                                ]
+                              },
+                              "module": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "state",
+                              "module"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "group",
+                          "label",
+                          "description",
+                          "zoneOverride",
+                          "reauth",
+                          "editable",
+                          "platform",
+                          "zone",
+                          "source",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "settings:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/settings/history": {
+      "get": {
+        "operationId": "getSettingsHistory",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Settings History: the audit rows of module settings with the reason; filters key, group, zone, actor, date",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 80
+            },
+            "required": false,
+            "name": "key",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "refunds",
+                "onboarding",
+                "support",
+                "notifications",
+                "orders",
+                "sms",
+                "loyalty",
+                "security"
+              ]
+            },
+            "required": false,
+            "name": "group",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "actorId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false,
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "after",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "actionLabel": {
+                            "type": "string"
+                          },
+                          "key": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "actor": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "before": {},
+                          "after": {},
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "createdAt",
+                          "action",
+                          "actionLabel",
+                          "key",
+                          "actor",
+                          "zone",
+                          "reason"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "nextCursor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "limit",
+                        "nextCursor"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "settings:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/settings/{group}": {
+      "get": {
+        "operationId": "getSettingsGroup",
+        "tags": [
+          "settings"
+        ],
+        "summary": "The settings of one group; with ?zoneId= the effective values in that zone (source ZONE / PLATFORM / DEFAULT). Group security is answered by GET /settings/security",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "refunds",
+                "onboarding",
+                "support",
+                "notifications",
+                "orders",
+                "sms",
+                "loyalty",
+                "security"
+              ]
+            },
+            "required": true,
+            "name": "group",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "refunds",
+                              "onboarding",
+                              "support",
+                              "notifications",
+                              "orders",
+                              "sms",
+                              "loyalty",
+                              "security"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "zoneOverride": {
+                            "type": "boolean"
+                          },
+                          "reauth": {
+                            "type": "string",
+                            "enum": [
+                              "PASSWORD",
+                              "STRONG"
+                            ]
+                          },
+                          "editable": {
+                            "type": "boolean"
+                          },
+                          "default": {},
+                          "platform": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "effective": {},
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "DEFAULT",
+                              "PLATFORM",
+                              "ZONE"
+                            ]
+                          },
+                          "effect": {
+                            "type": "object",
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "ENFORCED",
+                                  "PENDING_MODULE",
+                                  "NOT_CONFIGURED"
+                                ]
+                              },
+                              "module": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "state",
+                              "module"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "group",
+                          "label",
+                          "description",
+                          "zoneOverride",
+                          "reauth",
+                          "editable",
+                          "platform",
+                          "zone",
+                          "source",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "settings:view",
+          "zone": "none"
+        }
+      },
+      "put": {
+        "operationId": "putSettings",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Save platform values with a reason (re-auth PASSWORD; STRONG for refund limits and the SMS provider, D112). Stale version 409",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "refunds",
+                "onboarding",
+                "support",
+                "notifications",
+                "orders",
+                "sms",
+                "loyalty",
+                "security"
+              ]
+            },
+            "required": true,
+            "name": "group",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  },
+                  "versions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "required": [
+                  "values",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "refunds",
+                              "onboarding",
+                              "support",
+                              "notifications",
+                              "orders",
+                              "sms",
+                              "loyalty",
+                              "security"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "zoneOverride": {
+                            "type": "boolean"
+                          },
+                          "reauth": {
+                            "type": "string",
+                            "enum": [
+                              "PASSWORD",
+                              "STRONG"
+                            ]
+                          },
+                          "editable": {
+                            "type": "boolean"
+                          },
+                          "default": {},
+                          "platform": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "effective": {},
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "DEFAULT",
+                              "PLATFORM",
+                              "ZONE"
+                            ]
+                          },
+                          "effect": {
+                            "type": "object",
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "ENFORCED",
+                                  "PENDING_MODULE",
+                                  "NOT_CONFIGURED"
+                                ]
+                              },
+                              "module": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "state",
+                              "module"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "group",
+                          "label",
+                          "description",
+                          "zoneOverride",
+                          "reauth",
+                          "editable",
+                          "platform",
+                          "zone",
+                          "source",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "settings:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "settings",
+          "action": "settings.updated"
+        }
+      }
+    },
+    "/settings/{group}/preview": {
+      "post": {
+        "operationId": "previewSettings",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Dry run: validates, diffs against the current values, lists members a new refund cap would clamp (D110) and shows an example order number",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "refunds",
+                "onboarding",
+                "support",
+                "notifications",
+                "orders",
+                "sms",
+                "loyalty",
+                "security"
+              ]
+            },
+            "required": true,
+            "name": "group",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "zoneId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "values"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "changes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "before": {},
+                          "after": {}
+                        },
+                        "required": [
+                          "key"
+                        ]
+                      }
+                    },
+                    "membersAboveCap": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "memberId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "zoneId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zoneName": {
+                            "type": "string"
+                          },
+                          "perRefundPaise": {
+                            "type": "integer"
+                          },
+                          "dailyRefundPaise": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "memberId",
+                          "name",
+                          "zoneId",
+                          "zoneName",
+                          "perRefundPaise",
+                          "dailyRefundPaise"
+                        ]
+                      }
+                    },
+                    "orderNumberExample": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "changes",
+                    "membersAboveCap",
+                    "orderNumberExample"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "settings:view",
+          "zone": "none"
+        },
+        "x-audit": {
+          "none": "preview"
+        }
+      }
+    },
+    "/settings/{group}/{key}": {
+      "delete": {
+        "operationId": "resetSetting",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Reset to the default rule (deletes the saved platform value), with a reason; re-auth as for saving",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "refunds",
+                "onboarding",
+                "support",
+                "notifications",
+                "orders",
+                "sms",
+                "loyalty",
+                "security"
+              ]
+            },
+            "required": true,
+            "name": "group",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 80
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "refunds",
+                              "onboarding",
+                              "support",
+                              "notifications",
+                              "orders",
+                              "sms",
+                              "loyalty",
+                              "security"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "zoneOverride": {
+                            "type": "boolean"
+                          },
+                          "reauth": {
+                            "type": "string",
+                            "enum": [
+                              "PASSWORD",
+                              "STRONG"
+                            ]
+                          },
+                          "editable": {
+                            "type": "boolean"
+                          },
+                          "default": {},
+                          "platform": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "effective": {},
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "DEFAULT",
+                              "PLATFORM",
+                              "ZONE"
+                            ]
+                          },
+                          "effect": {
+                            "type": "object",
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "ENFORCED",
+                                  "PENDING_MODULE",
+                                  "NOT_CONFIGURED"
+                                ]
+                              },
+                              "module": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "state",
+                              "module"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "group",
+                          "label",
+                          "description",
+                          "zoneOverride",
+                          "reauth",
+                          "editable",
+                          "platform",
+                          "zone",
+                          "source",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "settings:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "settings",
+          "action": "settings.reset"
+        }
+      }
+    },
+    "/zones/{id}/settings/{group}": {
+      "put": {
+        "operationId": "putZoneSettings",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Zone overrides of zone-overridable settings (422 NO_ZONE_OVERRIDE otherwise), with a reason; re-auth as for saving",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "refunds",
+                "onboarding",
+                "support",
+                "notifications",
+                "orders",
+                "sms",
+                "loyalty",
+                "security"
+              ]
+            },
+            "required": true,
+            "name": "group",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  },
+                  "versions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "required": [
+                  "values",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "refunds",
+                              "onboarding",
+                              "support",
+                              "notifications",
+                              "orders",
+                              "sms",
+                              "loyalty",
+                              "security"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "zoneOverride": {
+                            "type": "boolean"
+                          },
+                          "reauth": {
+                            "type": "string",
+                            "enum": [
+                              "PASSWORD",
+                              "STRONG"
+                            ]
+                          },
+                          "editable": {
+                            "type": "boolean"
+                          },
+                          "default": {},
+                          "platform": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "effective": {},
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "DEFAULT",
+                              "PLATFORM",
+                              "ZONE"
+                            ]
+                          },
+                          "effect": {
+                            "type": "object",
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "ENFORCED",
+                                  "PENDING_MODULE",
+                                  "NOT_CONFIGURED"
+                                ]
+                              },
+                              "module": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "state",
+                              "module"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "group",
+                          "label",
+                          "description",
+                          "zoneOverride",
+                          "reauth",
+                          "editable",
+                          "platform",
+                          "zone",
+                          "source",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "settings:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "settings",
+          "action": "settings.zone_override_set"
+        }
+      }
+    },
+    "/zones/{id}/settings/{group}/{key}": {
+      "delete": {
+        "operationId": "resetZoneSetting",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Remove a zone's override (the platform value applies again), with a reason",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "refunds",
+                "onboarding",
+                "support",
+                "notifications",
+                "orders",
+                "sms",
+                "loyalty",
+                "security"
+              ]
+            },
+            "required": true,
+            "name": "group",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 80
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zoneId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "refunds",
+                              "onboarding",
+                              "support",
+                              "notifications",
+                              "orders",
+                              "sms",
+                              "loyalty",
+                              "security"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "zoneOverride": {
+                            "type": "boolean"
+                          },
+                          "reauth": {
+                            "type": "string",
+                            "enum": [
+                              "PASSWORD",
+                              "STRONG"
+                            ]
+                          },
+                          "editable": {
+                            "type": "boolean"
+                          },
+                          "default": {},
+                          "platform": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "value": {},
+                              "version": {
+                                "type": "integer"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "version",
+                              "updatedAt",
+                              "updatedBy"
+                            ]
+                          },
+                          "effective": {},
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "DEFAULT",
+                              "PLATFORM",
+                              "ZONE"
+                            ]
+                          },
+                          "effect": {
+                            "type": "object",
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "ENFORCED",
+                                  "PENDING_MODULE",
+                                  "NOT_CONFIGURED"
+                                ]
+                              },
+                              "module": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "state",
+                              "module"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "group",
+                          "label",
+                          "description",
+                          "zoneOverride",
+                          "reauth",
+                          "editable",
+                          "platform",
+                          "zone",
+                          "source",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "zoneId",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "settings:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "settings",
+          "action": "settings.zone_override_removed"
+        }
+      }
+    },
     "/zones/{id}/team/{userId}": {
       "post": {
         "operationId": "addZoneTeamMember",

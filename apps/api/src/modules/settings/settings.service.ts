@@ -28,6 +28,17 @@ import type { SettingsDatabase, SettingsTx, StoredSetting } from './settings.rep
 // the saved value. Settings History is the audit trail of module `settings`.
 
 const notFound = () => new AppError('NOT_FOUND', 'Not found');
+
+/** JSON with object keys sorted: jsonb reorders keys, so two equal values must compare equal whatever their order. */
+function canonical(v: unknown): string {
+  return JSON.stringify(v, (_k, val: unknown) =>
+    val && typeof val === 'object' && !Array.isArray(val)
+      ? Object.fromEntries(
+          Object.entries(val as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)),
+        )
+      : val,
+  );
+}
 type RefundCaps = z.infer<typeof refundLimitsSchema>;
 
 export interface SettingsDeps {
@@ -108,7 +119,12 @@ export class SettingsService {
   // ---- validation -------------------------------------------------------------------------------------------------
 
   /** Every key must belong to the group, be editable (and zone-overridable for a zone) and pass its schema. */
-  private validate(group: SettingGroup, values: Record<string, unknown>, zoneId: string | null) {
+  private validate(
+    group: SettingGroup,
+    values: Record<string, unknown>,
+    zoneId: string | null,
+    mode: 'write' | 'preview' = 'write',
+  ) {
     const out: { def: SettingDef; value: unknown }[] = [];
     const details: { field: string; issue: string }[] = [];
     for (const [key, raw] of Object.entries(values)) {
@@ -121,7 +137,8 @@ export class SettingsService {
         details.push({ field: `values.${key}`, issue: 'NOT_EDITABLE_HERE' });
         continue;
       }
-      if (zoneId && !def.zoneOverride) {
+      // a preview may name a zone only for context (e.g. the zone code in an order number example)
+      if (zoneId && !def.zoneOverride && mode === 'write') {
         details.push({ field: `values.${key}`, issue: 'NO_ZONE_OVERRIDE' });
         continue;
       }
@@ -186,7 +203,7 @@ export class SettingsService {
         const expected = input.versions?.[def.key];
         if (expected !== undefined && expected !== (current?.version ?? 0))
           throw this.stale(def.key, current);
-        if (current && JSON.stringify(current.value) === JSON.stringify(value)) continue;
+        if (current && canonical(current.value) === canonical(value)) continue;
         const nextVersion = (current?.version ?? 0) + 1;
         if (zoneId) await tx.repo.upsertZone(ctx, { zoneId, key: def.key, value, nextVersion });
         else
@@ -273,7 +290,7 @@ export class SettingsService {
     input: PreviewSettingsInput,
   ): Promise<SettingsPreview> {
     const zoneId = input.zoneId ?? null;
-    const items = this.validate(group, input.values, zoneId);
+    const items = this.validate(group, input.values, zoneId, 'preview');
     const current = await this.list(ctx, group, zoneId ?? undefined);
     const changes = items.map(({ def, value }) => ({
       key: def.key,

@@ -526,12 +526,22 @@ export class AccessAdminRepository {
   async profilesByIds(
     ctx: AuthContext,
     ids: readonly string[],
-  ): Promise<Map<string, { id: string; name: string }>> {
+  ): Promise<
+    Map<
+      string,
+      {
+        id: string;
+        name: string;
+        defaultPerRefundLimit: number | null;
+        defaultDailyRefundLimit: number | null;
+      }
+    >
+  > {
     this.superAdminOnly(ctx);
     if (ids.length === 0) return new Map();
     const rows = await this.db.accessProfile.findMany({
       where: { id: { in: [...ids] }, deletedAt: null },
-      select: { id: true, name: true },
+      select: { id: true, name: true, defaultPerRefundLimit: true, defaultDailyRefundLimit: true },
     });
     return new Map(rows.map((p) => [p.id, p]));
   }
@@ -745,14 +755,34 @@ export class AccessAdminRepository {
   async assignmentsUsingProfile(
     ctx: AuthContext,
     profileId: string,
-  ): Promise<{ assignmentId: string; userId: string; zoneId: string }[]> {
+  ): Promise<
+    {
+      assignmentId: string;
+      userId: string;
+      zoneId: string;
+      perRefundLimit: number | null;
+      dailyRefundLimit: number | null;
+    }[]
+  > {
     this.superAdminOnly(ctx);
     const rows = await this.db.adminZoneAssignment.findMany({
       where: { profileId, revokedAt: null, user: { deletedAt: null } },
-      select: { id: true, userId: true, zoneId: true },
+      select: {
+        id: true,
+        userId: true,
+        zoneId: true,
+        perRefundLimit: true,
+        dailyRefundLimit: true,
+      },
       orderBy: [{ userId: 'asc' }, { zoneId: 'asc' }],
     });
-    return rows.map((r) => ({ assignmentId: r.id, userId: r.userId, zoneId: r.zoneId }));
+    return rows.map((r) => ({
+      assignmentId: r.id,
+      userId: r.userId,
+      zoneId: r.zoneId,
+      perRefundLimit: r.perRefundLimit,
+      dailyRefundLimit: r.dailyRefundLimit,
+    }));
   }
 
   async insertProfile(

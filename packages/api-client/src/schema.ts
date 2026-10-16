@@ -633,6 +633,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every registered setting: default, platform value, effective value with its source (DEFAULT / PLATFORM) and effect state (D109) */
+        get: operations["listSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The settings of one group; with ?zoneId= the effective values in that zone (source ZONE / PLATFORM / DEFAULT). Group security is answered by GET /settings/security */
+        get: operations["getSettingsGroup"];
+        /** Save platform values with a reason (re-auth PASSWORD; STRONG for refund limits and the SMS provider, D112). Stale version 409 */
+        put: operations["putSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{group}/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Reset to the default rule (deletes the saved platform value), with a reason; re-auth as for saving */
+        delete: operations["resetSetting"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{group}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dry run: validates, diffs against the current values, lists members a new refund cap would clamp (D110) and shows an example order number */
+        post: operations["previewSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Settings History: the audit rows of module settings with the reason; filters key, group, zone, actor, date */
+        get: operations["getSettingsHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/security": {
         parameters: {
             query?: never;
@@ -909,6 +995,40 @@ export interface paths {
         put: operations["putZoneServices"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/{id}/settings/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Zone overrides of zone-overridable settings (422 NO_ZONE_OVERRIDE otherwise), with a reason; re-auth as for saving */
+        put: operations["putZoneSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/{id}/settings/{group}/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a zone's override (the platform value applies again), with a reason */
+        delete: operations["resetZoneSetting"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3694,6 +3814,616 @@ export interface operations {
             };
         };
     };
+    listSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            default?: unknown;
+                            description: string;
+                            editable: boolean;
+                            effect: {
+                                module: string | null;
+                                /** @enum {string} */
+                                state: "ENFORCED" | "PENDING_MODULE" | "NOT_CONFIGURED";
+                            };
+                            effective?: unknown;
+                            /** @enum {string} */
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                            key: string;
+                            label: string;
+                            platform: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            /** @enum {string} */
+                            reauth: "PASSWORD" | "STRONG";
+                            /** @enum {string} */
+                            source: "DEFAULT" | "PLATFORM" | "ZONE";
+                            zone: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            zoneOverride: boolean;
+                        }[];
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getSettingsGroup: {
+        parameters: {
+            query?: {
+                zoneId?: string;
+            };
+            header?: never;
+            path: {
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            default?: unknown;
+                            description: string;
+                            editable: boolean;
+                            effect: {
+                                module: string | null;
+                                /** @enum {string} */
+                                state: "ENFORCED" | "PENDING_MODULE" | "NOT_CONFIGURED";
+                            };
+                            effective?: unknown;
+                            /** @enum {string} */
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                            key: string;
+                            label: string;
+                            platform: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            /** @enum {string} */
+                            reauth: "PASSWORD" | "STRONG";
+                            /** @enum {string} */
+                            source: "DEFAULT" | "PLATFORM" | "ZONE";
+                            zone: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            zoneOverride: boolean;
+                        }[];
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    putSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    values: {
+                        [key: string]: unknown;
+                    };
+                    versions?: {
+                        [key: string]: number;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            default?: unknown;
+                            description: string;
+                            editable: boolean;
+                            effect: {
+                                module: string | null;
+                                /** @enum {string} */
+                                state: "ENFORCED" | "PENDING_MODULE" | "NOT_CONFIGURED";
+                            };
+                            effective?: unknown;
+                            /** @enum {string} */
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                            key: string;
+                            label: string;
+                            platform: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            /** @enum {string} */
+                            reauth: "PASSWORD" | "STRONG";
+                            /** @enum {string} */
+                            source: "DEFAULT" | "PLATFORM" | "ZONE";
+                            zone: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            zoneOverride: boolean;
+                        }[];
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    resetSetting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Reset */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            default?: unknown;
+                            description: string;
+                            editable: boolean;
+                            effect: {
+                                module: string | null;
+                                /** @enum {string} */
+                                state: "ENFORCED" | "PENDING_MODULE" | "NOT_CONFIGURED";
+                            };
+                            effective?: unknown;
+                            /** @enum {string} */
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                            key: string;
+                            label: string;
+                            platform: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            /** @enum {string} */
+                            reauth: "PASSWORD" | "STRONG";
+                            /** @enum {string} */
+                            source: "DEFAULT" | "PLATFORM" | "ZONE";
+                            zone: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            zoneOverride: boolean;
+                        }[];
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    previewSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    values: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: uuid */
+                    zoneId?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        changes: {
+                            after?: unknown;
+                            before?: unknown;
+                            key: string;
+                        }[];
+                        membersAboveCap: {
+                            dailyRefundPaise: number;
+                            /** Format: uuid */
+                            memberId: string;
+                            name: string;
+                            perRefundPaise: number;
+                            /** Format: uuid */
+                            zoneId: string;
+                            zoneName: string;
+                        }[];
+                        orderNumberExample: string | null;
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getSettingsHistory: {
+        parameters: {
+            query?: {
+                actorId?: string;
+                after?: string;
+                from?: string;
+                group?: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                key?: string;
+                limit?: number;
+                to?: string;
+                zoneId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description History */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            action: string;
+                            actionLabel: string;
+                            actor: {
+                                /** Format: uuid */
+                                id: string | null;
+                                name: string;
+                            };
+                            after?: unknown;
+                            before?: unknown;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            key: string | null;
+                            reason: string | null;
+                            zone: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string | null;
+                            } | null;
+                        }[];
+                        meta: {
+                            limit: number;
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     getSecurityPolicy: {
         parameters: {
             query?: never;
@@ -5981,6 +6711,242 @@ export interface operations {
                         }[];
                         /** Format: uuid */
                         zoneId: string;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    putZoneSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    values: {
+                        [key: string]: unknown;
+                    };
+                    versions?: {
+                        [key: string]: number;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            default?: unknown;
+                            description: string;
+                            editable: boolean;
+                            effect: {
+                                module: string | null;
+                                /** @enum {string} */
+                                state: "ENFORCED" | "PENDING_MODULE" | "NOT_CONFIGURED";
+                            };
+                            effective?: unknown;
+                            /** @enum {string} */
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                            key: string;
+                            label: string;
+                            platform: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            /** @enum {string} */
+                            reauth: "PASSWORD" | "STRONG";
+                            /** @enum {string} */
+                            source: "DEFAULT" | "PLATFORM" | "ZONE";
+                            zone: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            zoneOverride: boolean;
+                        }[];
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    resetZoneSetting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Removed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            default?: unknown;
+                            description: string;
+                            editable: boolean;
+                            effect: {
+                                module: string | null;
+                                /** @enum {string} */
+                                state: "ENFORCED" | "PENDING_MODULE" | "NOT_CONFIGURED";
+                            };
+                            effective?: unknown;
+                            /** @enum {string} */
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security";
+                            key: string;
+                            label: string;
+                            platform: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            /** @enum {string} */
+                            reauth: "PASSWORD" | "STRONG";
+                            /** @enum {string} */
+                            source: "DEFAULT" | "PLATFORM" | "ZONE";
+                            zone: {
+                                /** Format: date-time */
+                                updatedAt: string;
+                                updatedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                value?: unknown;
+                                version: number;
+                            } | null;
+                            zoneOverride: boolean;
+                        }[];
+                        /** Format: uuid */
+                        zoneId: string | null;
                     };
                 };
             };

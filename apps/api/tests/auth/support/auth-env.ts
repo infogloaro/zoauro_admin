@@ -20,6 +20,7 @@ import {
   type AccessMailer,
 } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
+import { createSettingsModule } from '../../../src/modules/settings';
 import {
   createZonesModule,
   stubImpactSources,
@@ -224,9 +225,19 @@ export async function createAuthTestEnv() {
       config,
       clock: clock.now,
     });
+    // as server.ts: settings first, its reader feeds the zone refund caps (D110) to the access context and editor
+    const settings = createSettingsModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      requireReauth: auth.requireReauth,
+      smsReady: () => false,
+      clock: clock.now,
+    });
+    const refundCaps = (zoneIds: readonly string[]) => settings.reader.refundCaps(zoneIds);
     const access = createAccessService({
       prisma,
       redis: appRedis,
+      refundCaps,
       ...(extra.accessCacheTtlSec === undefined ? {} : { cacheTtlSec: extra.accessCacheTtlSec }),
     });
     const ok = async (): Promise<void> => undefined;
@@ -252,12 +263,14 @@ export async function createAuthTestEnv() {
       evictSessions: auth.evictSessions,
       mailer: accessMailer,
       clock: clock.now,
+      refundCaps,
     });
     const moduleRouters = [
       auth.router,
       createAuditModule({ prisma }).router,
       zones.router,
       accessControl.router,
+      settings.router,
     ];
     const extraRouters = [
       ...(extra.routers ?? []),

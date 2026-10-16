@@ -8,7 +8,7 @@ export type {
   OverrideAction,
 } from './resolver';
 export { AccessService, MAX_ACCESS_CACHE_TTL_SEC } from './access-service';
-export type { AccessDataSource } from './access-service';
+export type { AccessDataSource, RefundCapsReader } from './access-service';
 export {
   authContextMiddleware,
   authContextOf,

@@ -31,7 +31,12 @@ import {
 } from '@zoauro/shared';
 import { noteAuditNoop, record, uuidv7 } from '../../lib/audit';
 import { hashPassword } from '../../lib/auth/crypto';
-import { resolveAccess, type AccessService, type AuthContext } from '../../lib/authz';
+import {
+  resolveAccess,
+  type AccessService,
+  type AuthContext,
+  type RefundCapsReader,
+} from '../../lib/authz';
 import { AppError } from '../../lib/errors';
 import { memberScopeEvent } from './access.events';
 import type { AccessMailer } from './access.mails';
@@ -185,6 +190,15 @@ export interface AccessAdminDeps {
   evictSessions: (tokenHashes: string[]) => Promise<void>;
   mailer: AccessMailer;
   clock: () => Date;
+  /** D110: zone refund caps (settings refunds.limits); absent = no cap check (the read-only team port) */
+  refundCaps?: RefundCapsReader;
+}
+
+interface CapCheck {
+  field: string;
+  zoneId: string;
+  perRefund: number;
+  daily: number;
 }
 
 interface AfterCommit {
@@ -216,6 +230,32 @@ export class AccessAdminService {
         );
     for (const send of after.mails) send();
     return result;
+  }
+
+  /**
+   * D110: a member's own refund limits (the assignment's value, else the profile default) can never be saved above the
+   * zone caps. 422 with one detail per field over its cap.
+   */
+  private async assertWithinCaps(checks: readonly CapCheck[]): Promise<void> {
+    if (!this.deps.refundCaps || checks.length === 0) return;
+    const caps = await this.deps.refundCaps([...new Set(checks.map((c) => c.zoneId))]);
+    const details: { field: string; issue: string }[] = [];
+    for (const c of checks) {
+      const cap = caps.get(c.zoneId);
+      if (!cap) continue;
+      if (c.perRefund > cap.perRefundPaise)
+        details.push({ field: `${c.field}.perRefund`, issue: 'ABOVE_ZONE_CAP' });
+      if (c.daily > cap.perDayPaise)
+        details.push({ field: `${c.field}.dailyRefund`, issue: 'ABOVE_ZONE_CAP' });
+    }
+    if (details.length > 0)
+      throw new AppError(
+        'VALIDATION_ERROR',
+        'A refund limit is above the zone cap (Settings > Refund limits)',
+        details,
+        undefined,
+        { caps: Object.fromEntries(caps) },
+      );
   }
 
   private async member(tx: AccessAdminTx, ctx: AuthContext, id: string): Promise<MemberRecord> {
@@ -530,6 +570,17 @@ export class AccessAdminService {
             issue: 'PROFILE_NOT_FOUND',
           })),
         );
+      await this.assertWithinCaps(
+        input.assignments.map((a, i) => {
+          const p = profiles.get(a.profileId);
+          return {
+            field: `assignments.${i}.limits`,
+            zoneId: a.zoneId,
+            perRefund: a.limits.perRefund ?? p?.defaultPerRefundLimit ?? 0,
+            daily: a.limits.dailyRefund ?? p?.defaultDailyRefundLimit ?? 0,
+          };
+        }),
+      );
       const zones = await tx.repo.zonesByIds(
         ctx,
         added.map((a) => a.zoneId),
@@ -784,6 +835,14 @@ export class AccessAdminService {
         throw new AppError('CONFLICT', 'This member is already in the zone');
       const now = this.deps.clock();
       const limits = input.limits ?? NO_LIMITS;
+      await this.assertWithinCaps([
+        {
+          field: 'limits',
+          zoneId,
+          perRefund: limits.perRefund ?? profile.defaultPerRefundLimit ?? 0,
+          daily: limits.dailyRefund ?? profile.defaultDailyRefundLimit ?? 0,
+        },
+      ]);
       await tx.repo.insertAssignment(ctx, {
         id: uuidv7(),
         userId,
@@ -1123,6 +1182,16 @@ export class AccessAdminService {
         noteAuditNoop();
         return;
       }
+      // D110: members who take the profile's default limits must stay within their zones' caps
+      const usingDefaults = await tx.repo.assignmentsUsingProfile(ctx, id);
+      await this.assertWithinCaps(
+        usingDefaults.map((a) => ({
+          field: 'defaults',
+          zoneId: a.zoneId,
+          perRefund: a.perRefundLimit ?? input.defaults.perRefund ?? 0,
+          daily: a.dailyRefundLimit ?? input.defaults.dailyRefund ?? 0,
+        })),
+      );
       await tx.repo.replaceProfilePermissions(ctx, id, permissions);
       await tx.repo.updateProfile(ctx, id, { defaults: input.defaults });
       await record(tx.audit, {
