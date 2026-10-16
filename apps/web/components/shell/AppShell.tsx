@@ -2,17 +2,18 @@
 
 import { Bell, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { setCsrfToken } from '../../lib/csrf';
 import { activeItem, comingSoonHref, type MenuItem, type ShellRole } from '../../lib/navigation';
 import { cn } from '../../lib/utils';
 import { PageSearch } from './PageSearch';
 import { Sidebar } from './Sidebar';
 import { UserMenu } from './UserMenu';
-import { ZoneChip, type ShellZone } from './ZoneChip';
+import type { ShellZone } from './ZoneChip';
+import { ZoneSwitcher } from './ZoneSwitcher';
 
 // The application shell (doc 18 section 6, owner's prototype): skip link, navy sidebar, top bar (collapse, page title,
-// page finder, zone chip, notifications, user menu), main landmark. At 1024 px and wider the sidebar is part of the page
+// page finder, zone scope switcher, notifications, user menu), main landmark. At 1024 px and wider the sidebar is part of the page
 // and can fold to an icon rail (remembered in this browser); below that it is a drawer opened from the top bar.
 
 export interface ShellUser {
@@ -35,12 +36,15 @@ export function AppShell({
   user,
   menu,
   zones,
+  savedZoneId = null,
   csrfToken,
   children,
 }: {
   user: ShellUser;
   menu: MenuItem[];
   zones: ShellZone[];
+  /** the remembered zone scope from /me (M05); null = all */
+  savedZoneId?: string | null;
   csrfToken: string;
   children: ReactNode;
 }) {
@@ -152,7 +156,18 @@ export function AppShell({
           <div className="flex flex-1 justify-center px-2">
             <PageSearch items={menu} />
           </div>
-          {user.role === 'ZONAL_ADMIN' ? <ZoneChip zones={zones} /> : null}
+          <Suspense fallback={null}>
+            <ZoneSwitcher
+              role={user.role}
+              zones={zones.map((z) => ({
+                id: z.zoneId,
+                name: z.name,
+                code: z.code,
+                colorHex: z.colorHex,
+              }))}
+              savedZoneId={savedZoneId}
+            />
+          </Suspense>
           {notifications ? (
             <a
               href={notificationsLive ? notifications.href : comingSoonHref('notifications')}

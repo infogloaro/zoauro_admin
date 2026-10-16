@@ -8,6 +8,12 @@ import { Forbidden } from './StatusPage';
 // Server-side guard for a whole area (doc 18 section 7, doc 14): it decides on the server, for every request, from /me.
 // Nothing here hides links instead of checking; the API refuses every request it should refuse anyway.
 
+/** The remembered zone scope (M05): /me carries `zoneScope` ([] = all, [id] = one zone) once the API returns it. */
+function savedZoneScope(me: object): string | null {
+  const scope = 'zoneScope' in me ? me.zoneScope : undefined;
+  return Array.isArray(scope) && typeof scope[0] === 'string' ? scope[0] : null;
+}
+
 export async function ProtectedArea({ area, children }: { area: Area; children: ReactNode }) {
   const path = await requestPath();
   const gate = areaGate(area, await getMe(), path);
@@ -26,6 +32,7 @@ export async function ProtectedArea({ area, children }: { area: Area; children: 
         colorHex,
         status,
       }))}
+      savedZoneId={savedZoneScope(me)}
       csrfToken={me.csrfToken}
     >
       {children}

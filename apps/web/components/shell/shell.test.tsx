@@ -22,6 +22,12 @@ vi.mock('next/navigation', () => ({
   notFound: nav.notFound,
   usePathname: () => '/super-admin/dashboard',
 }));
+// the zone switcher has its own tests (zone-switcher.test.tsx); here only that the shell mounts it for each role
+vi.mock('./ZoneSwitcher', () => ({
+  ZoneSwitcher: ({ role, zones }: { role: string; zones: unknown[] }) => (
+    <span>{`switcher:${role}:${zones.length}`}</span>
+  ),
+}));
 const session = vi.hoisted(() => ({ me: null as MeResponse | null, path: '/' }));
 vi.mock('../../lib/server-session', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../lib/server-session')>();
@@ -116,10 +122,10 @@ describe('protected layouts (server-side, every request)', () => {
     expect(r.html).toContain('Asha Rao');
     expect(r.html).toContain('Super Admin');
     expect(r.html).toContain('page body');
-    expect(r.html).not.toContain('show my zones'); // the zone chip is for Zonal Admins
+    expect(r.html).toContain('switcher:SUPER_ADMIN:0'); // a Super Admin's switcher loads every zone itself
     session.me = me('ZONAL_ADMIN', 2);
     const z = await renderArea('zone', '/zone/dashboard');
-    expect(z.html).toContain('2 zones');
+    expect(z.html).toContain('switcher:ZONAL_ADMIN:2'); // the zone switcher (M05) with the member's own zones
     expect(z.html).not.toContain('Zone Management');
   });
 });
