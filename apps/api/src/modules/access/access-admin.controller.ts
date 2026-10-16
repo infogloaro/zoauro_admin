@@ -14,6 +14,12 @@ import {
   zonalAdminIdParamsSchema,
   zonalAdminListQuerySchema,
   zoneTeamParamsSchema,
+  accessRequestIdParamsSchema,
+  accessRequestListQuerySchema,
+  approveAccessRequestSchema,
+  createAccessRequestSchema,
+  putZoneScopeSchema,
+  rejectAccessRequestSchema,
 } from '@zoauro/shared';
 import { authContextOf } from '../../lib/authz';
 import { parseBody } from '../../lib/errors';
@@ -151,6 +157,45 @@ export function createAccessAdminController(service: AccessAdminService) {
           parseBody(putAccessProfilePermissionsSchema, req.body),
         ),
       );
+    },
+    // access requests (R13, D115): the body is parsed first, then the service checks who asks
+    myRequests: async (_req, res) => {
+      res.json(await service.myRequests(authContextOf(res)));
+    },
+    createRequest: async (req, res) => {
+      const input = parseBody(createAccessRequestSchema, req.body);
+      res.status(201).json(await service.createRequest(authContextOf(res), input));
+    },
+    cancelRequest: async (req, res) => {
+      const { id } = parseBody(accessRequestIdParamsSchema, req.params);
+      res.json(await service.cancelRequest(authContextOf(res), id));
+    },
+    listRequests: async (req, res) => {
+      res.json(
+        await service.listRequests(
+          authContextOf(res),
+          parseBody(accessRequestListQuerySchema, req.query),
+        ),
+      );
+    },
+    getRequest: async (req, res) => {
+      const { id } = parseBody(accessRequestIdParamsSchema, req.params);
+      res.json(await service.getRequest(authContextOf(res), id));
+    },
+    approveRequest: async (req, res) => {
+      const { id } = parseBody(accessRequestIdParamsSchema, req.params);
+      const input = parseBody(approveAccessRequestSchema, req.body);
+      res.json(await service.approveRequest(authContextOf(res), id, input));
+    },
+    rejectRequest: async (req, res) => {
+      const { id } = parseBody(accessRequestIdParamsSchema, req.params);
+      const input = parseBody(rejectAccessRequestSchema, req.body);
+      res.json(await service.rejectRequest(authContextOf(res), id, input));
+    },
+    // zone scope preference (D116)
+    putZoneScope: async (req, res) => {
+      const { zoneIds } = parseBody(putZoneScopeSchema, req.body);
+      res.json(await service.setZoneScope(authContextOf(res), zoneIds));
     },
   } satisfies Record<string, RequestHandler>;
 }

@@ -1,7 +1,12 @@
 import { Router, type RequestHandler } from 'express';
 import type { PermissionAction } from '@zoauro/shared';
 import { auditMeta } from '../../lib/audit';
-import { originCheck, requireCsrf, requireJsonBody } from '../../lib/auth/middleware';
+import {
+  originCheck,
+  requireCsrf,
+  requireJsonBody,
+  requireSession,
+} from '../../lib/auth/middleware';
 import type { ReauthLevel } from '../../lib/auth/session-store';
 import { requirePermission } from '../../lib/authz';
 import { auditOf } from '../../openapi/operations';
@@ -151,6 +156,49 @@ export function createAccessAdminRoutes(
     requireJsonBody,
     auditMeta(auditOf('putAccessProfilePermissions')),
     c.putProfilePermissions,
+  );
+
+  // access requests (R13, doc 59 §5, D115): a member's own (session), the Super Admin queue and decisions (access:*)
+  const own = [originCheck(opts.appOrigin), requireSession(), requireCsrf];
+  router.get('/me/access-requests', requireSession(), c.myRequests);
+  router.post(
+    '/me/access-requests',
+    ...own,
+    requireJsonBody,
+    auditMeta(auditOf('createAccessRequest')),
+    c.createRequest,
+  );
+  router.post(
+    '/me/access-requests/:id/cancel',
+    ...own,
+    auditMeta(auditOf('cancelAccessRequest')),
+    c.cancelRequest,
+  );
+  router.get('/access-requests', requirePermission('access', 'view'), c.listRequests);
+  router.get('/access-requests/:id', requirePermission('access', 'view'), c.getRequest);
+  router.post(
+    '/access-requests/:id/approve',
+    ...write('access', 'edit'),
+    password,
+    requireJsonBody,
+    auditMeta(auditOf('approveAccessRequest')),
+    c.approveRequest,
+  );
+  router.post(
+    '/access-requests/:id/reject',
+    ...write('access', 'edit'),
+    requireJsonBody,
+    auditMeta(auditOf('rejectAccessRequest')),
+    c.rejectRequest,
+  );
+
+  // zone scope preference (doc 09 PUT /me/zone-scope, D116): a view filter, never authorization
+  router.put(
+    '/me/zone-scope',
+    ...own,
+    requireJsonBody,
+    auditMeta(auditOf('putZoneScope')),
+    c.putZoneScope,
   );
   return router;
 }

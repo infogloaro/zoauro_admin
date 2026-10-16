@@ -868,7 +868,9 @@ export class AccessAdminRepository {
     zone: { select: { id: true, name: true, code: true, colorHex: true, status: true } },
   } as const satisfies Prisma.AccessRequestSelect;
 
-  private toRequest(r: Prisma.AccessRequestGetPayload<{ select: AccessAdminRepository['requestSelect'] }>) {
+  private toRequest(
+    r: Prisma.AccessRequestGetPayload<{ select: AccessAdminRepository['requestSelect'] }>,
+  ) {
     return {
       ...r,
       action: r.action ? PERMISSION_ACTION[r.action] : null,
@@ -911,18 +913,24 @@ export class AccessAdminRepository {
       reason: string;
     },
   ): Promise<void> {
-    // the caller files a request for themselves only
-    await this.db.accessRequest.create({
-      data: {
-        id: r.id,
-        requesterId: ctx.userId,
-        kind: r.kind,
-        zoneId: r.zoneId,
-        module: r.module,
-        action: r.action ? OVERRIDE_ACTION[r.action] : null,
-        reason: r.reason,
-      },
-    });
+    // the caller files a request for themselves only; one open request per zone and permission (unique index)
+    try {
+      await this.db.accessRequest.create({
+        data: {
+          id: r.id,
+          requesterId: ctx.userId,
+          kind: r.kind,
+          zoneId: r.zoneId,
+          module: r.module,
+          action: r.action ? OVERRIDE_ACTION[r.action] : null,
+          reason: r.reason,
+        },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')
+        throw new AppError('CONFLICT', 'You already have an open request for this');
+      throw err;
+    }
   }
 
   /** One request with a row lock; own requests for a Zonal Admin, any for a Super Admin. */
@@ -941,7 +949,13 @@ export class AccessAdminRepository {
 
   async listRequests(
     ctx: AuthContext,
-    q: { status?: string | undefined; zoneId?: string | undefined; requesterId?: string | undefined; limit: number; after?: string | undefined },
+    q: {
+      status?: string | undefined;
+      zoneId?: string | undefined;
+      requesterId?: string | undefined;
+      limit: number;
+      after?: string | undefined;
+    },
   ) {
     this.superAdminOnly(ctx);
     const rows = await this.db.accessRequest.findMany({
@@ -967,7 +981,12 @@ export class AccessAdminRepository {
   async decideRequest(
     ctx: AuthContext,
     id: string,
-    d: { status: 'APPROVED' | 'REJECTED' | 'CANCELLED'; reason: string | null; at: Date; byRequester: boolean },
+    d: {
+      status: 'APPROVED' | 'REJECTED' | 'CANCELLED';
+      reason: string | null;
+      at: Date;
+      byRequester: boolean;
+    },
   ): Promise<void> {
     if (!d.byRequester) this.superAdminOnly(ctx);
     await this.db.accessRequest.update({

@@ -108,6 +108,15 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'DELETE /settings/{group}/{key}',
         'PUT /zones/{id}/settings/{group}',
         'DELETE /zones/{id}/settings/{group}/{key}',
+        // access requests and zone scope (doc 59 §5)
+        'GET /me/access-requests',
+        'POST /me/access-requests',
+        'POST /me/access-requests/{id}/cancel',
+        'GET /access-requests',
+        'GET /access-requests/{id}',
+        'POST /access-requests/{id}/approve',
+        'POST /access-requests/{id}/reject',
+        'PUT /me/zone-scope',
         // M03 Access Control (doc 09, D102–D108)
         'POST /zones/{id}/team/{userId}',
         'DELETE /zones/{id}/team/{userId}',

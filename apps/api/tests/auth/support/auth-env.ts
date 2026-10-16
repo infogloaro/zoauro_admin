@@ -166,7 +166,7 @@ export async function createAuthTestEnv() {
 
   /** M03 member emails (TC-AC-13): captured, never sent */
   const accessMails: {
-    kind: 'access' | 'reset';
+    kind: 'access' | 'reset' | 'request' | 'approved' | 'rejected';
     to: string;
     added: string[];
     removed: string[];
@@ -184,6 +184,18 @@ export async function createAuthTestEnv() {
     },
     sendPasswordResetByAdmin: async (m) => {
       accessMails.push({ kind: 'reset', to: m.to, added: [], removed: [], changed: [] });
+    },
+    sendAccessRequestCreated: async (m) => {
+      accessMails.push({ kind: 'request', to: m.to, added: [], removed: [], changed: [m.what] });
+    },
+    sendAccessRequestDecided: async (m) => {
+      accessMails.push({
+        kind: m.approved ? 'approved' : 'rejected',
+        to: m.to,
+        added: [],
+        removed: [],
+        changed: [m.what],
+      });
     },
   };
 

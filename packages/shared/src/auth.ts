@@ -121,6 +121,11 @@ export const meResponseSchema = z.object({
     z.object({ global: z.literal(false), zones: z.array(meZoneSchema) }),
   ]),
   /** 2-step state (doc 52 section 8); placeholders until P8 builds the second step */
+  /**
+   * The zone switcher preference (D116): [] = all my zones, or one zone; a zone the member is no longer in is dropped.
+   * Optional in the type (additive); always sent by the API.
+   */
+  zoneScope: z.array(z.uuid()).max(1).optional(),
   mfa: z.object({
     enabled: z.boolean(),
     required: z.boolean(),

@@ -173,6 +173,12 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     `INSERT INTO access_profiles (id, name, updated_at) VALUES ($1, 'Matrix placeholder profile', now())`,
     [PLACEHOLDER_ID],
   );
+  // /access-requests/{id}: a pending request of the placeholder member for the placeholder zone
+  await env.db.owner.query(
+    `INSERT INTO access_requests (id, requester_id, kind, zone_id, reason, updated_at)
+     VALUES ($1, $1, 'ZONE', $1, 'Matrix placeholder request', now())`,
+    [PLACEHOLDER_ID],
+  );
 
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {

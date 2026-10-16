@@ -72,6 +72,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/access-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Super Admin queue, newest first; meta.pendingCount feeds the badge */
+        get: operations["listAccessRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One request (the current access of the member in the zone: GET /zonal-admins/{id}/access/preview) */
+        get: operations["getAccessRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve (PASSWORD re-auth) with a reason; a ZONE request needs profileId (D115). Applied with the access editor rules and caps in the same transaction; no self-approval; stale version 409 */
+        post: operations["approveAccessRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject with a reason; stale version 409 */
+        post: operations["rejectAccessRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/audit-logs": {
         parameters: {
             query?: never;
@@ -361,6 +429,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/access-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My access requests and what I may ask for (requestable zones and grantable permissions) */
+        get: operations["listMyAccessRequests"];
+        put?: never;
+        /** A Zonal Admin asks for a zone (ACTIVE or UPCOMING, not theirs yet) or a grantable permission in one of their zones; Super Admin 403; one open request per zone and permission (409) */
+        post: operations["createAccessRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/access-requests/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel my open request (404 for a request of someone else, 409 when already decided) */
+        post: operations["cancelAccessRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/login-history": {
         parameters: {
             query?: never;
@@ -593,6 +696,23 @@ export interface paths {
         put?: never;
         /** Sign out all my other sessions */
         post: operations["revokeOtherSessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/zone-scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** The zone switcher preference (doc 09, D116): {zoneIds: []} = all my zones, or one of my zones (404 ZONE_NOT_FOUND otherwise). A view filter, never authorization */
+        put: operations["putZoneScope"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1803,6 +1923,423 @@ export interface operations {
             };
         };
     };
+    listAccessRequests: {
+        parameters: {
+            query?: {
+                after?: string;
+                limit?: number;
+                requesterId?: string;
+                status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                zoneId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {string|null} */
+                            action: "view" | "add" | "edit" | "delete" | "status" | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            decidedAt: string | null;
+                            decidedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            decisionReason: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "ZONE" | "PERMISSION";
+                            /** @enum {string|null} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | null;
+                            reason: string;
+                            requester: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** @enum {string} */
+                            status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                            version: number;
+                            zone: {
+                                code: string;
+                                colorHex: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            limit: number;
+                            nextCursor: string | null;
+                            pendingCount: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getAccessRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string|null} */
+                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "ZONE" | "PERMISSION";
+                        /** @enum {string|null} */
+                        module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | null;
+                        reason: string;
+                        requester: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** @enum {string} */
+                        status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                        version: number;
+                        zone: {
+                            code: string;
+                            colorHex: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    approveAccessRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    profileId?: string;
+                    reason: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string|null} */
+                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "ZONE" | "PERMISSION";
+                        /** @enum {string|null} */
+                        module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | null;
+                        reason: string;
+                        requester: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** @enum {string} */
+                        status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                        version: number;
+                        zone: {
+                            code: string;
+                            colorHex: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rejectAccessRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string|null} */
+                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "ZONE" | "PERMISSION";
+                        /** @enum {string|null} */
+                        module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | null;
+                        reason: string;
+                        requester: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** @enum {string} */
+                        status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                        version: number;
+                        zone: {
+                            code: string;
+                            colorHex: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listAuditLogs: {
         parameters: {
             query?: {
@@ -2932,11 +3469,325 @@ export interface operations {
                             /** @enum {string} */
                             role: "SUPER_ADMIN" | "ZONAL_ADMIN";
                         };
+                        zoneScope?: string[];
                     };
                 };
             };
             /** @description Not signed in, or the session ended */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listMyAccessRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description My requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {string|null} */
+                            action: "view" | "add" | "edit" | "delete" | "status" | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            decidedAt: string | null;
+                            decidedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            decisionReason: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "ZONE" | "PERMISSION";
+                            /** @enum {string|null} */
+                            module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | null;
+                            reason: string;
+                            requester: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** @enum {string} */
+                            status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                            version: number;
+                            zone: {
+                                code: string;
+                                colorHex: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        requestable: {
+                            permissions: {
+                                /** @enum {string} */
+                                action: "view" | "add" | "edit" | "delete" | "status";
+                                /** @enum {string} */
+                                module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                            }[];
+                            zones: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                status: "UPCOMING" | "ACTIVE" | "INACTIVE";
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createAccessRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "ZONE";
+                    reason: string;
+                    /** Format: uuid */
+                    zoneId: string;
+                } | {
+                    /** @enum {string} */
+                    action: "view" | "add" | "edit" | "delete" | "status";
+                    /** @enum {string} */
+                    kind: "PERMISSION";
+                    /** @enum {string} */
+                    module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit";
+                    reason: string;
+                    /** Format: uuid */
+                    zoneId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Requested */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string|null} */
+                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "ZONE" | "PERMISSION";
+                        /** @enum {string|null} */
+                        module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | null;
+                        reason: string;
+                        requester: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** @enum {string} */
+                        status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                        version: number;
+                        zone: {
+                            code: string;
+                            colorHex: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    cancelAccessRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancelled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string|null} */
+                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "ZONE" | "PERMISSION";
+                        /** @enum {string|null} */
+                        module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | null;
+                        reason: string;
+                        requester: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** @enum {string} */
+                        status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                        version: number;
+                        zone: {
+                            code: string;
+                            colorHex: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3711,6 +4562,70 @@ export interface operations {
             };
             /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    putZoneScope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    zoneIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        zoneIds: string[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

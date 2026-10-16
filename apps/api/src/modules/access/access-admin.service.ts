@@ -28,7 +28,15 @@ import {
   type ZonalAdmin,
   type ZonalAdminDetail,
   type ZonalAdminListQuery,
+  type AccessRequest,
+  type AccessRequestListQuery,
+  type ApproveAccessRequestInput,
+  type CreateAccessRequestInput,
+  type RejectAccessRequestInput,
+  type myAccessRequestsResponseSchema,
+  GRANTABLE_ACTIONS,
 } from '@zoauro/shared';
+import type { z } from 'zod';
 import { noteAuditNoop, record, uuidv7 } from '../../lib/audit';
 import { hashPassword } from '../../lib/auth/crypto';
 import {
@@ -988,6 +996,402 @@ export class AccessAdminService {
         },
       };
     });
+  }
+
+  // ---- access requests (R13, doc 59 §5, D115) ---------------------------------------------------------------------
+
+  private requestDto(
+    r: NonNullable<Awaited<ReturnType<AccessAdminTx['repo']['findRequest']>>>,
+  ): AccessRequest {
+    return {
+      id: r.id,
+      kind: r.kind,
+      status: r.status,
+      requester: { id: r.requester.id, name: r.requester.name },
+      zone: { id: r.zone.id, name: r.zone.name, code: r.zone.code, colorHex: r.zone.colorHex },
+      module: r.module,
+      action: r.action,
+      reason: r.reason,
+      decidedBy: r.decider,
+      decidedAt: r.decidedAt?.toISOString() ?? null,
+      decisionReason: r.decisionReason,
+      version: r.version,
+      createdAt: r.createdAt.toISOString(),
+    };
+  }
+
+  private static what(r: { kind: string; module: string | null; action: string | null }): string {
+    return r.kind === 'ZONE' ? 'access to the zone' : `the permission ${r.module}:${r.action}`;
+  }
+
+  /** GET /me/access-requests: my requests and what I may ask for (D115). */
+  async myRequests(ctx: AuthContext): Promise<z.infer<typeof myAccessRequestsResponseSchema>> {
+    const [rows, zones] = await Promise.all([
+      this.deps.db.repo.myRequests(ctx),
+      ctx.isSuperAdmin ? Promise.resolve([]) : this.deps.db.repo.requestableZones(ctx),
+    ]);
+    return {
+      data: rows.map((r) => this.requestDto(r)),
+      requestable: {
+        zones: zones.map((z) => ({ id: z.id, name: z.name, code: z.code, status: z.status })),
+        permissions: ctx.isSuperAdmin
+          ? []
+          : PERMISSION_MODULES.flatMap((module) =>
+              GRANTABLE_ACTIONS[module].map((action) => ({ module, action })),
+            ),
+      },
+    };
+  }
+
+  /**
+   * POST /me/access-requests (D115): a Zonal Admin only (a Super Admin holds everything). A ZONE request names an
+   * ACTIVE or UPCOMING zone the member is not in; a PERMISSION request names one of the member's zones and a grantable
+   * module action they do not hold yet. One open request per zone and permission.
+   */
+  async createRequest(ctx: AuthContext, input: CreateAccessRequestInput): Promise<AccessRequest> {
+    if (ctx.isSuperAdmin)
+      throw new AppError('FORBIDDEN', 'A Super Admin already has every permission');
+    const id = uuidv7();
+    const out = await this.write(async (tx) => {
+      if (input.kind === 'ZONE') {
+        const requestable = await tx.repo.requestableZones(ctx);
+        if (!requestable.some((z) => z.id === input.zoneId)) {
+          throw ctx.assignedZoneIds.includes(input.zoneId)
+            ? new AppError('CONFLICT', 'You are already in this zone')
+            : new AppError('VALIDATION_ERROR', 'This zone cannot be requested', [
+                { field: 'zoneId', issue: 'ZONE_NOT_ASSIGNABLE' },
+              ]);
+        }
+      } else {
+        // a zone the member is not in is not theirs to see (doc 36): 404 ZONE_NOT_FOUND
+        if (!ctx.assignedZoneIds.includes(input.zoneId))
+          throw new AppError('ZONE_NOT_FOUND', 'Zone not found');
+        if (!isGrantable(input.module, input.action))
+          throw new AppError(
+            'VALIDATION_ERROR',
+            'A Zonal Admin can never be given this permission',
+            [{ field: 'action', issue: 'NOT_GRANTABLE' }],
+          );
+        if (ctx.permissionsByZone.get(input.zoneId)?.has(permissionKey(input.module, input.action)))
+          throw new AppError('CONFLICT', 'You already have this permission in this zone');
+      }
+      await tx.repo.insertRequest(ctx, {
+        id,
+        kind: input.kind,
+        zoneId: input.zoneId,
+        module: input.kind === 'PERMISSION' ? input.module : null,
+        action: input.kind === 'PERMISSION' ? input.action : null,
+        reason: input.reason,
+      });
+      const r = await tx.repo.findRequest(ctx, id);
+      if (!r) throw notFound();
+      await record(tx.audit, {
+        module: 'access',
+        action: 'access.request_created',
+        entity: { type: 'access_request', id, label: r.requester.name, zoneId: input.zoneId },
+        after: { kind: r.kind, zone: r.zone.name, module: r.module, action: r.action },
+        note: input.reason,
+      });
+      return { request: this.requestDto(r), superAdmins: await tx.repo.activeSuperAdmins() };
+    });
+    for (const sa of out.superAdmins)
+      notify(
+        this.deps.mailer.sendAccessRequestCreated({
+          to: sa.email,
+          requester: out.request.requester.name,
+          zone: out.request.zone.name,
+          what: AccessAdminService.what(out.request),
+        }),
+        'access request created',
+      );
+    return out.request;
+  }
+
+  /** POST /me/access-requests/{id}/cancel: own pending requests only. */
+  async cancelRequest(ctx: AuthContext, id: string): Promise<AccessRequest> {
+    await this.write(async (tx) => {
+      const r = await tx.repo.lockRequest(ctx, id);
+      if (!r || r.requester.id !== ctx.userId) throw notFound();
+      if (r.status !== 'PENDING')
+        throw new AppError('CONFLICT', 'Only an open request can be cancelled');
+      await tx.repo.decideRequest(ctx, id, {
+        status: 'CANCELLED',
+        reason: null,
+        at: this.deps.clock(),
+        byRequester: true,
+      });
+      await record(tx.audit, {
+        module: 'access',
+        action: 'access.request_cancelled',
+        entity: { type: 'access_request', id, label: r.requester.name, zoneId: r.zone.id },
+      });
+    });
+    const r = await this.deps.db.repo.findRequest(ctx, id);
+    if (!r) throw notFound();
+    return this.requestDto(r);
+  }
+
+  async listRequests(ctx: AuthContext, q: AccessRequestListQuery) {
+    const [rows, pendingCount] = await Promise.all([
+      this.deps.db.repo.listRequests(ctx, q),
+      this.deps.db.repo.countPendingRequests(ctx),
+    ]);
+    const page = buildCursorPage(rows, q.limit, (r) => r.id);
+    return { data: page.data.map((r) => this.requestDto(r)), meta: { ...page.meta, pendingCount } };
+  }
+
+  async getRequest(ctx: AuthContext, id: string): Promise<AccessRequest> {
+    if (!ctx.isSuperAdmin) throw new AppError('FORBIDDEN', 'You do not have permission to do this');
+    const r = await this.deps.db.repo.findRequest(ctx, id);
+    if (!r) throw notFound();
+    return this.requestDto(r);
+  }
+
+  /** Under the row lock: still open, same version, not the approver's own (D115). */
+  private async openRequest(tx: AccessAdminTx, ctx: AuthContext, id: string, version: number) {
+    const r = await tx.repo.lockRequest(ctx, id);
+    if (!r) throw notFound();
+    if (r.status !== 'PENDING') throw new AppError('CONFLICT', 'This request was already decided');
+    if (r.version !== version)
+      throw new AppError(
+        'STALE_VERSION',
+        'This request changed. Reload it',
+        [{ field: 'version', issue: 'stale' }],
+        undefined,
+        { current: this.requestDto(r) },
+      );
+    if (r.requester.id === ctx.userId)
+      throw new AppError('FORBIDDEN', 'Nobody approves their own request');
+    return r;
+  }
+
+  /**
+   * POST /access-requests/{id}/approve (PASSWORD re-auth): applied with the access editor's rules, in the same
+   * transaction as the decision. ZONE: the member joins the zone with the profile the Super Admin picks (D115), within
+   * the zone's refund caps (D110). PERMISSION: a GRANT override on the member's assignment in that zone.
+   */
+  async approveRequest(
+    ctx: AuthContext,
+    id: string,
+    input: ApproveAccessRequestInput,
+  ): Promise<AccessRequest> {
+    const decided = await this.write(async (tx, after) => {
+      const r = await this.openRequest(tx, ctx, id, input.version);
+      const m = await this.member(tx, ctx, r.requester.id);
+      const now = this.deps.clock();
+      const inZone = (await tx.repo.activeAssignments(ctx, m.id)).find(
+        (a) => a.zone.id === r.zone.id,
+      );
+      if (r.kind === 'ZONE') {
+        if (!input.profileId)
+          throw new AppError('VALIDATION_ERROR', 'Pick the access profile for the zone', [
+            { field: 'profileId', issue: 'required' },
+          ]);
+        if (inZone) throw new AppError('CONFLICT', 'The member is already in this zone');
+        if (!ASSIGNABLE_ZONE.has(r.zone.status))
+          throw new AppError(
+            'VALIDATION_ERROR',
+            'Members can be added only to ACTIVE or UPCOMING zones',
+            [{ field: 'zoneId', issue: 'ZONE_NOT_ASSIGNABLE' }],
+          );
+        const profile = (await tx.repo.profilesByIds(ctx, [input.profileId])).get(input.profileId);
+        if (!profile)
+          throw new AppError('VALIDATION_ERROR', 'Unknown access profile', [
+            { field: 'profileId', issue: 'PROFILE_NOT_FOUND' },
+          ]);
+        await this.assertWithinCaps([
+          {
+            field: 'profileId',
+            zoneId: r.zone.id,
+            perRefund: profile.defaultPerRefundLimit ?? 0,
+            daily: profile.defaultDailyRefundLimit ?? 0,
+          },
+        ]);
+        await tx.repo.insertAssignment(ctx, {
+          id: uuidv7(),
+          userId: m.id,
+          zoneId: r.zone.id,
+          profileId: profile.id,
+          limits: NO_LIMITS,
+          note: `Access request: ${r.reason}`.slice(0, 500),
+          at: now,
+        });
+        const value = assignmentView({
+          profileId: profile.id,
+          profileName: profile.name,
+          overrides: [],
+          limits: NO_LIMITS,
+        });
+        await tx.repo.insertAccessChanges(
+          ctx,
+          [
+            {
+              id: uuidv7(),
+              memberId: m.id,
+              zoneId: r.zone.id,
+              changeType: 'ZONE_ADDED',
+              before: null,
+              after: value,
+            },
+          ],
+          now,
+        );
+        await record(tx.audit, {
+          module: 'access',
+          action: 'access.zone_added',
+          entity: memberEntity(m, r.zone.id),
+          after: value,
+          note: input.reason,
+        });
+        await tx.repo.insertOutbox(ctx, [
+          memberScopeEvent({
+            userId: m.id,
+            added: [r.zone.id],
+            removed: [],
+            changed: [],
+            actorId: ctx.userId,
+            occurredAt: now,
+          }),
+        ]);
+      } else {
+        if (!inZone) throw new AppError('CONFLICT', 'The member is no longer in this zone');
+        const module = r.module;
+        const action = r.action;
+        if (!module || !action || !isGrantable(module, action))
+          throw new AppError(
+            'VALIDATION_ERROR',
+            'A Zonal Admin can never be given this permission',
+            [{ field: 'action', issue: 'NOT_GRANTABLE' }],
+          );
+        const before = inZone.overrides;
+        const next: AccessOverride[] = [
+          ...before.filter((o) => !(o.module === module && o.action === action)),
+          { module, action, effect: 'GRANT' },
+        ];
+        await tx.repo.replaceOverrides(ctx, inZone.id, next);
+        await tx.repo.insertAccessChanges(
+          ctx,
+          [
+            {
+              id: uuidv7(),
+              memberId: m.id,
+              zoneId: r.zone.id,
+              changeType: 'OVERRIDE_SET',
+              before,
+              after: next,
+            },
+          ],
+          now,
+        );
+        await record(tx.audit, {
+          module: 'access',
+          action: 'access.override_set',
+          entity: memberEntity(m, r.zone.id),
+          before,
+          after: next,
+          note: input.reason,
+        });
+        await tx.repo.insertOutbox(ctx, [
+          memberScopeEvent({
+            userId: m.id,
+            added: [],
+            removed: [],
+            changed: [r.zone.id],
+            actorId: ctx.userId,
+            occurredAt: now,
+          }),
+        ]);
+      }
+      await tx.repo.decideRequest(ctx, id, {
+        status: 'APPROVED',
+        reason: input.reason,
+        at: now,
+        byRequester: false,
+      });
+      await record(tx.audit, {
+        module: 'access',
+        action: 'access.request_approved',
+        entity: { type: 'access_request', id, label: m.name, zoneId: r.zone.id },
+        after: {
+          kind: r.kind,
+          module: r.module,
+          action: r.action,
+          profileId: input.profileId ?? null,
+        },
+        note: input.reason,
+      });
+      after.invalidate.push(m.id);
+      return { email: m.email, name: m.name, zone: r.zone.name, what: AccessAdminService.what(r) };
+    });
+    this.notifyDecision(decided, true, input.reason);
+    return this.getRequest(ctx, id);
+  }
+
+  /** POST /access-requests/{id}/reject */
+  async rejectRequest(
+    ctx: AuthContext,
+    id: string,
+    input: RejectAccessRequestInput,
+  ): Promise<AccessRequest> {
+    const decided = await this.write(async (tx) => {
+      const r = await this.openRequest(tx, ctx, id, input.version);
+      await tx.repo.decideRequest(ctx, id, {
+        status: 'REJECTED',
+        reason: input.reason,
+        at: this.deps.clock(),
+        byRequester: false,
+      });
+      await record(tx.audit, {
+        module: 'access',
+        action: 'access.request_rejected',
+        entity: { type: 'access_request', id, label: r.requester.name, zoneId: r.zone.id },
+        note: input.reason,
+      });
+      return {
+        email: r.requester.email,
+        name: r.requester.name,
+        zone: r.zone.name,
+        what: AccessAdminService.what(r),
+      };
+    });
+    this.notifyDecision(decided, false, input.reason);
+    return this.getRequest(ctx, id);
+  }
+
+  private notifyDecision(
+    d: { email: string; name: string; zone: string; what: string },
+    approved: boolean,
+    reason: string,
+  ): void {
+    notify(
+      this.deps.mailer.sendAccessRequestDecided({
+        to: d.email,
+        name: d.name,
+        approved,
+        zone: d.zone,
+        what: d.what,
+        reason,
+      }),
+      'access request decided',
+    );
+  }
+
+  // ---- zone scope preference (PUT /me/zone-scope, D116) -------------------------------------------------------------
+
+  /**
+   * One zone or none (= all my zones). A Zonal Admin may pick only a zone they are in (404 ZONE_NOT_FOUND otherwise,
+   * doc 36); a Super Admin any live zone. A view filter, never authorization: the API scopes every request anyway.
+   */
+  async setZoneScope(ctx: AuthContext, zoneIds: readonly string[]): Promise<{ zoneIds: string[] }> {
+    const zoneId = zoneIds[0] ?? null;
+    if (zoneId) {
+      const allowed = ctx.isSuperAdmin
+        ? await this.deps.db.repo.zoneLive(zoneId)
+        : ctx.assignedZoneIds.includes(zoneId);
+      if (!allowed) throw new AppError('ZONE_NOT_FOUND', 'Zone not found');
+    }
+    await this.deps.db.repo.setZoneScope(ctx, zoneId);
+    return { zoneIds: zoneId ? [zoneId] : [] };
   }
 
   // ---- history ----------------------------------------------------------------------------------------------------

@@ -133,6 +133,15 @@ export class AuthRepository implements SessionPersistence {
     });
   }
 
+  /** user_preferences.last_zone_scope of a live zone, or null (D116) */
+  async findZoneScope(userId: string): Promise<string | null> {
+    const p = await this.db.userPreference.findUnique({
+      where: { userId },
+      select: { lastZoneScope: true, zone: { select: { deletedAt: true } } },
+    });
+    return p?.lastZoneScope && p.zone && p.zone.deletedAt === null ? p.lastZoneScope : null;
+  }
+
   async countActiveZoneAssignments(userId: string): Promise<number> {
     return this.db.adminZoneAssignment.count({ where: { userId, revokedAt: null } });
   }

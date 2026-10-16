@@ -74,6 +74,11 @@ export const AUDIT_ACTIONS = {
   'access.limit_set': a('access', 'Set access limit', H),
   'access.zone_added': a('access', 'Added member to zone', H),
   'access.zone_removed': a('access', 'Removed member from zone', H),
+  // R13 access requests (doc 59, D115)
+  'access.request_created': a('access', 'Requested access'),
+  'access.request_cancelled': a('access', 'Cancelled access request'),
+  'access.request_approved': a('access', 'Approved access request', H),
+  'access.request_rejected': a('access', 'Rejected access request'),
   'access_profile.created': a('access', 'Created access profile', H),
   'access_profile.updated': a('access', 'Updated access profile', H),
   'access_profile.deleted': a('access', 'Deleted access profile', H),

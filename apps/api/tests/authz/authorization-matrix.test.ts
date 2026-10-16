@@ -40,6 +40,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         revokeSession: { ownObject: true },
         // revokes the actor's other sessions, including the one the engine cached for later cases
         revokeOtherSessions: { invalidatesSessions: true },
+        // the caller's own access requests: the placeholder request is never theirs (tests/access/requests.test.ts)
+        cancelAccessRequest: { ownObject: true },
       },
     });
     publishReport('real-routes', report);
@@ -47,8 +49,9 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     expect(report.failures).toEqual([]);
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
-    // 49 until P11 (auth, audit, zones) + 20 M03 access + 2 D92 zone services + 8 platform settings (doc 59)
-    expect(report.coveredRoutes).toHaveLength(79);
+    // 49 until P11 (auth, audit, zones) + 20 M03 access + 2 D92 zone services + 8 platform settings + 8 access
+    // requests and zone scope (doc 59)
+    expect(report.coveredRoutes).toHaveLength(87);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

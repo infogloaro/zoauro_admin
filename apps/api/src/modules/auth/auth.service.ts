@@ -94,6 +94,8 @@ export interface MeResult {
   mustChangePassword: boolean;
   csrfToken: string;
   permissions: { global: true } | { global: false; zones: MeZone[] };
+  /** D116 zone switcher preference: [] or one zone */
+  zoneScope: string[];
   mfa: { enabled: boolean; required: boolean; enrolmentNeeded: boolean };
 }
 
@@ -737,8 +739,17 @@ export class AuthService {
       permissions: ctx.isSuperAdmin
         ? { global: true }
         : { global: false, zones: await this.meZones(ctx) },
+      zoneScope: await this.zoneScope(ctx),
       mfa: await this.mfaState(user),
     };
+  }
+
+  /** D116: the saved switcher choice, dropped when the zone is gone or (Zonal Admin) no longer assigned. */
+  private async zoneScope(ctx: AuthContext): Promise<string[]> {
+    const zoneId = await this.deps.db.repo.findZoneScope(ctx.userId);
+    if (!zoneId) return [];
+    if (!ctx.isSuperAdmin && !ctx.assignedZoneIds.includes(zoneId)) return [];
+    return [zoneId];
   }
 
   /** /me mfa (doc 52 section 8): from the confirmed methods the policy lets this role use, not from users.mfa_enabled. */
