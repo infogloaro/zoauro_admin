@@ -17,3 +17,4 @@ export * from './orders';
 export * from './menu';
 export * from './hotels';
 export * from './partners';
+export * from './customers';
