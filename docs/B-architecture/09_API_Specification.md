@@ -56,13 +56,16 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET/POST | **/access-profiles** | access:* | Super Admin; list/create templates |
 | GET/PATCH/DELETE | **/access-profiles/{id}** | access:* | delete blocked if in use |
 | GET/PUT | **/access-profiles/{id}/permissions** | access:edit | matrix VAEDS per module + default limits/flags; saving notifies affected members and invalidates their caches |
-| GET/POST | /restaurants | restaurants:* | scoped; POST needs `zoneId` |
-| GET/PATCH/DELETE | /restaurants/{id} | | |
-| POST | /restaurants/{id}/status | restaurants:status | activate, deactivate, suspend |
-| POST | /restaurants/{id}/verification | restaurants:status | verify / reject (note required) |
-| POST | /restaurants/{id}/move-zone | zones:assign | Super Admin only, R-VEN-3 |
-| POST | /restaurants/{id}/documents | restaurants:edit | pre-signed upload |
-| (same set) | /homemakers … | homemakers:* | |
+| GET/POST | /restaurants | restaurants:* | scoped; POST needs `zoneId`; refused with ZONE_SERVICE_DISABLED when the service is off (D92); list meta carries tab counts; phone/email masked (D26) |
+| GET/PATCH/DELETE | /restaurants/{id} | view / edit / delete | detail has documents and the D97 checklist; commission edit Super Admin only; DELETE is soft, PASSWORD re-auth, an active vendor is deactivated first |
+| POST | /restaurants/{id}/status | restaurants:status | activate (only once verified), deactivate, suspend; emits `vendor.status_changed` |
+| POST | /restaurants/{id}/verification | restaurants:status | verify / reject (note required); emits `vendor.status_changed` |
+| POST | /restaurants/{id}/move-zone | zones:edit | Super Admin only, R-VEN-3, PASSWORD re-auth; also assigns an app sign-up without a zone; emits `vendor.updated` (doc 32: `zones:assign` is not an action) |
+| POST | /restaurants/{id}/reveal | restaurants:view + reveal flag | audited unmask of phone/email, 30 per member per hour (D123) |
+| POST | /restaurants/{id}/documents | restaurants:edit | attach a confirmed upload `{docType, fileKey}`; the key must name this vendor |
+| GET | /restaurants/{id}/documents/{docId}/url | restaurants:view | 300 s signed view link; every link is audited (D120) |
+| POST | /restaurants/{id}/documents/{docId}/verify | restaurants:status | verify / reject a pending document (note required) (D120) |
+| (same set) | /homemakers … | homemakers:* | Home Food checklist not configured (D113) |
 | GET/POST | /menu-items | menu:* | filter by vendor/category/status |
 | PATCH/DELETE | /menu-items/{id} | | |
 | POST | /menu-items/bulk | menu:edit | preview + confirm; import via `/menu-items/import` (P1) |
@@ -100,7 +103,7 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /me/login-history | session | own last 50 |
 | GET/DELETE | /sessions, /sessions/{id} | self or Super Admin | |
 | POST | /webhooks/payments/{provider} | signature | public endpoint |
-| POST | /uploads/presign, /uploads/confirm | authenticated | content-type and size allow-list |
+| POST | /uploads/presign, /uploads/confirm | authenticated + entity scope | presign body `{purpose, contentType, sizeBytes, zoneId, entityId}` (D120): JPEG/PNG/WebP 5 MB, PDF 10 MB, private key `zone/{zoneId}/{entityId}/{uuid}.{ext}`, 300 s PUT; the caller must be able to edit the entity in that zone (vendor module, `menu:edit` for MENU_IMAGE, `delivery:edit` for PARTNER_DOC, D131). Confirm checks existence, stored type/size and content sniffing (doc 13 T9) |
 
 ## Integration API (D18, D50)
 Base `/api/v1/intake`, used by the **customer, vendor and partner app backends**, authenticated by HMAC (doc 42 §1), scoped per client. Full contract: `G-integration/42_App_to_Admin_Integration_Contract.md` and `G-integration/contracts/intake.openapi.yaml` (authoritative). Outbound webhooks, event catalogue and the pull feed: doc 43.
