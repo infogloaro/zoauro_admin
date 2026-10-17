@@ -95,6 +95,10 @@ export const AUDIT_ACTIONS = {
   'restaurant.zone_moved': a('restaurants', 'Moved to another zone', H),
   'restaurant.document_added': a('restaurants', 'Added document'),
   'restaurant.document_viewed': a('restaurants', 'Viewed document', H),
+  // D120, D123
+  'restaurant.document_verified': a('restaurants', 'Verified document', H),
+  'restaurant.document_rejected': a('restaurants', 'Rejected document', H),
+  'restaurant.contact_revealed': a('restaurants', 'Revealed contact details', H),
   // homemakers
   'homemaker.created': a('homemakers', 'Created homemaker'),
   'homemaker.updated': a('homemakers', 'Updated homemaker'),
@@ -108,6 +112,10 @@ export const AUDIT_ACTIONS = {
   'homemaker.zone_moved': a('homemakers', 'Moved to another zone', H),
   'homemaker.document_added': a('homemakers', 'Added document'),
   'homemaker.document_viewed': a('homemakers', 'Viewed document', H),
+  // D120, D123
+  'homemaker.document_verified': a('homemakers', 'Verified document', H),
+  'homemaker.document_rejected': a('homemakers', 'Rejected document', H),
+  'homemaker.contact_revealed': a('homemakers', 'Revealed contact details', H),
   // menu
   'menu_item.created': a('menu', 'Created menu item'),
   'menu_item.updated': a('menu', 'Updated menu item'),

@@ -395,6 +395,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/homemakers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home Food vendors in the zones the caller can view (?zoneId repeatable): filters, search q (name, phone, area), sort, pages, tab counts. Phone and email masked (D26) */
+        get: operations["listHomemakers"];
+        put?: never;
+        /** Add a Home Food vendor in a zone (body zoneId). Refused with ZONE_SERVICE_DISABLED when the service is off there (D92); commissionPct is Super Admin only */
+        post: operations["createHomemaker"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/homemakers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One Home Food vendor with its documents and the D97 checklist (null when not configured, D113). 404 outside the caller's view scope */
+        get: operations["getHomemaker"];
+        put?: never;
+        post?: never;
+        /** Soft delete (PASSWORD re-auth); an active Home Food vendor is deactivated first */
+        delete: operations["deleteHomemaker"];
+        options?: never;
+        head?: never;
+        /** Edit the profile; the zone changes only by move-zone. commissionPct: Super Admin only (emits vendor.updated) */
+        patch: operations["updateHomemaker"];
+        trace?: never;
+    };
+    "/homemakers/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach a confirmed upload (POST /uploads/presign, PUT, /uploads/confirm) as a document; the key must name this vendor */
+        post: operations["attachHomemakerDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/homemakers/{id}/documents/{docId}/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A 300 s signed view link (D120); every link is an audited view (document_viewed) */
+        get: operations["getHomemakerDocumentUrl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/homemakers/{id}/documents/{docId}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify or reject a pending document (reject needs a note, D120). Audited as document_verified or document_rejected */
+        post: operations["verifyHomemakerDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/homemakers/{id}/move-zone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move to another zone, or assign an app sign-up that has none (R-VEN-3: Super Admin, PASSWORD re-auth); emits vendor.updated */
+        post: operations["moveHomemakerZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/homemakers/{id}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The unmasked phone and email (D123): needs the reveal flag in the vendor zone (Super Admin always), audited, 30 per hour */
+        post: operations["revealHomemakerContact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/homemakers/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate (only once verified), deactivate or suspend (doc 10 section 4); emits vendor.status_changed. Audited as activated, deactivated or suspended */
+        post: operations["setHomemakerStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/homemakers/{id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify or reject a pending vendor (reject needs a note); emits vendor.status_changed. Audited as verified or rejected */
+        post: operations["verifyHomemaker"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/login-history": {
         parameters: {
             query?: never;
@@ -838,6 +994,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/restaurants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Restaurants in the zones the caller can view (?zoneId repeatable): filters, search q (name, phone, area), sort, pages, tab counts. Phone and email masked (D26) */
+        get: operations["listRestaurants"];
+        put?: never;
+        /** Add a restaurant in a zone (body zoneId). Refused with ZONE_SERVICE_DISABLED when the service is off there (D92); commissionPct is Super Admin only */
+        post: operations["createRestaurant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One restaurant with its documents and the D97 checklist (null when not configured, D113). 404 outside the caller's view scope */
+        get: operations["getRestaurant"];
+        put?: never;
+        post?: never;
+        /** Soft delete (PASSWORD re-auth); an active restaurant is deactivated first */
+        delete: operations["deleteRestaurant"];
+        options?: never;
+        head?: never;
+        /** Edit the profile; the zone changes only by move-zone. commissionPct: Super Admin only (emits vendor.updated) */
+        patch: operations["updateRestaurant"];
+        trace?: never;
+    };
+    "/restaurants/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach a confirmed upload (POST /uploads/presign, PUT, /uploads/confirm) as a document; the key must name this vendor */
+        post: operations["attachRestaurantDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/{id}/documents/{docId}/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A 300 s signed view link (D120); every link is an audited view (document_viewed) */
+        get: operations["getRestaurantDocumentUrl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/{id}/documents/{docId}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify or reject a pending document (reject needs a note, D120). Audited as document_verified or document_rejected */
+        post: operations["verifyRestaurantDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/{id}/move-zone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move to another zone, or assign an app sign-up that has none (R-VEN-3: Super Admin, PASSWORD re-auth); emits vendor.updated */
+        post: operations["moveRestaurantZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/{id}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The unmasked phone and email (D123): needs the reveal flag in the vendor zone (Super Admin always), audited, 30 per hour */
+        post: operations["revealRestaurantContact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate (only once verified), deactivate or suspend (doc 10 section 4); emits vendor.status_changed. Audited as activated, deactivated or suspended */
+        post: operations["setRestaurantStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/{id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify or reject a pending vendor (reject needs a note); emits vendor.status_changed. Audited as verified or rejected */
+        post: operations["verifyRestaurant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings": {
         parameters: {
             query?: never;
@@ -970,6 +1282,40 @@ export interface paths {
         get: operations["getSecurityStatus"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/uploads/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checks an uploaded file: it exists, its type and size are allowed and its content matches its type (doc 13 T9) */
+        post: operations["confirmUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/uploads/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A 300 s pre-signed PUT for a private file of a vendor (D120: zoneId and entityId). JPEG/PNG/WebP up to 5 MB, PDF up to 10 MB; the caller must be able to edit the vendor (menu:edit for MENU_IMAGE) */
+        post: operations["presignUpload"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3415,6 +3761,1565 @@ export interface operations {
             };
         };
     };
+    listHomemakers: {
+        parameters: {
+            query?: {
+                area?: string;
+                assignment?: "ASSIGNED" | "UNASSIGNED";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                tag?: string;
+                verification?: "PENDING" | "VERIFIED" | "REJECTED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            area: string | null;
+                            /** @enum {string} */
+                            assignment: "ASSIGNED" | "UNASSIGNED";
+                            /** Format: date-time */
+                            createdAt: string;
+                            dailyCapacity: number;
+                            email: string | null;
+                            foodCategory: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isAvailable: boolean;
+                            isOpen: boolean;
+                            name: string;
+                            phone: string | null;
+                            /** @enum {string} */
+                            source: "APP" | "ADMIN" | "IMPORT";
+                            specialityTags: string[];
+                            /** @enum {string} */
+                            status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            /** @enum {string} */
+                            verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        meta: {
+                            counts: {
+                                active: number;
+                                inactive: number;
+                                pendingVerification: number;
+                                rejected: number;
+                                suspended: number;
+                                total: number;
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createHomemaker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    address: string;
+                    area?: string;
+                    commissionPct?: number;
+                    /** @default 1 */
+                    dailyCapacity?: number;
+                    /** Format: email */
+                    email?: string;
+                    experienceYears?: number;
+                    foodCategory?: string;
+                    fssaiNo?: string;
+                    /** @default true */
+                    isAvailable?: boolean;
+                    lat?: number;
+                    lng?: number;
+                    minOrderPaise?: number;
+                    name: string;
+                    openingHours?: {
+                        closes?: string;
+                        /** @enum {string} */
+                        day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                        isOpen: boolean;
+                        opens?: string;
+                    }[];
+                    phone: string;
+                    /** @default [] */
+                    specialityTags?: string[];
+                    /** Format: uuid */
+                    zoneId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created (status PENDING, verification PENDING) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        dailyCapacity: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        experienceYears: number | null;
+                        foodCategory: string | null;
+                        fssaiNo: string | null;
+                        hasPhoto: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isOpen: boolean;
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        specialityTags: string[];
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The service is switched off in this zone (error.meta.service, D92) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getHomemaker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Home Food vendor */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        dailyCapacity: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        experienceYears: number | null;
+                        foodCategory: string | null;
+                        fssaiNo: string | null;
+                        hasPhoto: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isOpen: boolean;
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        specialityTags: string[];
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteHomemaker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateHomemaker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    address?: string;
+                    area?: string | null;
+                    commissionPct?: number;
+                    dailyCapacity?: number;
+                    /** Format: email */
+                    email?: string | null;
+                    experienceYears?: number | null;
+                    foodCategory?: string | null;
+                    fssaiNo?: string | null;
+                    isAvailable?: boolean;
+                    lat?: number | null;
+                    lng?: number | null;
+                    minOrderPaise?: number;
+                    name?: string;
+                    openingHours?: {
+                        closes?: string;
+                        /** @enum {string} */
+                        day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                        isOpen: boolean;
+                        opens?: string;
+                    }[] | null;
+                    phone?: string;
+                    specialityTags?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        dailyCapacity: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        experienceYears: number | null;
+                        foodCategory: string | null;
+                        fssaiNo: string | null;
+                        hasPhoto: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isOpen: boolean;
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        specialityTags: string[];
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    attachHomemakerDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                    fileKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Attached */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        dailyCapacity: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        experienceYears: number | null;
+                        foodCategory: string | null;
+                        fssaiNo: string | null;
+                        hasPhoto: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isOpen: boolean;
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        specialityTags: string[];
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getHomemakerDocumentUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                docId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        expiresInSec: number;
+                        url: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    verifyHomemakerDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                docId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "VERIFIED" | "REJECTED";
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Reviewed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        dailyCapacity: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        experienceYears: number | null;
+                        foodCategory: string | null;
+                        fssaiNo: string | null;
+                        hasPhoto: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isOpen: boolean;
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        specialityTags: string[];
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    moveHomemakerZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    /** Format: uuid */
+                    zoneId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Moved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        dailyCapacity: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        experienceYears: number | null;
+                        foodCategory: string | null;
+                        fssaiNo: string | null;
+                        hasPhoto: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isOpen: boolean;
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        specialityTags: string[];
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    revealHomemakerContact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Contact details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        email: string | null;
+                        phone: string | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    setHomemakerStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                    /** @enum {string} */
+                    status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                };
+            };
+        };
+        responses: {
+            /** @description Changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        dailyCapacity: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        experienceYears: number | null;
+                        foodCategory: string | null;
+                        fssaiNo: string | null;
+                        hasPhoto: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isOpen: boolean;
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        specialityTags: string[];
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    verifyHomemaker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "VERIFIED" | "REJECTED";
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Decided */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        dailyCapacity: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        experienceYears: number | null;
+                        foodCategory: string | null;
+                        fssaiNo: string | null;
+                        hasPhoto: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isOpen: boolean;
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        specialityTags: string[];
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listLoginHistory: {
         parameters: {
             query?: {
@@ -5304,6 +7209,1565 @@ export interface operations {
             };
         };
     };
+    listRestaurants: {
+        parameters: {
+            query?: {
+                area?: string;
+                assignment?: "ASSIGNED" | "UNASSIGNED";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                tag?: string;
+                verification?: "PENDING" | "VERIFIED" | "REJECTED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            area: string | null;
+                            /** @enum {string} */
+                            assignment: "ASSIGNED" | "UNASSIGNED";
+                            /** Format: date-time */
+                            createdAt: string;
+                            cuisineTags: string[];
+                            email: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isOpen: boolean;
+                            /** @enum {string} */
+                            kind: "RESTAURANT" | "SHOP";
+                            name: string;
+                            ownerName: string | null;
+                            phone: string | null;
+                            /** @enum {string} */
+                            source: "APP" | "ADMIN" | "IMPORT";
+                            /** @enum {string} */
+                            status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            /** @enum {string} */
+                            verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        meta: {
+                            counts: {
+                                active: number;
+                                inactive: number;
+                                pendingVerification: number;
+                                rejected: number;
+                                suspended: number;
+                                total: number;
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createRestaurant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    address: string;
+                    area?: string;
+                    commissionPct?: number;
+                    cuisineTags: string[];
+                    /** Format: email */
+                    email?: string;
+                    fssaiNo?: string;
+                    gstNo?: string;
+                    /**
+                     * @default RESTAURANT
+                     * @enum {string}
+                     */
+                    kind?: "RESTAURANT" | "SHOP";
+                    lat?: number;
+                    lng?: number;
+                    minOrderPaise?: number;
+                    name: string;
+                    openingHours?: {
+                        closes?: string;
+                        /** @enum {string} */
+                        day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                        isOpen: boolean;
+                        opens?: string;
+                    }[];
+                    ownerName: string;
+                    phone: string;
+                    /** Format: uuid */
+                    zoneId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created (status PENDING, verification PENDING) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        cuisineTags: string[];
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        fssaiNo: string | null;
+                        gstNo: string | null;
+                        hasLogo: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isOpen: boolean;
+                        /** @enum {string} */
+                        kind: "RESTAURANT" | "SHOP";
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        ownerName: string | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The service is switched off in this zone (error.meta.service, D92) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getRestaurant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The restaurant */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        cuisineTags: string[];
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        fssaiNo: string | null;
+                        gstNo: string | null;
+                        hasLogo: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isOpen: boolean;
+                        /** @enum {string} */
+                        kind: "RESTAURANT" | "SHOP";
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        ownerName: string | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteRestaurant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateRestaurant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    address?: string;
+                    area?: string | null;
+                    commissionPct?: number;
+                    cuisineTags?: string[];
+                    /** Format: email */
+                    email?: string | null;
+                    fssaiNo?: string | null;
+                    gstNo?: string | null;
+                    /** @enum {string} */
+                    kind?: "RESTAURANT" | "SHOP";
+                    lat?: number | null;
+                    lng?: number | null;
+                    minOrderPaise?: number;
+                    name?: string;
+                    openingHours?: {
+                        closes?: string;
+                        /** @enum {string} */
+                        day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                        isOpen: boolean;
+                        opens?: string;
+                    }[] | null;
+                    ownerName?: string;
+                    phone?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        cuisineTags: string[];
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        fssaiNo: string | null;
+                        gstNo: string | null;
+                        hasLogo: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isOpen: boolean;
+                        /** @enum {string} */
+                        kind: "RESTAURANT" | "SHOP";
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        ownerName: string | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    attachRestaurantDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                    fileKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Attached */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        cuisineTags: string[];
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        fssaiNo: string | null;
+                        gstNo: string | null;
+                        hasLogo: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isOpen: boolean;
+                        /** @enum {string} */
+                        kind: "RESTAURANT" | "SHOP";
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        ownerName: string | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getRestaurantDocumentUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                docId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        expiresInSec: number;
+                        url: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    verifyRestaurantDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                docId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "VERIFIED" | "REJECTED";
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Reviewed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        cuisineTags: string[];
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        fssaiNo: string | null;
+                        gstNo: string | null;
+                        hasLogo: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isOpen: boolean;
+                        /** @enum {string} */
+                        kind: "RESTAURANT" | "SHOP";
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        ownerName: string | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    moveRestaurantZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    /** Format: uuid */
+                    zoneId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Moved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        cuisineTags: string[];
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        fssaiNo: string | null;
+                        gstNo: string | null;
+                        hasLogo: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isOpen: boolean;
+                        /** @enum {string} */
+                        kind: "RESTAURANT" | "SHOP";
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        ownerName: string | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    revealRestaurantContact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Contact details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        email: string | null;
+                        phone: string | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    setRestaurantStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                    /** @enum {string} */
+                    status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                };
+            };
+        };
+        responses: {
+            /** @description Changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        cuisineTags: string[];
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        fssaiNo: string | null;
+                        gstNo: string | null;
+                        hasLogo: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isOpen: boolean;
+                        /** @enum {string} */
+                        kind: "RESTAURANT" | "SHOP";
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        ownerName: string | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    verifyRestaurant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "VERIFIED" | "REJECTED";
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Decided */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        area: string | null;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        cuisineTags: string[];
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        fssaiNo: string | null;
+                        gstNo: string | null;
+                        hasLogo: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isOpen: boolean;
+                        /** @enum {string} */
+                        kind: "RESTAURANT" | "SHOP";
+                        lat: number | null;
+                        lng: number | null;
+                        minOrderPaise: number;
+                        name: string;
+                        openingHours: {
+                            closes: string | null;
+                            /** @enum {string} */
+                            day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+                            isOpen: boolean;
+                            opens: string | null;
+                        }[] | null;
+                        ownerName: string | null;
+                        phone: string | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listSettings: {
         parameters: {
             query?: never;
@@ -6214,6 +9678,145 @@ export interface operations {
             };
             /** @description Not found (also used for objects in zones the caller cannot see) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    confirmUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    fileKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description File accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        contentType: string;
+                        fileKey: string;
+                        sizeBytes: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    presignUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    contentType: string;
+                    /** Format: uuid */
+                    entityId: string;
+                    /** @enum {string} */
+                    purpose: "VENDOR_DOC" | "PARTNER_DOC" | "MENU_IMAGE";
+                    sizeBytes: number;
+                    /** Format: uuid */
+                    zoneId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Upload link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        expiresInSec: number;
+                        fileKey: string;
+                        uploadUrl: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

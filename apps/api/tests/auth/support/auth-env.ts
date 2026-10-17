@@ -285,7 +285,7 @@ export async function createAuthTestEnv() {
       refundCaps,
     });
     // as server.ts: vendors and uploads ask each other (who owns a key; is a key uploaded)
-    let uploadsGate: ReturnType<typeof createUploadsModule>['service'] | undefined;
+    const uploadsGate: { service?: ReturnType<typeof createUploadsModule>['service'] } = {};
     const vendors = createVendorsModule({
       prisma,
       appOrigin: APP_ORIGIN,
@@ -293,8 +293,8 @@ export async function createAuthTestEnv() {
       storage,
       uploads: {
         assertUploaded: (ctx, fileKey) => {
-          if (!uploadsGate) throw new Error('uploads module not ready');
-          return uploadsGate.assertUploaded(ctx, fileKey);
+          if (!uploadsGate.service) throw new Error('uploads module not ready');
+          return uploadsGate.service.assertUploaded(ctx, fileKey);
         },
       },
       services: zones.service,
@@ -307,7 +307,7 @@ export async function createAuthTestEnv() {
       entities: vendors.entities,
       appOrigin: APP_ORIGIN,
     });
-    uploadsGate = uploads.service;
+    uploadsGate.service = uploads.service;
     const moduleRouters = [
       auth.router,
       createAuditModule({ prisma }).router,

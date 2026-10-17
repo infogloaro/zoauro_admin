@@ -16,6 +16,10 @@ import { createAuditModule } from './modules/audit';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
+import { createUploadsModule } from './modules/uploads';
+import { createVendorsModule } from './modules/vendors';
+import { createS3Storage } from './lib/s3-storage';
+import { RedisRateLimiter } from './lib/rate-limiter';
 import { createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
 
@@ -89,6 +93,36 @@ const accessControl = createAccessModule({
   refundCaps,
 });
 
+// M06/M07 vendors and SA-2.1 uploads (D117-D123): private documents in S3 (MinIO locally). Uploads asks the vendors
+// table who owns an upload key; vendors asks uploads to check a key before attaching it.
+const storage = createS3Storage({
+  bucket: env.S3_BUCKET,
+  region: env.S3_REGION,
+  ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT } : {}),
+});
+const uploadsGate: { service?: ReturnType<typeof createUploadsModule>['service'] } = {};
+const vendors = createVendorsModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  requireReauth: auth.requireReauth,
+  storage,
+  uploads: {
+    assertUploaded: (ctx, fileKey) => {
+      if (!uploadsGate.service) throw new Error('uploads module not ready');
+      return uploadsGate.service.assertUploaded(ctx, fileKey);
+    },
+  },
+  services: zones.service,
+  checklist: settings.reader,
+  limiter: new RedisRateLimiter(redis),
+});
+const uploads = createUploadsModule({
+  storage,
+  entities: vendors.entities,
+  appOrigin: new URL(env.APP_URL).origin,
+});
+uploadsGate.service = uploads.service;
+
 const app = createApp({
   trustProxyHops: env.TRUST_PROXY_HOPS,
   readiness: createReadinessChecks({ databaseUrl: env.DATABASE_URL, redisUrl: env.REDIS_URL }),
@@ -106,6 +140,8 @@ const app = createApp({
         appOrigin: new URL(env.APP_URL).origin,
         maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
       }).router,
+      vendors.router,
+      uploads.router,
     ],
   },
 });

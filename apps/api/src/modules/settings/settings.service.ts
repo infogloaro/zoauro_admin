@@ -2,6 +2,7 @@ import {
   AUDIT_ACTIONS,
   buildCursorPage,
   deliveryMaxConcurrentOrdersSchema,
+  onboardingDocumentsSchema,
   effectiveSetting,
   refundLimitsSchema,
   renderOrderNumber,
@@ -428,4 +429,23 @@ export class SettingsReader {
     const own = deliveryMaxConcurrentOrdersSchema.safeParse(zones.get(zoneId));
     return own.success ? own.data.perPartner : platform;
   }
+
+  /** D97 checklist for the vendor screens; HOME_FOOD null = not configured (D113). */
+  async onboardingDocuments(zoneId: string): Promise<OnboardingDocuments> {
+    const key = 'onboarding.documents';
+    const def = settingDef(key);
+    if (!def) throw new Error(`${key} is not registered`);
+    const platform = await this.cached(`platform:${key}`, async () => {
+      const row = (await this.deps.repo.platformValues([key])).get(key);
+      const parsed = onboardingDocumentsSchema.safeParse(row?.value);
+      return parsed.success ? parsed.data : (def.default as OnboardingDocuments);
+    });
+    const zones = await this.cached(`zones:${key}:${zoneId}`, () =>
+      this.deps.repo.zoneValues(key, [zoneId]),
+    );
+    const own = onboardingDocumentsSchema.safeParse(zones.get(zoneId));
+    return own.success ? own.data : platform;
+  }
 }
+
+type OnboardingDocuments = import('zod').infer<typeof onboardingDocumentsSchema>;

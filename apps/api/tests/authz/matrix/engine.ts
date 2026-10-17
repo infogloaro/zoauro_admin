@@ -215,7 +215,13 @@ export function casesFor(
         actor,
         zone: null,
         variant: 'default',
-        expected: isView || actor.holdsAnywhere(key) ? authorized : forbidden,
+        expected:
+          isView || actor.holdsAnywhere(key)
+            ? // past the permission, a step-up route (vendor delete) still refuses a session without re-authentication
+              access.reauth
+              ? { kind: 'status', status: 401, codes: ['REAUTH_REQUIRED'] }
+              : authorized
+            : forbidden,
       });
     } else if (access.zone === 'query') {
       const guard: Expectation = isView || actor.holdsAnywhere(key) ? authorized : forbidden;

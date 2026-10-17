@@ -120,6 +120,7 @@ import {
   type PermissionKey,
 } from '@zoauro/shared';
 import type { AuditRouteMeta } from '../lib/audit';
+import { VENDOR_OPERATIONS } from './operations.vendors';
 
 // The API contract, in one place. Every route the API serves under /api/v1 is declared here with:
 //   - its request and response schemas (shared Zod, the same ones the controllers validate with),
@@ -1374,6 +1375,8 @@ export const OPERATIONS: OperationDef[] = [
     response: { status: 200, schema: orderWriteResponseSchema, description: 'Assigned' },
     errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
   },
+  // M06/M07 vendors and SA-2.1 uploads (operations.vendors.ts)
+  ...VENDOR_OPERATIONS,
 ];
 
 /**
