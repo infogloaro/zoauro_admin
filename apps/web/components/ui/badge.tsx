@@ -4,11 +4,11 @@ import { cn } from '../../lib/cn';
 type Tone = 'success' | 'danger' | 'warning' | 'neutral' | 'info';
 
 const tones: Record<Tone, string> = {
-  success: 'bg-[#dcfce7] text-[#15803d]',
-  danger: 'bg-[#fee2e2] text-[#b91c1c]',
-  warning: 'bg-[#fef3c7] text-[#b45309]',
-  neutral: 'bg-[#f3f4f6] text-[#4b5563]',
-  info: 'bg-[#dbeafe] text-[#1d4ed8]',
+  success: 'bg-[#ecfdf3] text-[#067647]',
+  danger: 'bg-[#fef3f2] text-[#b42318]',
+  warning: 'bg-[#fef0c7] text-[#b54708]',
+  neutral: 'bg-[#f2f4f7] text-[#475467]',
+  info: 'bg-[#eff8ff] text-[#175cd3]',
 };
 
 export function Badge({

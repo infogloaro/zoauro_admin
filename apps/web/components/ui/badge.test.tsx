@@ -18,6 +18,6 @@ describe('Badge', () => {
   it('renders the visible text (no colour-only status)', () => {
     const html = renderToStaticMarkup(<Badge tone="success">Active</Badge>);
     expect(html).toContain('Active');
-    expect(html).toContain('bg-[#dcfce7]');
+    expect(html).toContain('bg-[#ecfdf3]');
   });
 });

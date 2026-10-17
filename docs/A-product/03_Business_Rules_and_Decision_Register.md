@@ -79,6 +79,9 @@ Naming: product brand in UI = **ZOAURO** (logo in Figma); company/platform = **G
 | D57 | Integration Hub (clients, webhooks, event monitor, kill switch) is Super Admin only and not grantable to Zonal Admin; zone members get the pending-registrations inbox and "source" labels through their normal view permissions | **Decided (design)** | Doc 45 |
 | D58 | Timeline: integration adds about 7.5 dev-weeks; total about 69 dev-weeks, **about 26 weeks (13 sprints) with 3 developers**; +1 week if Mode B (adapter) | **Estimate** | Doc 40 |
 | D18 (refined) | Still **open and blocking**: do the apps exist and have backends? Mode A (apps call this Integration API, default) vs Mode B (adapter to an existing backend). I cannot see the apps; app teams must review the contract | **Open — blocks IH-1** | Doc 41 §4 |
+| D59 | **Menu change requests** (vendor submits a menu edit, admin approves): not covered by docs 09/42 or the M08 menu scope; nothing was built with M06/M07. If wanted it needs a contract first (endpoint + table + outbox event) | **Open (low)** | Docs 09, 42, 34 (M08) |
+| D60 | **Cloud kitchen** as a vendor type: absent from doc 08 schema and the vendor model in docs 04/20; nothing was built. Until the owner confirms, a cloud kitchen would onboard as a restaurant (same pattern as D54 "Shop") | **Open** — needs owner + design | Docs 08, 37, 42 |
+| D61 | **Hotels** (Figma Restaurants-page tab): reaffirms **D23** — out of scope and not built with M06/M07. A "go" needs its own module, screens and schema; the display-only sidebar already lists Hotel roles (TD-25) | **Open — owner call** (refines D23) | Docs 03 (D23), 37 |
 
 Every change to a decision is appended to doc 32.
 

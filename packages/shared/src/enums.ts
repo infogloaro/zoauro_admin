@@ -22,3 +22,52 @@ export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
 
 export const VERIFICATION_DECISIONS = ['VERIFIED', 'REJECTED'] as const;
 export type VerificationDecision = (typeof VERIFICATION_DECISIONS)[number];
+
+/**
+ * Hotel room-booking lifecycle (task: Hotel Room Booking Management;
+ * doc 10 §4 transition style). PENDING → CONFIRMED | CANCELLED;
+ * CONFIRMED → CHECKED_IN | CANCELLED; CHECKED_IN → CHECKED_OUT.
+ * Cancel of a PAID booking marks the payment REFUNDED.
+ */
+export const BOOKING_STATUSES = [
+  'PENDING',
+  'CONFIRMED',
+  'CHECKED_IN',
+  'CHECKED_OUT',
+  'CANCELLED',
+] as const;
+export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+
+/** Targets the status endpoint may transition to. */
+export const BOOKING_STATUS_TARGETS = [
+  'CONFIRMED',
+  'CHECKED_IN',
+  'CHECKED_OUT',
+  'CANCELLED',
+] as const;
+export type BookingStatusTarget = (typeof BOOKING_STATUS_TARGETS)[number];
+
+/** Payment settlement on a booking or dining reservation (doc 16 ledger lands later). */
+export const PAYMENT_STATUSES = ['PENDING', 'PAID', 'REFUNDED', 'FAILED'] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+/** Dining reservation lifecycle (task: Hotel Dining tab). */
+export const DINING_STATUSES = [
+  'PENDING',
+  'CONFIRMED',
+  'COMPLETED',
+  'CANCELLED',
+  'NO_SHOW',
+] as const;
+export type DiningStatus = (typeof DINING_STATUSES)[number];
+
+/** Approval workflow for menu/food items (task: Menu & Food Items). */
+export const MENU_APPROVAL_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'ARCHIVED'] as const;
+export type MenuApprovalStatus = (typeof MENU_APPROVAL_STATUSES)[number];
+
+/** Bulk review targets (POST /menu-items/bulk). */
+export const MENU_BULK_ACTIONS = ['APPROVE', 'ARCHIVE'] as const;
+export type MenuBulkAction = (typeof MENU_BULK_ACTIONS)[number];
+
+export const DIETARY_TYPES = ['VEGETARIAN', 'NON_VEG', 'EGG'] as const;
+export type DietaryType = (typeof DIETARY_TYPES)[number];

@@ -68,12 +68,18 @@ export function ConfirmDialog({
 export function VerificationDialog({
   vendorName,
   decision,
+  noun = 'vendor',
+  description,
   busy = false,
   onSubmit,
   onClose,
 }: {
   vendorName: string;
   decision: VerificationDecision;
+  /** Review target noun for the footer buttons ("vendor" or "document"). */
+  noun?: string;
+  /** Overrides the default reject/verify copy when reviewing a document. */
+  description?: string;
   busy?: boolean;
   onSubmit: (note: string | undefined) => void;
   onClose: () => void;
@@ -88,9 +94,10 @@ export function VerificationDialog({
         <DialogHeader>
           <DialogTitle>{rejecting ? `Reject ${vendorName}` : `Verify ${vendorName}`}</DialogTitle>
           <DialogDescription>
-            {rejecting
-              ? 'Tell the vendor why the submission was rejected. A note is required.'
-              : 'Confirm the documents and details were reviewed. A note is optional.'}
+            {description ??
+              (rejecting
+                ? 'Tell the vendor why the submission was rejected. A note is required.'
+                : 'Confirm the documents and details were reviewed. A note is optional.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -117,7 +124,7 @@ export function VerificationDialog({
             disabled={busy || noteRequired}
             onClick={() => onSubmit(note.trim() === '' ? undefined : note.trim())}
           >
-            {rejecting ? 'Reject vendor' : 'Verify vendor'}
+            {rejecting ? `Reject ${noun}` : `Verify ${noun}`}
           </Button>
         </DialogFooter>
       </DialogContent>

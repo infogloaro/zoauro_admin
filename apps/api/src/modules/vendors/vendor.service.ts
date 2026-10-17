@@ -12,6 +12,9 @@ import type {
   VendorActivity,
   VendorDetail,
   VendorDocument,
+  VendorDocumentUploadInput,
+  VendorDocumentUrl,
+  VendorDocumentVerifyInput,
   VendorKind,
   VendorStatusInput,
   VendorVerificationInput,
@@ -20,7 +23,9 @@ import { OPENING_DAYS, requestedZoneIds } from '@zoauro/shared';
 import { prisma } from '../../lib/db';
 import type { AuthContext } from '../../lib/auth-context';
 import { errors } from '../../lib/errors';
+import { PRESIGN_READ_TTL_SEC, presignRead } from '../../lib/storage';
 import { recordAudit } from '../audit/audit.service';
+import { assertUploadedObject, parseFileKey } from '../uploads/uploads.service';
 import * as repo from './vendor.repository';
 import { assertStatusTransition, assertVerificationDecision } from './vendor.state';
 import type {
@@ -140,6 +145,32 @@ export function serializeVendor(row: VendorRowWithZone): RestaurantDto | Homemak
   return 'foodCategory' in row ? serializeHomemaker(row) : serializeRestaurant(row);
 }
 
+/**
+ * Doc 15 §privacy / D26: lists mask phone and email; the detail view keeps
+ * revealing them in full, so only `listVendors` wraps its rows with this.
+ */
+export function maskPhone(value: string): string {
+  const plus = value.startsWith('+');
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 4) return '*'.repeat(Math.max(digits.length, 1));
+  const stars = '*'.repeat(Math.max(1, digits.length - 6));
+  return `${plus ? '+' : ''}${digits.slice(0, 2)}${stars}${digits.slice(-4)}`;
+}
+
+export function maskEmail(value: string): string {
+  const at = value.indexOf('@');
+  if (at < 1) return '***';
+  return `${value.slice(0, Math.min(2, at))}***${value.slice(at)}`;
+}
+
+function maskContact<T extends { phone: string; email: string | null }>(dto: T): T {
+  return {
+    ...dto,
+    phone: maskPhone(dto.phone),
+    email: dto.email === null ? null : maskEmail(dto.email),
+  };
+}
+
 function serializeWithZone(vendor: repo.VendorRow, zone: ZoneRef): RestaurantDto | HomemakerDto {
   if ('foodCategory' in vendor) return serializeHomemaker({ ...vendor, zone });
   return serializeRestaurant({ ...vendor, zone });
@@ -187,10 +218,18 @@ async function resolveZoneScope(requested: string[] | undefined): Promise<string
   return requested;
 }
 
-async function requireZoneRef(zoneId: string): Promise<ZoneRef> {
-  const [zone] = await repo.findZones([zoneId]);
+/**
+ * Zone target for a write. Deactivated zones keep read access to their
+ * history but accept no new vendors (doc 36 §3), so create and move-zone
+ * answer 409 CONFLICT instead of silently associating the record.
+ */
+async function requireWritableZoneRef(zoneId: string): Promise<ZoneRef> {
+  const zone = await repo.findZoneForWrite(zoneId);
   if (!zone) throw errors.zoneNotFound();
-  return zone;
+  if (zone.status === 'INACTIVE') {
+    throw errors.conflict('This zone is deactivated — vendors cannot be added to it');
+  }
+  return { id: zone.id, name: zone.name, city: zone.city };
 }
 
 async function requireRow(kind: VendorKind, id: string): Promise<VendorRowWithZone> {
@@ -217,7 +256,7 @@ export async function listVendors(
   const zones = await repo.findZones(facets.zoneIds);
 
   return {
-    data: page.rows.map(serializeVendor),
+    data: page.rows.map((row) => maskContact(serializeVendor(row))),
     meta: {
       page: query.page,
       pageSize: query.pageSize,
@@ -284,7 +323,7 @@ export async function createVendor(
   kind: VendorKind,
   input: RestaurantCreateInput | HomemakerCreateInput,
 ): Promise<RestaurantDto | HomemakerDto> {
-  const zone = await requireZoneRef(input.zoneId);
+  const zone = await requireWritableZoneRef(input.zoneId);
 
   if (kind === 'restaurant') {
     const v = input as RestaurantCreateInput;
@@ -516,7 +555,7 @@ export async function moveVendorZone(
   const before = await requireRow(kind, id);
   const beforeDto = serializeVendor(before);
   if (before.zoneId === targetZoneId) throw errors.conflict('Vendor already belongs to this zone');
-  const zone = await requireZoneRef(targetZoneId);
+  const zone = await requireWritableZoneRef(targetZoneId);
 
   return prisma.$transaction(async (tx) => {
     const vendor = await repo.updateVendor(tx, kind, id, { zoneId: targetZoneId });
@@ -556,4 +595,115 @@ export async function removeVendor(
     );
   });
   return { id };
+}
+
+/* ------------------------------------------------------------------ *
+ * Documents (SA-2.1: doc 09 `/uploads` + `/{id}/documents`, doc 11,
+ * doc 15 §retention — downloads are logged)
+ * ------------------------------------------------------------------ */
+
+/** The key must belong to this very vendor in this very zone (else 404). */
+async function requireOwnedFileKey(row: VendorRowWithZone, fileKey: string): Promise<void> {
+  const parsed = parseFileKey(fileKey);
+  if (!parsed) {
+    throw errors.validation([{ field: 'fileKey', issue: 'Invalid file key' }], 'Invalid file key');
+  }
+  if (parsed.entityId !== row.id || parsed.zoneId !== row.zoneId) {
+    throw errors.notFound('Vendor not found');
+  }
+  // Full gate: object exists, stored type/size allow-listed, content sniffed.
+  await assertUploadedObject(fileKey);
+}
+
+/** POST /{module}/{id}/documents (doc 09) — attach a confirmed upload. */
+export async function addVendorDocument(
+  ctx: ActorContext,
+  kind: VendorKind,
+  id: string,
+  input: VendorDocumentUploadInput,
+): Promise<VendorDocument> {
+  const row = await requireRow(kind, id);
+  await requireOwnedFileKey(row, input.fileKey);
+
+  const doc = await prisma.$transaction(async (tx) => {
+    const created = await repo.createDocument(tx, {
+      vendorType: repo.vendorDocumentType(kind),
+      vendorId: id,
+      docType: input.docType,
+      fileKey: input.fileKey,
+    });
+    await recordAudit(
+      tx,
+      auditEntry(ctx, kind, id, {
+        action: `${auditModule(kind)}.document.upload`,
+        zoneId: row.zoneId,
+        after: { documentId: created.id, docType: created.docType, fileKey: created.fileKey },
+      }),
+    );
+    return created;
+  });
+  return toDocument(doc);
+}
+
+/**
+ * GET /{module}/{id}/documents/{documentId}/url — short-lived signed read
+ * (doc 11 "reads use short-lived signed URLs"); every download is audited
+ * (doc 15), the URL itself never is.
+ */
+export async function getVendorDocumentUrl(
+  ctx: ActorContext,
+  kind: VendorKind,
+  id: string,
+  documentId: string,
+): Promise<VendorDocumentUrl> {
+  const row = await requireRow(kind, id);
+  const doc = await repo.findDocument(repo.vendorDocumentType(kind), id, documentId);
+  if (!doc) throw errors.notFound('Document not found');
+
+  const url = await presignRead(doc.fileKey);
+  await recordAudit(prisma, {
+    actorId: ctx.auth.userId,
+    zoneId: row.zoneId,
+    module: auditModule(kind),
+    action: `${auditModule(kind)}.document.download`,
+    entityType: entityType(kind),
+    entityId: id,
+    after: { documentId: doc.id, docType: doc.docType, fileKey: doc.fileKey },
+    ip: ctx.auth.ip,
+    requestId: ctx.requestId,
+  });
+  return { url, expiresInSec: PRESIGN_READ_TTL_SEC };
+}
+
+/** POST /{module}/{id}/documents/{documentId}/verify — per-document review (doc 21 §2). */
+export async function setVendorDocumentVerification(
+  ctx: ActorContext,
+  kind: VendorKind,
+  id: string,
+  documentId: string,
+  input: VendorDocumentVerifyInput,
+): Promise<VendorDocument> {
+  const row = await requireRow(kind, id);
+  const before = await repo.findDocument(repo.vendorDocumentType(kind), id, documentId);
+  if (!before) throw errors.notFound('Document not found');
+
+  const data =
+    input.decision === 'VERIFIED'
+      ? { verified: true, verifiedBy: ctx.auth.userId, rejectionNote: null }
+      : { verified: false, verifiedBy: null, rejectionNote: input.note ?? null };
+
+  const doc = await prisma.$transaction(async (tx) => {
+    const updated = await repo.updateDocument(tx, documentId, data);
+    await recordAudit(
+      tx,
+      auditEntry(ctx, kind, id, {
+        action: `${auditModule(kind)}.document.${input.decision === 'VERIFIED' ? 'verify' : 'reject'}`,
+        zoneId: row.zoneId,
+        before: toDocument(before),
+        after: toDocument(updated),
+      }),
+    );
+    return updated;
+  });
+  return toDocument(doc);
 }

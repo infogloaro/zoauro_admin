@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { Zone } from '@zoauro/shared';
-import { ZonesPagination, ZonesTable } from './zones-table';
+import { ZonesTable } from './zones-table';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: vi.fn() }),
@@ -50,25 +50,5 @@ describe('ZonesTable', () => {
     );
     expect(html).toContain('Edit Chennai');
     expect(html).toContain('More actions for Chennai');
-  });
-});
-
-describe('ZonesPagination', () => {
-  it('shows the range and total (doc 20)', () => {
-    const html = renderToStaticMarkup(
-      <ZonesPagination page={1} pageSize={25} total={30} onPage={() => {}} />,
-    );
-    expect(html).toContain('Showing 1 to 25 of 30 zones');
-  });
-
-  it('disables prev on the first page and next on the last', () => {
-    const first = renderToStaticMarkup(
-      <ZonesPagination page={1} pageSize={25} total={30} onPage={() => {}} />,
-    );
-    expect(first).toContain('disabled=""');
-    const last = renderToStaticMarkup(
-      <ZonesPagination page={2} pageSize={25} total={30} onPage={() => {}} />,
-    );
-    expect(last).toContain('aria-current="page"');
   });
 });

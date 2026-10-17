@@ -2,10 +2,11 @@
 
 import { Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import type { Zone } from '@zoauro/shared';
 import { PageHeader } from '../../components/shared/page-header';
+import { DEFAULT_PAGE_SIZE, Pagination, totalPagesFor } from '../../components/shared/pagination';
 import { EmptyState, ErrorState, TableSkeleton } from '../../components/shared/states';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -22,9 +23,9 @@ import { DeactivateDialog } from './deactivate-dialog';
 import { KpiCards } from './kpi-cards';
 import { ZoneFormDialog } from './zone-form-dialog';
 import { ZonesFilters as FilterBar, type FilterValues } from './zones-filters';
-import { ZonesPagination, ZonesTable, type RowAction } from './zones-table';
+import { ZonesTable, type RowAction } from './zones-table';
 
-const PAGE_SIZE = 25; // doc 20: pagination default 25
+const PAGE_SIZE = DEFAULT_PAGE_SIZE; // 6 records per page (task 2026-10-15; doc 20 said 25 — TD-27)
 
 export function ZonesScreen() {
   const router = useRouter();
@@ -58,6 +59,15 @@ export function ZonesScreen() {
     const qs = next.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
+
+  // Deactivating the last row on the last page (or a narrower filter) can
+  // leave the URL beyond the data — snap back to the final valid page.
+  const totalPages = totalPagesFor(list.data?.meta.total ?? 0, PAGE_SIZE);
+  useEffect(() => {
+    if (!list.isPending && !list.isError && page > totalPages) {
+      setParams({ page: totalPages > 1 ? String(totalPages) : null }, { resetPage: false });
+    }
+  }, [list.isPending, list.isError, page, totalPages]);
 
   const filterValues: FilterValues = { q, status, state };
 
@@ -149,10 +159,11 @@ export function ZonesScreen() {
               onSort={(next) => setParams({ sort: next })}
               onAction={onRowAction}
             />
-            <ZonesPagination
+            <Pagination
               page={page}
               pageSize={PAGE_SIZE}
               total={list.data?.meta.total ?? 0}
+              entity={{ one: 'zone', many: 'zones' }}
               onPage={(next) => setParams({ page: String(next) }, { resetPage: false })}
             />
           </>

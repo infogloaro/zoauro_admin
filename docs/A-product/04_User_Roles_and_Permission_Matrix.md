@@ -33,6 +33,7 @@ Key: V view, A add, E edit, D soft delete, S status change (approve, verify, sus
 | Restaurants | V A E D S | V A E D S (commission field never editable) | V A E D S |
 | Homemakers | V A E D S | V A E D S | V A E D S |
 | Menu / Food Items | V A E D S | V A E D S | V A E D S |
+| Hotel Room Booking (`hotels`, `bookings`, `dining`) ★ | V A E D S | V A E D S in principle (D2) — **code seam: every Zonal Admin answers 403 until SA-1.7 swaps the Super-Admin-only guard, doc 32 TD-33** | — |
 | Delivery Partners | V A E D S | V A E D S | V A E D S |
 | Customers | V A E D S | V A E D S (+ flag reveal) | V A E D S |
 | Payments (transactions) | V | V | V |

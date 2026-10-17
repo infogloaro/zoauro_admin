@@ -32,6 +32,16 @@ describe('StatCard', () => {
     expect(html).toContain('Total Zones');
     expect(html).toContain('>8<');
   });
+
+  it('has the orange hover and focus-visible states with a 200 ms transition', () => {
+    const html = renderToStaticMarkup(<StatCard label="Total Zones" value={8} icon={<svg />} />);
+    expect(html).toContain('transition-colors');
+    expect(html).toContain('duration-200');
+    expect(html).toContain('hover:border-orange-300');
+    expect(html).toContain('hover:bg-orange-50/60');
+    expect(html).toContain('hover:shadow-md');
+    expect(html).toContain('focus-visible:ring-orange-500/40');
+  });
 });
 
 describe('EmptyState', () => {

@@ -1,0 +1,53 @@
+# Local development services (doc 06 §5, doc 12 environments, doc 33 F0.4).
+# Started: `pnpm infra:up`  •  Stopped: `pnpm infra:down`
+#
+# Scope note: this file currently carries the object-storage service only —
+# SA-2.1 uploads needs MinIO running locally. F0.4 adds the remaining
+# services from doc 12 (Postgres, Redis, Mailpit, api, web, worker); the
+# local Postgres on :5432 and Redis on :6379 are provided by the host today.
+#
+# Ports 9100/9101 (API/console): a sibling GloAro project already publishes
+# its MinIO on the conventional 9000/9001 on this machine; the S3 endpoint in
+# .env points at 9100. Images come from quay.io (Docker Hub pulls are blocked
+# in this environment).
+services:
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: zoauro-minio
+    command: server /data --console-address ":9101"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      # Global CORS for the browser panel (presigned PUT preflights from the
+      # Next dev origin). Community MinIO only supports global CORS — the
+      # per-bucket PutBucketCors API is an AIStor/paid feature and returns
+      # 501 NotImplemented here.
+      MINIO_API_CORS_ALLOW_ORIGIN: http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - '9100:9000'
+      - '9101:9001'
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # Creates the bucket from S3_BUCKET on first start; private by default
+  # (doc 11: files are private, reads use short-lived signed URLs).
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: zoauro-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb -p local/zoauro-local &&
+      mc anonymous set none local/zoauro-local
+      "
+
+volumes:
+  minio-data:

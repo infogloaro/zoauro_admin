@@ -1,8 +1,8 @@
 'use client';
 
-import { RotateCcw, Search } from 'lucide-react';
+import { Download, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { VERIFICATION_STATUSES, VENDOR_STATUSES, type VendorKind } from '@zoauro/shared';
+import { VENDOR_STATUSES, type VendorKind } from '@zoauro/shared';
 import { Button } from '../../components/ui/button';
 import {
   Select,
@@ -22,13 +22,6 @@ export interface FilterValues {
   zoneId: string;
 }
 
-export interface VendorFacets {
-  areas: string[];
-  tags: string[];
-  foodCategories: string[];
-  zones: Array<{ id: string; name: string; city: string }>;
-}
-
 export interface ZoneOption {
   id: string;
   name: string;
@@ -41,30 +34,30 @@ const STATUS_LABELS: Record<string, string> = {
   SUSPENDED: 'Suspended',
 };
 
-const VERIFICATION_LABELS: Record<string, string> = {
-  PENDING: 'Pending review',
-  VERIFIED: 'Verified',
-  REJECTED: 'Rejected',
-};
-
 /**
- * List filters (doc 20: search + status + verification + cuisine + area + zone;
- * doc 22: URL-synced). `onChange` updates URL state and resets pagination.
+ * Records toolbar (Figma "Restaurant records" state): search, zone + status
+ * filters and the client-side CSV export share one horizontal row — the
+ * search input grows on the left while the filter group stays right-aligned
+ * (reference layout). Advanced filters (verification, area, tag, food
+ * category) stay supported through URL params (doc 22) but are no longer
+ * rendered — the reference toolbar shows only these controls. Search is
+ * debounced 300 ms with the same latest-value guard as before so a late
+ * debounce cannot patch the wrong route after a tab switch.
  */
-export function VendorFilters({
+export function VendorToolbar({
   kind,
   value,
-  facets,
   zones,
   onChange,
-  onReset,
+  onExport,
+  exportBusy,
 }: {
   kind: VendorKind;
-  value: FilterValues;
-  facets: VendorFacets | undefined;
+  value: Pick<FilterValues, 'q' | 'status' | 'zoneId' | 'area'>;
   zones: ZoneOption[];
   onChange: (patch: Partial<FilterValues>) => void;
-  onReset: () => void;
+  onExport: () => void;
+  exportBusy?: boolean;
 }) {
   const [search, setSearch] = useState(value.q);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -74,145 +67,88 @@ export function VendorFilters({
   }, [value.q]);
 
   useEffect(() => {
-    if (search === value.q) return;
+    if (search === value.q) {
+      // Reconciled (tab switch cleared q, or the debounce committed): drop any
+      // pending timer so a late onChange cannot re-apply a stale URL patch.
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
+      return;
+    }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => onChange({ q: search }), 300);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [search]);
+    // value.q is a dep so an external URL change (tab switch, reset) cancels
+    // the debounce instead of firing it with a stale pathname afterwards.
+  }, [search, value.q]);
 
-  const hasFilters = Boolean(
-    value.q ||
-    value.status ||
-    value.verification ||
-    value.area ||
-    value.tag ||
-    value.foodCategory ||
-    value.zoneId,
-  );
   const isRestaurant = kind === 'restaurant';
 
+  // Compute area options based on selected zone from URL params
+  const [areaOptions, setAreaOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const zoneId = value.zoneId;
+
+  useEffect(() => {
+    // Map zone names to their areas based on the seed data
+    const zoneToAreas: Record<string, string[]> = {
+      // Chennai zone areas
+      chennai: [
+        'T Nagar',
+        'Anna Nagar',
+        'Velachery',
+        'OMR',
+        'Kotturpuram',
+        'West Mambalam',
+        'Sholinganallur',
+        'Tambaram',
+      ],
+      // Coimbatore zone areas
+      coimbatore: ['RS Puram', 'Gandhipuram', 'Saibaba Colony', 'R.S. Puram'],
+      // Madurai zone areas
+      madurai: ['Anna Nagar', 'West Perumal Street', 'K K Nagar', 'Thoppur'],
+    };
+
+    if (zoneId) {
+      const areas = zoneToAreas[zoneId.toLowerCase()] ?? [];
+      const options = areas.map((name) => ({ id: name, name }));
+      setAreaOptions(options);
+    } else {
+      setAreaOptions([]);
+    }
+  }, [zoneId]);
+
+  const filteredAreaOptions =
+    areaOptions.length > 0 ? areaOptions : [{ id: value.area ?? '', name: value.area ?? '' }];
+
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[--radius-card] border border-border bg-surface p-3 shadow-sm">
-      <div className="relative w-full max-w-md">
+    <div className="flex flex-row items-center gap-3">
+      <div className="relative flex-1 min-w-[0]">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={
-            isRestaurant
-              ? 'Search restaurants by name, owner, phone…'
-              : 'Search homemakers by name, phone…'
+            isRestaurant ? 'Search restaurant records...' : 'Search home food records...'
           }
           aria-label={isRestaurant ? 'Search restaurants' : 'Search homemakers'}
-          className="h-9 w-full rounded-[--radius-input] border border-border bg-surface pl-9 pr-3 text-sm placeholder:text-muted focus:border-nav-active focus:outline-none"
+          className="h-12 w-full rounded-lg border border-slate-200 bg-surface pl-9 pr-3 text-sm placeholder:text-muted focus:border-nav-active focus:outline-none"
         />
       </div>
 
-      <div className="ml-auto flex flex-wrap items-center gap-3">
-        <Select
-          value={value.tag || 'ALL'}
-          onValueChange={(v) => onChange({ tag: v === 'ALL' ? '' : v })}
-        >
-          <SelectTrigger
-            className="w-40"
-            aria-label={isRestaurant ? 'Filter by cuisine' : 'Filter by speciality'}
-          >
-            <SelectValue placeholder={isRestaurant ? 'All Cuisines' : 'All Specialities'} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">
-              {isRestaurant ? 'All Cuisines' : 'All Specialities'}
-            </SelectItem>
-            {(facets?.tags ?? []).map((tag) => (
-              <SelectItem key={tag} value={tag}>
-                {tag}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {!isRestaurant && (
-          <Select
-            value={value.foodCategory || 'ALL'}
-            onValueChange={(v) => onChange({ foodCategory: v === 'ALL' ? '' : v })}
-          >
-            <SelectTrigger className="w-40" aria-label="Filter by food category">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Categories</SelectItem>
-              {(facets?.foodCategories ?? []).map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        <Select
-          value={value.status || 'ALL'}
-          onValueChange={(v) => onChange({ status: v === 'ALL' ? '' : v })}
-        >
-          <SelectTrigger className="w-36" aria-label="Filter by status">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Status</SelectItem>
-            {VENDOR_STATUSES.map((status) => (
-              <SelectItem key={status} value={status}>
-                {STATUS_LABELS[status] ?? status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={value.area || 'ALL'}
-          onValueChange={(v) => onChange({ area: v === 'ALL' ? '' : v })}
-        >
-          <SelectTrigger className="w-36" aria-label="Filter by area">
-            <SelectValue placeholder="All Locations" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Locations</SelectItem>
-            {(facets?.areas ?? []).map((area) => (
-              <SelectItem key={area} value={area}>
-                {area}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={value.verification || 'ALL'}
-          onValueChange={(v) => onChange({ verification: v === 'ALL' ? '' : v })}
-        >
-          <SelectTrigger className="w-44" aria-label="Filter by verification">
-            <SelectValue placeholder="All Verification" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Verification</SelectItem>
-            {VERIFICATION_STATUSES.map((status) => (
-              <SelectItem key={status} value={status}>
-                {VERIFICATION_LABELS[status] ?? status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
+      <div className="flex items-center gap-3">
         <Select
           value={value.zoneId || 'ALL'}
           onValueChange={(v) => onChange({ zoneId: v === 'ALL' ? '' : v })}
         >
-          <SelectTrigger className="w-44" aria-label="Filter by zone">
-            <SelectValue placeholder="All Zones" />
+          <SelectTrigger className="h-12 min-w-[150px]" aria-label="Filter by zone">
+            <SelectValue placeholder="All zones" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All Zones</SelectItem>
+            <SelectItem value="ALL">All zones</SelectItem>
             {zones.map((zone) => (
               <SelectItem key={zone.id} value={zone.id}>
                 {zone.name}
@@ -221,8 +157,47 @@ export function VendorFilters({
           </SelectContent>
         </Select>
 
-        <Button variant="outline" size="sm" onClick={onReset} disabled={!hasFilters}>
-          <RotateCcw className="size-4" /> Reset
+        <Select
+          value={value.area || 'ALL'}
+          onValueChange={(v) => onChange({ area: v === 'ALL' ? '' : v })}
+          disabled={!zoneId}
+        >
+          <SelectTrigger className="h-12 min-w-[150px]" aria-label="Filter by area">
+            <SelectValue placeholder="All areas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All areas</SelectItem>
+            {filteredAreaOptions.length > 0 ? (
+              filteredAreaOptions.map((option) => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.name}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="">No areas available</SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={value.status || 'ALL'}
+          onValueChange={(v) => onChange({ status: v === 'ALL' ? '' : v })}
+        >
+          <SelectTrigger className="h-12 min-w-[150px]" aria-label="Filter by status">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All statuses</SelectItem>
+            {VENDOR_STATUSES.map((status) => (
+              <SelectItem key={status} value={status}>
+                {STATUS_LABELS[status] ?? status}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button variant="outline" className="h-12" onClick={onExport} disabled={exportBusy}>
+          <Download className="size-4" /> Export CSV
         </Button>
       </div>
     </div>

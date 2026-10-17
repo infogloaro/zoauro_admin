@@ -36,7 +36,14 @@ Zone list counts (restaurants, homemakers, partners, customers, admins) are deri
 | homemakers | id, zone_id, name, phone, email, address, **area ★**, lat, lng, speciality_tags, **food_category ★★, experience_years ★★, is_available ★★ (D45)**, **daily_capacity ★ (int ≥ 1; doc 22 had it, v1.0 schema lacked it)**, commission_pct, status, **verification_status ★, verification_note ★**, verified_at, verified_by, opening_hours_json, photo_key, min_order, fssai_no |
 | vendor_documents | id, vendor_type, vendor_id, doc_type, file_key, verified, verified_by, rejection_note |
 | categories | id, zone_id nullable (global), name, sort_order |
-| menu_items | id, zone_id, restaurant_id nullable, homemaker_id nullable, category_id, name, description, price, stock, is_available, is_featured, image_key; CHECK exactly one of restaurant_id / homemaker_id. UI "Out of stock" = stock = 0 |
+| menu_items | id, zone_id, **vendor_type ★ (RESTAURANT, HOMEMAKER, HOTEL) + vendor_id — exactly one owning provider (replaces the v1.0 restaurant_id/homemaker_id columns and their CHECK ★)**, name, description nullable, category nullable, price (integer paise), **dietary ★ (VEGETARIAN, NON_VEG, EGG)**, **approval_status ★ (PENDING, APPROVED, REJECTED, ARCHIVED), rejection_reason, approved_at, approved_by**, deleted_at; indexes (zone_id, approval_status), (vendor_type, vendor_id) |
+
+## Hotels, bookings and dining ★ (owner-authorized build, doc 32 TD-33)
+| Table | Columns |
+|---|---|
+| **hotels ★** | id, zone_id, name, owner_name, phone, email, address, area, total_rooms, commission_pct, gst_no, status (VendorStatus: PENDING, ACTIVE, INACTIVE, SUSPENDED), verification_status/note, verified_at, verified_by, deleted_at; zone-owned like restaurants (doc 10 §4 lifecycle reused) |
+| **room_bookings ★** | id, zone_id, hotel_id, customer_name, customer_phone (masked in lists, D26), room_type, check_in/check_out (UTC date boundaries from `YYYY-MM-DD`), guests, status (PENDING, CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED), payment_status, amount (integer paise), note; index (hotel_id, check_in) for the overlap check |
+| **dining_reservations ★** | id, zone_id, hotel_id nullable, restaurant_id nullable (service requires at least one; venue zone must equal the item zone), customer_name, customer_phone (masked in lists), reserved_date (UTC), reserved_time (`HH:MM`), guests, table_area, status (PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW), payment_status, amount nullable paise, note |
 
 ## People
 | customers | id, name, phone (unique), email, status (ACTIVE, INACTIVE, **BLOCKED ★**), wallet_balance, **source ★ (APP, ADMIN, REFERRAL, OTHER — Figma "registration source")**, user_type (CUSTOMER) |

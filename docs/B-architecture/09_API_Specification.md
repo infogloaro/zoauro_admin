@@ -51,11 +51,27 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | POST | /restaurants/{id}/status | restaurants:status | activate, deactivate, suspend |
 | POST | /restaurants/{id}/verification | restaurants:status | verify / reject (note required) |
 | POST | /restaurants/{id}/move-zone | zones:assign | Super Admin only, R-VEN-3 |
-| POST | /restaurants/{id}/documents | restaurants:edit | pre-signed upload |
+| POST | /restaurants/{id}/documents | restaurants:edit | attach a confirmed presigned upload `{ docType, fileKey }` |
+| GET | /restaurants/{id}/documents/{documentId}/url | restaurants:view | short-lived signed read `{ url, expiresInSec }`; the download itself is audited (doc 15), the URL is not |
+| POST | /restaurants/{id}/documents/{documentId}/verify | restaurants:status | `{ decision, note? }`; note required to reject |
 | (same set) | /homemakers … | homemakers:* | |
+| GET/POST | /hotels | hotels:view/add | zone-scoped; POST needs `zoneId`; list meta carries counts + metrics (owner-authorized build, doc 32 TD-33) |
+| GET/PATCH/DELETE | /hotels/{id} | | |
+| POST | /hotels/{id}/status | hotels:status | activate, deactivate, suspend |
+| POST | /hotels/{id}/verification | hotels:status | verify / reject (note required) |
+| GET | /hotels/bookings | bookings:view | cross-hotel list; filters status/paymentStatus/hotelId/zone; customer phone masked (D26) |
+| GET/POST | /hotels/{id}/bookings | bookings:view/add | POST row-locks the hotel; overlapping PENDING/CONFIRMED/CHECKED_IN stay → 409 CONFLICT |
+| GET | /hotels/bookings/{bookingId} | bookings:view | |
+| POST | /hotels/bookings/{bookingId}/status | bookings:status | doc 10 machine (PENDING→CONFIRMED/CANCELLED, CONFIRMED→CHECKED_IN/CANCELLED, CHECKED_IN→CHECKED_OUT); cancelling a PAID booking flips the payment to REFUNDED |
+| GET/POST | /hotels/dining | dining:view/add | venue (hotel or restaurant) must be in the same zone; unknown venue → 404 |
+| GET | /hotels/dining/{diningId} | dining:view | |
+| POST | /hotels/dining/{diningId}/status | dining:status | PENDING→CONFIRMED/CANCELLED; CONFIRMED→COMPLETED/CANCELLED/NO_SHOW |
 | GET/POST | /menu-items | menu:* | filter by vendor/category/status |
-| PATCH/DELETE | /menu-items/{id} | | |
-| POST | /menu-items/bulk | menu:edit | preview + confirm; import via `/menu-items/import` (P1) |
+| GET | /menu-items/menus | menu:view | aggregate (owner kind × approval status) for the All Menus tab |
+| PATCH/DELETE | /menu-items/{id} | | edits keep the stored approval status |
+| POST | /menu-items/{id}/approval | menu:status | `{ decision, reason? }`; reason required to REJECT |
+| POST | /menu-items/bulk | menu:status | `{ ids, action: APPROVE\|ARCHIVE }`; per-item skip on illegal transition |
+| POST | /menu-items/import | (P1) | |
 | GET | /orders | orders:view | filters, search, scope |
 | GET | /orders/{id} | orders:view | items, timeline, payment panel |
 | POST | /orders/{id}/transition | orders:status | `{ to, note }` |
@@ -84,7 +100,7 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /audit-logs | audit:view | cursor paginated; entity filter for Activity tabs |
 | GET/DELETE | /sessions, /sessions/{id} | self or Super Admin | |
 | POST | /webhooks/payments/{provider} | signature | public endpoint |
-| POST | /uploads/presign, /uploads/confirm | authenticated | content-type and size allow-list |
+| POST | /uploads/presign, /uploads/confirm | authenticated | content-type and size allow-list; presign body carries `purpose, zoneId, entityId`; Super Admin only until SA-1.7 (keys embed a zone) |
 
 ## Integration API (D18, D50)
 Base `/api/v1/intake`, used by the **customer, vendor and partner app backends**, authenticated by HMAC (doc 42 §1), scoped per client. Full contract: `G-integration/42_App_to_Admin_Integration_Contract.md` and `G-integration/contracts/intake.openapi.yaml` (authoritative). Outbound webhooks, event catalogue and the pull feed: doc 43.

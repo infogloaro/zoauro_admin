@@ -1,4 +1,4 @@
-import type { Homemaker, Restaurant, VendorDocument, VendorType } from '@prisma/client';
+import type { Homemaker, Restaurant, VendorDocument, VendorType, ZoneStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import type { ListVendorsQuery, OpeningDay, VendorKind } from '@zoauro/shared';
 import type { Db } from '../audit/audit.service';
@@ -207,6 +207,19 @@ function uniqueStrings(values: Array<string | null>): string[] {
   );
 }
 
+/**
+ * Zone target for create/move writes, with its status so the service can
+ * enforce doc 36 §3 (a deactivated zone accepts no new vendors).
+ */
+export async function findZoneForWrite(
+  id: string,
+): Promise<{ id: string; name: string; city: string; status: ZoneStatus } | null> {
+  return prisma.zone.findFirst({
+    where: { id, deletedAt: null },
+    select: { id: true, name: true, city: true, status: true },
+  });
+}
+
 /** Zone refs for the list chips/filters. */
 export async function findZones(
   ids: string[],
@@ -334,6 +347,32 @@ export async function listDocuments(kind: VendorKind, vendorId: string): Promise
     where: { vendorType: vendorDocumentType(kind), vendorId },
     orderBy: { createdAt: 'asc' },
   });
+}
+
+/** One document scoped to its vendor — a foreign document answers 404. */
+export async function findDocument(
+  vendorType: VendorType,
+  vendorId: string,
+  documentId: string,
+): Promise<VendorDocument | null> {
+  return prisma.vendorDocument.findFirst({
+    where: { id: documentId, vendorType, vendorId },
+  });
+}
+
+export async function createDocument(
+  db: Db,
+  data: { vendorType: VendorType; vendorId: string; docType: string; fileKey: string },
+): Promise<VendorDocument> {
+  return db.vendorDocument.create({ data });
+}
+
+export async function updateDocument(
+  db: Db,
+  documentId: string,
+  data: Prisma.VendorDocumentUncheckedUpdateInput,
+): Promise<VendorDocument> {
+  return db.vendorDocument.update({ where: { id: documentId }, data });
 }
 
 /** Activity tab (doc 04 §3): the entity's own audit trail (SA-1.5 reader is separate). */

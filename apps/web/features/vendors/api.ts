@@ -10,6 +10,10 @@ import type {
   RestaurantCreateInput,
   RestaurantUpdateInput,
   VendorDetail,
+  VendorDocument,
+  VendorDocumentUploadInput,
+  VendorDocumentUrl,
+  VendorDocumentVerifyInput,
   VendorKind,
   VendorStatusInput,
   VendorVerificationInput,
@@ -19,6 +23,8 @@ import {
   isVendorPreview,
   mockVendorDetail,
   mockVendorsList,
+  previewDocument,
+  previewDocumentVerification,
   previewMutationVendor,
 } from './preview';
 
@@ -186,4 +192,66 @@ export function useDeleteVendor(kind: VendorKind) {
         : apiFetch<Envelope<{ id: string }>>(`/${vendorBase(kind)}/${id}`, { method: 'DELETE' }),
     onSuccess: invalidate,
   });
+}
+
+/** POST /{module}/{id}/documents — attach a confirmed upload (doc 09, SA-2.1). */
+export function useAddVendorDocument(kind: VendorKind) {
+  const invalidate = useInvalidateVendors();
+  return useMutation({
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: VendorDocumentUploadInput;
+    }): Promise<Envelope<VendorDocument>> =>
+      isVendorPreview()
+        ? Promise.resolve({ data: previewDocument(id, input) })
+        : apiFetch<Envelope<VendorDocument>>(`/${vendorBase(kind)}/${id}/documents`, {
+            method: 'POST',
+            body: input,
+          }),
+    onSuccess: invalidate,
+  });
+}
+
+/** POST /{module}/{id}/documents/{documentId}/verify — note required to reject. */
+export function useVendorDocumentVerification(kind: VendorKind) {
+  const invalidate = useInvalidateVendors();
+  return useMutation({
+    mutationFn: ({
+      id,
+      documentId,
+      input,
+    }: {
+      id: string;
+      documentId: string;
+      input: VendorDocumentVerifyInput;
+    }): Promise<Envelope<VendorDocument>> =>
+      isVendorPreview()
+        ? Promise.resolve({ data: previewDocumentVerification(id, documentId, input) })
+        : apiFetch<Envelope<VendorDocument>>(
+            `/${vendorBase(kind)}/${id}/documents/${documentId}/verify`,
+            { method: 'POST', body: input },
+          ),
+    onSuccess: invalidate,
+  });
+}
+
+/**
+ * GET /{module}/{id}/documents/{documentId}/url — short-lived signed read
+ * (doc 09, doc 11: downloads are audited server-side). Called from the
+ * viewer's open handler, so failures surface as a toast, not query state.
+ */
+export async function fetchVendorDocumentUrl(
+  kind: VendorKind,
+  id: string,
+  documentId: string,
+): Promise<Envelope<VendorDocumentUrl>> {
+  if (isVendorPreview()) {
+    throw new Error('Signed document reads are unavailable in preview mode.');
+  }
+  return apiFetch<Envelope<VendorDocumentUrl>>(
+    `/${vendorBase(kind)}/${id}/documents/${documentId}/url`,
+  );
 }

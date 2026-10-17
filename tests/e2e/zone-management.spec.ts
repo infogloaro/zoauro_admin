@@ -90,7 +90,7 @@ test('super admin manages zones end to end', async ({ page }) => {
 
   // Logout via the user menu, then the guard redirects again.
   await page.locator('header button:not([aria-label])').click();
-  await page.getByRole('menuitem', { name: 'Log out' }).click();
+  await page.getByRole('menuitem', { name: 'Logout' }).click();
   await expect(page).toHaveURL(/\/login/);
   await page.goto('/super-admin/zones');
   await expect(page).toHaveURL(/\/login\?next=/);

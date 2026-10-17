@@ -16,7 +16,7 @@ export default function RestaurantsPage() {
         </div>
       }
     >
-      <VendorsScreen />
+      <VendorsScreen defaultTab="restaurants" />
     </Suspense>
   );
 }

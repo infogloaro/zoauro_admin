@@ -318,6 +318,36 @@ export const vendorDocumentSchema = z.object({
 
 export type VendorDocument = z.infer<typeof vendorDocumentSchema>;
 
+/** Document types (doc 42 `type`: FSSAI, GST, PAN, BANK, ID, OTHER). */
+export const VENDOR_DOC_TYPES = ['FSSAI', 'GST', 'PAN', 'BANK', 'ID', 'OTHER'] as const;
+export type VendorDocType = (typeof VENDOR_DOC_TYPES)[number];
+
+/** POST /{module}/{id}/documents (doc 09) — attach a confirmed upload. */
+export const vendorDocumentUploadSchema = z.object({
+  docType: z.enum(VENDOR_DOC_TYPES),
+  fileKey: z.string().trim().min(1).max(512),
+});
+export type VendorDocumentUploadInput = z.infer<typeof vendorDocumentUploadSchema>;
+
+/** POST /{module}/{id}/documents/{documentId}/verify — note required to reject. */
+export const vendorDocumentVerifySchema = z
+  .object({
+    decision: z.enum(VERIFICATION_DECISIONS),
+    note: z.string().trim().min(1).max(300).optional(),
+  })
+  .refine((v) => v.decision === 'VERIFIED' || v.note !== undefined, {
+    error: 'A note is required when rejecting',
+    path: ['note'],
+  });
+export type VendorDocumentVerifyInput = z.infer<typeof vendorDocumentVerifySchema>;
+
+/** GET /{module}/{id}/documents/{documentId}/url — short-lived signed read. */
+export const vendorDocumentUrlSchema = z.object({
+  url: z.string(),
+  expiresInSec: z.number().int(),
+});
+export type VendorDocumentUrl = z.infer<typeof vendorDocumentUrlSchema>;
+
 /** Activity tab rows (audit_logs filtered to the entity, doc 04 §3). */
 export const vendorActivitySchema = z.object({
   id: z.uuid(),

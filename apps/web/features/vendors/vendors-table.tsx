@@ -1,37 +1,9 @@
 'use client';
 
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  Ban,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  MoreVertical,
-  Pencil,
-  Power,
-  PowerOff,
-  ShieldCheck,
-  ShieldX,
-  Trash2,
-} from 'lucide-react';
-import type { Vendor } from '@zoauro/shared';
-import { Badge, statusTone } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../../components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
+import { Eye, Edit } from 'lucide-react';
+import type { ReactNode } from 'react';
+import type { Vendor, VendorKind } from '@zoauro/shared';
+import { Badge } from '../../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -41,9 +13,11 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { cn } from '../../lib/cn';
+import type { ReferenceRow } from './demo-data';
 
 export type VendorRowAction =
   'view' | 'edit' | 'verify' | 'reject' | 'activate' | 'deactivate' | 'suspend' | 'delete';
+export type DemoRowAction = 'view' | 'edit' | 'deactivate' | 'activate';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Pending',
@@ -52,328 +26,253 @@ const STATUS_LABELS: Record<string, string> = {
   SUSPENDED: 'Suspended',
 };
 
-const VERIFICATION_LABELS: Record<string, string> = {
-  PENDING: 'Pending review',
-  VERIFIED: 'Verified',
-  REJECTED: 'Rejected',
+/** Real-record status → pill colors (Figma reference table): green / gray /
+ * amber / red on tinted backgrounds, local to this table (TD-24 pattern —
+ * the shared `statusTone` in badge.tsx is untouched). */
+const STATUS_PILLS: Record<string, string> = {
+  ACTIVE: 'bg-green-50 text-green-700',
+  INACTIVE: 'bg-slate-100 text-slate-600',
+  PENDING: 'bg-amber-100 text-amber-700',
+  SUSPENDED: 'bg-red-50 text-red-700',
 };
 
-const AVATAR_TONES = [
-  'bg-[#ff5a1f]',
-  'bg-[#f59e0b]',
-  'bg-[#2f6bff]',
-  'bg-[#16a34a]',
-  'bg-[#7c3aed]',
-  'bg-[#dc2626]',
-];
-
-export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
-const MONTH_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-/** Figma date format "21 Sep 2026", rendered from the UTC stored value (doc 08). */
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${day} ${MONTH_SHORT[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
-}
-
-/** Deterministic avatar colour per record (Figma: solid circle + initial). */
-function avatarTone(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  return AVATAR_TONES[hash % AVATAR_TONES.length] ?? 'bg-[#ff5a1f]';
-}
-
-function SortHeader({
-  field,
-  label,
-  sort,
-  onSort,
-  className,
-}: {
-  field: string;
-  label: string;
-  sort: string;
-  onSort: (next: string) => void;
-  className?: string;
-}) {
-  const active = sort === field || sort === `-${field}`;
-  const desc = sort === `-${field}`;
-  const Icon = !active ? ArrowUpDown : desc ? ArrowDown : ArrowUp;
+function StatusPill({ status }: { status: string }) {
   return (
-    <TableHead className={cn('text-text', className)}>
-      <button
-        type="button"
-        onClick={() => onSort(active && !desc ? `-${field}` : field)}
-        className={cn(
-          'inline-flex items-center gap-1 uppercase tracking-wide hover:text-text',
-          active && 'text-text',
-        )}
-        aria-label={`Sort by ${label}`}
-      >
-        {label}
-        <Icon className="size-3" />
-      </button>
-    </TableHead>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold',
+        STATUS_PILLS[status] ?? 'bg-slate-100 text-slate-600',
+      )}
+    >
+      {STATUS_LABELS[status] ?? status}
+    </span>
   );
 }
 
-function tagLine(vendor: Vendor): string {
-  const tags = vendor.kind === 'restaurant' ? vendor.cuisineTags : vendor.specialityTags;
-  if (tags.length === 0) return '—';
-  const shown = tags.slice(0, 2).join(', ');
-  return tags.length > 2 ? `${shown} +${tags.length - 2}` : shown;
+/** Header cell per the Figma reference: 13px medium slate-600 (overrides the
+ * shared TableHead token styling for this table only). */
+function Th({ children }: { children: ReactNode }) {
+  return <TableHead className="text-[13px] font-medium text-slate-600">{children}</TableHead>;
 }
 
-function verificationTone(status: string): 'success' | 'danger' | 'warning' | 'neutral' {
-  if (status === 'VERIFIED') return 'success';
-  if (status === 'REJECTED') return 'danger';
-  if (status === 'PENDING') return 'warning';
-  return 'neutral';
+function idPrefix(kind: VendorKind): string {
+  return kind === 'restaurant' ? 'RST' : 'HFP';
+}
+
+function TooltipIcon({
+  title,
+  children,
+  onClick,
+  className,
+}: {
+  title: string;
+  children: ReactNode;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex size-9 items-center justify-center rounded-md hover:bg-orange-50 hover:text-orange-600 transition-colors',
+        className,
+      )}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ToggleStatus({ isActive, onToggle }: { isActive: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        'flex size-9 items-center justify-center rounded-md hover:bg-orange-50 hover:text-orange-600 transition-colors',
+        isActive
+          ? 'bg-green-100 text-green-800 font-medium'
+          : 'bg-slate-100 text-slate-600 font-medium',
+      )}
+      title={isActive ? 'Deactivate' : 'Activate'}
+    >
+      {isActive ? 'ON' : 'OFF'}
+    </button>
+  );
+}
+
+function ReferenceCells({
+  row,
+  onDemoAction,
+}: {
+  row: ReferenceRow;
+  onDemoAction: (action: DemoRowAction, row?: ReferenceRow) => void;
+}) {
+  return (
+    <>
+      <TableCell>
+        <span className="block text-[14px] font-semibold text-slate-900">{row.name}</span>
+        <span className="mt-0.5 block text-[11px] text-slate-400">{row.id}</span>
+      </TableCell>
+      <TableCell>
+        <span className="block text-[13px] text-text">{row.ownerName}</span>
+        <span className="mt-0.5 block text-[11px] text-slate-400">{row.phone}</span>
+      </TableCell>
+      <TableCell>
+        <span className="block text-[13px] text-text">{row.zone}</span>
+        <span className="mt-0.5 block text-[11px] text-slate-400">{row.admin}</span>
+      </TableCell>
+      <TableCell>
+        <span className="block text-[13px] text-slate-700">{row.orders}</span>
+        <span className="mt-0.5 block text-[11px] text-slate-400">completed orders</span>
+      </TableCell>
+      <TableCell className="text-[13px] text-slate-700">{row.gross}</TableCell>
+      <TableCell className="text-[13px] text-slate-700">{row.commission}</TableCell>
+      <TableCell className="text-[13px] text-slate-700">{row.refunds}</TableCell>
+      <TableCell className="text-[13px] text-slate-700">{row.payout}</TableCell>
+      <TableCell>
+        <StatusPill status={row.status} />
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <TooltipIcon title="View" onClick={() => onDemoAction('view', row)}>
+            <Eye className="size-4" />
+          </TooltipIcon>
+          <TooltipIcon title="Edit" onClick={() => onDemoAction('edit', row)}>
+            <Edit className="size-4" />
+          </TooltipIcon>
+          <ToggleStatus
+            isActive={row.status === 'ACTIVE'}
+            onToggle={() => onDemoAction(row.status === 'ACTIVE' ? 'deactivate' : 'activate', row)}
+          />
+        </div>
+      </TableCell>
+    </>
+  );
+}
+
+function VendorCells({
+  vendor,
+  kind,
+  showZoneChip,
+  onAction,
+}: {
+  vendor: Vendor;
+  kind: VendorKind;
+  showZoneChip: boolean;
+  onAction: (vendor: Vendor, action: VendorRowAction) => void;
+}) {
+  const ownerName = vendor.kind === 'restaurant' ? vendor.ownerName : null;
+  return (
+    <>
+      <TableCell>
+        <span className="block text-[14px] font-semibold text-slate-900">{vendor.name}</span>
+        <span className="mt-0.5 block text-[11px] text-slate-400">
+          {idPrefix(kind)}-{vendor.id.slice(0, 4).toUpperCase()}
+        </span>
+      </TableCell>
+      <TableCell>
+        {ownerName && <span className="block text-[13px] text-text">{ownerName}</span>}
+        <span className={cn('block text-[11px] text-slate-400', ownerName && 'mt-0.5')}>
+          {vendor.phone}
+        </span>
+      </TableCell>
+      <TableCell>
+        <span className="block text-[13px] text-text">
+          {showZoneChip ? <Badge>{vendor.zone.name}</Badge> : vendor.zone.name}
+        </span>
+        <span className="mt-0.5 block text-[11px] text-slate-400">—</span>
+      </TableCell>
+      <TableCell className="text-[13px] text-slate-400">—</TableCell>
+      <TableCell className="text-[13px] text-slate-400">—</TableCell>
+      <TableCell className="text-[13px] text-slate-400">—</TableCell>
+      <TableCell className="text-[13px] text-slate-400">—</TableCell>
+      <TableCell className="text-[13px] text-slate-400">—</TableCell>
+      <TableCell>
+        <StatusPill status={vendor.status} />
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center justify-end gap-4">
+          <TooltipIcon title="View" onClick={() => onAction(vendor, 'view')}>
+            <Eye className="size-4" />
+          </TooltipIcon>
+          <TooltipIcon title="Edit" onClick={() => onAction(vendor, 'edit')}>
+            <Edit className="size-4" />
+          </TooltipIcon>
+          <ToggleStatus
+            isActive={vendor.status === 'ACTIVE'}
+            onToggle={() =>
+              onAction(vendor, vendor.status === 'ACTIVE' ? 'deactivate' : 'activate')
+            }
+          />
+        </div>
+      </TableCell>
+    </>
+  );
 }
 
 /**
- * Vendor list table (doc 20: Verification and Status as separate columns;
- * doc 18 tabs decide which kind is rendered; Figma frame 133854: avatar +
- * owner + registered date, kebab-only actions).
- * `showZoneChip` follows doc 19/37: the zone chip appears when the scope
- * covers more than one zone.
+ * Vendor records table (Figma frame "Restaurant records"): reference demo
+ * rows pinned above the real records. Real rows use plain View / Edit /
+ * Deactivate-Activate links (Figma action column — the old kebab menu is
+ * gone; verify/reject/suspend/delete live in the detail dialog opened by
+ * View). Financial columns have no backend yet — reference rows carry the
+ * simulated values, real rows show "—".
  */
 export function VendorsTable({
+  kind,
+  referenceRows,
   vendors,
-  sort,
-  onSort,
   onAction,
+  onDemoAction,
   showZoneChip,
 }: {
+  kind: VendorKind;
+  referenceRows: ReferenceRow[];
   vendors: Vendor[];
-  sort: string;
-  onSort: (next: string) => void;
   onAction: (vendor: Vendor, action: VendorRowAction) => void;
+  onDemoAction: (action: DemoRowAction, row?: ReferenceRow) => void;
   showZoneChip: boolean;
 }) {
-  const isRestaurant = vendors[0]?.kind !== 'homemaker';
+  const isRestaurant = kind === 'restaurant';
 
   return (
     <Table>
-      <TableHeader>
+      <TableHeader className="bg-slate-50">
         <TableRow className="hover:bg-transparent">
-          <TableHead className="w-10 text-text">#</TableHead>
-          <SortHeader
-            field="name"
-            label={isRestaurant ? 'Restaurant name' : 'Homemaker name'}
-            sort={sort}
-            onSort={onSort}
-          />
-          {isRestaurant && <TableHead className="text-text">Owner</TableHead>}
-          <TableHead className="text-text">Zone</TableHead>
-          <SortHeader field="area" label="Area" sort={sort} onSort={onSort} />
-          <TableHead className="text-text">Cuisine</TableHead>
-          <TableHead className="text-center text-text">Verification</TableHead>
-          <TableHead className="text-center text-text">Status</TableHead>
-          <SortHeader field="createdAt" label="Registered date" sort={sort} onSort={onSort} />
-          <TableHead className="text-right text-text">Action</TableHead>
+          <Th>{isRestaurant ? 'Restaurant' : 'Provider'}</Th>
+          <Th>Owner & contact</Th>
+          <Th>Zone / admin</Th>
+          <Th>Orders</Th>
+          <Th>Gross value</Th>
+          <Th>Commission</Th>
+          <Th>Refunds</Th>
+          <Th>Payout</Th>
+          <Th>Status</Th>
+          <Th>Actions</Th>
         </TableRow>
       </TableHeader>
       <TableBody>
+        {referenceRows.map((row) => (
+          <TableRow key={row.id} className="h-[72px] border-b border-slate-200">
+            <ReferenceCells row={row} onDemoAction={onDemoAction} />
+            <TableCell />
+          </TableRow>
+        ))}
         {vendors.map((vendor) => (
-          <TableRow key={vendor.id} className="even:bg-[#f9fafb]">
-            <TableCell className="text-muted">#{vendor.id.slice(0, 4).toUpperCase()}</TableCell>
-            <TableCell>
-              <span className="flex items-center gap-3">
-                <span
-                  className={cn(
-                    'flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white',
-                    avatarTone(vendor.id),
-                  )}
-                  aria-hidden="true"
-                >
-                  {vendor.name.trim().charAt(0).toUpperCase()}
-                </span>
-                <span className="font-semibold text-text">{vendor.name}</span>
-              </span>
-            </TableCell>
-            {isRestaurant && (
-              <TableCell className="text-muted">
-                {vendor.kind === 'restaurant' ? vendor.ownerName : '—'}
-              </TableCell>
-            )}
-            <TableCell>
-              {showZoneChip ? (
-                <Badge>{vendor.zone.name}</Badge>
-              ) : (
-                <span className="text-muted">{vendor.zone.name}</span>
-              )}
-            </TableCell>
-            <TableCell className="text-muted">{vendor.area ?? '—'}</TableCell>
-            <TableCell className="text-muted">{tagLine(vendor)}</TableCell>
-            <TableCell className="text-center">
-              <Badge tone={verificationTone(vendor.verificationStatus)}>
-                {VERIFICATION_LABELS[vendor.verificationStatus]}
-              </Badge>
-            </TableCell>
-            <TableCell className="text-center">
-              <Badge tone={statusTone(vendor.status)}>{STATUS_LABELS[vendor.status]}</Badge>
-            </TableCell>
-            <TableCell className="text-muted">{formatDate(vendor.createdAt)}</TableCell>
-            <TableCell>
-              <div className="flex items-center justify-end">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`More actions for ${vendor.name}`}
-                    >
-                      <MoreVertical className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => onAction(vendor, 'view')}>
-                      <Eye className="size-4" /> View details
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => onAction(vendor, 'edit')}>
-                      <Pencil className="size-4" /> Edit
-                    </DropdownMenuItem>
-                    {vendor.verificationStatus === 'PENDING' && (
-                      <>
-                        <DropdownMenuItem onSelect={() => onAction(vendor, 'verify')}>
-                          <ShieldCheck className="size-4" /> Verify
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => onAction(vendor, 'reject')}
-                          className="text-danger"
-                        >
-                          <ShieldX className="size-4" /> Reject
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {vendor.status === 'ACTIVE' ? (
-                      <>
-                        <DropdownMenuItem onSelect={() => onAction(vendor, 'deactivate')}>
-                          <PowerOff className="size-4" /> Deactivate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => onAction(vendor, 'suspend')}>
-                          <Ban className="size-4" /> Suspend
-                        </DropdownMenuItem>
-                      </>
-                    ) : (
-                      vendor.verificationStatus === 'VERIFIED' && (
-                        <DropdownMenuItem onSelect={() => onAction(vendor, 'activate')}>
-                          <Power className="size-4" /> Activate
-                        </DropdownMenuItem>
-                      )
-                    )}
-                    <DropdownMenuItem
-                      onSelect={() => onAction(vendor, 'delete')}
-                      className="text-danger"
-                    >
-                      <Trash2 className="size-4" /> Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </TableCell>
+          <TableRow key={vendor.id} className="h-[72px] border-b border-slate-200">
+            <VendorCells
+              vendor={vendor}
+              kind={kind}
+              showZoneChip={showZoneChip}
+              onAction={onAction}
+            />
+            <TableCell />
           </TableRow>
         ))}
       </TableBody>
     </Table>
-  );
-}
-
-export function VendorsPagination({
-  page,
-  pageSize,
-  total,
-  noun,
-  onPage,
-  onPageSize,
-}: {
-  page: number;
-  pageSize: number;
-  total: number;
-  noun: 'restaurants' | 'homemakers';
-  onPage: (page: number) => void;
-  onPageSize: (size: number) => void;
-}) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const last = Math.min(page * pageSize, total);
-
-  const pages: number[] = [];
-  const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-  const end = Math.min(totalPages, start + 4);
-  for (let p = start; p <= end; p += 1) pages.push(p);
-
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
-      <p className="text-sm text-muted">
-        Showing {first}-{last} of {total} {noun}
-      </p>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={page <= 1}
-          onClick={() => onPage(page - 1)}
-          aria-label="Previous page"
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        {start > 1 && <span className="px-1 text-sm text-muted">…</span>}
-        {pages.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => onPage(p)}
-            aria-current={p === page ? 'page' : undefined}
-            className={cn(
-              'h-8 min-w-8 rounded-md px-2 text-sm',
-              p === page
-                ? 'bg-nav-active font-medium text-white'
-                : 'text-muted hover:bg-bg hover:text-text',
-            )}
-          >
-            {p}
-          </button>
-        ))}
-        {end < totalPages && <span className="px-1 text-sm text-muted">…</span>}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={page >= totalPages}
-          onClick={() => onPage(page + 1)}
-          aria-label="Next page"
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
-      <Select value={String(pageSize)} onValueChange={(v) => onPageSize(Number(v))}>
-        <SelectTrigger className="h-8 w-28" aria-label="Rows per page">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {PAGE_SIZE_OPTIONS.map((size) => (
-            <SelectItem key={size} value={String(size)}>
-              {size} / page
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
   );
 }

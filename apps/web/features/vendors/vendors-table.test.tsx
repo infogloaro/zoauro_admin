@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { Homemaker, Restaurant } from '@zoauro/shared';
-import { VendorsPagination, VendorsTable } from './vendors-table';
+import { REFERENCE_ROWS } from './demo-data';
+import { VendorsTable } from './vendors-table';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: vi.fn() }),
@@ -14,6 +15,8 @@ const zone = {
   city: 'Chennai',
 };
 
+// Lists receive the API-masked phone (doc 15 / D26 masking happens server-side;
+// the raw value is covered by the vendors integration test).
 const restaurant: Restaurant = {
   id: '22222222-2222-4222-8222-222222222222',
   zoneId: zone.id,
@@ -21,7 +24,7 @@ const restaurant: Restaurant = {
   kind: 'restaurant',
   name: 'Anna Nagar Biryani Hut',
   ownerName: 'Ravi Kumar',
-  phone: '+919876543210',
+  phone: '98****3210',
   email: null,
   address: '12, 2nd Avenue',
   area: 'Anna Nagar',
@@ -49,7 +52,7 @@ const homemaker: Homemaker = {
   zone,
   kind: 'homemaker',
   name: "Meena's Kitchen",
-  phone: '+919812345678',
+  phone: '98****3210',
   email: null,
   address: '4, Cross Street',
   area: 'Adyar',
@@ -74,53 +77,59 @@ const homemaker: Homemaker = {
   updatedAt: '2026-10-01T00:00:00.000Z',
 };
 
+const noop = () => {};
+
 describe('VendorsTable', () => {
-  it('renders avatar, owner, area, verification and status without phone (Figma 133854, D26)', () => {
+  it('renders the reference columns for a real record with the masked phone (D26)', () => {
     const html = renderToStaticMarkup(
       <VendorsTable
+        kind="restaurant"
+        referenceRows={[]}
         vendors={[restaurant]}
-        sort="-createdAt"
-        onSort={() => {}}
-        onAction={() => {}}
+        onAction={noop}
+        onDemoAction={noop}
         showZoneChip={false}
       />,
     );
     expect(html).toContain('Anna Nagar Biryani Hut');
     expect(html).toContain('Ravi Kumar');
-    expect(html).not.toContain('+919876543210');
-    expect(html).toContain('#2222');
-    expect(html).toContain('Anna Nagar');
-    expect(html).toContain('Pending review');
+    expect(html).toContain('98****3210');
+    expect(html).not.toContain('9876543210');
+    expect(html).toContain('RST-2222');
+    expect(html).toContain('Chennai');
+    expect(html).toContain('Gross value');
+    expect(html).toContain('Owner &amp; contact');
     expect(html).toContain('Pending');
-    expect(html).toContain('Biryani, Chinese +1');
-    expect(html).toContain('01 Oct 2026');
+    expect(html).toContain('bg-amber-100 text-amber-700');
+    expect(html).toContain('—');
   });
 
-  it('renders homemaker specialities without an owner column', () => {
+  it('renders homemaker rows with the Provider column', () => {
     const html = renderToStaticMarkup(
       <VendorsTable
+        kind="homemaker"
+        referenceRows={[]}
         vendors={[homemaker]}
-        sort="-createdAt"
-        onSort={() => {}}
-        onAction={() => {}}
+        onAction={noop}
+        onDemoAction={noop}
         showZoneChip={false}
       />,
     );
     expect(html).toContain('Meena&#x27;s Kitchen');
-    expect(html).not.toContain('+919812345678');
-    expect(html).not.toContain('>Owner</');
-    expect(html).toContain('Tiffin, Snacks');
-    expect(html).toContain('Verified');
+    expect(html).toContain('98****3210');
+    expect(html).toContain('>Provider<');
     expect(html).toContain('Active');
+    expect(html).toContain('bg-green-50 text-green-700');
   });
 
   it('shows the zone chip only when the scope covers several zones (doc 19)', () => {
     const withChip = renderToStaticMarkup(
       <VendorsTable
+        kind="restaurant"
+        referenceRows={[]}
         vendors={[restaurant]}
-        sort="-createdAt"
-        onSort={() => {}}
-        onAction={() => {}}
+        onAction={noop}
+        onDemoAction={noop}
         showZoneChip
       />,
     );
@@ -128,94 +137,62 @@ describe('VendorsTable', () => {
 
     const withoutChip = renderToStaticMarkup(
       <VendorsTable
+        kind="restaurant"
+        referenceRows={[]}
         vendors={[restaurant]}
-        sort="-createdAt"
-        onSort={() => {}}
-        onAction={() => {}}
+        onAction={noop}
+        onDemoAction={noop}
         showZoneChip={false}
       />,
     );
-    expect(withoutChip).toMatch(/class="text-muted">Chennai</);
+    expect(withoutChip).toMatch(/text-text">Chennai</);
   });
 
-  it('renders the kebab action menu per row (Figma: action column)', () => {
+  it('renders plain View/Edit action links per real row and no kebab (Figma action column)', () => {
     const html = renderToStaticMarkup(
       <VendorsTable
+        kind="restaurant"
+        referenceRows={[]}
         vendors={[restaurant]}
-        sort="-createdAt"
-        onSort={() => {}}
-        onAction={() => {}}
+        onAction={noop}
+        onDemoAction={noop}
         showZoneChip={false}
       />,
     );
-    expect(html).toContain('More actions for Anna Nagar Biryani Hut');
-    expect(html).toContain('lucide-ellipsis-vertical');
-  });
-});
-
-describe('VendorsPagination', () => {
-  it('shows the range and total with the tab noun (doc 20, Figma range format)', () => {
-    const restaurants = renderToStaticMarkup(
-      <VendorsPagination
-        page={1}
-        pageSize={25}
-        total={30}
-        noun="restaurants"
-        onPage={() => {}}
-        onPageSize={() => {}}
-      />,
-    );
-    expect(restaurants).toContain('Showing 1-25 of 30 restaurants');
-
-    const homemakers = renderToStaticMarkup(
-      <VendorsPagination
-        page={1}
-        pageSize={25}
-        total={5}
-        noun="homemakers"
-        onPage={() => {}}
-        onPageSize={() => {}}
-      />,
-    );
-    expect(homemakers).toContain('Showing 1-5 of 5 homemakers');
+    expect(html).toContain('title="View"');
+    expect(html).toContain('title="Edit"');
+    // Unverified records expose no status toggle from the list (the detail
+    // dialog carries verify/reject/suspend/delete).
+    expect(html).not.toContain('>Activate<');
+    expect(html).not.toContain('>Deactivate<');
+    expect(html).not.toContain('More actions for');
+    expect(html).not.toContain('lucide-ellipsis-vertical');
   });
 
-  it('disables prev on the first page and next on the last', () => {
-    const first = renderToStaticMarkup(
-      <VendorsPagination
-        page={1}
-        pageSize={25}
-        total={30}
-        noun="restaurants"
-        onPage={() => {}}
-        onPageSize={() => {}}
-      />,
-    );
-    expect(first).toContain('disabled=""');
-    const last = renderToStaticMarkup(
-      <VendorsPagination
-        page={2}
-        pageSize={25}
-        total={30}
-        noun="restaurants"
-        onPage={() => {}}
-        onPageSize={() => {}}
-      />,
-    );
-    expect(last).toContain('aria-current="page"');
-  });
-
-  it('offers the rows-per-page selector (Figma: N / page)', () => {
+  it('renders the pinned reference rows with demo action links and no kebab', () => {
     const html = renderToStaticMarkup(
-      <VendorsPagination
-        page={1}
-        pageSize={10}
-        total={30}
-        noun="restaurants"
-        onPage={() => {}}
-        onPageSize={() => {}}
+      <VendorsTable
+        kind="restaurant"
+        referenceRows={REFERENCE_ROWS.restaurant}
+        vendors={[]}
+        onAction={noop}
+        onDemoAction={noop}
+        showZoneChip={false}
       />,
     );
-    expect(html).toContain('aria-label="Rows per page"');
+    expect(html).toContain('The Marina Table');
+    expect(html).toContain('RST-1201');
+    expect(html).toContain('Riya Sharma');
+    expect(html).toContain('+91 98720 3400');
+    expect(html).toContain('Malik Rahman');
+    expect(html).toContain('>382<');
+    expect(html).toContain('completed orders');
+    expect(html).toContain('₹6.8L');
+    expect(html).toContain('₹1.02L');
+    expect(html).toContain('Dakshin Dining');
+    expect(html).toContain('Inactive');
+    expect(html).toContain('Activate');
+    expect(html).toContain('Deactivate');
+    expect(html).not.toContain('More actions for The Marina Table');
   });
 });

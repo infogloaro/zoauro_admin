@@ -1,11 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
   OPENING_DAYS,
+  openingHoursSchema,
+  VENDOR_DOC_TYPES,
+  type OpeningDay,
   type OpeningDayKey,
   type VerificationDecision,
   type VendorDetail,
+  type VendorDocType,
+  type VendorDocument,
 } from '@zoauro/shared';
 import { Badge, statusTone } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -16,6 +22,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
+import { DocumentViewer } from '../../components/ui/document-viewer';
+import { ImageUploader } from '../../components/ui/image-uploader';
+import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import {
   Select,
@@ -27,11 +36,33 @@ import {
 import { EmptyState } from '../../components/shared/states';
 import { formatDateTime, formatRupees } from '../../lib/format';
 import { cn } from '../../lib/cn';
+import { fetchVendorDocumentUrl } from './api';
 import { ConfirmDialog, VerificationDialog } from './vendor-actions';
 import type { ZoneOption } from './vendor-filters';
 
 export type VendorDetailAction =
-  'verify' | 'reject' | 'activate' | 'deactivate' | 'suspend' | 'delete' | 'move-zone' | 'edit';
+  | 'verify'
+  | 'reject'
+  | 'activate'
+  | 'deactivate'
+  | 'suspend'
+  | 'delete'
+  | 'move-zone'
+  | 'save-hours'
+  | 'edit'
+  | 'upload-document'
+  | 'verify-document'
+  | 'reject-document';
+
+/** Extra payload per action: move-zone needs a zone, save-hours the week. */
+export type VendorDetailActionOptions = {
+  zoneId?: string;
+  note?: string;
+  openingHours?: OpeningDay[];
+  documentId?: string;
+  docType?: string;
+  fileKey?: string;
+};
 
 const TABS = ['Overview', 'Documents', 'Menu', 'Orders', 'Commission & hours', 'Activity'] as const;
 type Tab = (typeof TABS)[number];
@@ -88,10 +119,7 @@ export function VendorDetailDialog({
   vendor: VendorDetail;
   zones: ZoneOption[];
   externalBusy?: boolean;
-  onAction: (
-    action: VendorDetailAction,
-    options?: { zoneId?: string; note?: string },
-  ) => Promise<void>;
+  onAction: (action: VendorDetailAction, options?: VendorDetailActionOptions) => Promise<void>;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('Overview');
@@ -99,6 +127,20 @@ export function VendorDetailDialog({
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [review, setReview] = useState<VerificationDecision | null>(null);
   const [moveTo, setMoveTo] = useState('');
+  const [hoursDraft, setHoursDraft] = useState<OpeningDay[] | null>(null);
+  const [hoursError, setHoursError] = useState<string | null>(null);
+  const [docType, setDocType] = useState<VendorDocType>('FSSAI');
+  const [docReview, setDocReview] = useState<{
+    documentId: string;
+    docType: string;
+    decision: VerificationDecision;
+  } | null>(null);
+  const [viewer, setViewer] = useState<{
+    title: string;
+    url: string;
+    preview: 'image' | 'pdf';
+    expiresInSec: number;
+  } | null>(null);
 
   const busy = localBusy || externalBusy;
 
@@ -112,9 +154,64 @@ export function VendorDetailDialog({
     }
   }
 
+  /** Resolves a short-lived signed URL and opens the viewer (doc 11 signed reads). */
+  async function openDocument(doc: VendorDocument) {
+    await run(async () => {
+      try {
+        const { data } = await fetchVendorDocumentUrl(vendor.kind, vendor.id, doc.id);
+        setViewer({
+          title: `${doc.docType} document`,
+          preview: doc.fileKey.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image',
+          url: data.url,
+          expiresInSec: data.expiresInSec,
+        });
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : 'Could not open the document for viewing.',
+        );
+      }
+    });
+  }
+
   const hoursByDay = new Map(
     (vendor.openingHours ?? []).map((day) => [day.day as OpeningDayKey, day]),
   );
+
+  /** Seed a full seven-day draft (doc 22 requires all seven days). */
+  function startHoursEdit() {
+    setHoursDraft(
+      OPENING_DAYS.map((day) => {
+        const entry = hoursByDay.get(day);
+        if (!entry) return { day, isOpen: false } satisfies OpeningDay;
+        return {
+          day,
+          isOpen: entry.isOpen,
+          ...(entry.opens ? { opens: entry.opens } : {}),
+          ...(entry.closes ? { closes: entry.closes } : {}),
+        } satisfies OpeningDay;
+      }),
+    );
+    setHoursError(null);
+  }
+
+  function patchHoursDay(index: number, patch: Partial<OpeningDay>) {
+    setHoursDraft((draft) =>
+      draft ? draft.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)) : draft,
+    );
+    setHoursError(null);
+  }
+
+  async function saveHours() {
+    if (!hoursDraft) return;
+    const parsed = openingHoursSchema.safeParse(hoursDraft);
+    if (!parsed.success) {
+      setHoursError(parsed.error.issues[0]?.message ?? 'Check the opening hours.');
+      return;
+    }
+    await onAction('save-hours', { openingHours: parsed.data });
+    setHoursDraft(null);
+    setHoursError(null);
+  }
 
   return (
     <Dialog open onOpenChange={(open) => !open && !busy && onClose()}>
@@ -315,30 +412,103 @@ export function VendorDetailDialog({
             </div>
           )}
 
-          {tab === 'Documents' &&
-            (vendor.documents.length === 0 ? (
-              <EmptyState message="No documents yet. Uploads arrive with the document service (SA-2.1)." />
-            ) : (
-              <ul className="space-y-2">
-                {vendor.documents.map((doc) => (
-                  <li
-                    key={doc.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-[--radius-card] border border-border p-3"
+          {tab === 'Documents' && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-end gap-4 rounded-[--radius-card] border border-border bg-bg p-4">
+                <div className="min-w-44 space-y-1.5">
+                  <Label htmlFor="doc-type">Document type</Label>
+                  <Select
+                    value={docType}
+                    onValueChange={(value) => setDocType(value as VendorDocType)}
                   >
-                    <div>
-                      <p className="text-sm font-medium text-text">{doc.docType}</p>
-                      <p className="text-xs text-muted">{formatDateTime(doc.createdAt)}</p>
-                      {doc.rejectionNote && (
-                        <p className="text-xs text-danger">{doc.rejectionNote}</p>
-                      )}
-                    </div>
-                    <Badge tone={doc.verified ? 'success' : 'warning'}>
-                      {doc.verified ? 'Verified' : 'Pending'}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            ))}
+                    <SelectTrigger id="doc-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VENDOR_DOC_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <ImageUploader
+                  purpose="VENDOR_DOC"
+                  zoneId={vendor.zoneId}
+                  entityId={vendor.id}
+                  disabled={busy}
+                  onUploaded={(fileKey) => onAction('upload-document', { docType, fileKey })}
+                />
+                <p className="w-full text-xs text-muted">
+                  JPEG, PNG or WebP up to 5 MB, PDF up to 10 MB. Files stay private — reviewers open
+                  them through a short-lived signed link that is audited.
+                </p>
+              </div>
+
+              {vendor.documents.length === 0 ? (
+                <EmptyState message="No documents yet." />
+              ) : (
+                <ul className="space-y-2">
+                  {vendor.documents.map((doc) => (
+                    <li
+                      key={doc.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-[--radius-card] border border-border p-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-text">{doc.docType}</p>
+                        <p className="text-xs text-muted">{formatDateTime(doc.createdAt)}</p>
+                        {doc.rejectionNote && (
+                          <p className="text-xs text-danger">{doc.rejectionNote}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge tone={doc.verified ? 'success' : 'warning'}>
+                          {doc.verified ? 'Verified' : 'Pending'}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => void openDocument(doc)}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy || doc.verified}
+                          onClick={() =>
+                            setDocReview({
+                              documentId: doc.id,
+                              docType: doc.docType,
+                              decision: 'VERIFIED',
+                            })
+                          }
+                        >
+                          Verify
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={busy}
+                          onClick={() =>
+                            setDocReview({
+                              documentId: doc.id,
+                              docType: doc.docType,
+                              decision: 'REJECTED',
+                            })
+                          }
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           {tab === 'Menu' && (
             <EmptyState message="Menu items arrive with M08 (Menu / Food Items)." />
@@ -358,8 +528,90 @@ export function VendorDetailDialog({
                 <Field label="Editable by">Super Admin only (doc 04)</Field>
               </dl>
               <div>
-                <p className="mb-2 text-sm font-medium text-text">Weekly opening hours</p>
-                {vendor.openingHours === null ? (
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-text">Weekly opening hours</p>
+                  {hoursDraft === null ? (
+                    <Button size="sm" variant="outline" onClick={startHoursEdit} disabled={busy}>
+                      Edit hours
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setHoursDraft(null);
+                          setHoursError(null);
+                        }}
+                        disabled={busy}
+                      >
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={() => void saveHours()} disabled={busy}>
+                        Save hours
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {hoursDraft !== null ? (
+                  <>
+                    <ul className="divide-y divide-border rounded-[--radius-card] border border-border">
+                      {hoursDraft.map((entry, index) => (
+                        <li
+                          key={entry.day}
+                          className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+                        >
+                          <span className="text-muted">{entry.day}</span>
+                          <span className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={entry.isOpen}
+                              aria-label={`Open on ${entry.day}`}
+                              onClick={() =>
+                                patchHoursDay(
+                                  index,
+                                  entry.isOpen
+                                    ? { isOpen: false }
+                                    : {
+                                        isOpen: true,
+                                        opens: entry.opens ?? '09:00',
+                                        closes: entry.closes ?? '22:00',
+                                      },
+                                )
+                              }
+                              className={cn(
+                                'w-16 rounded-[--radius-input] border px-2 py-1 text-xs font-medium',
+                                entry.isOpen
+                                  ? 'border-border bg-surface text-text'
+                                  : 'border-border bg-bg text-muted',
+                              )}
+                            >
+                              {entry.isOpen ? 'Open' : 'Closed'}
+                            </button>
+                            <Input
+                              type="time"
+                              aria-label={`${entry.day} opens`}
+                              value={entry.opens ?? ''}
+                              disabled={!entry.isOpen || busy}
+                              onChange={(e) => patchHoursDay(index, { opens: e.target.value })}
+                              className="h-8 w-24"
+                            />
+                            <Input
+                              type="time"
+                              aria-label={`${entry.day} closes`}
+                              value={entry.closes ?? ''}
+                              disabled={!entry.isOpen || busy}
+                              onChange={(e) => patchHoursDay(index, { closes: e.target.value })}
+                              className="h-8 w-24"
+                            />
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {hoursError && <p className="mt-2 text-xs text-danger">{hoursError}</p>}
+                  </>
+                ) : vendor.openingHours === null ? (
                   <EmptyState message="Opening hours are not set yet." />
                 ) : (
                   <ul className="divide-y divide-border rounded-[--radius-card] border border-border">
@@ -433,6 +685,41 @@ export function VendorDetailDialog({
               )
             }
             onClose={() => setReview(null)}
+          />
+        )}
+
+        {docReview && (
+          <VerificationDialog
+            vendorName={`${docReview.docType} document`}
+            decision={docReview.decision}
+            noun="document"
+            description={
+              docReview.decision === 'REJECTED'
+                ? 'Tell the vendor why this document was rejected. A note is required.'
+                : 'Confirm the document was reviewed. A note is optional.'
+            }
+            busy={busy}
+            onSubmit={(note) =>
+              void run(
+                () =>
+                  onAction(
+                    docReview.decision === 'VERIFIED' ? 'verify-document' : 'reject-document',
+                    { documentId: docReview.documentId, docType: docReview.docType, note },
+                  ),
+                () => setDocReview(null),
+              )
+            }
+            onClose={() => setDocReview(null)}
+          />
+        )}
+
+        {viewer && (
+          <DocumentViewer
+            title={viewer.title}
+            preview={viewer.preview}
+            url={viewer.url}
+            expiresInSec={viewer.expiresInSec}
+            onClose={() => setViewer(null)}
           />
         )}
       </DialogContent>

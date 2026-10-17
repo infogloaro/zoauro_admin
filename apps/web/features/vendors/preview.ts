@@ -7,6 +7,9 @@ import type {
   Restaurant,
   Vendor,
   VendorDetail,
+  VendorDocument,
+  VendorDocumentUploadInput,
+  VendorDocumentVerifyInput,
   VendorKind,
 } from '@zoauro/shared';
 
@@ -394,4 +397,37 @@ export function mockVendorDetail(kind: VendorKind, id: string): VendorDetail {
 /** Echo vendor for simulated write responses (detail shape satisfies Restaurant | Homemaker). */
 export function previewMutationVendor(kind: VendorKind): VendorDetail {
   return mockVendorDetail(kind, '');
+}
+
+/** Echo row for simulated document uploads (detail refetches keep the mock empty). */
+export function previewDocument(
+  _vendorId: string,
+  input: VendorDocumentUploadInput,
+): VendorDocument {
+  return {
+    id: crypto.randomUUID(),
+    docType: input.docType,
+    fileKey: input.fileKey,
+    verified: false,
+    verifiedBy: null,
+    rejectionNote: null,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/** Echo row for simulated document verification. */
+export function previewDocumentVerification(
+  _vendorId: string,
+  documentId: string,
+  input: VendorDocumentVerifyInput,
+): VendorDocument {
+  return {
+    id: documentId,
+    docType: 'OTHER',
+    fileKey: 'zone/preview/preview/preview.pdf',
+    verified: input.decision === 'VERIFIED',
+    verifiedBy: input.decision === 'VERIFIED' ? 'Preview Admin' : null,
+    rejectionNote: input.decision === 'REJECTED' ? (input.note ?? null) : null,
+    createdAt: new Date().toISOString(),
+  };
 }

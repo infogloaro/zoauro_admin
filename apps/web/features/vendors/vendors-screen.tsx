@@ -1,10 +1,18 @@
 'use client';
 
-import { Ban, CheckCircle2, Clock3, Plus, Store } from 'lucide-react';
+import { BarChart3, Check, House, Plus, Square } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import type { Vendor, VendorKind, VendorStatusTarget, VerificationDecision } from '@zoauro/shared';
+import type {
+  ListVendorsResponse,
+  Vendor,
+  VendorDocType,
+  VendorKind,
+  VendorStatusTarget,
+  VerificationDecision,
+} from '@zoauro/shared';
 import { PageHeader } from '../../components/shared/page-header';
 import { StatCard } from '../../components/shared/stat-card';
 import { EmptyState, ErrorState, TableSkeleton } from '../../components/shared/states';
@@ -18,44 +26,101 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { ApiError } from '../../lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { apiFetch, ApiError } from '../../lib/api';
 import { cn } from '../../lib/cn';
 import { useZonesList } from '../zones/api';
 import {
+  useAddVendorDocument,
   useCreateVendor,
   useDeleteVendor,
   useMoveVendorZone,
   useUpdateVendor,
   useVendorDetail,
+  useVendorDocumentVerification,
   useVendorStatus,
   useVendorVerification,
   useVendorsList,
+  vendorBase,
+  vendorQueryString,
   type VendorFilters,
 } from './api';
-import { PREVIEW_ZONE_OPTIONS, isVendorPreview, setVendorPreview } from './preview';
-import { ConfirmDialog, VerificationDialog } from './vendor-actions';
-import { VendorDetailDialog, type VendorDetailAction } from './vendor-detail-dialog';
-import { VendorFilters as FilterBar, type FilterValues } from './vendor-filters';
-import { VendorFormDialog } from './vendor-form-dialog';
 import {
+  kpiSpec,
+  REFERENCE_ROWS,
+  TOP_PERFORMERS,
+  TREND_LABELS,
+  TREND_POINTS,
+  type ReferenceRow,
+} from './demo-data';
+import {
+  PREVIEW_ZONE_OPTIONS,
+  isVendorPreview,
+  mockVendorsList,
+  setVendorPreview,
+} from './preview';
+import { RevenueTrend } from './revenue-trend';
+import { ConfirmDialog, VerificationDialog } from './vendor-actions';
+import {
+  VendorDetailDialog,
+  type VendorDetailAction,
+  type VendorDetailActionOptions,
+} from './vendor-detail-dialog';
+import { VendorToolbar } from './vendor-filters';
+import { VendorFormDialog } from './vendor-form-dialog';
+import { VendorsTable, type VendorRowAction } from './vendors-table';
+import {
+  DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
-  VendorsPagination,
-  VendorsTable,
-  type VendorRowAction,
-} from './vendors-table';
+  Pagination,
+  totalPagesFor,
+} from '../../components/shared/pagination';
 
-const PAGE_SIZE = 25; // doc 20: pagination default 25
+const PAGE_SIZE = DEFAULT_PAGE_SIZE; // 6 records per page (task 2026-10-15; doc 20 said 25 — TD-27)
 
-const TABS = [
-  { id: 'restaurants', kind: 'restaurant', label: 'Restaurants' },
-  { id: 'homemakers', kind: 'homemaker', label: 'Homemakers' },
+const SECTIONS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'orders', label: 'Orders' },
+  { id: 'financials', label: 'Financials' },
+  { id: 'performance', label: 'Performance' },
+  { id: 'activity', label: 'Activity History' },
 ] as const;
+type SectionId = (typeof SECTIONS)[number]['id'];
 
-interface Counts {
-  total: number;
-  pendingVerification: number;
-  active: number;
-  suspended: number;
+const SECTION_EMPTY: Record<Exclude<SectionId, 'overview'>, string> = {
+  orders: 'Order history appears here once orders start flowing.',
+  financials: 'Settlements, commissions and payouts appear here.',
+  performance: 'Performance metrics accrue with live order data.',
+  activity: 'No activity recorded yet.',
+};
+
+/** Revenue-trend periods; only `monthly` has (simulated) data today. */
+type TrendPeriod = 'monthly' | 'weekly' | 'quarterly';
+const TREND_PERIODS: Array<{ value: TrendPeriod; label: string }> = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'quarterly', label: 'Quarterly' },
+];
+
+const STATUS_TEXT: Record<string, string> = {
+  PENDING: 'Pending',
+  ACTIVE: 'Active',
+  INACTIVE: 'Inactive',
+  SUSPENDED: 'Suspended',
+};
+
+function shortId(kind: VendorKind, id: string): string {
+  return `${kind === 'restaurant' ? 'RST' : 'HFP'}-${id.slice(0, 4).toUpperCase()}`;
+}
+
+function csvRow(cells: Array<string | number>): string {
+  return cells.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',');
 }
 
 interface ConfirmRequest {
@@ -65,49 +130,17 @@ interface ConfirmRequest {
   run: () => Promise<void>;
 }
 
-/** KPI cards (doc 20: Total / Pending Verification / Active / Suspended). */
-function KpiCards({
-  counts,
-  noun,
-}: {
-  counts: Counts | undefined;
-  noun: 'Restaurants' | 'Homemakers';
-}) {
-  return (
-    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <StatCard
-        label={`Total ${noun}`}
-        value={counts?.total ?? '—'}
-        icon={<Store className="size-5" />}
-        tone="blue"
-      />
-      <StatCard
-        label="Pending Verification"
-        value={counts?.pendingVerification ?? '—'}
-        icon={<Clock3 className="size-5" />}
-        tone="warning"
-      />
-      <StatCard
-        label={`Active ${noun}`}
-        value={counts?.active ?? '—'}
-        icon={<CheckCircle2 className="size-5" />}
-        tone="success"
-      />
-      <StatCard
-        label={`Suspended ${noun}`}
-        value={counts?.suspended ?? '—'}
-        icon={<Ban className="size-5" />}
-        tone="danger"
-      />
-    </div>
-  );
-}
-
 /**
- * M06/M07 list screen (doc 18: one screen, Restaurants / Homemakers tabs;
- * doc 20/22: KPI cards, filters and dialogs all sync to the URL).
+ * M06/M07 list screen (doc 18: one screen per canonical route, doc 20/22:
+ * KPI cards, filters and dialogs all sync to the URL), rebuilt to the Figma
+ * reference "Restaurant Management": reference demo KPIs/banner, section
+ * tabs (Overview chart + top performers), and the reference records table
+ * with pinned demo rows above the real records.
+ * `defaultTab` pins the kind for the dedicated `/super-admin/homemakers`
+ * route from the doc 18 §5 route map; the tab query param still wins when
+ * present so either route can show either kind.
  */
-export function VendorsScreen() {
+export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'homemakers' }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -117,7 +150,11 @@ export function VendorsScreen() {
   setVendorPreview(searchParams.get('preview') === '1');
   const preview = isVendorPreview();
 
-  const tab = searchParams.get('tab') === 'homemakers' ? 'homemakers' : 'restaurants';
+  const tabParam = searchParams.get('tab');
+  const tab =
+    tabParam === 'homemakers' || tabParam === 'restaurants'
+      ? tabParam
+      : (defaultTab ?? 'restaurants');
   const kind: VendorKind = tab === 'homemakers' ? 'homemaker' : 'restaurant';
 
   const q = searchParams.get('q') ?? '';
@@ -134,6 +171,13 @@ export function VendorsScreen() {
   const action = searchParams.get('action');
   const viewId = searchParams.get('vendor');
   const editId = searchParams.get('edit');
+  const sectionParam = searchParams.get('view');
+  const section: SectionId = SECTIONS.some((entry) => entry.id === sectionParam)
+    ? (sectionParam as SectionId)
+    : 'overview';
+  const periodParam = searchParams.get('period');
+  const period: TrendPeriod =
+    periodParam === 'weekly' || periodParam === 'quarterly' ? periodParam : 'monthly';
 
   const filters: VendorFilters = {
     q,
@@ -155,6 +199,14 @@ export function VendorsScreen() {
         id: zone.id,
         name: zone.name,
       }));
+  // Doc 36 §3: a deactivated zone accepts no new vendors, so create and
+  // move-zone only offer assignable zones; the filter and the disabled edit
+  // select keep the full list so an existing assignment still renders.
+  const assignableZones = preview
+    ? PREVIEW_ZONE_OPTIONS
+    : (zonesList.data?.data ?? [])
+        .filter((zone) => zone.status !== 'INACTIVE')
+        .map((zone) => ({ id: zone.id, name: zone.name }));
 
   const openId = viewId ?? editId;
   const detail = useVendorDetail(kind, openId);
@@ -165,11 +217,14 @@ export function VendorsScreen() {
   const verificationMutation = useVendorVerification(kind);
   const moveMutation = useMoveVendorZone(kind);
   const deleteMutation = useDeleteVendor(kind);
+  const addDocumentMutation = useAddVendorDocument(kind);
+  const documentVerificationMutation = useVendorDocumentVerification(kind);
 
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [review, setReview] = useState<{ vendor: Vendor; decision: VerificationDecision } | null>(
     null,
   );
+  const [exporting, setExporting] = useState(false);
 
   const busy =
     create.isPending ||
@@ -177,50 +232,72 @@ export function VendorsScreen() {
     statusMutation.isPending ||
     verificationMutation.isPending ||
     moveMutation.isPending ||
-    deleteMutation.isPending;
+    deleteMutation.isPending ||
+    addDocumentMutation.isPending ||
+    documentVerificationMutation.isPending;
+
+  /**
+   * Latest-value refs: a debounced filter callback can fire after a route
+   * switch already committed a new path. Reading the committed pathname and
+   * params (instead of the closure's) makes that late patch apply to the
+   * route that is actually on screen rather than navigating back.
+   */
+  const livePathname = useRef(pathname);
+  livePathname.current = pathname;
+  const liveParams = useRef(searchParams);
+  liveParams.current = searchParams;
 
   function setParams(
     patch: Record<string, string | null>,
     { resetPage = true }: { resetPage?: boolean } = {},
   ) {
-    const next = new URLSearchParams(searchParams.toString());
+    const next = new URLSearchParams(liveParams.current.toString());
     for (const [key, value] of Object.entries(patch)) {
       if (value === null || value === '') next.delete(key);
       else next.set(key, value);
     }
     if (resetPage) next.delete('page');
     const qs = next.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    router.replace(qs ? `${livePathname.current}?${qs}` : livePathname.current, { scroll: false });
   }
 
-  const FILTER_KEYS: Array<keyof FilterValues> = [
-    'q',
-    'status',
-    'verification',
-    'area',
-    'tag',
-    'foodCategory',
-    'zoneId',
-  ];
+  // Last-page deletion (or a narrower filter) can leave the URL on a page
+  // beyond the data — snap back to the final valid page instead of an empty
+  // "no matches" state.
+  const totalPages = totalPagesFor(list.data?.meta.total ?? 0, pageSize);
+  useEffect(() => {
+    if (!list.isPending && !list.isError && page > totalPages) {
+      setParams({ page: totalPages > 1 ? String(totalPages) : null }, { resetPage: false });
+    }
+  }, [list.isPending, list.isError, page, totalPages]);
 
-  function switchTab(nextTab: string) {
-    if (nextTab === tab) return;
-    const patch: Record<string, string | null> = { tab: nextTab };
-    for (const key of FILTER_KEYS) patch[key] = null;
-    patch.vendor = null;
-    patch.edit = null;
-    patch.action = null;
-    setParams(patch);
-  }
-
-  const filterValues: FilterValues = { q, status, verification, area, tag, foodCategory, zoneId };
   const hasAnyFilters = Boolean(
     q || status || verification || area || tag || foodCategory || zoneId,
   );
   const vendors = list.data?.data ?? [];
-  const counts = list.data?.meta.counts;
   const facets = list.data?.meta.facets;
   const showZoneChip = (facets?.zones.length ?? 0) > 1;
+
+  // Reference demo rows are pinned above the real records on page 1 and are
+  // filtered client-side by the visible search / zone / status controls.
+  // Deep-linked advanced filters (verification, area, tag, food category)
+  // have no reference counterpart, so they hide the demo rows entirely.
+  const zoneNameForRef = zoneId
+    ? (zoneOptions.find((option) => option.id === zoneId)?.name ?? null)
+    : null;
+  const filteredReferenceRows: ReferenceRow[] = useMemo(() => {
+    if (verification || area || tag || foodCategory) return [];
+    const needle = q.trim().toLowerCase();
+    return REFERENCE_ROWS[kind].filter((row) => {
+      if (status && row.status !== status) return false;
+      if (zoneId && (!zoneNameForRef || row.zone !== zoneNameForRef)) return false;
+      if (!needle) return true;
+      return [row.name, row.id, row.ownerName, row.phone, row.zone, row.admin].some((field) =>
+        field.toLowerCase().includes(needle),
+      );
+    });
+  }, [kind, q, status, zoneId, zoneNameForRef, verification, area, tag, foodCategory]);
+  const referenceRowsOnPage = page === 1 ? filteredReferenceRows : [];
 
   function toastError(error: unknown, fallback: string) {
     toast.error(error instanceof ApiError ? error.message : fallback);
@@ -292,7 +369,7 @@ export function VendorsScreen() {
 
   async function onDetailAction(
     actionType: VendorDetailAction,
-    options?: { zoneId?: string; note?: string },
+    options?: VendorDetailActionOptions,
   ) {
     if (!viewId) return;
     const vendor = detail.data?.data;
@@ -334,11 +411,49 @@ export function VendorsScreen() {
           toast.success(`${vendor.name} moved to the new zone`);
           return;
         }
+        case 'save-hours': {
+          if (!options?.openingHours) return;
+          await update.mutateAsync({
+            id: vendor.id,
+            input: { openingHours: options.openingHours },
+          });
+          toast.success('Opening hours saved');
+          return;
+        }
         case 'delete':
           await deleteMutation.mutateAsync(vendor.id);
           toast.success(`${vendor.name} deleted`);
           setParams({ vendor: null }, { resetPage: false });
           return;
+        case 'upload-document': {
+          if (!options?.fileKey || !options?.docType) return;
+          await addDocumentMutation.mutateAsync({
+            id: vendor.id,
+            input: { docType: options.docType as VendorDocType, fileKey: options.fileKey },
+          });
+          toast.success(`${options.docType} document uploaded`);
+          return;
+        }
+        case 'verify-document': {
+          if (!options?.documentId || !options?.docType) return;
+          await documentVerificationMutation.mutateAsync({
+            id: vendor.id,
+            documentId: options.documentId,
+            input: { decision: 'VERIFIED', ...(options.note ? { note: options.note } : {}) },
+          });
+          toast.success(`${options.docType} document verified`);
+          return;
+        }
+        case 'reject-document': {
+          if (!options?.documentId || !options?.docType) return;
+          await documentVerificationMutation.mutateAsync({
+            id: vendor.id,
+            documentId: options.documentId,
+            input: { decision: 'REJECTED', note: options.note },
+          });
+          toast.success(`${options.docType} document rejected`);
+          return;
+        }
       }
     } catch (error) {
       toastError(error, 'Could not save the change.');
@@ -366,28 +481,131 @@ export function VendorsScreen() {
     })();
   }
 
+  /**
+   * Client-side CSV export (doc 22 exports): walks every filtered page of the
+   * real records and prefixes the matching reference demo rows, so the file
+   * mirrors exactly what the list shows under the current filters.
+   */
+  async function exportCsv() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const rows: Array<Array<string | number>> = [];
+      for (const row of filteredReferenceRows) {
+        rows.push([
+          row.id,
+          row.name,
+          row.ownerName,
+          row.phone,
+          row.zone,
+          row.admin,
+          row.orders,
+          row.gross,
+          row.commission,
+          row.refunds,
+          row.payout,
+          STATUS_TEXT[row.status] ?? row.status,
+        ]);
+      }
+      const perPage = 100;
+      for (let pageNumber = 1; pageNumber <= 50; pageNumber += 1) {
+        const response: ListVendorsResponse = isVendorPreview()
+          ? mockVendorsList(kind, { ...filters, page: pageNumber, pageSize: perPage })
+          : await apiFetch<ListVendorsResponse>(
+              `/${vendorBase(kind)}?${vendorQueryString({
+                ...filters,
+                page: pageNumber,
+                pageSize: perPage,
+              })}`,
+            );
+        for (const vendor of response.data) {
+          rows.push([
+            shortId(kind, vendor.id),
+            vendor.name,
+            vendor.kind === 'restaurant' ? vendor.ownerName : '',
+            vendor.phone,
+            vendor.zone.name,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            STATUS_TEXT[vendor.status] ?? vendor.status,
+          ]);
+        }
+        if (response.data.length < perPage) break;
+      }
+      if (rows.length === 0) {
+        toast.error('No records to export.');
+        return;
+      }
+      const header = [
+        'ID',
+        'Name',
+        'Owner',
+        'Phone',
+        'Zone',
+        'Admin',
+        'Orders',
+        'Gross value',
+        'Commission',
+        'Refunds',
+        'Payout',
+        'Status',
+      ];
+      const csv = `\uFEFF${[csvRow(header), ...rows.map(csvRow)].join('\r\n')}`;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = kind === 'restaurant' ? 'restaurants.csv' : 'homemakers.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success('CSV export ready');
+    } catch (error) {
+      toastError(error, 'Could not export the records.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const formOpen = action === 'new';
   const viewOpen = Boolean(viewId);
   const editOpen = Boolean(editId);
-  const noun = kind === 'restaurant' ? 'Restaurant' : 'Homemaker';
+  const noun = kind === 'restaurant' ? 'Restaurant' : 'Provider';
+  const title = kind === 'restaurant' ? 'Restaurant Management' : 'Home Food Management';
+  const subtitle =
+    kind === 'restaurant'
+      ? 'Independent restaurant operations, financials and performance.'
+      : 'Home kitchen operations, financials and performance.';
+  const kpiIcons =
+    kind === 'restaurant'
+      ? [Square, Check, BarChart3, BarChart3, BarChart3, BarChart3]
+      : [House, Check, BarChart3, BarChart3, BarChart3, BarChart3];
 
   return (
     <div className="mx-auto max-w-[1400px]">
       <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-sm">
-        <span className="text-muted">Dashboard</span>
-        <span className="text-muted" aria-hidden="true">
+        <Link href="/super-admin" className="text-orange-500 hover:underline">
+          Dashboard
+        </Link>
+        <span className="text-slate-500" aria-hidden="true">
           /
         </span>
-        <span className="font-medium text-text">
-          {tab === 'homemakers' ? 'Homemakers' : 'Restaurants'}
-        </span>
+        <span className="text-slate-500">{title}</span>
       </nav>
       <PageHeader
-        title={kind === 'restaurant' ? 'Restaurants' : 'Homemakers'}
-        subtitle={
-          kind === 'restaurant'
-            ? 'Onboard and manage restaurants across your zones.'
-            : 'Onboard and manage home kitchens across your zones.'
+        title={title}
+        subtitle={subtitle}
+        actions={
+          <Button
+            onClick={() =>
+              setParams({ action: 'new', vendor: null, edit: null }, { resetPage: false })
+            }
+          >
+            <Plus className="size-4" /> Add {noun}
+          </Button>
         }
       />
 
@@ -404,60 +622,135 @@ export function VendorsScreen() {
         </div>
       )}
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-4" role="tablist" aria-label="Vendor kind">
-          {TABS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === entry.id}
-              onClick={() => switchTab(entry.id)}
-              className={cn(
-                'rounded-[--radius-input] px-5 py-2 text-sm font-medium',
-                tab === entry.id
-                  ? 'bg-nav-active text-white shadow-sm'
-                  : 'border-[1.5px] border-text/70 bg-surface text-text hover:bg-bg',
-              )}
-            >
-              {entry.label}
-            </button>
-          ))}
-        </div>
-        <Button
-          onClick={() =>
-            setParams({ action: 'new', vendor: null, edit: null }, { resetPage: false })
-          }
-        >
-          <Plus className="size-4" /> Add {noun}
-        </Button>
+      <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+        Simulated operational data · Financial values distinguish transaction value from platform
+        revenue.
       </div>
 
-      <KpiCards counts={counts} noun={tab === 'homemakers' ? 'Homemakers' : 'Restaurants'} />
+      <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {kpiSpec(kind).map((kpi, index) => {
+          const Icon = kpiIcons[index] ?? BarChart3;
+          return (
+            <StatCard
+              key={kpi.label}
+              label={kpi.label}
+              value={kpi.value}
+              caption={kpi.caption}
+              captionTone={kpi.captionTone}
+              icon={<Icon className="size-5" />}
+            />
+          );
+        })}
+      </div>
 
-      <FilterBar
-        kind={kind}
-        value={filterValues}
-        facets={facets}
-        zones={zoneOptions}
-        onChange={(patch) => setParams({ ...patch, vendor: null, edit: null, action: null })}
-        onReset={() =>
-          setParams({
-            q: null,
-            status: null,
-            verification: null,
-            area: null,
-            tag: null,
-            foodCategory: null,
-            zoneId: null,
-            vendor: null,
-            edit: null,
-            action: null,
-          })
-        }
-      />
+      <div
+        role="tablist"
+        aria-label="Sections"
+        className="mb-4 flex gap-3 border-b border-slate-200"
+      >
+        {SECTIONS.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            role="tab"
+            aria-selected={section === entry.id}
+            onClick={() =>
+              setParams({ view: entry.id === 'overview' ? null : entry.id }, { resetPage: false })
+            }
+            className={cn(
+              '-mb-px border-b-2 px-2 py-3 text-[14px]',
+              section === entry.id
+                ? 'border-orange-500 font-medium text-orange-500'
+                : 'border-transparent text-slate-500 hover:text-slate-900',
+            )}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </div>
+
+      {section === 'overview' ? (
+        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[15px] font-semibold text-text">
+                  {kind === 'restaurant' ? 'Restaurant revenue trend' : 'Home food revenue trend'}
+                </h2>
+                <p className="mt-1 text-[13px] text-muted">
+                  Gross value, commission and net platform revenue
+                </p>
+              </div>
+              <Select
+                value={period}
+                onValueChange={(value) =>
+                  setParams({ period: value === 'monthly' ? null : value }, { resetPage: false })
+                }
+              >
+                <SelectTrigger className="h-9 w-32 shrink-0" aria-label="Revenue trend period">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TREND_PERIODS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="mt-4">
+              {period === 'monthly' ? (
+                <RevenueTrend points={TREND_POINTS} labels={TREND_LABELS} />
+              ) : (
+                <EmptyState
+                  message={`No ${period} revenue data yet — the simulated trend is monthly only.`}
+                />
+              )}
+            </div>
+          </Card>
+          <Card className="p-5">
+            <h2 className="text-[15px] font-semibold text-text">Top performers</h2>
+            <p className="mt-1 text-[13px] text-muted">Current filtered period</p>
+            <ul className="mt-2">
+              {TOP_PERFORMERS[kind].map((performer, index) => (
+                <li key={performer.name} className="flex items-center gap-3 py-2.5">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#fff1eb] text-xs font-semibold text-primary">
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-semibold text-text">
+                      {performer.name}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted">{performer.meta}</span>
+                  </span>
+                  <span className="shrink-0 text-sm font-semibold text-text">
+                    {performer.value}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      ) : (
+        <div className="mb-6">
+          <Card>
+            <EmptyState message={SECTION_EMPTY[section]} />
+          </Card>
+        </div>
+      )}
 
       <Card className="overflow-hidden">
+        <div className="px-5 pb-4 pt-4">
+          <VendorToolbar
+            kind={kind}
+            value={{ q, status, zoneId, area }}
+            zones={zoneOptions}
+            onChange={(patch) => setParams({ ...patch, vendor: null, edit: null, action: null })}
+            onExport={() => void exportCsv()}
+            exportBusy={exporting}
+          />
+        </div>
         {list.isPending ? (
           <TableSkeleton />
         ) : list.isError ? (
@@ -468,7 +761,7 @@ export function VendorsScreen() {
             requestId={list.error instanceof ApiError ? list.error.requestId : undefined}
             onRetry={() => void list.refetch()}
           />
-        ) : vendors.length === 0 ? (
+        ) : vendors.length === 0 && referenceRowsOnPage.length === 0 ? (
           hasAnyFilters ? (
             <EmptyState
               message="No matches. Try different search or filters."
@@ -497,7 +790,7 @@ export function VendorsScreen() {
               message={
                 kind === 'restaurant'
                   ? 'No restaurants yet. Create the first one.'
-                  : 'No homemakers yet. Create the first one.'
+                  : 'No home food providers yet. Create the first one.'
               }
               action={
                 <Button
@@ -512,19 +805,27 @@ export function VendorsScreen() {
         ) : (
           <>
             <VendorsTable
+              kind={kind}
+              referenceRows={referenceRowsOnPage}
               vendors={vendors}
-              sort={sort}
-              onSort={(next) => setParams({ sort: next })}
               onAction={onRowAction}
+              onDemoAction={(action, row) => {
+                if (!row) return;
+                if (action === 'view') {
+                  setParams({ vendor: row.id, edit: null }, { resetPage: false });
+                } else if (action === 'edit') {
+                  setParams({ edit: row.id, vendor: null }, { resetPage: false });
+                }
+              }}
               showZoneChip={showZoneChip}
             />
-            <VendorsPagination
+            <Pagination
               page={page}
               pageSize={pageSize}
               total={list.data?.meta.total ?? 0}
-              noun={tab}
+              entity={{ one: 'record', many: 'records' }}
+              leadingCount={referenceRowsOnPage.length}
               onPage={(next) => setParams({ page: String(next) }, { resetPage: false })}
-              onPageSize={(next) => setParams({ pageSize: String(next), page: null })}
             />
           </>
         )}
@@ -534,7 +835,7 @@ export function VendorsScreen() {
         <VendorFormDialog
           kind={kind}
           vendor={null}
-          zones={zoneOptions}
+          zones={assignableZones}
           onClose={() => setParams({ action: null }, { resetPage: false })}
         />
       )}
@@ -597,7 +898,7 @@ export function VendorsScreen() {
       {viewOpen && detail.data?.data && (
         <VendorDetailDialog
           vendor={detail.data.data}
-          zones={zoneOptions}
+          zones={assignableZones}
           externalBusy={busy}
           onAction={onDetailAction}
           onClose={() => setParams({ vendor: null }, { resetPage: false })}

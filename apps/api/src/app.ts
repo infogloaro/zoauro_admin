@@ -7,6 +7,9 @@ import { authRouter } from './modules/auth';
 import { zonesRouter } from './modules/zones';
 import { restaurantsRouter } from './modules/restaurants';
 import { homemakersRouter } from './modules/homemakers';
+import { uploadsRouter } from './modules/uploads';
+import { hotelsRouter } from './modules/hotels';
+import { menuItemsRouter } from './modules/menu';
 
 export function createApp(): Express {
   const app = express();
@@ -35,6 +38,9 @@ export function createApp(): Express {
   v1.use('/zones', zonesRouter);
   v1.use('/restaurants', restaurantsRouter);
   v1.use('/homemakers', homemakersRouter);
+  v1.use('/uploads', uploadsRouter);
+  v1.use('/hotels', hotelsRouter);
+  v1.use('/menu-items', menuItemsRouter);
   app.use('/api/v1', v1);
 
   app.use('/api', apiNotFound);

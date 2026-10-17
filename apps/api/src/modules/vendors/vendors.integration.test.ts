@@ -81,7 +81,10 @@ afterAll(async () => {
   await cleanupUsers(testEmails);
 });
 
-async function createZone(name: string): Promise<string> {
+async function createZone(
+  name: string,
+  status: 'ACTIVE' | 'INACTIVE' | 'UPCOMING' = 'UPCOMING',
+): Promise<string> {
   const res = await call(app, 'post', '/api/v1/zones', {
     session: superSession,
     body: {
@@ -89,7 +92,7 @@ async function createZone(name: string): Promise<string> {
       city: 'Chennai',
       state: 'Tamil Nadu',
       deliveryCharge: 4900,
-      status: 'UPCOMING',
+      status,
       pincodeFrom: '600001',
       pincodeTo: '600020',
     },
@@ -200,6 +203,31 @@ describe('list endpoints', () => {
       { session: superSession },
     );
     expect(statusFiltered.body.data).toHaveLength(0);
+  });
+
+  it('masks phone and email in list rows and reveals them on the detail view (doc 15, D26)', async () => {
+    const name = `Mask R ${stamp()}`;
+    const created = await createRestaurant(zoneAId, name);
+    const withEmail = await call(app, 'patch', `/api/v1/restaurants/${created.id}`, {
+      session: superSession,
+      body: { email: 'owner@example.com' },
+    });
+    expect(withEmail.status).toBe(200);
+
+    const list = await call(app, 'get', `/api/v1/restaurants?q=${encodeURIComponent(name)}`, {
+      session: superSession,
+    });
+    expect(list.status).toBe(200);
+    expect(list.body.data).toHaveLength(1);
+    expect(list.body.data[0].phone).toBe('98****3210');
+    expect(list.body.data[0].email).toBe('ow***@example.com');
+
+    const detail = await call(app, 'get', `/api/v1/restaurants/${created.id}`, {
+      session: superSession,
+    });
+    expect(detail.status).toBe(200);
+    expect(detail.body.data.phone).toBe('9876543210');
+    expect(detail.body.data.email).toBe('owner@example.com');
   });
 
   it('404 ZONE_NOT_FOUND for an unknown ?zoneId', async () => {
@@ -322,14 +350,175 @@ describe('detail endpoint', () => {
     });
     expect(malformed.status).toBe(404);
   });
+});
 
-  it('POST /{id}/documents stays absent until SA-2.1 uploads lands (doc 09 gap)', async () => {
-    const created = await createRestaurant(zoneAId, `Docs R ${stamp()}`);
-    const res = await call(app, 'post', `/api/v1/restaurants/${created.id}/documents`, {
-      session: superSession,
-      body: { docType: 'FSSAI' },
+/* ------------------------------------------------------------------ *
+ * Documents (SA-2.1 uploads: presign → PUT → confirm → attach, doc 11)
+ * ------------------------------------------------------------------ */
+
+const PNG_BYTES = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+]);
+
+/** Signs and uploads a real PNG; returns the confirmed `fileKey`. */
+async function signedUpload(zoneId: string, entityId: string): Promise<string> {
+  const signed = await call(app, 'post', '/api/v1/uploads/presign', {
+    session: superSession,
+    body: {
+      purpose: 'VENDOR_DOC',
+      contentType: 'image/png',
+      sizeBytes: PNG_BYTES.length,
+      zoneId,
+      entityId,
+    },
+  });
+  expect(signed.status).toBe(200);
+  const { uploadUrl, fileKey } = signed.body.data as { uploadUrl: string; fileKey: string };
+  const put = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'image/png' },
+    body: new Uint8Array(PNG_BYTES),
+  });
+  expect(put.status).toBe(200);
+  return fileKey;
+}
+
+describe('document endpoints (SA-2.1, doc 09 + doc 11)', () => {
+  it('401 without a session on the document routes', async () => {
+    const res = await call(app, 'post', '/api/v1/restaurants/x/documents', {
+      session: null,
+      body: { docType: 'FSSAI', fileKey: 'zone/0/0/0.png' },
     });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
+  });
+
+  it('201 attaches a confirmed upload; detail lists it; the signed read is audited', async () => {
+    const created = await createRestaurant(zoneAId, `Doc flow R ${stamp()}`);
+    const fileKey = await signedUpload(zoneAId, created.id);
+
+    const attach = await call(app, 'post', `/api/v1/restaurants/${created.id}/documents`, {
+      session: superSession,
+      body: { docType: 'FSSAI', fileKey },
+    });
+    expect(attach.status).toBe(201);
+    expect(attach.body.data).toMatchObject({
+      docType: 'FSSAI',
+      fileKey,
+      verified: false,
+      verifiedBy: null,
+      rejectionNote: null,
+    });
+
+    const detail = await call(app, 'get', `/api/v1/restaurants/${created.id}`, {
+      session: superSession,
+    });
+    expect(detail.body.data.documents).toHaveLength(1);
+    expect(detail.body.data.documents[0].id).toBe(attach.body.data.id);
+
+    const url = await call(
+      app,
+      'get',
+      `/api/v1/restaurants/${created.id}/documents/${attach.body.data.id}/url`,
+      { session: superSession },
+    );
+    expect(url.status).toBe(200);
+    expect(url.body.data.expiresInSec).toBe(300);
+    expect(url.body.data.url).toMatch(/^https?:\/\//);
+
+    const download = await prisma.auditLog.findFirst({
+      where: { entityId: created.id, action: 'restaurants.document.download' },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(download).not.toBeNull();
+    expect(download?.actorId).toBeTruthy();
+  });
+
+  it('404 for another vendor’s key or an unknown document, 422 for a malformed key', async () => {
+    const owner = await createRestaurant(zoneAId, `Doc owner ${stamp()}`);
+    const other = await createRestaurant(zoneAId, `Doc other ${stamp()}`);
+    const fileKey = await signedUpload(zoneAId, owner.id);
+
+    const wrongVendor = await call(app, 'post', `/api/v1/restaurants/${other.id}/documents`, {
+      session: superSession,
+      body: { docType: 'FSSAI', fileKey },
+    });
+    expect(wrongVendor.status).toBe(404);
+
+    const malformed = await call(app, 'post', `/api/v1/restaurants/${owner.id}/documents`, {
+      session: superSession,
+      body: { docType: 'FSSAI', fileKey: 'uploads/fssai.pdf' },
+    });
+    expect(malformed.status).toBe(422);
+
+    const unknownDoc = await call(
+      app,
+      'get',
+      `/api/v1/restaurants/${owner.id}/documents/00000000-0000-4000-8000-000000000000/url`,
+      { session: superSession },
+    );
+    expect(unknownDoc.status).toBe(404);
+  });
+
+  it('per-document verify/reject needs a note to reject and audits each step (doc 21 §2)', async () => {
+    const created = await createRestaurant(zoneAId, `Doc verify ${stamp()}`);
+    const fileKey = await signedUpload(zoneAId, created.id);
+    const attach = await call(app, 'post', `/api/v1/restaurants/${created.id}/documents`, {
+      session: superSession,
+      body: { docType: 'FSSAI', fileKey },
+    });
+    expect(attach.status).toBe(201);
+    const docId = attach.body.data.id as string;
+    const verifyPath = `/api/v1/restaurants/${created.id}/documents/${docId}/verify`;
+
+    const malformedId = await call(
+      app,
+      'post',
+      `/api/v1/restaurants/${created.id}/documents/not-a-uuid/verify`,
+      { session: superSession, body: { decision: 'VERIFIED' } },
+    );
+    expect(malformedId.status).toBe(404);
+
+    const noNote = await call(app, 'post', verifyPath, {
+      session: superSession,
+      body: { decision: 'REJECTED' },
+    });
+    expect(noNote.status).toBe(422);
+
+    const rejected = await call(app, 'post', verifyPath, {
+      session: superSession,
+      body: { decision: 'REJECTED', note: 'Blurred scan' },
+    });
+    expect(rejected.status).toBe(200);
+    expect(rejected.body.data).toMatchObject({
+      verified: false,
+      rejectionNote: 'Blurred scan',
+      verifiedBy: null,
+    });
+
+    const verified = await call(app, 'post', verifyPath, {
+      session: superSession,
+      body: { decision: 'VERIFIED' },
+    });
+    expect(verified.status).toBe(200);
+    expect(verified.body.data).toMatchObject({
+      verified: true,
+      verifiedBy: expect.any(String),
+      rejectionNote: null,
+    });
+
+    const audits = await prisma.auditLog.findMany({
+      where: {
+        entityId: created.id,
+        action: {
+          in: [
+            'restaurants.document.upload',
+            'restaurants.document.verify',
+            'restaurants.document.reject',
+          ],
+        },
+      },
+    });
+    expect(audits).toHaveLength(3);
   });
 });
 
@@ -529,6 +718,40 @@ describe('verification and status (doc 10 §4)', () => {
   });
 });
 
+describe('deactivated zones (doc 36 §3)', () => {
+  it('409 on create and move-zone into an INACTIVE zone; the zone stays readable', async () => {
+    const offZone = await createZone(`Vendor Zone Off ${stamp()}`, 'INACTIVE');
+
+    const createRestaurantOff = await call(app, 'post', '/api/v1/restaurants', {
+      session: superSession,
+      body: restaurantBody(offZone, `Off zone R ${stamp()}`),
+    });
+    expect(createRestaurantOff.status).toBe(409);
+    expect(createRestaurantOff.body.error.code).toBe('CONFLICT');
+
+    const createHomemakerOff = await call(app, 'post', '/api/v1/homemakers', {
+      session: superSession,
+      body: homemakerBody(offZone, `Off zone H ${stamp()}`),
+    });
+    expect(createHomemakerOff.status).toBe(409);
+    expect(createHomemakerOff.body.error.code).toBe('CONFLICT');
+
+    const created = await createRestaurant(zoneAId, `Move to off zone ${stamp()}`);
+    const move = await call(app, 'post', `/api/v1/restaurants/${created.id}/move-zone`, {
+      session: superSession,
+      body: { zoneId: offZone },
+    });
+    expect(move.status).toBe(409);
+    expect(move.body.error.code).toBe('CONFLICT');
+
+    const read = await call(app, 'get', `/api/v1/restaurants?zoneId=${offZone}`, {
+      session: superSession,
+    });
+    expect(read.status).toBe(200);
+    expect(read.body.data).toHaveLength(0);
+  });
+});
+
 describe('move-zone (R-VEN-3, Super Admin only)', () => {
   it('200 moves the vendor and audits; 409 for the same zone; 404 for an unknown zone', async () => {
     const created = await createRestaurant(zoneAId, `Move R ${stamp()}`);
@@ -669,6 +892,28 @@ describe('authorization matrix (doc 24 × doc 04 — vendors SA-only until SA-1.
           body: { zoneId: zoneBId },
         });
         expect(moveZone.status).toBe(403);
+
+        const addDocument = await call(app, 'post', `/api/v1/${module}/${id}/documents`, {
+          session,
+          body: {
+            docType: 'FSSAI',
+            fileKey: `zone/${zoneAId}/${id}/00000000-0000-4000-8000-000000000000.png`,
+          },
+        });
+        expect(addDocument.status).toBe(403);
+
+        const documentUrl = await call(app, 'get', `/api/v1/${module}/${id}/documents/${id}/url`, {
+          session,
+        });
+        expect(documentUrl.status).toBe(403);
+
+        const verifyDocument = await call(
+          app,
+          'post',
+          `/api/v1/${module}/${id}/documents/${id}/verify`,
+          { session, body: { decision: 'VERIFIED' } },
+        );
+        expect(verifyDocument.status).toBe(403);
       });
     }
   }

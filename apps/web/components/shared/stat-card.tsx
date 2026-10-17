@@ -1,36 +1,47 @@
 import type { ReactNode } from 'react';
+import { cn } from '../../lib/cn';
 
+/**
+ * KPI card (Figma "Restaurant Management" overview): uniform orange icon tile
+ * on the left, label / value / supporting caption stacked on the right, with
+ * the reference's slate typography (32/15/13/12 scale). The `tone` prop is
+ * kept for call-site compatibility but no longer tints the card. Hover
+ * highlights the card in the theme orange (border + light tint + subtle
+ * shadow, 200 ms); the orange focus-visible ring mirrors the global
+ * `*:focus-visible` outline for keyboard users.
+ */
 export function StatCard({
   label,
   value,
   icon,
-  tone,
+  caption,
+  captionTone = 'muted',
 }: {
   label: string;
   value: ReactNode;
   icon: ReactNode;
-  tone: 'blue' | 'info' | 'success' | 'danger' | 'warning';
+  caption?: ReactNode;
+  captionTone?: 'success' | 'muted';
+  tone?: 'blue' | 'info' | 'success' | 'danger' | 'warning';
 }) {
-  const toneClass = {
-    blue: 'bg-[#dbeafe] text-[#2563eb]',
-    info: 'bg-[#ede9fe] text-[#7c3aed]',
-    success: 'bg-[#dcfce7] text-[#16a34a]',
-    danger: 'bg-[#fee2e2] text-[#dc2626]',
-    warning: 'bg-[#fef3c7] text-[#f59e0b]',
-  }[tone];
-
   return (
-    <div className="rounded-[--radius-card] border border-border bg-surface p-5 shadow-sm">
-      <div className="flex items-start gap-3">
-        <span
-          className={`flex size-10 shrink-0 items-center justify-center rounded-[10px] ${toneClass}`}
-        >
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-text">{label}</p>
-          <p className="mt-1 text-3xl font-bold leading-tight text-text">{value}</p>
-        </div>
+    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-5 transition-colors duration-200 hover:border-orange-300 hover:bg-orange-50/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[13px] leading-snug text-slate-500">{label}</p>
+        <p className="mt-1 text-[28px] font-bold leading-none text-slate-900">{value}</p>
+        {caption && (
+          <p
+            className={cn(
+              'mt-1.5 text-[12px] leading-snug',
+              captionTone === 'success' ? 'text-green-600' : 'text-slate-500',
+            )}
+          >
+            {caption}
+          </p>
+        )}
       </div>
     </div>
   );

@@ -17,6 +17,11 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  // Object storage (doc 12): local MinIO, AWS S3 in staging/production.
+  // Defaults keep dev and tests bootable without a configured bucket.
+  S3_BUCKET: z.string().min(1).default('zoauro-local'),
+  S3_REGION: z.string().min(1).default('ap-south-1'),
+  S3_ENDPOINT: z.url().optional(),
   INITIAL_SUPERADMIN_EMAIL: z.email().optional(),
   INITIAL_SUPERADMIN_PASSWORD: z.string().optional(),
 });

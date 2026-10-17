@@ -12,11 +12,11 @@ import { ApiError } from '../../lib/api';
 
 function ShellSkeleton() {
   return (
-    <div className="flex h-screen bg-bg">
-      <div className="w-64 shrink-0 bg-sidebar" />
-      <div className="flex-1">
-        <div className="h-16 border-b border-border bg-surface" />
-        <div className="space-y-4 p-6">
+    <div className="flex h-dvh flex-col overflow-hidden bg-bg">
+      <div className="h-16 shrink-0 border-b border-border bg-surface" />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="w-[272px] shrink-0 bg-sidebar max-lg:w-[72px]" />
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-8">
           <TableSkeleton rows={4} />
         </div>
       </div>
@@ -26,11 +26,11 @@ function ShellSkeleton() {
 
 function Shell({ user, children }: { user: Me; children: ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-bg">
-      <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar user={user} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+    <div className="flex h-dvh flex-col overflow-hidden bg-bg">
+      <Topbar user={user} />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <Sidebar />
+        <main className="min-h-0 flex-1 overflow-y-auto p-8">{children}</main>
       </div>
     </div>
   );

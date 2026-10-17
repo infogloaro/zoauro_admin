@@ -2,7 +2,8 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useWatch } from 'react-hook-form';
 import {
   Controller,
   useForm,
@@ -250,6 +251,51 @@ export function VendorFormDialog({
 
   const pending = isSubmitting || create.isPending || update.isPending;
 
+  // Watch the zoneId value from the form
+  const zoneId = useWatch({
+    control,
+    name: 'zoneId',
+  });
+
+  // Compute area options based on selected zone
+  const [areaOptions, setAreaOptions] = useState<Array<{ id: string; name: string }>>([]);
+
+  useEffect(() => {
+    // Map zone names to their areas based on the seed data
+    const zoneToAreas: Record<string, string[]> = {
+      // Chennai zone areas
+      chennai: [
+        'T Nagar',
+        'Anna Nagar',
+        'Velachery',
+        'OMR',
+        'Kotturpuram',
+        'West Mambalam',
+        'Sholinganallur',
+        'Tambaram',
+      ],
+      // Coimbatore zone areas
+      coimbatore: ['RS Puram', 'Gandhipuram', 'Saibaba Colony', 'R.S. Puram'],
+      // Madurai zone areas
+      madurai: ['Anna Nagar', 'West Perumal Street', 'K K Nagar', 'Thoppur'],
+    };
+
+    if (zoneId) {
+      const areas = zoneToAreas[zoneId.toLowerCase()] ?? [];
+      const options = areas.map((name) => ({ id: name, name }));
+      setAreaOptions(options);
+    } else {
+      setAreaOptions([]);
+    }
+  }, [zoneId]);
+
+  useEffect(() => {
+    // When zone changes, clear the area selection since areas are zone-specific
+    if (zoneId === null || zoneId === '') {
+      setAreaOptions([]);
+    }
+  }, [zoneId]);
+
   useEffect(() => {
     if (create.isSuccess) {
       toast.success(kind === 'restaurant' ? 'Restaurant created' : 'Homemaker created');
@@ -386,7 +432,29 @@ export function VendorFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="vendor-area">Area</Label>
-              <Input id="vendor-area" placeholder="T. Nagar" {...register('area')} />
+              <Controller
+                control={control}
+                name="area"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={!zoneId}
+                    aria-label="Filter by area"
+                  >
+                    <SelectTrigger className="h-12 min-w-[150px]" aria-label="Select area">
+                      <SelectValue placeholder="Choose an area" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {areaOptions.map((area) => (
+                        <SelectItem key={area.id} value={area.id}>
+                          {area.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
               {errors.area && <p className="text-xs text-danger">{errors.area.message}</p>}
             </div>
             <div className="space-y-1.5">

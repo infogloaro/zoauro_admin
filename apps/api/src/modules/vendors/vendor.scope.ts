@@ -6,8 +6,7 @@ import { MOVE_ZONE_PERMISSION, VENDOR_PERMISSIONS } from './vendor.permissions';
 export type VendorAction = 'view' | 'add' | 'edit' | 'delete' | 'status';
 
 /**
- * Authorization seam for M06/M07 (AGENTS.md: server-side on every route,
- * UI hiding is not a boundary).
+ * Authorization seam for M06/M07 (doc 04 §3, doc 14 §4, doc 36 §1).
  *
  * M03 access control and SA-1.7 grants (per member per zone) are not built
  * yet, so today only a Super Admin passes; every other role gets 403 with the

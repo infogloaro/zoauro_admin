@@ -69,19 +69,19 @@ model User {
 }
 
 model Session {
-  id                 String    @id @default(uuid()) @db.Uuid
-  userId             String    @map("user_id") @db.Uuid
-  user               User      @relation(fields: [userId], references: [id])
-  tokenHash          String    @unique @map("token_hash")
-  csrfToken          String    @map("csrf_token")
-  ip                 String?
-  userAgent          String?   @map("user_agent")
-  expiresAt          DateTime  @map("expires_at")
-  absoluteExpiresAt  DateTime  @map("absolute_expires_at")
-  reauthenticatedAt  DateTime? @map("reauthenticated_at")
-  revokedAt          DateTime? @map("revoked_at")
-  lastSeenAt         DateTime  @default(now()) @map("last_seen_at")
-  createdAt          DateTime  @default(now()) @map("created_at")
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  user              User      @relation(fields: [userId], references: [id])
+  tokenHash         String    @unique @map("token_hash")
+  csrfToken         String    @map("csrf_token")
+  ip                String?
+  userAgent         String?   @map("user_agent")
+  expiresAt         DateTime  @map("expires_at")
+  absoluteExpiresAt DateTime  @map("absolute_expires_at")
+  reauthenticatedAt DateTime? @map("reauthenticated_at")
+  revokedAt         DateTime? @map("revoked_at")
+  lastSeenAt        DateTime  @default(now()) @map("last_seen_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   @@index([userId])
   @@map("sessions")
@@ -106,25 +106,29 @@ model LoginHistory {
 /// (doc 09: DELETE = deactivate); `deleted_at` is the architecture default
 /// for a future true soft-delete and keeps uniqueness semantics explicit.
 model Zone {
-  id            String     @id @default(uuid()) @db.Uuid
-  name          String     @unique
-  code          String     @unique
-  city          String
-  state         String
-  pincodeFrom   String?    @map("pincode_from") @db.VarChar(6)
-  pincodeTo     String?    @map("pincode_to") @db.VarChar(6)
-  deliveryCharge Int       @map("delivery_charge")
-  status        ZoneStatus @default(ACTIVE)
-  description   String?    @db.VarChar(500)
-  colorHex      String     @default("#2F6BFF") @map("color_hex") @db.VarChar(7)
-  deletedAt     DateTime?  @map("deleted_at")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
+  id             String     @id @default(uuid()) @db.Uuid
+  name           String     @unique
+  code           String     @unique
+  city           String
+  state          String
+  pincodeFrom    String?    @map("pincode_from") @db.VarChar(6)
+  pincodeTo      String?    @map("pincode_to") @db.VarChar(6)
+  deliveryCharge Int        @map("delivery_charge")
+  status         ZoneStatus @default(ACTIVE)
+  description    String?    @db.VarChar(500)
+  colorHex       String     @default("#2F6BFF") @map("color_hex") @db.VarChar(7)
+  deletedAt      DateTime?  @map("deleted_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
 
   serviceablePincodes ServiceablePincode[]
   auditLogs           AuditLog[]
   restaurants         Restaurant[]
   homemakers          Homemaker[]
+  hotels              Hotel[]
+  roomBookings        RoomBooking[]
+  diningReservations  DiningReservation[]
+  menuItems           MenuItem[]
 
   @@index([status])
   @@index([city])
@@ -132,13 +136,11 @@ model Zone {
   @@map("zones")
 }
 
-/// Explicitly serviceable pincodes (doc 08). Populated by the zone resolver
-/// (IH-2); SA-1.1 manages the pincode range on the zone itself.
 model ServiceablePincode {
-  id       String @id @default(uuid()) @db.Uuid
-  zoneId   String @map("zone_id") @db.Uuid
-  zone     Zone   @relation(fields: [zoneId], references: [id])
-  pincode  String @db.VarChar(6)
+  id        String   @id @default(uuid()) @db.Uuid
+  zoneId    String   @map("zone_id") @db.Uuid
+  zone      Zone     @relation(fields: [zoneId], references: [id])
+  pincode   String   @db.VarChar(6)
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([zoneId, pincode])
@@ -185,10 +187,11 @@ enum VerificationStatus {
   REJECTED
 }
 
-/// doc 08 `vendor_documents.vendor_type`.
+/// doc 08 `vendor_documents.vendor_type` (+ HOTEL for dining-menu owners).
 enum VendorType {
   RESTAURANT
   HOMEMAKER
+  HOTEL
 }
 
 /// M06 Restaurants (doc 08 "Vendors and menu"). Zone-owned: zone_id NOT NULL.
@@ -219,6 +222,8 @@ model Restaurant {
   deletedAt          DateTime?          @map("deleted_at")
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  diningReservations DiningReservation[]
 
   // Zone-owned list indexes (doc 08 "Indexes and constraints").
   @@index([zoneId, status])
@@ -282,4 +287,167 @@ model VendorDocument {
 
   @@index([vendorType, vendorId])
   @@map("vendor_documents")
+}
+
+/// Hotel room-booking lifecycle (task: Hotel Room Booking Management).
+/// PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT; cancel allowed before
+/// check-out. Cancel of a PAID booking marks the payment REFUNDED.
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+/// Dining reservation lifecycle (Hotel Dining tab).
+enum DiningStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+/// Menu/food-item approval workflow (task: Menu & Food Items).
+enum MenuApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum DietaryType {
+  VEGETARIAN
+  NON_VEG
+  EGG
+}
+
+/// Hotels are zone-owned like restaurants; the vendor lifecycle fields are
+/// reused (status + verification, doc 10 §4). Document upload for hotels
+/// follows the SA-2.1 polymorphic table once its endpoints extend.
+model Hotel {
+  id                 String             @id @default(uuid()) @db.Uuid
+  zoneId             String             @map("zone_id") @db.Uuid
+  zone               Zone               @relation(fields: [zoneId], references: [id])
+  name               String
+  ownerName          String             @map("owner_name")
+  phone              String
+  email              String?
+  address            String
+  area               String?            @db.VarChar(80)
+  totalRooms         Int                @map("total_rooms")
+  commissionPct      Float?             @map("commission_pct")
+  gstNo              String?            @map("gst_no") @db.VarChar(20)
+  status             VendorStatus       @default(PENDING)
+  verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
+  verificationNote   String?            @map("verification_note") @db.VarChar(300)
+  verifiedAt         DateTime?          @map("verified_at")
+  verifiedBy         String?            @map("verified_by") @db.Uuid
+  deletedAt          DateTime?          @map("deleted_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  bookings           RoomBooking[]
+  diningReservations DiningReservation[]
+
+  @@index([zoneId, status])
+  @@index([zoneId, createdAt])
+  @@index([status])
+  @@index([verificationStatus])
+  @@map("hotels")
+}
+
+/// Room bookings. Dates are UTC midnights (check-in inclusive, check-out
+/// exclusive); overlap prevention is transactional + row-locked in the
+/// service. Amount is integer paise.
+model RoomBooking {
+  id            String        @id @default(uuid()) @db.Uuid
+  zoneId        String        @map("zone_id") @db.Uuid
+  zone          Zone          @relation(fields: [zoneId], references: [id])
+  hotelId       String        @map("hotel_id") @db.Uuid
+  hotel         Hotel         @relation(fields: [hotelId], references: [id])
+  customerName  String        @map("customer_name")
+  customerPhone String        @map("customer_phone")
+  roomType      String        @map("room_type") @db.VarChar(40)
+  checkIn       DateTime      @map("check_in")
+  checkOut      DateTime      @map("check_out")
+  guests        Int
+  status        BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  amount        Int
+  note          String?       @db.VarChar(300)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([zoneId, status])
+  @@index([hotelId, checkIn])
+  @@index([status])
+  @@index([paymentStatus])
+  @@map("room_bookings")
+}
+
+/// Dining reservations at a hotel restaurant or a restaurant. At least one
+/// of hotel_id / restaurant_id is set (service-enforced; both may be set for
+/// a hotel's in-house dining).
+model DiningReservation {
+  id            String        @id @default(uuid()) @db.Uuid
+  zoneId        String        @map("zone_id") @db.Uuid
+  zone          Zone          @relation(fields: [zoneId], references: [id])
+  hotelId       String?       @map("hotel_id") @db.Uuid
+  hotel         Hotel?        @relation(fields: [hotelId], references: [id])
+  restaurantId  String?       @map("restaurant_id") @db.Uuid
+  restaurant    Restaurant?   @relation(fields: [restaurantId], references: [id])
+  customerName  String        @map("customer_name")
+  customerPhone String        @map("customer_phone")
+  reservedDate  DateTime      @map("reserved_date")
+  reservedTime  String        @map("reserved_time") @db.VarChar(5)
+  guests        Int
+  tableArea     String?       @map("table_area") @db.VarChar(80)
+  status        DiningStatus  @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  amount        Int?
+  note          String?       @db.VarChar(300)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([zoneId, status])
+  @@index([hotelId, reservedDate])
+  @@index([restaurantId])
+  @@map("dining_reservations")
+}
+
+/// Menu/food items (task: Menu & Food Items; doc 09 `/menu-items`). Exactly
+/// one owning provider (vendor_type + vendor_id); items enter PENDING and
+/// move through the approval workflow. Price is integer paise.
+model MenuItem {
+  id              String             @id @default(uuid()) @db.Uuid
+  zoneId          String             @map("zone_id") @db.Uuid
+  zone            Zone               @relation(fields: [zoneId], references: [id])
+  vendorType      VendorType         @map("vendor_type")
+  vendorId        String             @map("vendor_id") @db.Uuid
+  name            String
+  description     String?            @db.VarChar(300)
+  category        String?            @db.VarChar(60)
+  price           Int
+  dietary         DietaryType
+  approvalStatus  MenuApprovalStatus @default(PENDING) @map("approval_status")
+  rejectionReason String?            @map("rejection_reason") @db.VarChar(300)
+  approvedAt      DateTime?          @map("approved_at")
+  approvedBy      String?            @map("approved_by") @db.Uuid
+  deletedAt       DateTime?          @map("deleted_at")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  @@index([zoneId, approvalStatus])
+  @@index([vendorType, vendorId])
+  @@index([approvalStatus])
+  @@map("menu_items")
 }

@@ -24,10 +24,7 @@ export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowEle
 export function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cn(
-        'h-10 px-3 text-left text-xs font-semibold uppercase tracking-wide text-muted',
-        className,
-      )}
+      className={cn('h-11 px-3 text-left text-xs font-semibold text-[#475467]', className)}
       {...props}
     />
   );
