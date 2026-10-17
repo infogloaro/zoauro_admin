@@ -284,7 +284,7 @@ model User {
   createdBy          String?   @map("created_by") @db.Uuid
   updatedBy          String?   @map("updated_by") @db.Uuid
 
-  role                          Role                  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  role                          Role                    @relation(fields: [roleId], references: [id], onDelete: Restrict)
   sessions                      Session[]
   loginHistory                  LoginHistory[]
   passwordResetTokens           PasswordResetToken[]
@@ -292,24 +292,26 @@ model User {
   mfaChallenges                 MfaChallenge[]
   mfaBackupCodes                MfaBackupCode[]
   preferences                   UserPreference?
-  assignments                   AdminZoneAssignment[] @relation("AssignmentMember")
-  assignmentsGranted            AdminZoneAssignment[] @relation("AssignmentAssignedBy")
-  assignmentsRevoked            AdminZoneAssignment[] @relation("AssignmentRevokedBy")
+  assignments                   AdminZoneAssignment[]   @relation("AssignmentMember")
+  assignmentsGranted            AdminZoneAssignment[]   @relation("AssignmentAssignedBy")
+  assignmentsRevoked            AdminZoneAssignment[]   @relation("AssignmentRevokedBy")
   restaurantsVerified           Restaurant[]
   homemakersVerified            Homemaker[]
   vendorDocumentsVerified       VendorDocument[]
   cashSettlementsSettled        CashSettlement[]
-  refundsRequested              Refund[]              @relation("RefundRequestedBy")
-  refundsApproved               Refund[]              @relation("RefundApprovedBy")
+  refundsRequested              Refund[]                @relation("RefundRequestedBy")
+  refundsApproved               Refund[]                @relation("RefundApprovedBy")
   payoutsPaid                   Payout[]
   settingsUpdated               Setting[]
   exportsRequested              Export[]
   dataSubjectRequestsHandled    DataSubjectRequest[]
   integrationAlertsAcknowledged IntegrationAlert[]
   zoneServicesUpdated           ZoneService[]
-  zoneSettingsUpdated           ZoneSetting[]         @relation("ZoneSettingUpdatedBy")
-  accessRequests                AccessRequest[]       @relation("AccessRequestRequester")
-  accessRequestsDecided         AccessRequest[]       @relation("AccessRequestDecidedBy")
+  zoneSettingsUpdated           ZoneSetting[]           @relation("ZoneSettingUpdatedBy")
+  accessRequests                AccessRequest[]         @relation("AccessRequestRequester")
+  accessRequestsDecided         AccessRequest[]         @relation("AccessRequestDecidedBy")
+  hotelsVerified                Hotel[]                 @relation("HotelVerifier")
+  menuChangesDecided            MenuItemChangeRequest[] @relation("MenuChangeDecider")
 
   @@index([roleId])
   @@map("users")
@@ -623,25 +625,29 @@ model Zone {
   createdBy          String?    @map("created_by") @db.Uuid
   updatedBy          String?    @map("updated_by") @db.Uuid
 
-  pincodes          ServiceablePincode[]
-  assignments       AdminZoneAssignment[]
-  preferences       UserPreference[]
-  restaurants       Restaurant[]
-  homemakers        Homemaker[]
-  categories        Category[]
-  menuItems         MenuItem[]
-  customerAddresses CustomerAddress[]
-  deliveryPartners  DeliveryPartner[]
-  cashSettlements   CashSettlement[]
-  orders            Order[]
-  payouts           Payout[]
-  coupons           Coupon[]
-  notifications     Notification[]
-  outbox            Outbox[]
-  inboundLogs       IntegrationInboundLog[]
-  services          ZoneService[]
-  settings          ZoneSetting[]
-  accessRequests    AccessRequest[]
+  pincodes           ServiceablePincode[]
+  assignments        AdminZoneAssignment[]
+  preferences        UserPreference[]
+  restaurants        Restaurant[]
+  homemakers         Homemaker[]
+  categories         Category[]
+  menuItems          MenuItem[]
+  customerAddresses  CustomerAddress[]
+  deliveryPartners   DeliveryPartner[]
+  cashSettlements    CashSettlement[]
+  orders             Order[]
+  payouts            Payout[]
+  coupons            Coupon[]
+  notifications      Notification[]
+  outbox             Outbox[]
+  inboundLogs        IntegrationInboundLog[]
+  services           ZoneService[]
+  settings           ZoneSetting[]
+  accessRequests     AccessRequest[]
+  menuChangeRequests MenuItemChangeRequest[]
+  hotels             Hotel[]
+  roomBookings       RoomBooking[]
+  diningReservations DiningReservation[]
 
   @@index([status])
   @@map("zones")
@@ -722,10 +728,12 @@ model Restaurant {
   createdBy            String?              @map("created_by") @db.Uuid
   updatedBy            String?              @map("updated_by") @db.Uuid
 
-  zone      Zone?      @relation(fields: [zoneId], references: [id], onDelete: Restrict)
-  verifier  User?      @relation(fields: [verifiedBy], references: [id], onDelete: Restrict)
-  menuItems MenuItem[]
-  orders    Order[]
+  zone               Zone?                   @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  verifier           User?                   @relation(fields: [verifiedBy], references: [id], onDelete: Restrict)
+  menuItems          MenuItem[]
+  orders             Order[]
+  menuChangeRequests MenuItemChangeRequest[]
+  diningReservations DiningReservation[]
 
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
@@ -769,10 +777,11 @@ model Homemaker {
   createdBy            String?              @map("created_by") @db.Uuid
   updatedBy            String?              @map("updated_by") @db.Uuid
 
-  zone      Zone?      @relation(fields: [zoneId], references: [id], onDelete: Restrict)
-  verifier  User?      @relation(fields: [verifiedBy], references: [id], onDelete: Restrict)
-  menuItems MenuItem[]
-  orders    Order[]
+  zone               Zone?                   @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  verifier           User?                   @relation(fields: [verifiedBy], references: [id], onDelete: Restrict)
+  menuItems          MenuItem[]
+  orders             Order[]
+  menuChangeRequests MenuItemChangeRequest[]
 
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
@@ -821,30 +830,34 @@ model Category {
 }
 
 model MenuItem {
-  id            String    @id @db.Uuid
-  zoneId        String    @map("zone_id") @db.Uuid
-  restaurantId  String?   @map("restaurant_id") @db.Uuid
-  homemakerId   String?   @map("homemaker_id") @db.Uuid
-  categoryId    String    @map("category_id") @db.Uuid
-  name          String
-  description   String?
-  price         Int // paise
-  stock         Int       @default(0)
-  isAvailable   Boolean   @default(true) @map("is_available")
-  isFeatured    Boolean   @default(false) @map("is_featured")
-  imageKey      String?   @map("image_key")
-  adminDisabled Boolean   @default(false) @map("admin_disabled")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
-  createdBy     String?   @map("created_by") @db.Uuid
-  updatedBy     String?   @map("updated_by") @db.Uuid
+  id              String       @id @db.Uuid
+  zoneId          String       @map("zone_id") @db.Uuid
+  restaurantId    String?      @map("restaurant_id") @db.Uuid
+  homemakerId     String?      @map("homemaker_id") @db.Uuid
+  categoryId      String       @map("category_id") @db.Uuid
+  name            String
+  description     String?
+  price           Int // paise
+  stock           Int          @default(0)
+  isAvailable     Boolean      @default(true) @map("is_available")
+  isFeatured      Boolean      @default(false) @map("is_featured")
+  imageKey        String?      @map("image_key")
+  adminDisabled   Boolean      @default(false) @map("admin_disabled")
+  dietary         DietaryType? // D119
+  // the last time an admin overrode a vendor-owned field (D119, doc 44)
+  adminOverrideAt DateTime?    @map("admin_override_at") @db.Timestamptz
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt       DateTime?    @map("deleted_at") @db.Timestamptz
+  createdBy       String?      @map("created_by") @db.Uuid
+  updatedBy       String?      @map("updated_by") @db.Uuid
 
-  zone       Zone        @relation(fields: [zoneId], references: [id], onDelete: Restrict)
-  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
-  homemaker  Homemaker?  @relation(fields: [homemakerId], references: [id], onDelete: Restrict)
-  category   Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  orderItems OrderItem[]
+  zone           Zone                    @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  restaurant     Restaurant?             @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  homemaker      Homemaker?              @relation(fields: [homemakerId], references: [id], onDelete: Restrict)
+  category       Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  orderItems     OrderItem[]
+  changeRequests MenuItemChangeRequest[]
 
   // CHECK exactly one of restaurant_id / homemaker_id: constraints migration
   @@index([zoneId, createdAt(sort: Desc)])
@@ -1415,6 +1428,7 @@ model ApiClient {
   inboundLogs          IntegrationInboundLog[]
   webhookSubscriptions WebhookSubscription[]
   alerts               IntegrationAlert[]
+  menuChangeRequests   MenuItemChangeRequest[]
 
   @@map("api_clients")
 }
@@ -1527,4 +1541,179 @@ model IntegrationAlert {
 
   @@index([clientId, createdAt(sort: Desc)])
   @@map("integration_alerts")
+}
+
+// ---- menu item change requests and hotels (D118, D119, D124-D127) -------------------------------------------------
+
+enum DietaryType {
+  VEGETARIAN
+  NON_VEG
+  EGG
+}
+
+enum MenuChangeKind {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum MenuChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUPERSEDED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum DiningStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+/// separate from the order PaymentStatus
+enum BookingPaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+/// A proposed menu change (R09, D119): the approved value stays live until a decision.
+model MenuItemChangeRequest {
+  id                  String           @id @db.Uuid
+  zoneId              String           @map("zone_id") @db.Uuid
+  menuItemId          String?          @map("menu_item_id") @db.Uuid
+  restaurantId        String?          @map("restaurant_id") @db.Uuid
+  homemakerId         String?          @map("homemaker_id") @db.Uuid
+  externalItemId      String?          @map("external_item_id")
+  kind                MenuChangeKind
+  status              MenuChangeStatus @default(PENDING)
+  proposedJson        Json             @map("proposed_json")
+  baseJson            Json?            @map("base_json")
+  source              RecordSource
+  submittedByClientId String?          @map("submitted_by_client_id") @db.Uuid
+  decidedBy           String?          @map("decided_by") @db.Uuid
+  decidedAt           DateTime?        @map("decided_at") @db.Timestamptz
+  decisionReason      String?          @map("decision_reason")
+  version             Int              @default(1)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  zone        Zone        @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  menuItem    MenuItem?   @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  restaurant  Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  homemaker   Homemaker?  @relation(fields: [homemakerId], references: [id], onDelete: Restrict)
+  submittedBy ApiClient?  @relation(fields: [submittedByClientId], references: [id], onDelete: Restrict)
+  decider     User?       @relation("MenuChangeDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  // partial uniques (one PENDING per item; per client and external id for CREATE) and the one-vendor CHECK: SQL
+  @@index([zoneId, status, createdAt])
+  @@index([menuItemId])
+  @@map("menu_item_change_requests")
+}
+
+/// Hotel room booking (D91, D118).
+model Hotel {
+  id                 String             @id @db.Uuid
+  zoneId             String             @map("zone_id") @db.Uuid
+  name               String
+  ownerName          String             @map("owner_name")
+  phone              String
+  email              String?
+  address            String
+  area               String?
+  totalRooms         Int                @map("total_rooms") // CHECK >= 0: SQL
+  commissionPct      Decimal            @default(0) @map("commission_pct") @db.Decimal(5, 2)
+  gstNo              String?            @map("gst_no")
+  status             VendorStatus       @default(PENDING)
+  verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
+  verificationNote   String?            @map("verification_note")
+  verifiedAt         DateTime?          @map("verified_at") @db.Timestamptz
+  verifiedBy         String?            @map("verified_by") @db.Uuid
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime?          @map("deleted_at") @db.Timestamptz
+  createdBy          String?            @map("created_by") @db.Uuid
+  updatedBy          String?            @map("updated_by") @db.Uuid
+
+  zone               Zone                @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  verifier           User?               @relation("HotelVerifier", fields: [verifiedBy], references: [id], onDelete: Restrict)
+  roomBookings       RoomBooking[]
+  diningReservations DiningReservation[]
+
+  @@index([zoneId, status])
+  @@index([zoneId, createdAt(sort: Desc)])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "hotels_name_trgm_idx")
+  @@map("hotels")
+}
+
+model RoomBooking {
+  id            String               @id @db.Uuid
+  zoneId        String               @map("zone_id") @db.Uuid
+  hotelId       String               @map("hotel_id") @db.Uuid
+  customerName  String               @map("customer_name")
+  customerPhone String               @map("customer_phone")
+  roomType      String               @map("room_type") @db.VarChar(40)
+  checkIn       DateTime             @map("check_in") @db.Date
+  checkOut      DateTime             @map("check_out") @db.Date // CHECK check_out > check_in: SQL
+  guests        Int // CHECK >= 1: SQL
+  status        BookingStatus        @default(PENDING)
+  paymentStatus BookingPaymentStatus @default(PENDING) @map("payment_status")
+  amount        Int // paise, CHECK >= 0: SQL
+  note          String?              @db.VarChar(300)
+  version       Int                  @default(1)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime?            @map("deleted_at") @db.Timestamptz
+  createdBy     String?              @map("created_by") @db.Uuid
+  updatedBy     String?              @map("updated_by") @db.Uuid
+
+  zone  Zone  @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+
+  @@index([zoneId, status])
+  @@index([hotelId, checkIn])
+  @@map("room_bookings")
+}
+
+model DiningReservation {
+  id            String               @id @db.Uuid
+  zoneId        String               @map("zone_id") @db.Uuid
+  hotelId       String?              @map("hotel_id") @db.Uuid
+  restaurantId  String?              @map("restaurant_id") @db.Uuid // CHECK exactly one of hotel/restaurant: SQL
+  customerName  String               @map("customer_name")
+  customerPhone String               @map("customer_phone")
+  reservedDate  DateTime             @map("reserved_date") @db.Date
+  reservedTime  String               @map("reserved_time") @db.VarChar(5)
+  guests        Int // CHECK >= 1: SQL
+  tableArea     String?              @map("table_area") @db.VarChar(80)
+  status        DiningStatus         @default(PENDING)
+  paymentStatus BookingPaymentStatus @default(PENDING) @map("payment_status")
+  amount        Int? // paise, CHECK >= 0: SQL
+  note          String?              @db.VarChar(300)
+  version       Int                  @default(1)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime?            @map("deleted_at") @db.Timestamptz
+  createdBy     String?              @map("created_by") @db.Uuid
+  updatedBy     String?              @map("updated_by") @db.Uuid
+
+  zone       Zone        @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  hotel      Hotel?      @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+
+  @@index([zoneId, status])
+  @@index([hotelId, reservedDate])
+  @@index([restaurantId])
+  @@map("dining_reservations")
 }
