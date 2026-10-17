@@ -219,7 +219,7 @@ describe('Order detail', () => {
       <QueryClientProvider client={queries}>
         <ApiClientProvider client={{ get, post } as unknown as ApiClient}>
           <ToastProvider>
-            <OrderDetailPage id={order().id} role={SUPER} can={{ status: true }} />
+            <OrderDetailPage id={order().id} role={SUPER} can={{ status: true, assign: true }} />
           </ToastProvider>
         </ApiClientProvider>
       </QueryClientProvider>,
@@ -256,5 +256,88 @@ describe('Order detail', () => {
     await mountDetail(post);
     await user.click(await screen.findByRole('button', { name: 'Accept' }));
     expect(await screen.findByText(/This order changed a moment ago/)).toBeTruthy();
+  });
+});
+
+describe('Assign a partner', () => {
+  const partner = (id: string, name: string, current: number) => ({
+    id,
+    zone: { id: ZA, name: 'Anna Nagar', code: 'ANN' },
+    assignment: 'ASSIGNED',
+    name,
+    phone: null,
+    email: null,
+    vehicleType: 'Bike',
+    vehicleNo: 'TN01AB1234',
+    area: 'Anna Nagar',
+    status: 'ACTIVE',
+    verificationStatus: 'VERIFIED',
+    isOnline: true,
+    forceOfflineUntil: null,
+    assignable: true,
+    currentOrders: current,
+    maxConcurrentOrders: 1,
+    cashInHand: 0,
+    ratingAvg: null,
+    deliveriesCount: 0,
+    source: 'APP',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    version: 1,
+  });
+
+  it('lists the free partners of the order zone, disables a full one, and assigns with If-Match', async () => {
+    const user = userEvent.setup();
+    const { AssignPartnerDialog } = await import('./AssignPartnerDialog');
+    const { ToastProvider } = await import('../../components/ui/toast');
+    const FREE = '0192f1d2-0000-7000-8000-0000000000b1';
+    const BUSY = '0192f1d2-0000-7000-8000-0000000000b2';
+    const get = vi.fn(async (_path: string, init?: { query?: Record<string, unknown> }) => {
+      expect(init?.query).toMatchObject({ zoneId: [ZA], available: 'true' });
+      return {
+        data: [partner(FREE, 'Ravi', 0), partner(BUSY, 'Karthik', 1)],
+        meta: { page: 1, pageSize: 50, total: 2, counts: {} },
+      };
+    });
+    const post = vi.fn(async () => ({
+      id: 'o',
+      status: 'ASSIGNED',
+      version: 5,
+      deliveryPartnerId: FREE,
+    }));
+    const onDone = vi.fn(async () => undefined);
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queries}>
+        <ApiClientProvider client={{ get, post } as unknown as ApiClient}>
+          <ToastProvider>
+            <AssignPartnerDialog
+              order={{
+                id: 'o',
+                orderNo: 'ZO-ANN-000123',
+                zoneId: ZA,
+                version: 4,
+                deliveryPartnerId: null,
+              }}
+              onClose={() => undefined}
+              onDone={onDone}
+            />
+          </ToastProvider>
+        </ApiClientProvider>
+      </QueryClientProvider>,
+    );
+    const busy = await screen.findByRole('radio', { name: /Karthik/ });
+    expect((busy as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByText(/1 of 1 order · full/)).toBeTruthy();
+    await user.click(screen.getByRole('radio', { name: /Ravi/ }));
+    await user.click(screen.getByRole('button', { name: 'Assign' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/orders/{id}/assign', {
+        params: { id: 'o' },
+        body: { deliveryPartnerId: FREE },
+        ifMatch: 4,
+      }),
+    );
+    expect(onDone).toHaveBeenCalled();
   });
 });

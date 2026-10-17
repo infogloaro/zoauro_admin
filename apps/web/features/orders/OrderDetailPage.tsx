@@ -1,7 +1,7 @@
 'use client';
 
 import type { OrderStatus } from '@zoauro/shared';
-import { Ban, Undo2 } from 'lucide-react';
+import { Ban, Bike, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Badge } from '../../components/ui/badge';
@@ -17,6 +17,7 @@ import { isApiError, TRY_AGAIN } from '../auth/errors';
 import { CardError, CardSkeleton } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useInvalidateOrders, useOrderDetail } from './api';
+import { AssignPartnerDialog } from './AssignPartnerDialog';
 import {
   ORDER_STATUS_LABEL,
   ORDER_STATUS_TONE,
@@ -29,7 +30,7 @@ import {
 // One order (doc 20 "Order details", SA-4.4, ZA-4.2; doc 10 state machine): status with the moves it allows, items,
 // amounts, customer (masked, D26), vendor, partner, payments and the status timeline. Every write sends the version the
 // screen shows (If-Match); if someone changed the order meanwhile the API answers 409 STALE_VERSION and the screen
-// reloads it. Assigning a partner waits for the partner picker (M10).
+// reloads it. Assign / reassign lists the free partners of the order's zone (D133).
 
 const failure = (err: unknown): string => {
   if (isApiError(err, 'STALE_VERSION'))
@@ -46,7 +47,7 @@ export function OrderDetailPage({
   id: string;
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   /** orders:status (moves, cancel) somewhere; the API decides per zone */
-  can: { status: boolean };
+  can: { status: boolean; assign: boolean };
 }) {
   const client = useApiClient();
   const detail = useOrderDetail(id);
@@ -55,6 +56,7 @@ export function OrderDetailPage({
   const [busy, setBusy] = useState(false);
   const [alert, setAlert] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const listPath = role === 'SUPER_ADMIN' ? '/super-admin/orders' : '/zone/orders';
 
   if (detail.isError)
@@ -148,10 +150,17 @@ export function OrderDetailPage({
                 : 'No action for you on this order.'}
             </p>
           )}
-          {acts.canAssign && o.status === 'READY' ? (
-            <p className="text-xs text-muted">
-              Assigning a delivery partner arrives with the Delivery Partners module.
-            </p>
+          {can.assign && acts.canAssign ? (
+            <div>
+              <Button
+                variant={o.status === 'READY' ? 'primary' : 'secondary'}
+                disabled={busy}
+                onClick={() => setAssigning(true)}
+              >
+                <Bike aria-hidden className="size-4" />{' '}
+                {o.deliveryPartnerId ? 'Reassign partner' : 'Assign partner'}
+              </Button>
+            </div>
           ) : null}
           {o.cancelReason ? <p className="text-sm">Cancel reason: “{o.cancelReason}”</p> : null}
         </CardBody>
@@ -294,6 +303,22 @@ export function OrderDetailPage({
         </CardBody>
       </Card>
 
+      {assigning ? (
+        <AssignPartnerDialog
+          order={{
+            id: o.id,
+            orderNo: o.orderNo,
+            zoneId: o.zoneId,
+            version: o.version,
+            deliveryPartnerId: o.deliveryPartnerId,
+          }}
+          onClose={() => setAssigning(false)}
+          onDone={async () => {
+            setAssigning(false);
+            await invalidate();
+          }}
+        />
+      ) : null}
       {cancelling ? (
         <CancelDialog
           order={{ id: o.id, orderNo: o.orderNo, version: o.version }}
