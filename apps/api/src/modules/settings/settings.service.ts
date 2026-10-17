@@ -1,6 +1,7 @@
 import {
   AUDIT_ACTIONS,
   buildCursorPage,
+  deliveryMaxConcurrentOrdersSchema,
   effectiveSetting,
   refundLimitsSchema,
   renderOrderNumber,
@@ -407,5 +408,24 @@ export class SettingsReader {
       out.set(z, own.success ? own.data : platform);
     }
     return out;
+  }
+
+  /** D121: orders one delivery partner may carry at once in a zone (zone value ?? platform ?? default 1). */
+  async maxConcurrentOrders(zoneId: string): Promise<number> {
+    const key = 'delivery.maxConcurrentOrders';
+    const def = settingDef(key);
+    if (!def) throw new Error(`${key} is not registered`);
+    const platform = await this.cached(`platform:${key}`, async () => {
+      const row = (await this.deps.repo.platformValues([key])).get(key);
+      const parsed = deliveryMaxConcurrentOrdersSchema.safeParse(row?.value);
+      return parsed.success
+        ? parsed.data.perPartner
+        : (def.default as { perPartner: number }).perPartner;
+    });
+    const zones = await this.cached(`zones:${key}:${zoneId}`, () =>
+      this.deps.repo.zoneValues(key, [zoneId]),
+    );
+    const own = deliveryMaxConcurrentOrdersSchema.safeParse(zones.get(zoneId));
+    return own.success ? own.data.perPartner : platform;
   }
 }

@@ -144,6 +144,12 @@ export const orderNumberFormatSchema = z
   })
   .strict();
 
+/** D121: orders one delivery partner may carry at once (1 = one at a time); checked when an order is assigned. */
+export const MAX_ORDERS_PER_PARTNER = 5;
+export const deliveryMaxConcurrentOrdersSchema = z
+  .object({ perPartner: z.number().int().min(1).max(MAX_ORDERS_PER_PARTNER) })
+  .strict();
+
 /** D68: the provider and its non-secret identifiers; the API key stays in the server environment. */
 export const SMS_PROVIDER_CHOICES = ['MSG91', 'NONE'] as const;
 export const smsProviderSchema = z
@@ -299,6 +305,20 @@ export const SETTINGS: readonly SettingDef[] = [
     schema: orderNumberFormatSchema,
     default: { template: 'ZO-{ZONE}-{SEQ}' },
     zoneOverride: false,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: pending('Orders'),
+  },
+  {
+    key: 'delivery.maxConcurrentOrders',
+    group: 'orders',
+    label: 'Orders per delivery partner',
+    description:
+      'How many orders one delivery partner may carry at the same time. 1 means one order at a time; raise it to allow batching.',
+    schema: deliveryMaxConcurrentOrdersSchema,
+    default: { perPartner: 1 },
+    zoneOverride: true,
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
