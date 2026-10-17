@@ -151,3 +151,21 @@ describe('path parameters', () => {
     await expect(client.get('/audit-logs/{id}')).rejects.toThrow(/missing path parameter id/);
   });
 });
+
+describe('If-Match (order writes, doc 09)', () => {
+  it('sends the version as If-Match; nothing when absent', async () => {
+    const { calls, fn } = fakeFetch([
+      { status: 200, body: { id: 'o1', status: 'ACCEPTED', version: 5, deliveryPartnerId: null } },
+      { status: 200, body: {} },
+    ]);
+    const client = createApiClient({ fetch: fn });
+    await client.post('/orders/{id}/transition', {
+      params: { id: 'o1' },
+      ifMatch: 4,
+      body: { to: 'ACCEPTED' },
+    });
+    await client.get('/orders/{id}', { params: { id: 'o1' } });
+    expect((calls[0]?.init.headers as Record<string, string>)['If-Match']).toBe('4');
+    expect((calls[1]?.init.headers as Record<string, string>)['If-Match']).toBeUndefined();
+  });
+});
