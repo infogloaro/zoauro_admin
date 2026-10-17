@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { PageHeader } from '../../../components/shared/PageHeader';
+import { Pagination, pageFromParam } from '../../../components/shared/Pagination';
 import { StatCard } from '../../../components/shared/StatCard';
 import { Badge } from '../../../components/ui/badge';
 import { Button, buttonClass } from '../../../components/ui/button';
@@ -59,7 +60,7 @@ export function ZonalAdminsPage() {
   const status = isStatus(url.params.get('status'))
     ? (url.params.get('status') as MemberStatus)
     : undefined;
-  const page = Math.max(1, Number(url.params.get('page') ?? '1') || 1);
+  const page = pageFromParam(url.params.get('page'));
   const [search, setSearch] = useState(q ?? '');
   const [creating, setCreating] = useState(url.params.get('new') === '1');
   const [editing, setEditing] = useState<ZonalAdmin | null>(null);
@@ -76,7 +77,6 @@ export function ZonalAdminsPage() {
 
   const rows = list.data?.data ?? [];
   const total = list.data?.meta.total ?? 0;
-  const pages = Math.max(1, Math.ceil(total / MEMBER_PAGE_SIZE));
   const filtered = Boolean(q || status);
 
   return (
@@ -304,30 +304,13 @@ export function ZonalAdminsPage() {
                 ))}
               </tbody>
             </table>
-            <div className="flex items-center justify-between border-t border-line px-4 py-3 text-xs text-muted">
-              <span>
-                {total.toLocaleString('en-IN')} account{total === 1 ? '' : 's'} · page {page} of{' '}
-                {pages}
-              </span>
-              <span className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={page <= 1}
-                  onClick={() => url.patch({ page: String(page - 1) })}
-                >
-                  Previous
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={page >= pages}
-                  onClick={() => url.patch({ page: String(page + 1) })}
-                >
-                  Next
-                </Button>
-              </span>
-            </div>
+            <Pagination
+              page={page}
+              total={total}
+              pageSize={MEMBER_PAGE_SIZE}
+              noun={['account', 'accounts']}
+              onPage={(p) => url.patch({ page: p > 1 ? String(p) : null })}
+            />
           </div>
         )}
       </Card>
