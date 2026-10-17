@@ -15,6 +15,18 @@ import { TEST_BINDINGS, TEST_SPEC } from './support/test-spec';
 let env: AuthTestEnv;
 let fixtures: MatrixFixtures;
 
+/** GET /restaurants and /homemakers: the zones the listed vendors are in ('ALL' = all three fixture zones). */
+const vendorZones = (body: unknown): string[] | 'ALL' => {
+  const ids = [
+    ...new Set(
+      (body as { data: { zone: { id: string } | null }[] }).data.flatMap((v) =>
+        v.zone ? [v.zone.id] : [],
+      ),
+    ),
+  ];
+  return Object.values(fixtures.zones).every((z) => ids.includes(z)) ? 'ALL' : ids;
+};
+
 beforeAll(async () => {
   env = await createAuthTestEnv();
   fixtures = await prepareFixtures(env);
@@ -55,6 +67,31 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         // the placeholder order is in zone A: an actor without orders:view there gets 404, which is the scope rule
         // (out-of-scope object = not found, tested per actor in tests/orders/orders-api.test.ts)
         getOrder: { ownObject: true },
+        // M06/M07: one restaurant and one homemaker per zone A, B, C (C is nobody's); any leak to a Zonal Admin shows C.
+        // Object routes use the zone A vendor: an actor without the module there gets 404 (the scope rule); the documents
+        // routes name a document that does not exist, so 404 NOT_FOUND passes (scope tests: tests/vendors/)
+        listRestaurants: { listedZones: vendorZones },
+        listHomemakers: { listedZones: vendorZones },
+        getRestaurant: { ownObject: true },
+        updateRestaurant: { ownObject: true },
+        deleteRestaurant: { ownObject: true },
+        setRestaurantStatus: { ownObject: true },
+        verifyRestaurant: { ownObject: true },
+        moveRestaurantZone: { ownObject: true },
+        revealRestaurantContact: { ownObject: true },
+        attachRestaurantDocument: { ownObject: true },
+        getRestaurantDocumentUrl: { ownObject: true },
+        verifyRestaurantDocument: { ownObject: true },
+        getHomemaker: { ownObject: true },
+        updateHomemaker: { ownObject: true },
+        deleteHomemaker: { ownObject: true },
+        setHomemakerStatus: { ownObject: true },
+        verifyHomemaker: { ownObject: true },
+        moveHomemakerZone: { ownObject: true },
+        revealHomemakerContact: { ownObject: true },
+        attachHomemakerDocument: { ownObject: true },
+        getHomemakerDocumentUrl: { ownObject: true },
+        verifyHomemakerDocument: { ownObject: true },
       },
     });
     publishReport('real-routes', report);
@@ -63,8 +100,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
     // 49 until P11 (auth, audit, zones) + 20 M03 access + 2 D92 zone services + 8 platform settings + 8 access
-    // requests and zone scope (doc 59) + 5 orders (M11)
-    expect(report.coveredRoutes).toHaveLength(92);
+    // requests and zone scope (doc 59) + 5 orders (M11) + 24 restaurants and homemakers + 2 uploads (M06, M07, SA-2.1)
+    expect(report.coveredRoutes).toHaveLength(118);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

@@ -201,6 +201,23 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     );
   }
 
+  // M06/M07 vendors: the orders block above made one restaurant per zone (the zone A one has the placeholder id); one
+  // homemaker per zone likewise, so GET /homemakers shows which zones an actor reached and /homemakers/{id} is in zone A.
+  // Zone A members may reveal contacts (D123), so POST /{module}/{id}/reveal answers 200 to whoever may view zone A;
+  // the reveal flag itself is tested in tests/vendors/vendors-api.test.ts.
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000e0${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO homemakers (id, zone_id, name, status, verification_status, source, updated_at)
+       VALUES ($1, $2, 'Matrix home kitchen', 'ACTIVE', 'VERIFIED', 'ADMIN', now())`,
+      [id, zones[z]],
+    );
+  }
+  await env.db.owner.query(
+    `UPDATE admin_zone_assignments SET can_reveal = true WHERE zone_id = $1`,
+    [zones.A],
+  );
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,

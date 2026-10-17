@@ -153,3 +153,10 @@ export const vendorDocumentUrlSchema = z.object({
   expiresInSec: z.number().int(),
 });
 export type VendorDocumentUrl = z.infer<typeof vendorDocumentUrlSchema>;
+
+/** POST /{module}/{id}/reveal (D123): the unmasked contact, audited and rate-limited. */
+export const vendorContactSchema = z.object({
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+});
+export type VendorContact = z.infer<typeof vendorContactSchema>;

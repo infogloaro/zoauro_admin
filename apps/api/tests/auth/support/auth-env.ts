@@ -12,6 +12,7 @@ import {
 import { DEFAULT_AUTH_CONFIG, type AuthConfig } from '../../../src/lib/auth/config';
 import { hashPassword, issuePreSessionCsrf } from '../../../src/lib/auth/crypto';
 import { authContextMiddleware, type AccessService } from '../../../src/lib/authz';
+import { RedisRateLimiter } from '../../../src/lib/rate-limiter';
 import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
 import {
   createAccessModule,
@@ -22,6 +23,9 @@ import {
 import { createAuditModule } from '../../../src/modules/audit';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
+import { createUploadsModule } from '../../../src/modules/uploads';
+import { createVendorsModule } from '../../../src/modules/vendors';
+import { createFakeStorage } from '../../uploads/fake-storage';
 import {
   createZonesModule,
   stubImpactSources,
@@ -127,6 +131,8 @@ export async function createAuthTestEnv() {
   const rawRedis = new Redis(redisUrl);
 
   let nowMs = Date.now();
+  // object storage for vendors and uploads (in memory; tests put files with storage.put)
+  const storage = createFakeStorage();
   const clock = {
     now: () => new Date(nowMs),
     advance: (ms: number) => {
@@ -278,6 +284,30 @@ export async function createAuthTestEnv() {
       clock: clock.now,
       refundCaps,
     });
+    // as server.ts: vendors and uploads ask each other (who owns a key; is a key uploaded)
+    let uploadsGate: ReturnType<typeof createUploadsModule>['service'] | undefined;
+    const vendors = createVendorsModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      requireReauth: auth.requireReauth,
+      storage,
+      uploads: {
+        assertUploaded: (ctx, fileKey) => {
+          if (!uploadsGate) throw new Error('uploads module not ready');
+          return uploadsGate.assertUploaded(ctx, fileKey);
+        },
+      },
+      services: zones.service,
+      checklist: settings.reader,
+      limiter: new RedisRateLimiter(appRedis),
+      clock: clock.now,
+    });
+    const uploads = createUploadsModule({
+      storage,
+      entities: vendors.entities,
+      appOrigin: APP_ORIGIN,
+    });
+    uploadsGate = uploads.service;
     const moduleRouters = [
       auth.router,
       createAuditModule({ prisma }).router,
@@ -290,6 +320,8 @@ export async function createAuthTestEnv() {
         maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
         clock: clock.now,
       }).router,
+      vendors.router,
+      uploads.router,
     ];
     const extraRouters = [
       ...(extra.routers ?? []),
@@ -647,6 +679,7 @@ export async function createAuthTestEnv() {
     otpMails,
     mfaChanges,
     accessMails,
+    storage,
     notices,
     db,
     createUser,
