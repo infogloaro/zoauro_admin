@@ -32,6 +32,7 @@
 | PAYMENT_WEBHOOK_SECRET | yes | |
 | INTEGRATION_CLOCK_SKEW_SEC | no | default 300 |
 | INTEGRATION_WEBHOOK_TIMEOUT_MS | no | default 10000 |
+| INTEGRATION_WEBHOOK_DELIVERY | no | `dev` (default: logs the event id and type, marks the delivery delivered, sends nothing; D129, while D18 is open) \| `http` (signed POST per doc 43) |
 | INTEGRATION_FEED_RETENTION_DAYS | no | default 14 |
 | INTEGRATION_LOG_RETENTION_DAYS | no | default 90 |
 | ONLINE_PAYMENT_EXPIRY_MIN | no | default 15 (D52) |
