@@ -304,7 +304,7 @@ export async function createAuthTestEnv() {
     });
     const uploads = createUploadsModule({
       storage,
-      entities: vendors.entities,
+      entities: [vendors.entities],
       appOrigin: APP_ORIGIN,
     });
     uploadsGate.service = uploads.service;

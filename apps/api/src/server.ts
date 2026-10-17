@@ -118,7 +118,7 @@ const vendors = createVendorsModule({
 });
 const uploads = createUploadsModule({
   storage,
-  entities: vendors.entities,
+  entities: [vendors.entities],
   appOrigin: new URL(env.APP_URL).origin,
 });
 uploadsGate.service = uploads.service;

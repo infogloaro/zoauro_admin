@@ -27,9 +27,12 @@ import {
 //            allow-listed, and its first bytes match the type. Every caller of a fileKey (confirm, document attach)
 //            passes this gate, so a never-uploaded or disguised file never becomes a vendor_documents row.
 
-/** Who owns an entity id: today a restaurant or a homemaker (menu images belong to the vendor too). */
+/** The module that owns an upload: a vendor (documents, menu images) or a delivery partner (D131). */
+export type UploadOwnerModule = VendorModule | 'delivery';
+
+/** Who owns an entity id (unscoped, live rows only); null = not this resolver's entity. */
 export interface UploadEntities {
-  ownerOf(entityId: string): Promise<{ module: VendorModule; zoneId: string | null } | null>;
+  ownerOf(entityId: string): Promise<{ module: UploadOwnerModule; zoneId: string | null } | null>;
 }
 
 const notFound = () => new AppError('NOT_FOUND', 'Not found');
@@ -38,7 +41,23 @@ const invalid = (field: string, issue: string, message: string) =>
 const sizeIssue = (max: number) => `at most ${Math.round(max / 1024 / 1024)} MB`;
 
 export class UploadsService {
-  constructor(private readonly deps: { storage: ObjectStorage; entities: UploadEntities }) {}
+  constructor(
+    private readonly deps: {
+      storage: ObjectStorage;
+      /** asked in order; the first that knows the id answers (vendors, then partners) */
+      entities: readonly UploadEntities[];
+    },
+  ) {}
+
+  private async ownerOf(
+    entityId: string,
+  ): Promise<{ module: UploadOwnerModule; zoneId: string | null } | null> {
+    for (const e of this.deps.entities) {
+      const owner = await e.ownerOf(entityId);
+      if (owner) return owner;
+    }
+    return null;
+  }
 
   /**
    * The entity must exist in `zoneId` and the caller must hold one of `keys` there. A zone the caller is not assigned to
@@ -48,20 +67,18 @@ export class UploadsService {
     ctx: AuthContext,
     entityId: string,
     zoneId: string,
-    keys: (module: VendorModule) => PermissionKey[],
+    keys: (module: UploadOwnerModule) => PermissionKey[],
   ): Promise<void> {
-    const owner = await this.deps.entities.ownerOf(entityId);
+    const owner = await this.ownerOf(entityId);
     if (!owner || owner.zoneId !== zoneId) throw notFound();
+    if (!ctx.isSuperAdmin && !ctx.assignedZoneIds.includes(zoneId)) throw notFound();
+    const needed = keys(owner.module); // may refuse a purpose that does not fit the entity (422)
     if (ctx.isSuperAdmin) return;
-    if (!ctx.assignedZoneIds.includes(zoneId)) throw notFound();
-    if (!keys(owner.module).some((k) => can(ctx, k, zoneId)))
+    if (!needed.some((k) => can(ctx, k, zoneId)))
       throw new AppError('FORBIDDEN', 'You do not have permission to do this');
   }
 
   async presign(ctx: AuthContext, input: UploadPresignInput): Promise<UploadPresignResponse> {
-    // partner documents arrive with the delivery-partner module: without its table the entity cannot be checked
-    if (input.purpose === 'PARTNER_DOC')
-      throw invalid('purpose', 'not_available', 'Partner documents are not available yet');
     const contentType = normalizeContentType(input.contentType);
     const max = maxBytesFor(contentType);
     if (max === null)
@@ -71,9 +88,13 @@ export class UploadsService {
         'Unsupported file type',
       );
     if (input.sizeBytes > max) throw invalid('sizeBytes', sizeIssue(max), 'File is too large');
-    await this.authorize(ctx, input.entityId, input.zoneId, (m) => [
-      input.purpose === 'MENU_IMAGE' ? 'menu:edit' : (`${m}:edit` as PermissionKey),
-    ]);
+    await this.authorize(ctx, input.entityId, input.zoneId, (m) => {
+      // PARTNER_DOC is for a delivery partner (D131), VENDOR_DOC and MENU_IMAGE for a vendor
+      if ((input.purpose === 'PARTNER_DOC') !== (m === 'delivery'))
+        throw invalid('purpose', 'wrong_entity', 'This purpose does not fit the entity');
+      if (m === 'delivery') return ['delivery:edit'];
+      return [input.purpose === 'MENU_IMAGE' ? 'menu:edit' : (`${m}:edit` as PermissionKey)];
+    });
     const fileKey = fileKeyFor(input.zoneId, input.entityId, uuidv7(), contentType);
     const uploadUrl = await this.deps.storage.presignUpload(fileKey, contentType);
     return { uploadUrl, fileKey, expiresInSec: PRESIGN_UPLOAD_TTL_SEC };
@@ -91,10 +112,9 @@ export class UploadsService {
   ): Promise<{ sizeBytes: number; contentType: string }> {
     const parsed = parseFileKey(fileKey);
     if (!parsed) throw invalid('fileKey', 'invalid', 'Invalid file key');
-    await this.authorize(ctx, parsed.entityId, parsed.zoneId, (m) => [
-      `${m}:edit` as PermissionKey,
-      'menu:edit',
-    ]);
+    await this.authorize(ctx, parsed.entityId, parsed.zoneId, (m) =>
+      m === 'delivery' ? ['delivery:edit'] : [`${m}:edit` as PermissionKey, 'menu:edit'],
+    );
     const head = await this.deps.storage.head(fileKey);
     if (!head) throw invalid('fileKey', 'not_uploaded', 'Upload the file before continuing');
     const contentType = normalizeContentType(head.contentType);
