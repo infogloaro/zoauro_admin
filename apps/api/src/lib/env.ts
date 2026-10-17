@@ -84,6 +84,8 @@ function buildSchema(entry: EntryPoint) {
       PAYMENT_WEBHOOK_SECRET: z.string().min(1).optional(),
       INTEGRATION_CLOCK_SKEW_SEC: z.coerce.number().int().positive().default(300),
       INTEGRATION_WEBHOOK_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+      // Outbound webhooks (D129 item 4): 'dev' logs and marks delivered while D18 is open; 'http' sends signed requests
+      INTEGRATION_WEBHOOK_DELIVERY: z.enum(['dev', 'http']).default('dev'),
       INTEGRATION_FEED_RETENTION_DAYS: z.coerce.number().int().positive().default(14),
       INTEGRATION_LOG_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
       ONLINE_PAYMENT_EXPIRY_MIN: z.coerce.number().int().positive().default(15),
