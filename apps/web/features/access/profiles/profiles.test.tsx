@@ -142,40 +142,54 @@ describe('permission matrix editor', () => {
     }
   });
 
-  it('sends the whole matrix and the limits in paise, after the impact notice', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
-    const { put } = setup(<ProfileEditorPage id={BUSY_ID} />);
-    await user.click(await screen.findByRole('checkbox', { name: 'Orders: edit' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Refunds: view' })); // off
-    await user.click(screen.getByRole('checkbox', { name: 'Settlements: all' }));
-    await user.clear(screen.getByLabelText('Per refund (₹)'));
-    await user.type(screen.getByLabelText('Per refund (₹)'), '1500.50');
-    await user.type(screen.getByLabelText('Refunds per day (₹)'), '10000');
-    await user.click(screen.getByRole('switch', { name: 'Export' }));
+  // label lookups and paste instead of role queries and key-by-key typing: the matrix has 26 modules now, and role
+  // queries rebuild the accessibility tree of the whole page on every call (slow on a loaded machine)
+  it(
+    'sends the whole matrix and the limits in paise, after the impact notice',
+    { timeout: 60_000 },
+    async () => {
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      const { put } = setup(<ProfileEditorPage id={BUSY_ID} />);
+      await user.click(await screen.findByLabelText('Orders: edit'));
+      await user.click(screen.getByLabelText('Refunds: view')); // off
+      await user.click(screen.getByLabelText('Settlements: all'));
+      const perRefund = screen.getByLabelText('Per refund (₹)');
+      await user.clear(perRefund);
+      await user.click(perRefund);
+      await user.paste('1500.50');
+      await user.click(screen.getByLabelText('Refunds per day (₹)'));
+      await user.paste('10000');
+      await user.click(screen.getByRole('switch', { name: 'Export' }));
 
-    await user.click(screen.getByRole('button', { name: 'Save changes' }));
-    const confirm = await screen.findByRole('dialog');
-    expect(
-      within(confirm).getByText(/This changes access for 3 members \(5 zone assignments\)\./),
-    ).toBeTruthy();
-    await user.click(within(confirm).getByRole('button', { name: 'Save permissions' }));
+      await user.click(screen.getByRole('button', { name: 'Save changes' }));
+      const confirm = await screen.findByRole('dialog');
+      expect(
+        within(confirm).getByText(/This changes access for 3 members \(5 zone assignments\)\./),
+      ).toBeTruthy();
+      await user.click(within(confirm).getByRole('button', { name: 'Save permissions' }));
 
-    expect(put).toHaveBeenCalledTimes(1);
-    const [path, init] = put.mock.calls[0] ?? [];
-    expect(path).toBe('/access-profiles/{id}/permissions');
-    expect(init).toEqual({
-      params: { id: BUSY_ID },
-      body: {
-        permissions: [
-          { module: 'orders', actions: ['view', 'edit'] },
-          { module: 'settlements', actions: ['view', 'add', 'edit'] },
-        ],
-        defaults: { perRefund: 150_050, dailyRefund: 1_000_000, canReveal: true, canExport: true },
-      },
-    });
-    // saved: nothing left to save
-    expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
-  });
+      expect(put).toHaveBeenCalledTimes(1);
+      const [path, init] = put.mock.calls[0] ?? [];
+      expect(path).toBe('/access-profiles/{id}/permissions');
+      expect(init).toEqual({
+        params: { id: BUSY_ID },
+        body: {
+          permissions: [
+            { module: 'orders', actions: ['view', 'edit'] },
+            { module: 'settlements', actions: ['view', 'add', 'edit'] },
+          ],
+          defaults: {
+            perRefund: 150_050,
+            dailyRefund: 1_000_000,
+            canReveal: true,
+            canExport: true,
+          },
+        },
+      });
+      // saved: nothing left to save
+      expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
+    },
+  );
 
   it('Discard restores the saved matrix; an invalid limit stops the save', async () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });

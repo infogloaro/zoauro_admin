@@ -236,18 +236,10 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'services',
     icon: 'store',
     description:
-      'Restaurant records, documents, verification (separate from status), opening hours, and each restaurant’s own menu.',
-    status: 'coming-soon',
-    zonal: { permission: 'restaurants' },
-    blueprint: {
-      phase: 'Phase 1',
-      roadmap: ['R07'],
-      screens: [
-        'Restaurant list with zone, status, verification and rating',
-        'Restaurant detail tabs: Overview, Documents, Food Menu, Food Item Requests, Orders, Operating Hours, Activity',
-      ],
-      rules: ['Commission is view-only for Zonal Admins', 'Contact details are masked in lists'],
-    },
+      'Restaurant records, documents, verification (separate from status), opening hours, zone moves.',
+    status: 'live',
+    superAdminHref: '/super-admin/restaurants',
+    zonal: { href: '/zone/restaurants', permission: 'restaurants' },
   },
   {
     id: 'M07',
@@ -256,16 +248,10 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'services',
     icon: 'home',
     description:
-      'Home cooks (homemakers): food category, experience, availability, daily capacity and rating.',
-    status: 'coming-soon',
-    zonal: { permission: 'homemakers' },
-    blueprint: {
-      phase: 'Phase 1',
-      screens: ['Homemaker list', 'Homemaker detail with menu, capacity, documents and activity'],
-      rules: [
-        'Homemakers are a separate module from Restaurants; an item belongs to exactly one vendor',
-      ],
-    },
+      'Home cooks (homemakers): food category, experience, availability, daily capacity, documents and verification.',
+    status: 'live',
+    superAdminHref: '/super-admin/homemakers',
+    zonal: { href: '/zone/homemakers', permission: 'homemakers' },
   },
   {
     id: 'NEW-HOTEL',
