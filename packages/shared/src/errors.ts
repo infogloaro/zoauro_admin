@@ -24,6 +24,10 @@ export const ERROR_STATUS = {
   STALE_VERSION: 409,
   // doc 53 section 5 (zones)
   ...ZONE_ERROR_STATUS,
+  /** a category with live menu items cannot be deleted (SA-2.4) */
+  CATEGORY_IN_USE: 409,
+  /** D127: the stay overlaps total_rooms blocking bookings on at least one night */
+  NO_ROOMS_AVAILABLE: 409,
   INTERNAL: 500,
 } as const;
 

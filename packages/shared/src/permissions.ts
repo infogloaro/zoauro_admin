@@ -32,6 +32,10 @@ export const PERMISSION_MODULES = [
   'settings',
   'integrations',
   'audit',
+  // D118: Hotel Room Booking (hotels, room bookings, dining reservations)
+  'hotels',
+  'bookings',
+  'dining',
 ] as const;
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
 
@@ -72,6 +76,11 @@ export const GRANTABLE_ACTIONS: Readonly<Record<PermissionModule, readonly Permi
   settings: NONE,
   integrations: NONE,
   audit: NONE,
+  // D118 (owner, 2026-10-17): hotels like a vendor module (commission stays Super Admin only, field rule); bookings and
+  // dining reservations are created and moved along their state machine, never edited or deleted
+  hotels: ALL_ACTIONS,
+  bookings: ['view', 'add', 'status'],
+  dining: ['view', 'add', 'status'],
 };
 
 export const permissionKey = (module: PermissionModule, action: PermissionAction): PermissionKey =>

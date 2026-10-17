@@ -19,6 +19,7 @@ export const AUDIT_MODULES = [
   'notifications',
   'audit',
   'system',
+  'hotels', // D118
 ] as const;
 export type AuditModule = (typeof AUDIT_MODULES)[number];
 export type AuditSensitivity = 'NORMAL' | 'HIGH';
@@ -122,6 +123,27 @@ export const AUDIT_ACTIONS = {
   'menu_item.deleted': a('menu', 'Deleted menu item'),
   'menu_item.admin_disabled': a('menu', 'Disabled menu item (admin)'),
   'menu_item.bulk_updated': a('menu', 'Bulk updated menu items'),
+  // D119, D126: admin re-enable; R09 vendor change requests; categories (SA-2.4)
+  'menu_item.admin_enabled': a('menu', 'Enabled menu item (admin)'),
+  'menu_item.change_approved': a('menu', 'Approved vendor menu change'),
+  'menu_item.change_rejected': a('menu', 'Rejected vendor menu change'),
+  'category.created': a('menu', 'Created category'),
+  'category.updated': a('menu', 'Updated category'),
+  'category.deleted': a('menu', 'Deleted category'),
+  // hotels (D118)
+  'hotel.created': a('hotels', 'Created hotel'),
+  'hotel.updated': a('hotels', 'Updated hotel'),
+  'hotel.deleted': a('hotels', 'Deleted hotel'),
+  'hotel.activated': a('hotels', 'Activated hotel', H),
+  'hotel.deactivated': a('hotels', 'Deactivated hotel', H),
+  'hotel.suspended': a('hotels', 'Suspended hotel', H),
+  'hotel.verified': a('hotels', 'Verified hotel', H),
+  'hotel.rejected': a('hotels', 'Rejected hotel', H),
+  'hotel.commission_changed': a('hotels', 'Changed commission', H),
+  'room_booking.created': a('hotels', 'Created room booking'),
+  'room_booking.status_changed': a('hotels', 'Changed room booking status'),
+  'dining_reservation.created': a('hotels', 'Created dining reservation'),
+  'dining_reservation.status_changed': a('hotels', 'Changed dining reservation status'),
   // customers
   'customer.created': a('customers', 'Created customer'),
   'customer.updated': a('customers', 'Updated customer'),
@@ -136,6 +158,15 @@ export const AUDIT_ACTIONS = {
   'partner.suspended': a('delivery', 'Suspended delivery partner', H),
   'partner.force_offline': a('delivery', 'Forced partner offline', H),
   'partner.document_viewed': a('delivery', 'Viewed document', H),
+  // D131: partner routes mirror vendors
+  'partner.activated': a('delivery', 'Activated delivery partner', H),
+  'partner.deactivated': a('delivery', 'Deactivated delivery partner', H),
+  'partner.deleted': a('delivery', 'Deleted delivery partner', H),
+  'partner.zone_moved': a('delivery', 'Moved delivery partner to another zone', H),
+  'partner.document_added': a('delivery', 'Added partner document'),
+  'partner.document_verified': a('delivery', 'Verified partner document'),
+  'partner.document_rejected': a('delivery', 'Rejected partner document'),
+  'partner.contact_revealed': a('delivery', 'Revealed partner contact', H),
   // orders
   'order.cancelled_by_admin': a('orders', 'Cancelled order (admin)'),
   'order.accepted_on_behalf': a('orders', 'Accepted order on vendor behalf'),
@@ -192,12 +223,17 @@ export const ZONE_REQUIRED_ENTITY_TYPES: ReadonlySet<string> = new Set([
   'order',
   'refund',
   'cod_settlement',
+  'hotel',
+  'room_booking',
+  'dining_reservation',
 ]);
 /** Zone-related but the zone depends on context (e.g. customer): `zoneId` must be passed explicitly, `null` allowed. */
 export const ZONE_EXPLICIT_ENTITY_TYPES: ReadonlySet<string> = new Set([
   'customer',
   'payout',
   'payment',
+  // a category is global (null) or of one zone
+  'category',
 ]);
 
 /** Modules a Zonal Admin can never read through the audit API (doc 50 §2.2). `admins` added as defence in depth. */

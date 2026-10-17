@@ -41,6 +41,8 @@ const ERROR_DESCRIPTION: Record<ErrorCode, string> = {
   ZONE_SERVICE_DISABLED: 'The service is switched off in this zone (error.meta.service, D92)',
   REASON_REQUIRED: 'A reason is required',
   ZONE_HAS_HISTORY: 'The zone has history and cannot be deleted (error.meta.counts)',
+  CATEGORY_IN_USE: 'The category still has live menu items',
+  NO_ROOMS_AVAILABLE: 'No room is free for every night of the stay (D127)',
   INTERNAL: 'Server error',
 };
 

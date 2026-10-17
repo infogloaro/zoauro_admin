@@ -66,6 +66,8 @@
                   "REASON_REQUIRED",
                   "ZONE_HAS_HISTORY",
                   "ZONE_SERVICE_DISABLED",
+                  "CATEGORY_IN_USE",
+                  "NO_ROOMS_AVAILABLE",
                   "INTERNAL"
                 ]
               },
@@ -3649,7 +3651,22 @@
                                         "audit:add",
                                         "audit:edit",
                                         "audit:delete",
-                                        "audit:status"
+                                        "audit:status",
+                                        "hotels:view",
+                                        "hotels:add",
+                                        "hotels:edit",
+                                        "hotels:delete",
+                                        "hotels:status",
+                                        "bookings:view",
+                                        "bookings:add",
+                                        "bookings:edit",
+                                        "bookings:delete",
+                                        "bookings:status",
+                                        "dining:view",
+                                        "dining:add",
+                                        "dining:edit",
+                                        "dining:delete",
+                                        "dining:status"
                                       ]
                                     }
                                   },
@@ -3869,7 +3886,8 @@
                 "integrations",
                 "notifications",
                 "audit",
-                "system"
+                "system",
+                "hotels"
               ]
             },
             "required": false,
@@ -4246,7 +4264,8 @@
                           "integrations",
                           "notifications",
                           "audit",
-                          "system"
+                          "system",
+                          "hotels"
                         ]
                       }
                     },
@@ -4279,7 +4298,8 @@
                               "integrations",
                               "notifications",
                               "audit",
-                              "system"
+                              "system",
+                              "hotels"
                             ]
                           },
                           "label": {
@@ -10700,6 +10720,9 @@
                               "settings",
                               "integrations",
                               "audit",
+                              "hotels",
+                              "bookings",
+                              "dining",
                               null
                             ]
                           },
@@ -10842,7 +10865,10 @@
                                   "support",
                                   "settings",
                                   "integrations",
-                                  "audit"
+                                  "audit",
+                                  "hotels",
+                                  "bookings",
+                                  "dining"
                                 ]
                               },
                               "action": {
@@ -10984,7 +11010,10 @@
                           "support",
                           "settings",
                           "integrations",
-                          "audit"
+                          "audit",
+                          "hotels",
+                          "bookings",
+                          "dining"
                         ]
                       },
                       "action": {
@@ -11114,6 +11143,9 @@
                         "settings",
                         "integrations",
                         "audit",
+                        "hotels",
+                        "bookings",
+                        "dining",
                         null
                       ]
                     },
@@ -11374,6 +11406,9 @@
                         "settings",
                         "integrations",
                         "audit",
+                        "hotels",
+                        "bookings",
+                        "dining",
                         null
                       ]
                     },
@@ -11681,6 +11716,9 @@
                               "settings",
                               "integrations",
                               "audit",
+                              "hotels",
+                              "bookings",
+                              "dining",
                               null
                             ]
                           },
@@ -11958,6 +11996,9 @@
                         "settings",
                         "integrations",
                         "audit",
+                        "hotels",
+                        "bookings",
+                        "dining",
                         null
                       ]
                     },
@@ -12236,6 +12277,9 @@
                         "settings",
                         "integrations",
                         "audit",
+                        "hotels",
+                        "bookings",
+                        "dining",
                         null
                       ]
                     },
@@ -12525,6 +12569,9 @@
                         "settings",
                         "integrations",
                         "audit",
+                        "hotels",
+                        "bookings",
+                        "dining",
                         null
                       ]
                     },
@@ -12965,7 +13012,10 @@
                               "support",
                               "settings",
                               "integrations",
-                              "audit"
+                              "audit",
+                              "hotels",
+                              "bookings",
+                              "dining"
                             ]
                           },
                           "action": {
@@ -13176,7 +13226,22 @@
                           "audit:add",
                           "audit:edit",
                           "audit:delete",
-                          "audit:status"
+                          "audit:status",
+                          "hotels:view",
+                          "hotels:add",
+                          "hotels:edit",
+                          "hotels:delete",
+                          "hotels:status",
+                          "bookings:view",
+                          "bookings:add",
+                          "bookings:edit",
+                          "bookings:delete",
+                          "bookings:status",
+                          "dining:view",
+                          "dining:add",
+                          "dining:edit",
+                          "dining:delete",
+                          "dining:status"
                         ]
                       }
                     },
@@ -14767,7 +14832,10 @@
                                     "support",
                                     "settings",
                                     "integrations",
-                                    "audit"
+                                    "audit",
+                                    "hotels",
+                                    "bookings",
+                                    "dining"
                                   ]
                                 },
                                 "action": {
@@ -14978,7 +15046,22 @@
                                 "audit:add",
                                 "audit:edit",
                                 "audit:delete",
-                                "audit:status"
+                                "audit:status",
+                                "hotels:view",
+                                "hotels:add",
+                                "hotels:edit",
+                                "hotels:delete",
+                                "hotels:status",
+                                "bookings:view",
+                                "bookings:add",
+                                "bookings:edit",
+                                "bookings:delete",
+                                "bookings:status",
+                                "dining:view",
+                                "dining:add",
+                                "dining:edit",
+                                "dining:delete",
+                                "dining:status"
                               ]
                             }
                           },
@@ -15153,7 +15236,10 @@
                                   "support",
                                   "settings",
                                   "integrations",
-                                  "audit"
+                                  "audit",
+                                  "hotels",
+                                  "bookings",
+                                  "dining"
                                 ]
                               },
                               "action": {
@@ -15180,7 +15266,7 @@
                               "effect"
                             ]
                           },
-                          "maxItems": 115,
+                          "maxItems": 130,
                           "default": []
                         },
                         "limits": {
@@ -15359,7 +15445,10 @@
                                     "support",
                                     "settings",
                                     "integrations",
-                                    "audit"
+                                    "audit",
+                                    "hotels",
+                                    "bookings",
+                                    "dining"
                                   ]
                                 },
                                 "action": {
@@ -15570,7 +15659,22 @@
                                 "audit:add",
                                 "audit:edit",
                                 "audit:delete",
-                                "audit:status"
+                                "audit:status",
+                                "hotels:view",
+                                "hotels:add",
+                                "hotels:edit",
+                                "hotels:delete",
+                                "hotels:status",
+                                "bookings:view",
+                                "bookings:add",
+                                "bookings:edit",
+                                "bookings:delete",
+                                "bookings:status",
+                                "dining:view",
+                                "dining:add",
+                                "dining:edit",
+                                "dining:delete",
+                                "dining:status"
                               ]
                             }
                           },
@@ -15858,7 +15962,22 @@
                           "audit:add",
                           "audit:edit",
                           "audit:delete",
-                          "audit:status"
+                          "audit:status",
+                          "hotels:view",
+                          "hotels:add",
+                          "hotels:edit",
+                          "hotels:delete",
+                          "hotels:status",
+                          "bookings:view",
+                          "bookings:add",
+                          "bookings:edit",
+                          "bookings:delete",
+                          "bookings:status",
+                          "dining:view",
+                          "dining:add",
+                          "dining:edit",
+                          "dining:delete",
+                          "dining:status"
                         ]
                       }
                     },
@@ -15917,7 +16036,10 @@
                               "support",
                               "settings",
                               "integrations",
-                              "audit"
+                              "audit",
+                              "hotels",
+                              "bookings",
+                              "dining"
                             ]
                           },
                           "action": {
@@ -15988,7 +16110,10 @@
                           "support",
                           "settings",
                           "integrations",
-                          "audit"
+                          "audit",
+                          "hotels",
+                          "bookings",
+                          "dining"
                         ]
                       }
                     }
@@ -16567,7 +16692,10 @@
                             "support",
                             "settings",
                             "integrations",
-                            "audit"
+                            "audit",
+                            "hotels",
+                            "bookings",
+                            "dining"
                           ]
                         },
                         "actions": {
@@ -16590,7 +16718,7 @@
                         "actions"
                       ]
                     },
-                    "maxItems": 23,
+                    "maxItems": 26,
                     "default": []
                   }
                 },
@@ -16701,7 +16829,10 @@
                               "support",
                               "settings",
                               "integrations",
-                              "audit"
+                              "audit",
+                              "hotels",
+                              "bookings",
+                              "dining"
                             ]
                           },
                           "actions": {
@@ -16926,7 +17057,10 @@
                               "support",
                               "settings",
                               "integrations",
-                              "audit"
+                              "audit",
+                              "hotels",
+                              "bookings",
+                              "dining"
                             ]
                           },
                           "actions": {
@@ -17160,7 +17294,10 @@
                               "support",
                               "settings",
                               "integrations",
-                              "audit"
+                              "audit",
+                              "hotels",
+                              "bookings",
+                              "dining"
                             ]
                           },
                           "actions": {
@@ -17417,7 +17554,10 @@
                               "support",
                               "settings",
                               "integrations",
-                              "audit"
+                              "audit",
+                              "hotels",
+                              "bookings",
+                              "dining"
                             ]
                           },
                           "actions": {
@@ -17591,7 +17731,10 @@
                             "support",
                             "settings",
                             "integrations",
-                            "audit"
+                            "audit",
+                            "hotels",
+                            "bookings",
+                            "dining"
                           ]
                         },
                         "actions": {
@@ -17614,7 +17757,7 @@
                         "actions"
                       ]
                     },
-                    "maxItems": 23
+                    "maxItems": 26
                   },
                   "defaults": {
                     "type": "object",
@@ -17701,7 +17844,10 @@
                               "support",
                               "settings",
                               "integrations",
-                              "audit"
+                              "audit",
+                              "hotels",
+                              "bookings",
+                              "dining"
                             ]
                           },
                           "actions": {
