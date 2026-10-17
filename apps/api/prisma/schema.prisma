@@ -311,6 +311,7 @@ model User {
   accessRequests                AccessRequest[]         @relation("AccessRequestRequester")
   accessRequestsDecided         AccessRequest[]         @relation("AccessRequestDecidedBy")
   hotelsVerified                Hotel[]                 @relation("HotelVerifier")
+  partnersVerified              DeliveryPartner[]       @relation("PartnerVerifier")
   menuChangesDecided            MenuItemChangeRequest[] @relation("MenuChangeDecider")
 
   @@index([roleId])
@@ -934,6 +935,13 @@ model DeliveryPartner {
   status               PartnerStatus        @default(PENDING_VERIFICATION)
   isOnline             Boolean              @default(false) @map("is_online")
   verifiedAt           DateTime?            @map("verified_at") @db.Timestamptz
+  // D130: verification separate from status, like vendors (doc 10 section 4); the R12 queue reads it
+  verificationStatus   VerificationStatus   @default(PENDING) @map("verification_status")
+  verificationNote     String?              @map("verification_note")
+  verifiedBy           String?              @map("verified_by") @db.Uuid
+  email                String?
+  // optimistic locking (D130)
+  version              Int                  @default(1)
   currentOrders        Int                  @default(0) @map("current_orders")
   cashInHand           Int                  @default(0) @map("cash_in_hand") // paise
   ratingAvg            Decimal?             @map("rating_avg") @db.Decimal(3, 2)
@@ -950,8 +958,10 @@ model DeliveryPartner {
   zone            Zone?            @relation(fields: [zoneId], references: [id], onDelete: Restrict)
   orders          Order[]
   cashSettlements CashSettlement[]
+  verifier        User?            @relation("PartnerVerifier", fields: [verifiedBy], references: [id], onDelete: Restrict)
 
   @@index([zoneId, status])
+  @@index([zoneId, verificationStatus])
   @@index([zoneId, createdAt(sort: Desc)])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "delivery_partners_name_trgm_idx")
   @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "delivery_partners_phone_trgm_idx")
