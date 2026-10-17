@@ -115,6 +115,16 @@ export const KEY_SPECS: Record<string, KeySpec> = {
       },
     ],
   },
+  'delivery.maxConcurrentOrders': {
+    fields: [
+      {
+        path: 'perPartner',
+        label: 'Orders a partner can carry at once',
+        kind: 'int',
+        hint: '1 = one order at a time; up to 5',
+      },
+    ],
+  },
   'sms.provider': {
     fields: [
       { path: 'provider', label: 'Provider', kind: 'select', options: SMS_PROVIDER_CHOICES },
