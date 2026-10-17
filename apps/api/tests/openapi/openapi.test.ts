@@ -171,6 +171,20 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /orders/{id}/transition',
         'POST /orders/{id}/cancel',
         'POST /orders/{id}/assign',
+        // M10 delivery partners + R12 (doc 09, D130–D133)
+        'GET /delivery-partners',
+        'POST /delivery-partners',
+        'GET /delivery-partners/{id}',
+        'PATCH /delivery-partners/{id}',
+        'DELETE /delivery-partners/{id}',
+        'POST /delivery-partners/{id}/status',
+        'POST /delivery-partners/{id}/verification',
+        'POST /delivery-partners/{id}/force-offline',
+        'POST /delivery-partners/{id}/move-zone',
+        'POST /delivery-partners/{id}/reveal',
+        'POST /delivery-partners/{id}/documents',
+        'GET /delivery-partners/{id}/documents/{docId}/url',
+        'POST /delivery-partners/{id}/documents/{docId}/verify',
       ].sort(),
     );
   });

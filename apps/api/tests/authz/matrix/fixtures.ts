@@ -213,6 +213,15 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
       [id, zones[z]],
     );
   }
+  // M10 delivery partners (D130–D133): one per zone A, B, C (C is nobody's), the zone A one with the placeholder id
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000d0${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO delivery_partners (id, zone_id, name, phone, status, verification_status, source, updated_at)
+       VALUES ($1, $2, 'Matrix rider', $3, 'VERIFIED', 'VERIFIED', 'ADMIN', now())`,
+      [id, zones[z], `+91970000000${i}`],
+    );
+  }
   await env.db.owner.query(
     `UPDATE admin_zone_assignments SET can_reveal = true WHERE zone_id = $1`,
     [zones.A],

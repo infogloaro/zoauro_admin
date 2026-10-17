@@ -150,11 +150,18 @@ export function partnerProblem(
       issue: 'PARTNER_OTHER_ZONE',
       message: 'The delivery partner works in another zone',
     };
-  if (!['VERIFIED', 'ACTIVE'].includes(partner.status) || !partner.verified_at)
+  // D133 / doc 44: assignable = VERIFIED and ACTIVE (verification is separate from the status, D130)
+  if (partner.verification_status !== 'VERIFIED')
     return {
       field: 'deliveryPartnerId',
       issue: 'PARTNER_NOT_VERIFIED',
       message: 'The delivery partner is not verified',
+    };
+  if (partner.status !== 'ACTIVE')
+    return {
+      field: 'deliveryPartnerId',
+      issue: 'PARTNER_NOT_ACTIVE',
+      message: 'The delivery partner is not active',
     };
   if (!partner.is_online || (partner.force_offline_until && partner.force_offline_until > now))
     return {

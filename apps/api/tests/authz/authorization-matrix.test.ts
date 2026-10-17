@@ -92,6 +92,19 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         attachHomemakerDocument: { ownObject: true },
         getHomemakerDocumentUrl: { ownObject: true },
         verifyHomemakerDocument: { ownObject: true },
+        // M10 delivery partners: one per zone A, B, C; object routes use the zone A one (scope: tests/delivery-partners/)
+        listPartners: { listedZones: vendorZones },
+        getPartner: { ownObject: true },
+        updatePartner: { ownObject: true },
+        deletePartner: { ownObject: true },
+        setPartnerStatus: { ownObject: true },
+        verifyPartner: { ownObject: true },
+        forcePartnerOffline: { ownObject: true },
+        movePartnerZone: { ownObject: true },
+        revealPartnerContact: { ownObject: true },
+        attachPartnerDocument: { ownObject: true },
+        getPartnerDocumentUrl: { ownObject: true },
+        verifyPartnerDocument: { ownObject: true },
       },
     });
     publishReport('real-routes', report);
@@ -100,8 +113,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
     // 49 until P11 (auth, audit, zones) + 20 M03 access + 2 D92 zone services + 8 platform settings + 8 access
-    // requests and zone scope (doc 59) + 5 orders (M11) + 24 restaurants and homemakers + 2 uploads (M06, M07, SA-2.1)
-    expect(report.coveredRoutes).toHaveLength(118);
+    // requests and zone scope (doc 59) + 5 orders (M11) + 24 restaurants and homemakers + 2 uploads (M06, M07, SA-2.1) + 13 delivery partners (M10)
+    expect(report.coveredRoutes).toHaveLength(131);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

@@ -14,6 +14,7 @@ const partner = (over: Partial<PartnerLockRow> = {}): PartnerLockRow => ({
   status: 'ACTIVE',
   is_online: true,
   verified_at: NOW,
+  verification_status: 'VERIFIED',
   current_orders: 0,
   deleted_at: null,
   force_offline_until: null,
@@ -25,7 +26,7 @@ const issue = (p: PartnerLockRow | null, cap = 1) =>
 describe('partnerProblem (doc 10 READY -> ASSIGNED, D121)', () => {
   it('passes a verified, online partner of the zone under the cap', () => {
     expect(issue(partner())).toBeNull();
-    expect(issue(partner({ status: 'VERIFIED', current_orders: 1 }), 2)).toBeNull();
+    expect(issue(partner({ current_orders: 1 }), 2)).toBeNull();
   });
 
   it('names the first failing guard', () => {
@@ -34,8 +35,11 @@ describe('partnerProblem (doc 10 READY -> ASSIGNED, D121)', () => {
     expect(issue(partner({ zone_id: '0192f1d2-0000-7000-8000-00000000000b' }))).toBe(
       'PARTNER_OTHER_ZONE',
     );
-    expect(issue(partner({ status: 'PENDING_VERIFICATION' }))).toBe('PARTNER_NOT_VERIFIED');
-    expect(issue(partner({ verified_at: null }))).toBe('PARTNER_NOT_VERIFIED');
+    // D133: verification and status are both required (D130 keeps them apart)
+    expect(issue(partner({ verification_status: 'PENDING' }))).toBe('PARTNER_NOT_VERIFIED');
+    expect(issue(partner({ verification_status: 'REJECTED' }))).toBe('PARTNER_NOT_VERIFIED');
+    expect(issue(partner({ status: 'VERIFIED' }))).toBe('PARTNER_NOT_ACTIVE');
+    expect(issue(partner({ status: 'SUSPENDED' }))).toBe('PARTNER_NOT_ACTIVE');
     expect(issue(partner({ is_online: false }))).toBe('PARTNER_OFFLINE');
     expect(issue(partner({ force_offline_until: new Date(NOW.getTime() + 60_000) }))).toBe(
       'PARTNER_OFFLINE',

@@ -15,8 +15,10 @@ export async function seedPartner(
   const id = uuidv7();
   const verified = opts.verified ?? true;
   await env.db.owner.query(
-    `INSERT INTO delivery_partners (id, zone_id, name, status, is_online, verified_at, current_orders, source, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'ADMIN', now())`,
+    `INSERT INTO delivery_partners (id, zone_id, name, status, verification_status, is_online, verified_at, current_orders,
+       source, updated_at)
+     VALUES ($1, $2, $3, $4, CASE WHEN $6::timestamptz IS NULL THEN 'PENDING' ELSE 'VERIFIED' END::"VerificationStatus",
+       $5, $6, $7, 'ADMIN', now())`,
     [
       id,
       zoneId,

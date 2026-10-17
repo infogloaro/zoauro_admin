@@ -24,6 +24,7 @@ import { createAuditModule } from '../../../src/modules/audit';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
 import { createUploadsModule } from '../../../src/modules/uploads';
+import { createPartnersModule } from '../../../src/modules/delivery-partners';
 import { createVendorsModule } from '../../../src/modules/vendors';
 import { createFakeStorage } from '../../uploads/fake-storage';
 import {
@@ -302,9 +303,25 @@ export async function createAuthTestEnv() {
       limiter: new RedisRateLimiter(appRedis),
       clock: clock.now,
     });
+    const partners = createPartnersModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      requireReauth: auth.requireReauth,
+      maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+      checklist: settings.reader,
+      storage,
+      uploads: {
+        assertUploaded: (ctx, fileKey) => {
+          if (!uploadsGate.service) throw new Error('uploads module not ready');
+          return uploadsGate.service.assertUploaded(ctx, fileKey);
+        },
+      },
+      limiter: new RedisRateLimiter(appRedis),
+      clock: clock.now,
+    });
     const uploads = createUploadsModule({
       storage,
-      entities: [vendors.entities],
+      entities: [vendors.entities, partners.entities],
       appOrigin: APP_ORIGIN,
     });
     uploadsGate.service = uploads.service;
@@ -321,6 +338,7 @@ export async function createAuthTestEnv() {
         clock: clock.now,
       }).router,
       vendors.router,
+      partners.router,
       uploads.router,
     ];
     const extraRouters = [

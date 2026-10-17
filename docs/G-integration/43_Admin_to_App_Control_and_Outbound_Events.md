@@ -49,7 +49,8 @@ Body envelope:
 | `vendor.updated` | vendor | admin-owned fields changed (commission %, zone, label) | refresh display |
 | `menu_item.admin_changed` | vendor, customer | admin disabled/enabled an item or changed a vendor-owned field in an override case | hide/unhide; refresh |
 | `partner.status_changed` | partner | verified, rejected, activated, suspended | suspended: sign out of duty |
-| `partner.force_offline` | partner | admin forces offline | set offline immediately; show reason |
+| `partner.force_offline` | partner | admin forces offline until a time (at most 30 days, D131) | set offline immediately; show reason |
+| `partner.updated` | partner | admin-owned fields changed (zone move, D131) | refresh display |
 | `customer.status_changed` | customer | blocked / unblocked | blocked: refuse ordering with a neutral message |
 | `settlement.confirmed` | partner | cash hand-over confirmed, with variance | show cleared cash-in-hand |
 | `zone.updated` | all | zone created/activated/deactivated, pincode range or delivery charge changed | update serviceability; deactivated zone: no new orders |

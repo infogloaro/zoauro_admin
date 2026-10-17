@@ -85,6 +85,7 @@ export interface PartnerLockRow {
   status: string;
   is_online: boolean;
   verified_at: Date | null;
+  verification_status: string;
   current_orders: number;
   deleted_at: Date | null;
   force_offline_until: Date | null;
@@ -231,7 +232,7 @@ export class OrdersRepository extends BaseRepository<Prisma.OrderWhereInput, Ord
   /** Row lock on the partner, so two assignments cannot both pass the cap (doc 10, TC-ORD-4). */
   async lockPartner(id: string): Promise<PartnerLockRow | null> {
     const rows = await this.db.$queryRaw<PartnerLockRow[]>`
-      SELECT id, name, zone_id, status::text AS status, is_online, verified_at, current_orders, deleted_at, force_offline_until
+      SELECT id, name, zone_id, status::text AS status, verification_status::text AS verification_status, is_online, verified_at, current_orders, deleted_at, force_offline_until
       FROM delivery_partners WHERE id = ${id}::uuid FOR UPDATE`;
     return rows[0] ?? null;
   }

@@ -16,6 +16,7 @@ export const OUTBOUND_EVENTS: Readonly<Record<string, readonly AppClientType[]>>
   'menu_item.admin_changed': ['VENDOR_APP', 'CUSTOMER_APP'],
   'partner.status_changed': ['PARTNER_APP'],
   'partner.force_offline': ['PARTNER_APP'],
+  'partner.updated': ['PARTNER_APP'],
   'customer.status_changed': ['CUSTOMER_APP'],
   'settlement.confirmed': ['PARTNER_APP'],
   'zone.updated': ['CUSTOMER_APP', 'VENDOR_APP', 'PARTNER_APP'],

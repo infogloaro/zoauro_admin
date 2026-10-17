@@ -29241,6 +29241,5045 @@
           "none": "upload-signing"
         }
       }
+    },
+    "/delivery-partners": {
+      "get": {
+        "operationId": "listPartners",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Partners in the zones the caller can view (?zoneId repeatable): filters status, verification (PENDING = the R12 Partner Requests queue), assignment, online, vehicleType, area, available (D133 picker: online, ACTIVE, VERIFIED, not forced offline) with currentOrders and the zone cap; counts per tab incl. On Duty. Contacts masked (D26)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING_VERIFICATION",
+                "VERIFIED",
+                "ACTIVE",
+                "INACTIVE",
+                "SUSPENDED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "VERIFIED",
+                "REJECTED"
+              ]
+            },
+            "required": false,
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ASSIGNED",
+                "UNASSIGNED"
+              ]
+            },
+            "required": false,
+            "name": "assignment",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "online",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            },
+            "required": false,
+            "name": "vehicleType",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "required": false,
+            "name": "area",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "available",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of partners",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "assignment": {
+                            "type": "string",
+                            "enum": [
+                              "ASSIGNED",
+                              "UNASSIGNED"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "phone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "email": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "vehicleType": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "vehicleNo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "area": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING_VERIFICATION",
+                              "VERIFIED",
+                              "ACTIVE",
+                              "INACTIVE",
+                              "SUSPENDED"
+                            ]
+                          },
+                          "verificationStatus": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "isOnline": {
+                            "type": "boolean"
+                          },
+                          "forceOfflineUntil": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "assignable": {
+                            "type": "boolean"
+                          },
+                          "currentOrders": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "maxConcurrentOrders": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "cashInHand": {
+                            "type": "integer"
+                          },
+                          "ratingAvg": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "deliveriesCount": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "APP",
+                              "ADMIN",
+                              "IMPORT"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "zone",
+                          "assignment",
+                          "name",
+                          "phone",
+                          "email",
+                          "vehicleType",
+                          "vehicleNo",
+                          "area",
+                          "status",
+                          "verificationStatus",
+                          "isOnline",
+                          "forceOfflineUntil",
+                          "assignable",
+                          "currentOrders",
+                          "maxConcurrentOrders",
+                          "cashInHand",
+                          "ratingAvg",
+                          "deliveriesCount",
+                          "source",
+                          "createdAt",
+                          "updatedAt",
+                          "version"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "counts": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "pendingVerification": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "active": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "inactive": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "suspended": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "rejected": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "onDuty": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "total",
+                            "pendingVerification",
+                            "active",
+                            "inactive",
+                            "suspended",
+                            "rejected",
+                            "onDuty"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "counts"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:view",
+          "zone": "query"
+        }
+      },
+      "post": {
+        "operationId": "createPartner",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Add a partner to one of the caller’s zones (R-ACC-6, R-DEL-2); phone unique (409 CONFLICT)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "zoneId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email"
+                  },
+                  "vehicleType": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "vehicleNo": {
+                    "type": "string"
+                  },
+                  "area": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "zoneId",
+                  "name",
+                  "phone"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "assignment": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "UNASSIGNED"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_VERIFICATION",
+                        "VERIFIED",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "isOnline": {
+                      "type": "boolean"
+                    },
+                    "forceOfflineUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "assignable": {
+                      "type": "boolean"
+                    },
+                    "currentOrders": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxConcurrentOrders": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cashInHand": {
+                      "type": "integer"
+                    },
+                    "ratingAvg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deliveriesCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN",
+                        "IMPORT"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "sourceUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "rejectionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "verifiedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "docType",
+                          "status",
+                          "rejectionNote",
+                          "verifiedBy",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "checklist": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "MISSING",
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "state"
+                        ]
+                      }
+                    },
+                    "openOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "status",
+                          "placedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "assignment",
+                    "name",
+                    "phone",
+                    "email",
+                    "vehicleType",
+                    "vehicleNo",
+                    "area",
+                    "status",
+                    "verificationStatus",
+                    "isOnline",
+                    "forceOfflineUntil",
+                    "assignable",
+                    "currentOrders",
+                    "maxConcurrentOrders",
+                    "cashInHand",
+                    "ratingAvg",
+                    "deliveriesCount",
+                    "source",
+                    "createdAt",
+                    "updatedAt",
+                    "version",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy",
+                    "sourceUpdatedAt",
+                    "documents",
+                    "checklist",
+                    "openOrders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:add",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.created"
+        }
+      }
+    },
+    "/delivery-partners/{id}": {
+      "get": {
+        "operationId": "getPartner",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "One partner: documents, D97 checklist, open orders, cash in hand (read-only), rating",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The partner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "assignment": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "UNASSIGNED"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_VERIFICATION",
+                        "VERIFIED",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "isOnline": {
+                      "type": "boolean"
+                    },
+                    "forceOfflineUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "assignable": {
+                      "type": "boolean"
+                    },
+                    "currentOrders": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxConcurrentOrders": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cashInHand": {
+                      "type": "integer"
+                    },
+                    "ratingAvg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deliveriesCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN",
+                        "IMPORT"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "sourceUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "rejectionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "verifiedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "docType",
+                          "status",
+                          "rejectionNote",
+                          "verifiedBy",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "checklist": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "MISSING",
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "state"
+                        ]
+                      }
+                    },
+                    "openOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "status",
+                          "placedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "assignment",
+                    "name",
+                    "phone",
+                    "email",
+                    "vehicleType",
+                    "vehicleNo",
+                    "area",
+                    "status",
+                    "verificationStatus",
+                    "isOnline",
+                    "forceOfflineUntil",
+                    "assignable",
+                    "currentOrders",
+                    "maxConcurrentOrders",
+                    "cashInHand",
+                    "ratingAvg",
+                    "deliveriesCount",
+                    "source",
+                    "createdAt",
+                    "updatedAt",
+                    "version",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy",
+                    "sourceUpdatedAt",
+                    "documents",
+                    "checklist",
+                    "openOrders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:view",
+          "zone": "none"
+        }
+      },
+      "patch": {
+        "operationId": "updatePartner",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Edit profile fields (version required, 409 STALE_VERSION); zone moves use /move-zone",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 254,
+                    "format": "email"
+                  },
+                  "vehicleType": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "vehicleNo": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "area": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The partner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "assignment": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "UNASSIGNED"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_VERIFICATION",
+                        "VERIFIED",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "isOnline": {
+                      "type": "boolean"
+                    },
+                    "forceOfflineUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "assignable": {
+                      "type": "boolean"
+                    },
+                    "currentOrders": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxConcurrentOrders": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cashInHand": {
+                      "type": "integer"
+                    },
+                    "ratingAvg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deliveriesCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN",
+                        "IMPORT"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "sourceUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "rejectionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "verifiedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "docType",
+                          "status",
+                          "rejectionNote",
+                          "verifiedBy",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "checklist": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "MISSING",
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "state"
+                        ]
+                      }
+                    },
+                    "openOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "status",
+                          "placedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "assignment",
+                    "name",
+                    "phone",
+                    "email",
+                    "vehicleType",
+                    "vehicleNo",
+                    "area",
+                    "status",
+                    "verificationStatus",
+                    "isOnline",
+                    "forceOfflineUntil",
+                    "assignable",
+                    "currentOrders",
+                    "maxConcurrentOrders",
+                    "cashInHand",
+                    "ratingAvg",
+                    "deliveriesCount",
+                    "source",
+                    "createdAt",
+                    "updatedAt",
+                    "version",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy",
+                    "sourceUpdatedAt",
+                    "documents",
+                    "checklist",
+                    "openOrders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.updated"
+        }
+      },
+      "delete": {
+        "operationId": "deletePartner",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Soft delete (PASSWORD re-auth): not ACTIVE and carrying no orders",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:delete",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.deleted"
+        }
+      }
+    },
+    "/delivery-partners/{id}/status": {
+      "post": {
+        "operationId": "setPartnerStatus",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Activate (needs VERIFIED), deactivate or suspend (from ACTIVE; takes the partner off duty). Event partner.status_changed",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVE",
+                      "INACTIVE",
+                      "SUSPENDED"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The partner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "assignment": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "UNASSIGNED"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_VERIFICATION",
+                        "VERIFIED",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "isOnline": {
+                      "type": "boolean"
+                    },
+                    "forceOfflineUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "assignable": {
+                      "type": "boolean"
+                    },
+                    "currentOrders": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxConcurrentOrders": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cashInHand": {
+                      "type": "integer"
+                    },
+                    "ratingAvg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deliveriesCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN",
+                        "IMPORT"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "sourceUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "rejectionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "verifiedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "docType",
+                          "status",
+                          "rejectionNote",
+                          "verifiedBy",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "checklist": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "MISSING",
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "state"
+                        ]
+                      }
+                    },
+                    "openOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "status",
+                          "placedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "assignment",
+                    "name",
+                    "phone",
+                    "email",
+                    "vehicleType",
+                    "vehicleNo",
+                    "area",
+                    "status",
+                    "verificationStatus",
+                    "isOnline",
+                    "forceOfflineUntil",
+                    "assignable",
+                    "currentOrders",
+                    "maxConcurrentOrders",
+                    "cashInHand",
+                    "ratingAvg",
+                    "deliveriesCount",
+                    "source",
+                    "createdAt",
+                    "updatedAt",
+                    "version",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy",
+                    "sourceUpdatedAt",
+                    "documents",
+                    "checklist",
+                    "openOrders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.activated"
+        }
+      }
+    },
+    "/delivery-partners/{id}/verification": {
+      "post": {
+        "operationId": "verifyPartner",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Decide a pending partner (R12): VERIFIED, or REJECTED with a note (= \"send more information\"; back to PENDING when the app resubmits)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "VERIFIED",
+                      "REJECTED"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "decision"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The partner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "assignment": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "UNASSIGNED"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_VERIFICATION",
+                        "VERIFIED",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "isOnline": {
+                      "type": "boolean"
+                    },
+                    "forceOfflineUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "assignable": {
+                      "type": "boolean"
+                    },
+                    "currentOrders": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxConcurrentOrders": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cashInHand": {
+                      "type": "integer"
+                    },
+                    "ratingAvg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deliveriesCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN",
+                        "IMPORT"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "sourceUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "rejectionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "verifiedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "docType",
+                          "status",
+                          "rejectionNote",
+                          "verifiedBy",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "checklist": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "MISSING",
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "state"
+                        ]
+                      }
+                    },
+                    "openOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "status",
+                          "placedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "assignment",
+                    "name",
+                    "phone",
+                    "email",
+                    "vehicleType",
+                    "vehicleNo",
+                    "area",
+                    "status",
+                    "verificationStatus",
+                    "isOnline",
+                    "forceOfflineUntil",
+                    "assignable",
+                    "currentOrders",
+                    "maxConcurrentOrders",
+                    "cashInHand",
+                    "ratingAvg",
+                    "deliveriesCount",
+                    "source",
+                    "createdAt",
+                    "updatedAt",
+                    "version",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy",
+                    "sourceUpdatedAt",
+                    "documents",
+                    "checklist",
+                    "openOrders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.verified"
+        }
+      }
+    },
+    "/delivery-partners/{id}/force-offline": {
+      "post": {
+        "operationId": "forcePartnerOffline",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Force offline until a time (at most 30 days) with a reason; event partner.force_offline",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "reason",
+                  "until"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The partner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "assignment": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "UNASSIGNED"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_VERIFICATION",
+                        "VERIFIED",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "isOnline": {
+                      "type": "boolean"
+                    },
+                    "forceOfflineUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "assignable": {
+                      "type": "boolean"
+                    },
+                    "currentOrders": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxConcurrentOrders": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cashInHand": {
+                      "type": "integer"
+                    },
+                    "ratingAvg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deliveriesCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN",
+                        "IMPORT"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "sourceUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "rejectionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "verifiedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "docType",
+                          "status",
+                          "rejectionNote",
+                          "verifiedBy",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "checklist": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "MISSING",
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "state"
+                        ]
+                      }
+                    },
+                    "openOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "status",
+                          "placedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "assignment",
+                    "name",
+                    "phone",
+                    "email",
+                    "vehicleType",
+                    "vehicleNo",
+                    "area",
+                    "status",
+                    "verificationStatus",
+                    "isOnline",
+                    "forceOfflineUntil",
+                    "assignable",
+                    "currentOrders",
+                    "maxConcurrentOrders",
+                    "cashInHand",
+                    "ratingAvg",
+                    "deliveriesCount",
+                    "source",
+                    "createdAt",
+                    "updatedAt",
+                    "version",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy",
+                    "sourceUpdatedAt",
+                    "documents",
+                    "checklist",
+                    "openOrders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.force_offline"
+        }
+      }
+    },
+    "/delivery-partners/{id}/move-zone": {
+      "post": {
+        "operationId": "movePartnerZone",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Move to another zone or place an unzoned sign-up (Super Admin, PASSWORD); refused while carrying orders; event partner.updated",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "zoneId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "zoneId",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The partner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "assignment": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "UNASSIGNED"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_VERIFICATION",
+                        "VERIFIED",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "isOnline": {
+                      "type": "boolean"
+                    },
+                    "forceOfflineUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "assignable": {
+                      "type": "boolean"
+                    },
+                    "currentOrders": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxConcurrentOrders": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cashInHand": {
+                      "type": "integer"
+                    },
+                    "ratingAvg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deliveriesCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN",
+                        "IMPORT"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "sourceUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "rejectionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "verifiedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "docType",
+                          "status",
+                          "rejectionNote",
+                          "verifiedBy",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "checklist": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "MISSING",
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "state"
+                        ]
+                      }
+                    },
+                    "openOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "status",
+                          "placedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "assignment",
+                    "name",
+                    "phone",
+                    "email",
+                    "vehicleType",
+                    "vehicleNo",
+                    "area",
+                    "status",
+                    "verificationStatus",
+                    "isOnline",
+                    "forceOfflineUntil",
+                    "assignable",
+                    "currentOrders",
+                    "maxConcurrentOrders",
+                    "cashInHand",
+                    "ratingAvg",
+                    "deliveriesCount",
+                    "source",
+                    "createdAt",
+                    "updatedAt",
+                    "version",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy",
+                    "sourceUpdatedAt",
+                    "documents",
+                    "checklist",
+                    "openOrders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "zones:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.zone_moved"
+        }
+      }
+    },
+    "/delivery-partners/{id}/reveal": {
+      "post": {
+        "operationId": "revealPartnerContact",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Unmasked phone and email (D123): audited, canReveal in the partner’s zone, 30 per hour",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "phone",
+                    "email"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:view",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.contact_revealed"
+        }
+      }
+    },
+    "/delivery-partners/{id}/documents": {
+      "post": {
+        "operationId": "attachPartnerDocument",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Attach a confirmed upload (purpose PARTNER_DOC) as a partner document (D131)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "docType": {
+                    "type": "string",
+                    "enum": [
+                      "PAN",
+                      "BANK_DETAILS",
+                      "DRIVING_LICENCE",
+                      "VEHICLE_RC",
+                      "ID_PROOF",
+                      "OTHER"
+                    ]
+                  },
+                  "fileKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512
+                  }
+                },
+                "required": [
+                  "docType",
+                  "fileKey"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "assignment": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "UNASSIGNED"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_VERIFICATION",
+                        "VERIFIED",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "isOnline": {
+                      "type": "boolean"
+                    },
+                    "forceOfflineUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "assignable": {
+                      "type": "boolean"
+                    },
+                    "currentOrders": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxConcurrentOrders": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cashInHand": {
+                      "type": "integer"
+                    },
+                    "ratingAvg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deliveriesCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN",
+                        "IMPORT"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "sourceUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "rejectionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "verifiedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "docType",
+                          "status",
+                          "rejectionNote",
+                          "verifiedBy",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "checklist": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "MISSING",
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "state"
+                        ]
+                      }
+                    },
+                    "openOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "status",
+                          "placedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "assignment",
+                    "name",
+                    "phone",
+                    "email",
+                    "vehicleType",
+                    "vehicleNo",
+                    "area",
+                    "status",
+                    "verificationStatus",
+                    "isOnline",
+                    "forceOfflineUntil",
+                    "assignable",
+                    "currentOrders",
+                    "maxConcurrentOrders",
+                    "cashInHand",
+                    "ratingAvg",
+                    "deliveriesCount",
+                    "source",
+                    "createdAt",
+                    "updatedAt",
+                    "version",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy",
+                    "sourceUpdatedAt",
+                    "documents",
+                    "checklist",
+                    "openOrders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.document_added"
+        }
+      }
+    },
+    "/delivery-partners/{id}/documents/{docId}/url": {
+      "get": {
+        "operationId": "getPartnerDocumentUrl",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "A 300 s signed link to the document; every link is an audited view",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "docId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    },
+                    "expiresInSec": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "url",
+                    "expiresInSec"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/delivery-partners/{id}/documents/{docId}/verify": {
+      "post": {
+        "operationId": "verifyPartnerDocument",
+        "tags": [
+          "delivery-partners"
+        ],
+        "summary": "Verify, or reject with a note, one pending document",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "docId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "VERIFIED",
+                      "REJECTED"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "decision"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The partner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "assignment": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "UNASSIGNED"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vehicleNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_VERIFICATION",
+                        "VERIFIED",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "isOnline": {
+                      "type": "boolean"
+                    },
+                    "forceOfflineUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "assignable": {
+                      "type": "boolean"
+                    },
+                    "currentOrders": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxConcurrentOrders": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cashInHand": {
+                      "type": "integer"
+                    },
+                    "ratingAvg": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "deliveriesCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN",
+                        "IMPORT"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "sourceUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "rejectionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "verifiedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "docType",
+                          "status",
+                          "rejectionNote",
+                          "verifiedBy",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "checklist": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string",
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "MISSING",
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "state"
+                        ]
+                      }
+                    },
+                    "openOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "status",
+                          "placedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "assignment",
+                    "name",
+                    "phone",
+                    "email",
+                    "vehicleType",
+                    "vehicleNo",
+                    "area",
+                    "status",
+                    "verificationStatus",
+                    "isOnline",
+                    "forceOfflineUntil",
+                    "assignable",
+                    "currentOrders",
+                    "maxConcurrentOrders",
+                    "cashInHand",
+                    "ratingAvg",
+                    "deliveriesCount",
+                    "source",
+                    "createdAt",
+                    "updatedAt",
+                    "version",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy",
+                    "sourceUpdatedAt",
+                    "documents",
+                    "checklist",
+                    "openOrders"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "delivery:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "delivery",
+          "action": "partner.document_verified"
+        }
+      }
     }
   },
   "webhooks": {}

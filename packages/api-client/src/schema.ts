@@ -395,6 +395,179 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/delivery-partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Partners in the zones the caller can view (?zoneId repeatable): filters status, verification (PENDING = the R12 Partner Requests queue), assignment, online, vehicleType, area, available (D133 picker: online, ACTIVE, VERIFIED, not forced offline) with currentOrders and the zone cap; counts per tab incl. On Duty. Contacts masked (D26) */
+        get: operations["listPartners"];
+        put?: never;
+        /** Add a partner to one of the caller’s zones (R-ACC-6, R-DEL-2); phone unique (409 CONFLICT) */
+        post: operations["createPartner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-partners/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One partner: documents, D97 checklist, open orders, cash in hand (read-only), rating */
+        get: operations["getPartner"];
+        put?: never;
+        post?: never;
+        /** Soft delete (PASSWORD re-auth): not ACTIVE and carrying no orders */
+        delete: operations["deletePartner"];
+        options?: never;
+        head?: never;
+        /** Edit profile fields (version required, 409 STALE_VERSION); zone moves use /move-zone */
+        patch: operations["updatePartner"];
+        trace?: never;
+    };
+    "/delivery-partners/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach a confirmed upload (purpose PARTNER_DOC) as a partner document (D131) */
+        post: operations["attachPartnerDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-partners/{id}/documents/{docId}/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A 300 s signed link to the document; every link is an audited view */
+        get: operations["getPartnerDocumentUrl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-partners/{id}/documents/{docId}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify, or reject with a note, one pending document */
+        post: operations["verifyPartnerDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-partners/{id}/force-offline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Force offline until a time (at most 30 days) with a reason; event partner.force_offline */
+        post: operations["forcePartnerOffline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-partners/{id}/move-zone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move to another zone or place an unzoned sign-up (Super Admin, PASSWORD); refused while carrying orders; event partner.updated */
+        post: operations["movePartnerZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-partners/{id}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unmasked phone and email (D123): audited, canReveal in the partner’s zone, 30 per hour */
+        post: operations["revealPartnerContact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-partners/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate (needs VERIFIED), deactivate or suspend (from ACTIVE; takes the partner off duty). Event partner.status_changed */
+        post: operations["setPartnerStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/delivery-partners/{id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide a pending partner (R12): VERIFIED, or REJECTED with a note (= "send more information"; back to PENDING when the app resubmits) */
+        post: operations["verifyPartner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/homemakers": {
         parameters: {
             query?: never;
@@ -3743,6 +3916,1713 @@ export interface operations {
             };
             /** @description Not allowed (missing permission, bad CSRF token or Origin) */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listPartners: {
+        parameters: {
+            query?: {
+                area?: string;
+                assignment?: "ASSIGNED" | "UNASSIGNED";
+                available?: "true" | "false";
+                online?: "true" | "false";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                vehicleType?: string;
+                verification?: "PENDING" | "VERIFIED" | "REJECTED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of partners */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            area: string | null;
+                            assignable: boolean;
+                            /** @enum {string} */
+                            assignment: "ASSIGNED" | "UNASSIGNED";
+                            cashInHand: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            currentOrders: number;
+                            deliveriesCount: number;
+                            email: string | null;
+                            /** Format: date-time */
+                            forceOfflineUntil: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isOnline: boolean;
+                            maxConcurrentOrders: number | null;
+                            name: string;
+                            phone: string | null;
+                            ratingAvg: number | null;
+                            /** @enum {string} */
+                            source: "APP" | "ADMIN" | "IMPORT";
+                            /** @enum {string} */
+                            status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            vehicleNo: string | null;
+                            vehicleType: string | null;
+                            /** @enum {string} */
+                            verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                            version: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        meta: {
+                            counts: {
+                                active: number;
+                                inactive: number;
+                                onDuty: number;
+                                pendingVerification: number;
+                                rejected: number;
+                                suspended: number;
+                                total: number;
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createPartner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    area?: string;
+                    /** Format: email */
+                    email?: string;
+                    name: string;
+                    phone: string;
+                    vehicleNo?: string;
+                    vehicleType?: string;
+                    /** Format: uuid */
+                    zoneId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        area: string | null;
+                        assignable: boolean;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        cashInHand: number;
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        currentOrders: number;
+                        deliveriesCount: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        /** Format: date-time */
+                        forceOfflineUntil: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isOnline: boolean;
+                        maxConcurrentOrders: number | null;
+                        name: string;
+                        openOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                        }[];
+                        phone: string | null;
+                        ratingAvg: number | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vehicleNo: string | null;
+                        vehicleType: string | null;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getPartner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The partner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        area: string | null;
+                        assignable: boolean;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        cashInHand: number;
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        currentOrders: number;
+                        deliveriesCount: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        /** Format: date-time */
+                        forceOfflineUntil: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isOnline: boolean;
+                        maxConcurrentOrders: number | null;
+                        name: string;
+                        openOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                        }[];
+                        phone: string | null;
+                        ratingAvg: number | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vehicleNo: string | null;
+                        vehicleType: string | null;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deletePartner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updatePartner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    area?: string | null;
+                    /** Format: email */
+                    email?: string | null;
+                    name?: string;
+                    phone?: string;
+                    vehicleNo?: string | null;
+                    vehicleType?: string | null;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The partner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        area: string | null;
+                        assignable: boolean;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        cashInHand: number;
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        currentOrders: number;
+                        deliveriesCount: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        /** Format: date-time */
+                        forceOfflineUntil: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isOnline: boolean;
+                        maxConcurrentOrders: number | null;
+                        name: string;
+                        openOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                        }[];
+                        phone: string | null;
+                        ratingAvg: number | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vehicleNo: string | null;
+                        vehicleType: string | null;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    attachPartnerDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                    fileKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Attached */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        area: string | null;
+                        assignable: boolean;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        cashInHand: number;
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        currentOrders: number;
+                        deliveriesCount: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        /** Format: date-time */
+                        forceOfflineUntil: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isOnline: boolean;
+                        maxConcurrentOrders: number | null;
+                        name: string;
+                        openOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                        }[];
+                        phone: string | null;
+                        ratingAvg: number | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vehicleNo: string | null;
+                        vehicleType: string | null;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getPartnerDocumentUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                docId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        expiresInSec: number;
+                        url: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    verifyPartnerDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                docId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "VERIFIED" | "REJECTED";
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The partner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        area: string | null;
+                        assignable: boolean;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        cashInHand: number;
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        currentOrders: number;
+                        deliveriesCount: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        /** Format: date-time */
+                        forceOfflineUntil: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isOnline: boolean;
+                        maxConcurrentOrders: number | null;
+                        name: string;
+                        openOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                        }[];
+                        phone: string | null;
+                        ratingAvg: number | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vehicleNo: string | null;
+                        vehicleType: string | null;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    forcePartnerOffline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    /** Format: date-time */
+                    until: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The partner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        area: string | null;
+                        assignable: boolean;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        cashInHand: number;
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        currentOrders: number;
+                        deliveriesCount: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        /** Format: date-time */
+                        forceOfflineUntil: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isOnline: boolean;
+                        maxConcurrentOrders: number | null;
+                        name: string;
+                        openOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                        }[];
+                        phone: string | null;
+                        ratingAvg: number | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vehicleNo: string | null;
+                        vehicleType: string | null;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    movePartnerZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    /** Format: uuid */
+                    zoneId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The partner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        area: string | null;
+                        assignable: boolean;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        cashInHand: number;
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        currentOrders: number;
+                        deliveriesCount: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        /** Format: date-time */
+                        forceOfflineUntil: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isOnline: boolean;
+                        maxConcurrentOrders: number | null;
+                        name: string;
+                        openOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                        }[];
+                        phone: string | null;
+                        ratingAvg: number | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vehicleNo: string | null;
+                        vehicleType: string | null;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    revealPartnerContact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The contact */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        email: string | null;
+                        phone: string | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    setPartnerStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                    /** @enum {string} */
+                    status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                };
+            };
+        };
+        responses: {
+            /** @description The partner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        area: string | null;
+                        assignable: boolean;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        cashInHand: number;
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        currentOrders: number;
+                        deliveriesCount: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        /** Format: date-time */
+                        forceOfflineUntil: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isOnline: boolean;
+                        maxConcurrentOrders: number | null;
+                        name: string;
+                        openOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                        }[];
+                        phone: string | null;
+                        ratingAvg: number | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vehicleNo: string | null;
+                        vehicleType: string | null;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    verifyPartner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "VERIFIED" | "REJECTED";
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The partner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        area: string | null;
+                        assignable: boolean;
+                        /** @enum {string} */
+                        assignment: "ASSIGNED" | "UNASSIGNED";
+                        cashInHand: number;
+                        checklist: {
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** @enum {string} */
+                            state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
+                        }[] | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        currentOrders: number;
+                        deliveriesCount: number;
+                        documents: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            /** Format: uuid */
+                            id: string;
+                            rejectionNote: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "VERIFIED" | "REJECTED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            verifiedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        email: string | null;
+                        /** Format: date-time */
+                        forceOfflineUntil: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isOnline: boolean;
+                        maxConcurrentOrders: number | null;
+                        name: string;
+                        openOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                        }[];
+                        phone: string | null;
+                        ratingAvg: number | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** Format: date-time */
+                        sourceUpdatedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vehicleNo: string | null;
+                        vehicleType: string | null;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

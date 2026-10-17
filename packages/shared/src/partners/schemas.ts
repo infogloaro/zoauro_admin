@@ -113,8 +113,8 @@ export type PartnerVerificationInput = z.infer<typeof partnerVerificationSchema>
 export const partnerForceOfflineSchema = z
   .object({
     reason: text(3, 200),
-    /** ISO time in the future; omitted = until an admin lifts it */
-    until: z.iso.datetime({ offset: true }).optional(),
+    /** ISO time in the future, at most 30 days ahead (no "lift" route exists, so it always ends; doc 32) */
+    until: z.iso.datetime({ offset: true }),
   })
   .strict();
 export type PartnerForceOfflineInput = z.infer<typeof partnerForceOfflineSchema>;

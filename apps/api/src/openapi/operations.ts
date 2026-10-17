@@ -120,6 +120,7 @@ import {
   type PermissionKey,
 } from '@zoauro/shared';
 import type { AuditRouteMeta } from '../lib/audit';
+import { PARTNER_OPERATIONS } from './operations.partners';
 import { VENDOR_OPERATIONS } from './operations.vendors';
 
 // The API contract, in one place. Every route the API serves under /api/v1 is declared here with:
@@ -1377,6 +1378,7 @@ export const OPERATIONS: OperationDef[] = [
   },
   // M06/M07 vendors and SA-2.1 uploads (operations.vendors.ts)
   ...VENDOR_OPERATIONS,
+  ...PARTNER_OPERATIONS,
 ];
 
 /**

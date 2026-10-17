@@ -17,6 +17,7 @@ import { createAuthMailer, createAuthModule, createSmsProvider } from './modules
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
 import { createUploadsModule } from './modules/uploads';
+import { createPartnersModule } from './modules/delivery-partners';
 import { createVendorsModule } from './modules/vendors';
 import { createS3Storage } from './lib/s3-storage';
 import { RedisRateLimiter } from './lib/rate-limiter';
@@ -116,9 +117,25 @@ const vendors = createVendorsModule({
   checklist: settings.reader,
   limiter: new RedisRateLimiter(redis),
 });
+// M10 delivery partners + R12 (D130–D133): documents through the same uploads gate
+const partners = createPartnersModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  requireReauth: auth.requireReauth,
+  maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+  checklist: settings.reader,
+  storage,
+  uploads: {
+    assertUploaded: (ctx, fileKey) => {
+      if (!uploadsGate.service) throw new Error('uploads module not ready');
+      return uploadsGate.service.assertUploaded(ctx, fileKey);
+    },
+  },
+  limiter: new RedisRateLimiter(redis),
+});
 const uploads = createUploadsModule({
   storage,
-  entities: [vendors.entities],
+  entities: [vendors.entities, partners.entities],
   appOrigin: new URL(env.APP_URL).origin,
 });
 uploadsGate.service = uploads.service;
@@ -141,6 +158,7 @@ const app = createApp({
         maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
       }).router,
       vendors.router,
+      partners.router,
       uploads.router,
     ],
   },
