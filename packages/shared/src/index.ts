@@ -11,4 +11,6 @@ export * from './settings';
 export * from './permissions';
 export * from './errors';
 export * from './pagination';
+export * from './vendors';
+export * from './uploads';
 export * from './orders';
