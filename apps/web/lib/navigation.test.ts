@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Orders and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -59,6 +59,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M03-TEAM',
       'M04',
       'M04-ACT',
+      'M11',
       'M16',
       'M19',
       'M19-HIST',
@@ -92,7 +93,7 @@ describe('menu by role', () => {
       href: '/super-admin/settings/security',
     });
     expect(byId['M01']).toMatchObject({ status: 'live', href: '/account/security' });
-    expect(byId['M11']).toMatchObject({ status: 'coming-soon', href: '/coming-soon/orders' });
+    expect(byId['M11']).toMatchObject({ status: 'live', href: '/super-admin/orders' });
     expect(byId['M19']).toMatchObject({ status: 'live', href: '/super-admin/settings/platform' });
     expect(byId['M19-HIST']).toMatchObject({
       status: 'live',
@@ -166,7 +167,7 @@ describe('menu by role', () => {
 
   it('a Coming Soon page exists only for a module this person could see', () => {
     const zones = [zone('A', ['orders:view'])];
-    expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)?.id).toBe('M11');
+    expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)).toBeNull(); // live
     expect(
       comingSoonModule('restaurant-requests', 'ZONAL_ADMIN', [zone('A', ['restaurants:view'])])?.id,
     ).toBe('R01');

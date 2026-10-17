@@ -1,0 +1,260 @@
+// @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ApiClient } from '@zoauro/api-client';
+import { ApiClientProvider } from '../../lib/api-client';
+import { dayRange, orderActions, orderSortFromParam, orderTabFromParam } from './labels';
+import { OrdersPage } from './OrdersPage';
+
+// Orders (M11, D117): the buttons each status allows (doc 10), URL filters, India-time day ranges, and the list against a
+// mocked API (25 a page, real tab counts, status filter per tab, zone column, row opens the detail page).
+
+const nav = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock('next/navigation', async () => {
+  const React = await import('react');
+  return {
+    usePathname: () => window.location.pathname,
+    useSearchParams: () => React.useMemo(() => new URLSearchParams(window.location.search), []),
+    useRouter: () => ({ push: nav.push, replace: vi.fn() }),
+  };
+});
+
+afterEach(cleanup);
+beforeEach(() => {
+  nav.push.mockReset();
+  window.history.replaceState(null, '', '/super-admin/orders');
+});
+
+const ZA = '0192f1d2-0000-7000-8000-00000000000a';
+const SUPER = 'SUPER_ADMIN' as const;
+
+describe('order rules', () => {
+  it('each status offers only the doc 10 moves; assign and cancel have their own dialogs', () => {
+    expect(orderActions('PLACED')).toEqual({
+      moves: [{ to: 'ACCEPTED', label: 'Accept' }],
+      canAssign: false,
+      canUnassign: false,
+      canCancel: true,
+    });
+    expect(orderActions('READY').canAssign).toBe(true);
+    expect(orderActions('ASSIGNED')).toMatchObject({
+      canAssign: true,
+      canUnassign: true,
+      canCancel: false,
+    });
+    expect(orderActions('ASSIGNED').moves.map((m) => m.to)).toEqual(['OUT_FOR_DELIVERY']);
+    expect(orderActions('DELIVERED')).toEqual({
+      moves: [],
+      canAssign: false,
+      canUnassign: false,
+      canCancel: false,
+    });
+  });
+
+  it('URL values fall back safely; days are whole India-time days', () => {
+    expect(orderTabFromParam('kitchen')).toBe('kitchen');
+    expect(orderTabFromParam('x')).toBe('all');
+    expect(orderSortFromParam('-total')).toBe('-total');
+    expect(orderSortFromParam('drop table')).toBe('-placedAt');
+    expect(dayRange('2026-10-17', '2026-10-17')).toEqual({
+      from: '2026-10-16T18:30:00.000Z',
+      to: '2026-10-17T18:29:59.999Z',
+    });
+    expect(dayRange('17/10/2026', null)).toEqual({});
+  });
+});
+
+describe('Orders list (Super Admin)', () => {
+  function setup() {
+    const get = vi.fn(async (path: string, init?: { query?: Record<string, unknown> }) => {
+      if (path === '/zones')
+        return {
+          data: [{ id: ZA, name: 'Anna Nagar', code: 'ANN', colorHex: '#EA580C' }],
+          meta: { nextCursor: null },
+        };
+      if (path === '/orders') {
+        const q = init?.query ?? {};
+        if (q['pageSize'] === 1)
+          return {
+            data: [],
+            meta: { page: 1, pageSize: 1, total: Array.isArray(q['status']) ? 2 : 7 },
+          };
+        return {
+          data: [
+            {
+              id: '0192f1d2-0000-7000-8000-0000000000f1',
+              orderNo: 'ZO-ANN-000123',
+              zoneId: ZA,
+              status: 'PLACED',
+              vendorType: 'RESTAURANT',
+              vendorId: '0192f1d2-0000-7000-8000-0000000000f2',
+              vendorName: 'Saravana Bhavan',
+              customerName: 'Priya',
+              customerPhoneMasked: '+91 98•••••210',
+              itemCount: 3,
+              total: 45000,
+              paymentMethod: 'COD',
+              paymentStatus: 'PENDING',
+              deliveryPartnerId: null,
+              placedAt: new Date().toISOString(),
+              version: 1,
+            },
+          ],
+          meta: { page: 1, pageSize: 25, total: 1 },
+        };
+      }
+      throw new Error(`unexpected GET ${path}`);
+    });
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrap = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queries}>
+        <ApiClientProvider client={{ get } as unknown as ApiClient}>{children}</ApiClientProvider>
+      </QueryClientProvider>
+    );
+    render(<OrdersPage role={SUPER} />, { wrapper: wrap });
+    return { get };
+  }
+
+  it('lists 25 a page with real tab counts, the zone column and masked phones', async () => {
+    const { get } = setup();
+    expect(await screen.findByRole('button', { name: 'Open order ZO-ANN-000123' })).toBeTruthy();
+    const list = get.mock.calls.find((c) => c[0] === '/orders' && c[1]?.query?.pageSize === 25);
+    expect(list?.[1]?.query).toMatchObject({ page: 1, sort: '-placedAt' });
+    const tabs = screen.getByRole('tablist', { name: 'Orders by status' });
+    expect(await within(tabs).findByRole('tab', { name: /All\s*7/ })).toBeTruthy();
+    expect(within(tabs).getByRole('tab', { name: /New\s*2/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Zone' })).toBeTruthy();
+    expect(screen.getByText('ANN')).toBeTruthy();
+    expect(screen.getByText('+91 98•••••210')).toBeTruthy();
+  });
+
+  it('a tab filters by its statuses; a row opens the order', async () => {
+    const user = userEvent.setup();
+    const { get } = setup();
+    await screen.findByRole('button', { name: 'Open order ZO-ANN-000123' });
+    await user.click(screen.getByRole('tab', { name: /Preparing/ }));
+    await waitFor(() =>
+      expect(
+        get.mock.calls.some(
+          (c) =>
+            c[0] === '/orders' &&
+            c[1]?.query?.pageSize === 25 &&
+            JSON.stringify(c[1]?.query?.status) === '["ACCEPTED","PREPARING"]',
+        ),
+      ).toBe(true),
+    );
+    await user.click(await screen.findByRole('button', { name: 'Open order ZO-ANN-000123' }));
+    expect(nav.push).toHaveBeenCalledWith(
+      '/super-admin/orders/0192f1d2-0000-7000-8000-0000000000f1',
+    );
+  });
+});
+
+describe('Order detail', () => {
+  const order = (over: Record<string, unknown> = {}) => ({
+    id: '0192f1d2-0000-7000-8000-0000000000f1',
+    orderNo: 'ZO-ANN-000123',
+    zoneId: ZA,
+    status: 'PLACED',
+    vendorType: 'RESTAURANT',
+    vendorId: '0192f1d2-0000-7000-8000-0000000000f2',
+    vendorName: 'Saravana Bhavan',
+    customerName: 'Priya',
+    customerPhoneMasked: '+91 98•••••210',
+    itemCount: 1,
+    total: 45000,
+    paymentMethod: 'COD',
+    paymentStatus: 'PENDING',
+    deliveryPartnerId: null,
+    placedAt: new Date().toISOString(),
+    version: 4,
+    subtotal: 40000,
+    tax: 2000,
+    deliveryCharge: 3000,
+    discount: 0,
+    customer: {
+      id: '0192f1d2-0000-7000-8000-0000000000c1',
+      name: 'Priya',
+      phoneMasked: '+91 98•••••210',
+      emailMasked: null,
+    },
+    deliveryPartner: null,
+    items: [
+      {
+        id: '0192f1d2-0000-7000-8000-0000000000d1',
+        menuItemId: '0192f1d2-0000-7000-8000-0000000000d2',
+        name: 'Masala dosa',
+        price: 40000,
+        qty: 1,
+      },
+    ],
+    timeline: [
+      {
+        id: '0192f1d2-0000-7000-8000-0000000000e1',
+        from: null,
+        to: 'PLACED',
+        actorType: 'CUSTOMER',
+        note: null,
+        at: new Date().toISOString(),
+      },
+    ],
+    payments: [],
+    acceptedAt: null,
+    readyAt: null,
+    deliveredAt: null,
+    cancelledAt: null,
+    cancelReason: null,
+    ...over,
+  });
+
+  async function mountDetail(post: ReturnType<typeof vi.fn>) {
+    const { OrderDetailPage } = await import('./OrderDetailPage');
+    const { ToastProvider } = await import('../../components/ui/toast');
+    const get = vi.fn(async () => order());
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queries}>
+        <ApiClientProvider client={{ get, post } as unknown as ApiClient}>
+          <ToastProvider>
+            <OrderDetailPage id={order().id} role={SUPER} can={{ status: true }} />
+          </ToastProvider>
+        </ApiClientProvider>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('a new order offers Accept and Cancel; Accept sends the shown version as If-Match', async () => {
+    const user = userEvent.setup();
+    const post = vi.fn(async () => ({
+      id: order().id,
+      status: 'ACCEPTED',
+      version: 5,
+      deliveryPartnerId: null,
+    }));
+    await mountDetail(post);
+    expect(await screen.findByRole('button', { name: 'Cancel order' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Mark delivered' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Accept' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/orders/{id}/transition', {
+        params: { id: order().id },
+        body: { to: 'ACCEPTED' },
+        ifMatch: 4,
+      }),
+    );
+  });
+
+  it('a stale version explains and reloads instead of overwriting', async () => {
+    const user = userEvent.setup();
+    const { ApiError } = await import('@zoauro/api-client');
+    const post = vi.fn(async () => {
+      throw new ApiError(409, 'STALE_VERSION', 'Stale');
+    });
+    await mountDetail(post);
+    await user.click(await screen.findByRole('button', { name: 'Accept' }));
+    expect(await screen.findByText(/This order changed a moment ago/)).toBeTruthy();
+  });
+});

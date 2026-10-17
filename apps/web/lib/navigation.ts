@@ -349,26 +349,10 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'orders',
     icon: 'cart',
     description:
-      'Order list, details and timeline; accept on the vendor’s behalf, assign or reassign a delivery partner, cancel, export.',
-    status: 'coming-soon',
-    zonal: { permission: 'orders' },
-    blueprint: {
-      phase: 'Phase 1',
-      screens: [
-        'Order list with status tabs and filters',
-        'Order detail with timeline, payment and delivery',
-      ],
-      flow: [
-        'Placed',
-        'Accepted',
-        'Preparing',
-        'Ready',
-        'Picked up',
-        'Out for delivery',
-        'Delivered',
-      ],
-      rules: ['Status changes only through the order state machine (doc 10)'],
-    },
+      'Order list, details and timeline; accept on the vendor’s behalf, move through the state machine, cancel with a reason.',
+    status: 'live',
+    superAdminHref: '/super-admin/orders',
+    zonal: { href: '/zone/orders', permission: 'orders' },
   },
   {
     id: 'M09',
