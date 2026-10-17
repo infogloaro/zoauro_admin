@@ -4,13 +4,15 @@ import type { OrderRepository } from './repository';
 import type { OrderActor, OrderStatus } from './types';
 
 const allowedTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
-  PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['PREPARING', 'CANCELLED'],
-  PREPARING: ['READY_FOR_PICKUP', 'CANCELLED'],
-  READY_FOR_PICKUP: ['OUT_FOR_DELIVERY', 'CANCELLED'],
+  PLACED: ['ACCEPTED', 'CANCELLED'],
+  ACCEPTED: ['PREPARING', 'CANCELLED'],
+  PREPARING: ['READY', 'CANCELLED'],
+  READY: ['ASSIGNED'],
+  ASSIGNED: ['OUT_FOR_DELIVERY'],
   OUT_FOR_DELIVERY: ['DELIVERED'],
-  DELIVERED: [],
-  CANCELLED: [],
+  DELIVERED: ['REFUNDED'],
+  CANCELLED: ['REFUNDED'],
+  REFUNDED: [],
 };
 
 export class OrderServiceError extends Error {

@@ -62,10 +62,15 @@ export default tseslint.config(
       ],
     },
   },
-  // API: Prisma only inside repository files.
+  // API: Prisma only inside repository files and the Prisma client module.
   {
     files: ['apps/api/**/*.ts'],
-    ignores: ['apps/api/**/repository.ts', 'apps/api/**/*.repository.ts', 'apps/api/prisma/**'],
+    ignores: [
+      'apps/api/**/repository.ts',
+      'apps/api/**/*repository.ts', // matches *.repository.ts and *-repository.ts
+      'apps/api/src/lib/prisma.ts',
+      'apps/api/prisma/**',
+    ],
     rules: { 'no-restricted-imports': ['error', { patterns: [prismaRestriction] }] },
   },
   // Shared: pure, no app or Prisma imports.

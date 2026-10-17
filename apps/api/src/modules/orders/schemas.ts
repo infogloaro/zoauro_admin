@@ -1,13 +1,15 @@
 import { z } from 'zod';
 
 export const orderStatusSchema = z.enum([
-  'PENDING',
-  'CONFIRMED',
+  'PLACED',
+  'ACCEPTED',
   'PREPARING',
-  'READY_FOR_PICKUP',
+  'READY',
+  'ASSIGNED',
   'OUT_FOR_DELIVERY',
   'DELIVERED',
   'CANCELLED',
+  'REFUNDED',
 ]);
 
 export const paymentMethodSchema = z.enum(['ONLINE', 'COD', 'WALLET']);
