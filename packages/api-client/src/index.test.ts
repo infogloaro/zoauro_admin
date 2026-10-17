@@ -128,8 +128,8 @@ describe('api client', () => {
 
   it('only accepts paths and methods that exist in the contract (compile-time)', () => {
     const client = createApiClient({ fetch: fakeFetch([]).fn });
-    // @ts-expect-error  /orders is not in the contract yet
-    void (() => client.get('/orders'));
+    // @ts-expect-error  a path that is not in the contract
+    void (() => client.get('/no-such-path'));
     // @ts-expect-error  /me has no POST
     void (() => client.post('/me'));
     // @ts-expect-error  login needs email, password and tab

@@ -42,6 +42,19 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         revokeOtherSessions: { invalidatesSessions: true },
         // the caller's own access requests: the placeholder request is never theirs (tests/access/requests.test.ts)
         cancelAccessRequest: { ownObject: true },
+        // one fixture order per zone A, B, C (C is nobody's): all three = everything; any leak to a Zonal Admin shows C
+        listOrders: {
+          listedZones: (body) => {
+            const ids = [
+              ...new Set((body as { data: { zoneId: string }[] }).data.map((o) => o.zoneId)),
+            ];
+            const all = Object.values(fixtures.zones);
+            return all.every((z) => ids.includes(z)) ? 'ALL' : ids;
+          },
+        },
+        // the placeholder order is in zone A: an actor without orders:view there gets 404, which is the scope rule
+        // (out-of-scope object = not found, tested per actor in tests/orders/orders-api.test.ts)
+        getOrder: { ownObject: true },
       },
     });
     publishReport('real-routes', report);
@@ -50,8 +63,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
     // 49 until P11 (auth, audit, zones) + 20 M03 access + 2 D92 zone services + 8 platform settings + 8 access
-    // requests and zone scope (doc 59)
-    expect(report.coveredRoutes).toHaveLength(87);
+    // requests and zone scope (doc 59) + 5 orders (M11)
+    expect(report.coveredRoutes).toHaveLength(92);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

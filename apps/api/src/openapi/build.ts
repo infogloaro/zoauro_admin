@@ -127,7 +127,9 @@ export function buildOpenApiDocument(): Record<string, unknown> {
           : {}),
         ...(op.idempotent
           ? { headers: z.object({ 'Idempotency-Key': z.string().min(8).max(128) }) }
-          : {}),
+          : op.ifMatch
+            ? { headers: z.object({ 'If-Match': z.string().regex(/^(W\/)?"?\d+"?$/) }) }
+            : {}),
       },
       responses: {
         [String(op.response.status)]: {

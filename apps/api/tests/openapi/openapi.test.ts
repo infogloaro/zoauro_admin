@@ -138,6 +138,12 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'DELETE /access-profiles/{id}',
         'GET /access-profiles/{id}/permissions',
         'PUT /access-profiles/{id}/permissions',
+        // M11 orders (doc 09; ported from magaraj's dev_cb)
+        'GET /orders',
+        'GET /orders/{id}',
+        'POST /orders/{id}/transition',
+        'POST /orders/{id}/cancel',
+        'POST /orders/{id}/assign',
       ].sort(),
     );
   });

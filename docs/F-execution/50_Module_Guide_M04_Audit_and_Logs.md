@@ -189,7 +189,7 @@ Defined once in `packages/shared/src/audit/actions.ts` as `AUDIT_ACTIONS: Record
 | menu | `menu_item.created/updated/deleted`, `menu_item.admin_disabled`, `menu_item.bulk_updated` |
 | customers | `customer.created`, `customer.updated`, `customer.blocked`*, `customer.unblocked`*, `customer.contact_revealed`* |
 | delivery | `partner.created/updated`, `partner.verified/rejected`*, `partner.suspended`*, `partner.force_offline`*, `partner.document_viewed`* |
-| orders | `order.cancelled_by_admin`, `order.accepted_on_behalf`, `order.partner_assigned`, `order.partner_reassigned`, `order.marked_delayed`, `order.exported`* |
+| orders | `order.cancelled_by_admin`, `order.accepted_on_behalf`, `order.partner_assigned`, `order.partner_reassigned`, `order.status_changed` (other admin moves of doc 10, incl. unassign; D121), `order.marked_delayed`, `order.exported`* |
 | payments, refunds, settlements, payouts | `refund.requested`, `refund.approved`*, `refund.rejected`*, `refund.processed`, `refund.failed`, `cod_settlement.confirmed`*, `payout.generated`, `payout.marked_paid`*, `reconciliation.mismatch_ack`* |
 | settings | `settings.updated`* (carries the setting key in `entity_label`), `settings.2fa_policy_changed`* |
 | integrations | `integration_client.created/rotated/disabled/enabled`*, `webhook.created/updated/paused`*, `delivery.retried`, `registration.zone_assigned` |

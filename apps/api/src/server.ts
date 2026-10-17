@@ -14,6 +14,7 @@ import {
 } from './modules/access';
 import { createAuditModule } from './modules/audit';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
+import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
 import { createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
@@ -100,6 +101,11 @@ const app = createApp({
       zones.router,
       accessControl.router,
       settings.router,
+      createOrdersModule({
+        prisma,
+        appOrigin: new URL(env.APP_URL).origin,
+        maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+      }).router,
     ],
   },
 });

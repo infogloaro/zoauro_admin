@@ -180,6 +180,27 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     [PLACEHOLDER_ID],
   );
 
+  // M11 orders: one order in each of zones A, B and C (C is nobody's), so GET /orders shows which zones an actor
+  // reached; the zone A one has the placeholder id for /orders/{id} (scope rules: tests/orders/orders-api.test.ts)
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000f0${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO restaurants (id, zone_id, name, status, verification_status, source, updated_at)
+       VALUES ($1, $2, 'Matrix kitchen', 'ACTIVE', 'VERIFIED', 'ADMIN', now())`,
+      [id, zones[z]],
+    );
+    await env.db.owner.query(
+      `INSERT INTO customers (id, name, phone, updated_at) VALUES ($1, 'Matrix customer', $2, now())`,
+      [id, `+91980000000${i}`],
+    );
+    await env.db.owner.query(
+      `INSERT INTO orders (id, order_no, zone_id, customer_id, restaurant_id, status, subtotal, total, commission_pct,
+         commission_amount, payment_method, address_snapshot_json, placed_at, updated_at)
+       VALUES ($1, $2, $3, $1, $1, 'PLACED', 100, 100, 10, 10, 'ONLINE', '{}', now(), now())`,
+      [id, `MX-${z}`, zones[z]],
+    );
+  }
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,

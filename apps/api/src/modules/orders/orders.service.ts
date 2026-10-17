@@ -1,0 +1,410 @@
+import {
+  buildPage,
+  isOrderTransitionAllowed,
+  type AssignOrderInput,
+  type AuditActionKey,
+  type CancelOrderInput,
+  type OrderDetail,
+  type OrderListItem,
+  type OrderListQuery,
+  type OrderListResponse,
+  type OrderStatus,
+  type OrderWriteResponse,
+  type PermissionKey,
+  type TransitionOrderInput,
+} from '@zoauro/shared';
+import { maskEmail, maskPhone, record, uuidv7 } from '../../lib/audit';
+import { assertCanWrite, type AuthContext } from '../../lib/authz';
+import { AppError } from '../../lib/errors';
+import { orderEventRows, type OrderEventExtra } from './orders.events';
+import type {
+  OrderDetailRow,
+  OrderListRow,
+  OrderWriteRow,
+  OrdersDatabase,
+  OrdersTx,
+  PartnerLockRow,
+} from './orders.repository';
+
+// Orders (M11, doc 09 "Orders", doc 10 state machine). Ported from magaraj's dev_cb: the list filters, the transition
+// table and the version-locked update with its status-history row; completed with doc 10's missing moves and guards,
+// zone scope, If-Match, audit and the outbox. Every write: read in scope (404) -> action on the order's zone (403) ->
+// version (409 STALE_VERSION) -> transition (409 INVALID_STATE_TRANSITION) -> guards -> one transaction.
+
+const notFound = () => new AppError('NOT_FOUND', 'Not found');
+
+const stale = (current: OrderWriteRow) =>
+  new AppError(
+    'STALE_VERSION',
+    'This order was changed by someone else. Refresh and try again',
+    [{ field: 'If-Match', issue: 'stale' }],
+    undefined,
+    { current: { id: current.id, status: current.status, version: current.version } },
+  );
+
+const invalid = (from: OrderStatus, to: OrderStatus, issue = 'NOT_ALLOWED') =>
+  new AppError('INVALID_STATE_TRANSITION', `An order cannot move from ${from} to ${to}`, [
+    { field: 'to', issue },
+  ]);
+
+/** A guard of doc 10 that the order or partner does not meet: 409 with the reason in details. */
+const guard = (field: string, issue: string, message: string) =>
+  new AppError('INVALID_STATE_TRANSITION', message, [{ field, issue }]);
+
+const iso = (d: Date | null): string | null => (d ? d.toISOString() : null);
+
+function vendorOf(row: OrderListRow) {
+  if (row.restaurantId)
+    return {
+      vendorType: 'RESTAURANT' as const,
+      vendorId: row.restaurantId,
+      vendorName: row.restaurant?.name ?? '',
+    };
+  return {
+    vendorType: 'HOMEMAKER' as const,
+    vendorId: row.homemakerId ?? '',
+    vendorName: row.homemaker?.name ?? '',
+  };
+}
+
+export function toListItem(row: OrderListRow): OrderListItem {
+  return {
+    id: row.id,
+    orderNo: row.orderNo,
+    zoneId: row.zoneId,
+    status: row.status,
+    ...vendorOf(row),
+    customerName: row.customer.name,
+    customerPhoneMasked: maskPhone(row.customer.phone),
+    itemCount: row.items.reduce((n, i) => n + i.qty, 0),
+    total: row.total,
+    paymentMethod: row.paymentMethod,
+    paymentStatus: row.paymentStatus,
+    deliveryPartnerId: row.deliveryPartnerId,
+    placedAt: row.placedAt.toISOString(),
+    version: row.version,
+  };
+}
+
+function toDetail(row: OrderDetailRow): OrderDetail {
+  return {
+    ...toListItem(row),
+    subtotal: row.subtotal,
+    tax: row.tax,
+    deliveryCharge: row.deliveryCharge,
+    discount: row.discount,
+    customer: {
+      id: row.customer.id,
+      name: row.customer.name,
+      phoneMasked: maskPhone(row.customer.phone),
+      emailMasked: row.customer.email ? maskEmail(row.customer.email) : null,
+    },
+    deliveryPartner: row.deliveryPartner,
+    items: row.items.map((i) => ({
+      id: i.id,
+      menuItemId: i.menuItemId,
+      name: i.nameSnapshot,
+      price: i.priceSnapshot,
+      qty: i.qty,
+    })),
+    timeline: row.statusHistory.map((h) => ({
+      id: h.id,
+      from: h.fromStatus,
+      to: h.toStatus,
+      actorType: h.actorType,
+      note: h.note,
+      at: h.createdAt.toISOString(),
+    })),
+    payments: row.payments.map((p) => ({
+      id: p.id,
+      provider: p.provider,
+      method: p.method,
+      amount: p.amount,
+      status: p.status,
+      createdAt: p.createdAt.toISOString(),
+    })),
+    acceptedAt: iso(row.acceptedAt),
+    readyAt: iso(row.readyAt),
+    deliveredAt: iso(row.deliveredAt),
+    cancelledAt: iso(row.cancelledAt),
+    cancelReason: row.cancelReason,
+  };
+}
+
+/** Partner guards of doc 10 (READY -> ASSIGNED): same zone, verified, online, under the D121 cap. */
+export function partnerProblem(
+  partner: PartnerLockRow | null,
+  orderZoneId: string,
+  cap: number,
+  now: Date,
+): { field: string; issue: string; message: string } | null {
+  if (!partner || partner.deleted_at)
+    return {
+      field: 'deliveryPartnerId',
+      issue: 'NOT_FOUND',
+      message: 'Delivery partner not found',
+    };
+  if (partner.zone_id !== orderZoneId)
+    return {
+      field: 'deliveryPartnerId',
+      issue: 'PARTNER_OTHER_ZONE',
+      message: 'The delivery partner works in another zone',
+    };
+  if (!['VERIFIED', 'ACTIVE'].includes(partner.status) || !partner.verified_at)
+    return {
+      field: 'deliveryPartnerId',
+      issue: 'PARTNER_NOT_VERIFIED',
+      message: 'The delivery partner is not verified',
+    };
+  if (!partner.is_online || (partner.force_offline_until && partner.force_offline_until > now))
+    return {
+      field: 'deliveryPartnerId',
+      issue: 'PARTNER_OFFLINE',
+      message: 'The delivery partner is offline',
+    };
+  if (partner.current_orders >= cap)
+    return {
+      field: 'deliveryPartnerId',
+      issue: 'PARTNER_AT_CAPACITY',
+      message: `The delivery partner already carries ${partner.current_orders} order(s); the limit is ${cap}`,
+    };
+  return null;
+}
+
+interface Plan {
+  to: OrderStatus;
+  data: Record<string, unknown>;
+  note: string | null;
+  action: AuditActionKey;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  extra?: OrderEventExtra;
+  /** null: the status does not change (a reassignment) */
+  statusChange: boolean;
+}
+
+export class OrdersService {
+  constructor(
+    private readonly deps: {
+      db: OrdersDatabase;
+      clock: () => Date;
+      /** D121: effective `delivery.maxConcurrentOrders` for the zone */
+      maxConcurrentOrders: (zoneId: string) => Promise<number>;
+    },
+  ) {}
+
+  async list(ctx: AuthContext, q: OrderListQuery): Promise<OrderListResponse> {
+    const { rows, total } = await this.deps.db.repo.list(ctx, q);
+    return buildPage(rows.map(toListItem), total, q);
+  }
+
+  async get(ctx: AuthContext, id: string): Promise<OrderDetail> {
+    const row = await this.deps.db.repo.detail(ctx, id);
+    if (!row) throw notFound();
+    return toDetail(row);
+  }
+
+  /** POST /orders/{id}/transition: every doc 10 move except cancel and assign (their own routes). */
+  transition(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    input: TransitionOrderInput,
+  ): Promise<OrderWriteResponse> {
+    return this.write(ctx, id, version, 'orders:status', async (_tx, order) => {
+      const from = order.status;
+      const to = input.to;
+      if (!isOrderTransitionAllowed(from, to)) throw invalid(from, to);
+      // D40: REFUNDED only when the full captured amount is refunded, which the refunds flow decides
+      if (to === 'REFUNDED') throw invalid(from, to, 'USE_REFUNDS');
+      const now = this.deps.clock();
+      const data: Record<string, unknown> = { status: to };
+      if (to === 'ACCEPTED') {
+        const vendorStatus = order.restaurant?.status ?? order.homemaker?.status;
+        if (vendorStatus !== 'ACTIVE')
+          throw guard('to', 'VENDOR_NOT_ACTIVE', 'The vendor is not active');
+        data['acceptedAt'] = now;
+      }
+      if (to === 'READY' && from === 'PREPARING') data['readyAt'] = now;
+      if (to === 'READY' && from === 'ASSIGNED') data['deliveryPartnerId'] = null; // unassign
+      if (to === 'DELIVERED') {
+        if (order.paymentMethod === 'COD' && order.paymentStatus !== 'PAID')
+          throw guard('to', 'COD_NOT_COLLECTED', 'Confirm the cash collection before delivering');
+        data['deliveredAt'] = now;
+      }
+      const action: AuditActionKey =
+        from === 'PLACED' && to === 'ACCEPTED'
+          ? 'order.accepted_on_behalf'
+          : 'order.status_changed';
+      return {
+        to,
+        data,
+        note: input.note ?? null,
+        action,
+        before: { status: from, deliveryPartnerId: order.deliveryPartnerId },
+        after: {
+          status: to,
+          deliveryPartnerId: 'deliveryPartnerId' in data ? null : order.deliveryPartnerId,
+        },
+        statusChange: true,
+      };
+    });
+  }
+
+  /** POST /orders/{id}/cancel: a reason is required (doc 10); a captured payment means a refund is expected. */
+  cancel(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    input: CancelOrderInput,
+  ): Promise<OrderWriteResponse> {
+    return this.write(ctx, id, version, 'orders:status', async (_tx, order) => {
+      if (!isOrderTransitionAllowed(order.status, 'CANCELLED'))
+        throw invalid(order.status, 'CANCELLED');
+      const now = this.deps.clock();
+      return {
+        to: 'CANCELLED',
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: now,
+          cancelReason: input.reasonCode,
+          cancelledBy: ctx.userId,
+        },
+        note: input.note ?? null,
+        action: 'order.cancelled_by_admin',
+        before: { status: order.status },
+        after: { status: 'CANCELLED', reasonCode: input.reasonCode },
+        extra: {
+          type: 'order.cancelled',
+          reasonCode: input.reasonCode,
+          refundExpected: order.paymentStatus === 'PAID',
+        },
+        statusChange: true,
+      };
+    });
+  }
+
+  /**
+   * POST /orders/{id}/assign: READY -> ASSIGNED, or a reassignment while ASSIGNED. The partner row is locked, so two
+   * admins assigning the same partner cannot both pass the cap (TC-ORD-4).
+   */
+  assign(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    input: AssignOrderInput,
+  ): Promise<OrderWriteResponse> {
+    return this.write(ctx, id, version, 'orders:edit', async (tx, order) => {
+      const reassign = order.status === 'ASSIGNED';
+      if (!reassign && !isOrderTransitionAllowed(order.status, 'ASSIGNED'))
+        throw invalid(order.status, 'ASSIGNED');
+      if (reassign && order.deliveryPartnerId === input.deliveryPartnerId)
+        throw guard('deliveryPartnerId', 'ALREADY_ASSIGNED', 'This partner already has the order');
+      const cap = await this.deps.maxConcurrentOrders(order.zoneId);
+      const partner = await tx.repo.lockPartner(input.deliveryPartnerId);
+      const problem = partnerProblem(partner, order.zoneId, cap, this.deps.clock());
+      if (problem || !partner) {
+        const p = problem ?? {
+          field: 'deliveryPartnerId',
+          issue: 'NOT_FOUND',
+          message: 'Delivery partner not found',
+        };
+        if (p.issue === 'NOT_FOUND' || p.issue === 'PARTNER_OTHER_ZONE')
+          throw new AppError('VALIDATION_ERROR', p.message, [{ field: p.field, issue: p.issue }]);
+        throw guard(p.field, p.issue, p.message);
+      }
+      await tx.repo.adjustPartnerLoad(partner.id, 1);
+      if (reassign && order.deliveryPartnerId)
+        await tx.repo.adjustPartnerLoad(order.deliveryPartnerId, -1);
+      return {
+        to: 'ASSIGNED',
+        data: { status: 'ASSIGNED', deliveryPartnerId: partner.id },
+        note: null,
+        action: reassign ? 'order.partner_reassigned' : 'order.partner_assigned',
+        before: { status: order.status, deliveryPartnerId: order.deliveryPartnerId },
+        after: { status: 'ASSIGNED', deliveryPartnerId: partner.id },
+        extra:
+          reassign && order.deliveryPartnerId
+            ? {
+                type: 'order.reassigned',
+                fromPartnerId: order.deliveryPartnerId,
+                toPartnerId: partner.id,
+              }
+            : { type: 'order.assigned', partnerId: partner.id, partnerName: partner.name },
+        statusChange: !reassign,
+      };
+    });
+  }
+
+  private async write(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    key: PermissionKey,
+    plan: (tx: OrdersTx, order: OrderWriteRow) => Promise<Plan>,
+  ): Promise<OrderWriteResponse> {
+    return this.deps.db.transaction(async (tx) => {
+      const order = await tx.repo.forWrite(ctx, id);
+      if (!order) throw notFound();
+      assertCanWrite(ctx, key, order.zoneId);
+      if (order.version !== version) throw stale(order);
+      const p = await plan(tx, order);
+
+      // the partner carrying the order is free again when it leaves their hands
+      const releases =
+        order.deliveryPartnerId !== null &&
+        p.statusChange &&
+        (p.to === 'READY' || p.to === 'DELIVERED' || p.to === 'CANCELLED');
+      if (releases && order.deliveryPartnerId)
+        await tx.repo.adjustPartnerLoad(order.deliveryPartnerId, -1);
+
+      const ok = await tx.repo.updateIfCurrent(ctx, {
+        id,
+        from: order.status,
+        version,
+        data: p.data,
+      });
+      if (!ok) {
+        // moved between our read and the update
+        const now = await tx.repo.forWrite(ctx, id);
+        throw now ? stale(now) : notFound();
+      }
+      const newVersion = version + 1;
+      const partnerId =
+        'deliveryPartnerId' in p.data
+          ? (p.data['deliveryPartnerId'] as string | null)
+          : order.deliveryPartnerId;
+
+      if (p.statusChange) {
+        await tx.repo.appendHistory({
+          id: uuidv7(),
+          orderId: id,
+          from: order.status,
+          to: p.to,
+          actorId: ctx.userId,
+          note: p.note,
+        });
+      }
+      await record(tx.audit, {
+        module: 'orders',
+        action: p.action,
+        entity: { type: 'order', id, zoneId: order.zoneId },
+        before: p.before,
+        after: p.after,
+        ...(p.note ? { note: p.note } : {}),
+      });
+      await tx.repo.insertOutbox(
+        orderEventRows({
+          orderId: id,
+          zoneId: order.zoneId,
+          version: newVersion,
+          actorId: ctx.userId,
+          occurredAt: this.deps.clock(),
+          status: p.statusChange ? { from: order.status, to: p.to, note: p.note } : null,
+          ...(p.extra ? { extra: p.extra } : {}),
+        }),
+      );
+      return { id, status: p.to, version: newVersion, deliveryPartnerId: partnerId };
+    });
+  }
+}

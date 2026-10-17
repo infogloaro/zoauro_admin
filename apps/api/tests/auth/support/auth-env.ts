@@ -20,6 +20,7 @@ import {
   type AccessMailer,
 } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
+import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
 import {
   createZonesModule,
@@ -283,6 +284,12 @@ export async function createAuthTestEnv() {
       zones.router,
       accessControl.router,
       settings.router,
+      createOrdersModule({
+        prisma,
+        appOrigin: APP_ORIGIN,
+        maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+        clock: clock.now,
+      }).router,
     ];
     const extraRouters = [
       ...(extra.routers ?? []),

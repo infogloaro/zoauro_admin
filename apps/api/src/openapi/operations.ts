@@ -108,6 +108,14 @@ import {
   putZoneScopeSchema,
   rejectAccessRequestSchema,
   zoneScopeResponseSchema,
+  assignOrderSchema,
+  cancelOrderSchema,
+  orderDetailSchema,
+  orderIdParamsSchema,
+  orderListQuerySchema,
+  orderListResponseSchema,
+  orderWriteResponseSchema,
+  transitionOrderSchema,
   type ErrorCode,
   type PermissionKey,
 } from '@zoauro/shared';
@@ -173,6 +181,8 @@ export interface OperationDef {
   errors?: ErrorCode[];
   /** requires the Idempotency-Key header (doc 09) */
   idempotent?: boolean;
+  /** requires `If-Match: <version>` (doc 09: order writes) */
+  ifMatch?: true;
 }
 
 const openApiDocumentSchema = z
@@ -1296,6 +1306,73 @@ export const OPERATIONS: OperationDef[] = [
       description: 'Saved',
     },
     errors: ['NOT_FOUND'],
+  },
+  // ---- orders (M11, doc 09; ported from magaraj's dev_cb) ----------------------------------------------------------
+  {
+    operationId: 'listOrders',
+    method: 'get',
+    path: '/orders',
+    tags: ['orders'],
+    summary:
+      'Orders in the zones the caller can view (?zoneId repeatable): filters, search q (order no, customer, vendor), sort, pages. Customer phone masked (D26)',
+    access: { kind: 'permission', permission: 'orders:view', zone: 'query' },
+    query: orderListQuerySchema,
+    response: { status: 200, schema: orderListResponseSchema, description: 'One page of orders' },
+  },
+  {
+    operationId: 'getOrder',
+    method: 'get',
+    path: '/orders/{id}',
+    tags: ['orders'],
+    summary: 'One order: items, timeline and payments. 404 outside the caller’s view scope',
+    access: { kind: 'permission', permission: 'orders:view', zone: 'none' },
+    params: orderIdParamsSchema,
+    response: { status: 200, schema: orderDetailSchema, description: 'The order' },
+    errors: ['NOT_FOUND'],
+  },
+  {
+    operationId: 'transitionOrder',
+    method: 'post',
+    path: '/orders/{id}/transition',
+    tags: ['orders'],
+    summary:
+      'Move an order along doc 10 (If-Match: version). Cancel and assign have their own routes; REFUNDED comes from refunds (D40). Guards: vendor active, COD collected',
+    access: { kind: 'permission', permission: 'orders:status', zone: 'none' },
+    audit: { module: 'orders', action: 'order.status_changed' },
+    params: orderIdParamsSchema,
+    body: transitionOrderSchema,
+    ifMatch: true,
+    response: { status: 200, schema: orderWriteResponseSchema, description: 'Moved' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
+  },
+  {
+    operationId: 'cancelOrder',
+    method: 'post',
+    path: '/orders/{id}/cancel',
+    tags: ['orders'],
+    summary: 'Cancel with a reason (If-Match: version); a captured payment sets refundExpected',
+    access: { kind: 'permission', permission: 'orders:status', zone: 'none' },
+    audit: { module: 'orders', action: 'order.cancelled_by_admin' },
+    params: orderIdParamsSchema,
+    body: cancelOrderSchema,
+    ifMatch: true,
+    response: { status: 200, schema: orderWriteResponseSchema, description: 'Cancelled' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION', 'REASON_REQUIRED'],
+  },
+  {
+    operationId: 'assignOrder',
+    method: 'post',
+    path: '/orders/{id}/assign',
+    tags: ['orders'],
+    summary:
+      'Assign (READY) or reassign (ASSIGNED) a delivery partner of the same zone: verified, online, under delivery.maxConcurrentOrders (D121). Partner row locked',
+    access: { kind: 'permission', permission: 'orders:edit', zone: 'none' },
+    audit: { module: 'orders', action: 'order.partner_assigned' },
+    params: orderIdParamsSchema,
+    body: assignOrderSchema,
+    ifMatch: true,
+    response: { status: 200, schema: orderWriteResponseSchema, description: 'Assigned' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
   },
 ];
 

@@ -14,6 +14,8 @@ export const AUDIT_NONE_REASONS = {
   'mfa-preference': 'Choosing the preferred 2-step method changes no security setting',
   preview: 'A dry run: validates and shows the effect, writes nothing (doc 59 §5)',
   'view-preference': 'A personal view preference (the zone switcher, D116); changes no access',
+  'upload-signing':
+    'Signs or checks a private upload link and writes nothing; the document is audited when it is attached (D120)',
 } as const;
 export type AuditNoneReason = keyof typeof AUDIT_NONE_REASONS;
 

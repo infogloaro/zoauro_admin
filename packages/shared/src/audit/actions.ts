@@ -133,6 +133,7 @@ export const AUDIT_ACTIONS = {
   'order.accepted_on_behalf': a('orders', 'Accepted order on vendor behalf'),
   'order.partner_assigned': a('orders', 'Assigned delivery partner'),
   'order.partner_reassigned': a('orders', 'Reassigned delivery partner'),
+  'order.status_changed': a('orders', 'Changed order status'),
   'order.marked_delayed': a('orders', 'Marked order delayed'),
   'order.exported': a('orders', 'Exported orders', H),
   // money
