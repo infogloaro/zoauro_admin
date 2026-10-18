@@ -312,6 +312,8 @@ model User {
   accessRequestsDecided         AccessRequest[]         @relation("AccessRequestDecidedBy")
   hotelsVerified                Hotel[]                 @relation("HotelVerifier")
   partnersVerified              DeliveryPartner[]       @relation("PartnerVerifier")
+  notificationsRequested        Notification[]          @relation("NotificationRequester")
+  notificationsDecided          Notification[]          @relation("NotificationDecider")
   menuChangesDecided            MenuItemChangeRequest[] @relation("MenuChangeDecider")
 
   @@index([roleId])
@@ -649,6 +651,7 @@ model Zone {
   hotels             Hotel[]
   roomBookings       RoomBooking[]
   diningReservations DiningReservation[]
+  notificationSends  NotificationZoneSend[]
 
   @@index([status])
   @@map("zones")
@@ -1301,23 +1304,39 @@ model Coupon {
 }
 
 model Notification {
-  id          String    @id @db.Uuid
-  audience    String // values not given in doc 08 (see handoff)
-  zoneId      String?   @map("zone_id") @db.Uuid
-  title       String
-  body        String
-  channel     String // values not given in doc 08 (see handoff)
-  status      String // values not given in doc 08 (see handoff)
-  scheduledAt DateTime? @map("scheduled_at") @db.Timestamptz
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
-  createdBy   String?   @map("created_by") @db.Uuid
-  updatedBy   String?   @map("updated_by") @db.Uuid
+  id           String                @id @db.Uuid
+  kind         NotificationKind      @default(MESSAGE) // D134
+  audience     NotificationAudience
+  // superseded by zone_ids (D136); kept nullable, not dropped
+  zoneId       String?               @map("zone_id") @db.Uuid
+  // empty = all zones (D136)
+  zoneIds      String[]              @default([]) @map("zone_ids") @db.Uuid
+  title        String
+  body         String
+  // superseded by channels; kept nullable, not dropped
+  channel      String?
+  channels     NotificationChannel[] @default([])
+  status       NotificationStatus
+  scheduledAt  DateTime?             @map("scheduled_at") @db.Timestamptz
+  requestedBy  String?               @map("requested_by") @db.Uuid
+  decidedBy    String?               @map("decided_by") @db.Uuid
+  decidedAt    DateTime?             @map("decided_at") @db.Timestamptz
+  decisionNote String?               @map("decision_note")
+  sentAt       DateTime?             @map("sent_at") @db.Timestamptz
+  version      Int                   @default(1)
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt    DateTime?             @map("deleted_at") @db.Timestamptz
+  createdBy    String?               @map("created_by") @db.Uuid
+  updatedBy    String?               @map("updated_by") @db.Uuid
 
-  zone Zone? @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  zone      Zone?                  @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  requester User?                  @relation("NotificationRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  decider   User?                  @relation("NotificationDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+  zoneSends NotificationZoneSend[]
 
   @@index([zoneId, createdAt(sort: Desc)])
+  @@index([status, scheduledAt])
   @@map("notifications")
 }
 
@@ -1726,4 +1745,63 @@ model DiningReservation {
   @@index([hotelId, reservedDate])
   @@index([restaurantId])
   @@map("dining_reservations")
+}
+
+// ---- notifications (D134-D137) -----------------------------------------------------------------------------------
+
+enum NotificationKind {
+  MESSAGE
+  PROMOTION
+}
+
+enum NotificationStatus {
+  PENDING_APPROVAL
+  SCHEDULED
+  SENT
+  CANCELLED
+  FAILED
+  REJECTED
+}
+
+enum NotificationAudience {
+  CUSTOMERS
+  VENDORS
+  PARTNERS
+  ALL
+}
+
+enum NotificationChannel {
+  IN_APP
+  PUSH
+  EMAIL
+  SMS
+}
+
+enum NotificationSendStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+/// D136: one send per zone, each at its own promotion window; a zone is never sent twice.
+model NotificationZoneSend {
+  id             String                 @id @db.Uuid
+  notificationId String                 @map("notification_id") @db.Uuid
+  zoneId         String                 @map("zone_id") @db.Uuid
+  sendAt         DateTime               @map("send_at") @db.Timestamptz
+  status         NotificationSendStatus @default(PENDING)
+  sentAt         DateTime?              @map("sent_at") @db.Timestamptz
+  emailsSent     Int                    @default(0) @map("emails_sent")
+  emailsFailed   Int                    @default(0) @map("emails_failed")
+  failureNote    String?                @map("failure_note")
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime               @updatedAt @map("updated_at") @db.Timestamptz
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Restrict)
+  zone         Zone         @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  @@unique([notificationId, zoneId])
+  @@index([status, sendAt])
+  @@map("notification_zone_sends")
 }
