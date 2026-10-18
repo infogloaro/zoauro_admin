@@ -204,6 +204,13 @@ export const AUDIT_ACTIONS = {
   'registration.zone_assigned': a('integrations', 'Assigned zone to registration'),
   // notifications / audit / system
   'broadcast.created': a('notifications', 'Created broadcast', H),
+  // M17 (D134–D137): broadcast.created is the compose; these follow it
+  'notification.updated': a('notifications', 'Updated notification'),
+  'notification.approved': a('notifications', 'Approved promotion', H),
+  'notification.rejected': a('notifications', 'Rejected promotion', H),
+  'notification.cancelled': a('notifications', 'Cancelled notification'),
+  'notification.sent': a('notifications', 'Sent notification'),
+  'notification.failed': a('notifications', 'Notification failed'),
   'audit.exported': a('audit', 'Exported audit log', H),
   'job.order_auto_cancelled': a('system', 'Order auto-cancelled'),
   'job.payment_expired': a('system', 'Payment expired'),

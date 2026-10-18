@@ -2,6 +2,8 @@ import {
   AUDIT_ACTIONS,
   buildCursorPage,
   deliveryMaxConcurrentOrdersSchema,
+  notificationChannelsSchema,
+  notificationTimingSchema,
   onboardingDocumentsSchema,
   effectiveSetting,
   refundLimitsSchema,
@@ -445,6 +447,46 @@ export class SettingsReader {
     );
     const own = onboardingDocumentsSchema.safeParse(zones.get(zoneId));
     return own.success ? own.data : platform;
+  }
+
+  /** D100: the promotion window of a zone (zone value ?? platform ?? 09:00–21:00 IST). */
+  async notificationTiming(
+    zoneId: string,
+  ): Promise<{ promotionalFrom: string; promotionalTo: string }> {
+    const key = 'notifications.timing';
+    const def = settingDef(key);
+    if (!def) throw new Error(`${key} is not registered`);
+    const platform = await this.cached(`platform:${key}`, async () => {
+      const row = (await this.deps.repo.platformValues([key])).get(key);
+      const parsed = notificationTimingSchema.safeParse(row?.value);
+      return parsed.success
+        ? parsed.data
+        : (def.default as { promotionalFrom: string; promotionalTo: string });
+    });
+    const zones = await this.cached(`zones:${key}:${zoneId}`, () =>
+      this.deps.repo.zoneValues(key, [zoneId]),
+    );
+    const own = notificationTimingSchema.safeParse(zones.get(zoneId));
+    return own.success ? own.data : platform;
+  }
+
+  /** D99: which channels are switched on platform-wide (the channels setting gates every send, D135). */
+  async notificationChannels(): Promise<{
+    inApp: boolean;
+    email: boolean;
+    sms: boolean;
+    whatsapp: boolean;
+  }> {
+    const key = 'notifications.channels';
+    const def = settingDef(key);
+    if (!def) throw new Error(`${key} is not registered`);
+    return this.cached(`platform:${key}`, async () => {
+      const row = (await this.deps.repo.platformValues([key])).get(key);
+      const parsed = notificationChannelsSchema.safeParse(row?.value);
+      return parsed.success
+        ? parsed.data
+        : (def.default as { inApp: boolean; email: boolean; sms: boolean; whatsapp: boolean });
+    });
   }
 }
 

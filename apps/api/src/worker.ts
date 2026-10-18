@@ -11,6 +11,7 @@ import {
   startOutboxJobs,
   type OutboxJobs,
 } from './lib/outbox';
+import { realtimeRelay } from './lib/realtime';
 import { createAccessService } from './modules/access';
 import { createSecretBox } from './modules/auth/mfa/secret-box';
 import { createExportQueue, createExportsService, startExportJobs } from './modules/exports';
@@ -30,9 +31,15 @@ if (transport.name === 'dev' && env.NODE_ENV === 'production') {
   );
 }
 
+// Shared by the access service (falls back to PostgreSQL when Redis is down) and the realtime relay (best effort)
+const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 2 });
+redis.on('error', () => undefined);
+
 const publisher = createOutboxPublisher({
   store: new OutboxRepository(prisma),
   transport,
+  // published rows also go to the API's Socket.IO rooms (doc 06 section 6, M17)
+  listeners: [realtimeRelay(redis)],
   secrets: createSecretBox({ current: env.ENCRYPTION_KEY, previous: env.ENCRYPTION_KEY_PREVIOUS }),
   config: {
     timeoutMs: env.INTEGRATION_WEBHOOK_TIMEOUT_MS,
@@ -42,8 +49,6 @@ const publisher = createOutboxPublisher({
 
 // Export jobs: the requester's context is rebuilt from the access tables (the same AccessService the API uses, with its
 // <= 60 s Redis cache), and rows are read through the orders service, so the file never holds more than GET /orders.
-const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 2 });
-redis.on('error', () => undefined); // the access service falls back to PostgreSQL
 const exportQueue = createExportQueue({ redisUrl: env.REDIS_URL });
 const exportsService = createExportsService({
   prisma,

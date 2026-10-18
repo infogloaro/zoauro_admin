@@ -19,3 +19,4 @@ export * from './hotels';
 export * from './partners';
 export * from './exports';
 export * from './customers';
+export * from './notifications';
