@@ -17,6 +17,7 @@ import { createAuthMailer, createAuthModule, createSmsProvider } from './modules
 import { createMenuModule } from './modules/menu';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
+import { createCustomersModule } from './modules/customers';
 import { createUploadsModule } from './modules/uploads';
 import { createPartnersModule } from './modules/delivery-partners';
 import { createNotificationQueue, createNotificationsModule } from './modules/notifications';
@@ -178,6 +179,12 @@ const app = createApp({
         maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
       }).router,
       vendors.router,
+      // M09 customers (D25, D26, D28, D63)
+      createCustomersModule({
+        prisma,
+        appOrigin: new URL(env.APP_URL).origin,
+        limiter: new RedisRateLimiter(redis),
+      }).router,
       partners.router,
       notifications.router,
       uploads.router,

@@ -170,24 +170,9 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'utensils',
     description:
       'Approval queue for adding, editing, re-pricing, changing availability of and removing food items.',
-    status: 'coming-soon',
-    zonal: { permission: 'menu' },
-    blueprint: {
-      phase: 'Phase 1',
-      roadmap: ['R07', 'R09'],
-      screens: [
-        'Cross-restaurant request queue (also reachable inside each restaurant’s detail page)',
-        'Request detail: item, category, description, image, price, availability, requested change next to the approved value, requester, reason, attachments',
-        'Decision dialog with comments; timeline',
-      ],
-      flow: ['Requested', 'Under Review', 'Approved', 'Rejected'],
-      rules: [
-        'A request is a proposed change: the live item stays unchanged until it is approved',
-        'Removal approval deactivates the item (soft delete) so past orders and finances stay intact',
-        'The restaurant name and zone are always shown so the wrong vendor’s menu is never edited',
-      ],
-      dependsOn: ['Menus & Food Items (M08)'],
-    },
+    status: 'live',
+    superAdminHref: '/super-admin/food-item-requests',
+    zonal: { href: '/zone/food-item-requests', permission: 'menu' },
   },
   {
     id: 'R12',
@@ -262,18 +247,9 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'book',
     description:
       'Platform-wide food catalogue for cross-restaurant search, bulk actions, imports and audit.',
-    status: 'coming-soon',
-    blueprint: {
-      phase: 'Phase 1',
-      roadmap: ['R08'],
-      screens: [
-        'Global catalogue with vendor, zone, price and availability filters',
-        'Bulk edit and import',
-      ],
-      rules: [
-        'Labelled as the platform-wide catalogue; day-to-day menu work happens inside each restaurant',
-      ],
-    },
+    status: 'live',
+    superAdminHref: '/super-admin/menu-items',
+    zonal: { href: '/zone/menu-items', permission: 'menu' },
   },
 
   // ---- Zone Operations --------------------------------------------------------------------------------------------------

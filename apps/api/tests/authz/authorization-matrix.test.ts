@@ -26,6 +26,17 @@ const vendorZones = (body: unknown): string[] | 'ALL' => {
   ];
   return Object.values(fixtures.zones).every((z) => ids.includes(z)) ? 'ALL' : ids;
 };
+/** GET /customers: the in-scope zones the listed customers have an address or an order in (D25). */
+const customerZones = (body: unknown): string[] | 'ALL' => {
+  const ids = [
+    ...new Set(
+      (body as { data: { zones: { id: string }[] }[] }).data.flatMap((c) =>
+        c.zones.map((z) => z.id),
+      ),
+    ),
+  ];
+  return Object.values(fixtures.zones).every((z) => ids.includes(z)) ? 'ALL' : ids;
+};
 
 beforeAll(async () => {
   env = await createAuthTestEnv();
@@ -72,6 +83,14 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         // routes name a document that does not exist, so 404 NOT_FOUND passes (scope tests: tests/vendors/)
         listRestaurants: { listedZones: vendorZones },
         listHomemakers: { listedZones: vendorZones },
+        // M09: the orders fixture gives the placeholder customer an order in zone A and one customer an order in
+        // each of zones B and C; a customer is listed with the in-scope zones of their orders and addresses (D25)
+        listCustomers: { listedZones: customerZones },
+        getCustomer: { ownObject: true },
+        updateCustomer: { ownObject: true },
+        blockCustomer: { ownObject: true },
+        unblockCustomer: { ownObject: true },
+        revealCustomerContact: { ownObject: true },
         getRestaurant: { ownObject: true },
         updateRestaurant: { ownObject: true },
         deleteRestaurant: { ownObject: true },
@@ -148,7 +167,7 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // requests and zone scope (doc 59) + 5 orders (M11) + 24 restaurants and homemakers + 2 uploads (M06, M07, SA-2.1) + 13 delivery partners (M10)
     // + 7 notifications (M17)
     // + 15 menu items, bulk, change requests and categories (SA-2.4)
-    expect(report.coveredRoutes).toHaveLength(153);
+    expect(report.coveredRoutes).toHaveLength(160);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

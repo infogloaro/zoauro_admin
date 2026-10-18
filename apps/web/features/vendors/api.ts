@@ -120,7 +120,7 @@ export function useUploadFile() {
       file: File,
       zoneId: string,
       entityId: string,
-      purpose: 'VENDOR_DOC' | 'PARTNER_DOC' = 'VENDOR_DOC',
+      purpose: 'VENDOR_DOC' | 'PARTNER_DOC' | 'MENU_IMAGE' = 'VENDOR_DOC',
     ): Promise<string> => {
       const presign = await client.post('/uploads/presign', {
         body: {

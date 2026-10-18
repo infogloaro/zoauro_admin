@@ -24,6 +24,7 @@ import { createAuditModule } from '../../../src/modules/audit';
 import { createMenuModule } from '../../../src/modules/menu';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
+import { createCustomersModule } from '../../../src/modules/customers';
 import { createUploadsModule } from '../../../src/modules/uploads';
 import { createPartnersModule } from '../../../src/modules/delivery-partners';
 import { createNotificationsModule } from '../../../src/modules/notifications';
@@ -347,6 +348,12 @@ export async function createAuthTestEnv() {
         clock: clock.now,
       }).router,
       vendors.router,
+      createCustomersModule({
+        prisma,
+        appOrigin: APP_ORIGIN,
+        limiter: new RedisRateLimiter(appRedis),
+        clock: clock.now,
+      }).router,
       partners.router,
       // M17: sends are not queued here; tests/notifications drive the send step on their own service
       createNotificationsModule({
