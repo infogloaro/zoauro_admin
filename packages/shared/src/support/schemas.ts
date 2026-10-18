@@ -122,12 +122,13 @@ export const ticketMessageSchema = z
   .strict();
 export type TicketMessageInput = z.infer<typeof ticketMessageSchema>;
 
-/** POST /support/tickets/{id}/transition (If-Match: version). */
+/**
+ * POST /support/tickets/{id}/transition (If-Match: version). ASSIGNED here only resumes a ticket waiting on the
+ * customer (the assignee stays); /assign (re)assigns. OPEN is never a target.
+ */
 export const transitionTicketSchema = z
   .object({
-    to: z.enum(TICKET_STATUSES).refine((s) => s !== 'ASSIGNED' && s !== 'OPEN', {
-      message: 'use /assign',
-    }),
+    to: z.enum(TICKET_STATUSES).refine((s) => s !== 'OPEN', { message: 'OPEN is not a target' }),
     note: z.string().trim().max(500).optional(),
   })
   .strict();
