@@ -483,26 +483,10 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'engagement',
     icon: 'bell',
     description:
-      'Categorised manual, automated and scheduled notifications with templates, delivery outcomes and history.',
-    status: 'coming-soon',
-    zonal: { permission: 'notifications' },
-    blueprint: {
-      phase: 'Phase 1',
-      roadmap: ['R25'],
-      screens: [
-        'Overview by category, sender type and delivery status',
-        'Composer: category, message, audience, zone, channel, send now or schedule, preview',
-        'Automation rules and templates',
-        'History and detail with delivery attempts; delivery failures with safe retry',
-      ],
-      flow: ['Draft', 'Scheduled', 'Queued', 'Sent', 'Delivered', 'Failed'],
-      rules: [
-        'Transactional messages only after the business change is committed',
-        'Retries never create duplicate messages',
-        'Delivered or read is shown only when the provider reports it',
-        'Launch channels and providers are still open decisions',
-      ],
-    },
+      'Messages and promotions to customers, vendors and partners per zone; promotions approved by a Super Admin and sent inside each zone window.',
+    status: 'live',
+    superAdminHref: '/super-admin/notifications',
+    zonal: { href: '/zone/notifications', permission: 'notifications' },
   },
   {
     id: 'M20-REV',
