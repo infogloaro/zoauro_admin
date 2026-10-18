@@ -395,6 +395,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Global categories plus the zone categories of the zones the caller can view (?kind=global|zone), with live item counts in scope */
+        get: operations["listCategories"];
+        put?: never;
+        /** Add a category: zoneId null = global (Super Admin only, 403 for a Zonal Admin). Names are unique per zone, ignoring case (409) */
+        post: operations["createCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Soft delete; refused with CATEGORY_IN_USE while live items use it */
+        delete: operations["deleteCategory"];
+        options?: never;
+        head?: never;
+        /** Rename or reorder a category (global ones: Super Admin only) */
+        patch: operations["updateCategory"];
+        trace?: never;
+    };
     "/delivery-partners": {
         parameters: {
             query?: never;
@@ -1059,6 +1095,145 @@ export interface paths {
         put?: never;
         /** Reset a member's 2-step verification (Super Admin, STRONG re-authentication, reason required): methods and backup codes removed, sessions revoked, member emailed */
         post: operations["resetMemberMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/menu-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Menu items in the zones the caller can view (?zoneId repeatable): vendor, category, availability (live = available, in stock, not admin-disabled), featured, dietary, search q (item or vendor), sort, pages, tab counts */
+        get: operations["listMenuItems"];
+        put?: never;
+        /** Add an item to exactly one vendor; its zone is the vendor’s (404 outside the scope, 409 while the vendor waits for a zone). The category is global or of that zone */
+        post: operations["createMenuItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/menu-items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One menu item. 404 outside the caller’s view scope */
+        get: operations["getMenuItem"];
+        put?: never;
+        post?: never;
+        /** Soft delete */
+        delete: operations["deleteMenuItem"];
+        options?: never;
+        head?: never;
+        /** Edit an item (applies at once; a vendor-owned field sets admin_override_at, doc 44). adminDisabled (with a reason to disable) is the admin toggle and emits menu_item.admin_changed (D126); audited as menu_item.updated, admin_disabled or admin_enabled */
+        patch: operations["updateMenuItem"];
+        trace?: never;
+    };
+    "/menu-items/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply a bulk action, all or nothing (D124): any id outside the caller’s zones rejects the request with 404 and nothing changes. Prices round half-up to paise; availability writes admin_disabled (D126) and emits menu_item.admin_changed */
+        post: operations["applyMenuBulk"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/menu-items/bulk/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dry run of a bulk action (availability, category, price): before/after per item and the skipped ids. Any id outside the caller’s zones is 404 (D124) */
+        post: operations["previewMenuBulk"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/menu-items/change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vendor item-change requests (R09) in the zones the caller can view; default status PENDING */
+        get: operations["listMenuChangeRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/menu-items/change-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One change request with base (at submission), live (now) and proposed values */
+        get: operations["getMenuChangeRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/menu-items/change-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve at the version seen: applies only name, description, price, category, dietary and image (CREATE inserts, DELETE soft-deletes); emits menu_item.change_decided (D125) */
+        post: operations["approveMenuChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/menu-items/change-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject at the version seen, with a reason the vendor receives (menu_item.change_decided, D125) */
+        post: operations["rejectMenuChange"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4003,6 +4178,338 @@ export interface operations {
             };
             /** @description Not allowed (missing permission, bad CSRF token or Origin) */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listCategories: {
+        parameters: {
+            query?: {
+                kind?: "global" | "zone";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            itemCount: number;
+                            name: string;
+                            sortOrder: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @default 0 */
+                    sortOrder?: number;
+                    /** Format: uuid */
+                    zoneId: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        itemCount: number;
+                        name: string;
+                        sortOrder: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The category still has live menu items */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    sortOrder?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        itemCount: number;
+                        name: string;
+                        sortOrder: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8641,6 +9148,1287 @@ export interface operations {
             };
             /** @description Not found (also used for objects in zones the caller cannot see) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listMenuItems: {
+        parameters: {
+            query?: {
+                availability?: "live" | "out_of_stock" | "vendor_off" | "admin_disabled";
+                categoryId?: string;
+                dietary?: "VEGETARIAN" | "NON_VEG" | "EGG";
+                featured?: boolean;
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                vendorId?: string;
+                vendorKind?: "RESTAURANT" | "HOMEMAKER";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            adminDisabled: boolean;
+                            /** @enum {string} */
+                            availability: "live" | "out_of_stock" | "vendor_off" | "admin_disabled";
+                            category: {
+                                global: boolean;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** Format: date-time */
+                            createdAt: string;
+                            description: string | null;
+                            /** @enum {string|null} */
+                            dietary: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            hasImage: boolean;
+                            hasPendingChange: boolean;
+                            /** Format: uuid */
+                            id: string;
+                            isAvailable: boolean;
+                            isFeatured: boolean;
+                            name: string;
+                            price: number;
+                            stock: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            vendor: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                kind: "RESTAURANT" | "HOMEMAKER";
+                                name: string;
+                            };
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            counts: {
+                                adminDisabled: number;
+                                live: number;
+                                outOfStock: number;
+                                pendingChanges: number;
+                                total: number;
+                                vendorOff: number;
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createMenuItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    categoryId: string;
+                    description?: string;
+                    /** @enum {string} */
+                    dietary?: "VEGETARIAN" | "NON_VEG" | "EGG";
+                    imageKey?: string;
+                    /** @default true */
+                    isAvailable?: boolean;
+                    /** @default false */
+                    isFeatured?: boolean;
+                    name: string;
+                    price: number;
+                    /** @default 0 */
+                    stock?: number;
+                    /** Format: uuid */
+                    vendorId: string;
+                    /** @enum {string} */
+                    vendorKind: "RESTAURANT" | "HOMEMAKER";
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        adminDisabled: boolean;
+                        /** Format: date-time */
+                        adminOverrideAt: string | null;
+                        /** @enum {string} */
+                        availability: "live" | "out_of_stock" | "vendor_off" | "admin_disabled";
+                        category: {
+                            global: boolean;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: date-time */
+                        createdAt: string;
+                        description: string | null;
+                        /** @enum {string|null} */
+                        dietary: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                        hasImage: boolean;
+                        hasPendingChange: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isFeatured: boolean;
+                        name: string;
+                        /** Format: uuid */
+                        pendingChangeRequestId: string | null;
+                        price: number;
+                        stock: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "RESTAURANT" | "HOMEMAKER";
+                            name: string;
+                        };
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getMenuItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        adminDisabled: boolean;
+                        /** Format: date-time */
+                        adminOverrideAt: string | null;
+                        /** @enum {string} */
+                        availability: "live" | "out_of_stock" | "vendor_off" | "admin_disabled";
+                        category: {
+                            global: boolean;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: date-time */
+                        createdAt: string;
+                        description: string | null;
+                        /** @enum {string|null} */
+                        dietary: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                        hasImage: boolean;
+                        hasPendingChange: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isFeatured: boolean;
+                        name: string;
+                        /** Format: uuid */
+                        pendingChangeRequestId: string | null;
+                        price: number;
+                        stock: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "RESTAURANT" | "HOMEMAKER";
+                            name: string;
+                        };
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteMenuItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateMenuItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    adminDisabled?: boolean;
+                    /** Format: uuid */
+                    categoryId?: string;
+                    description?: string | null;
+                    /** @enum {string|null} */
+                    dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                    imageKey?: string | null;
+                    isFeatured?: boolean;
+                    name?: string;
+                    price?: number;
+                    reason?: string;
+                    stock?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        adminDisabled: boolean;
+                        /** Format: date-time */
+                        adminOverrideAt: string | null;
+                        /** @enum {string} */
+                        availability: "live" | "out_of_stock" | "vendor_off" | "admin_disabled";
+                        category: {
+                            global: boolean;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: date-time */
+                        createdAt: string;
+                        description: string | null;
+                        /** @enum {string|null} */
+                        dietary: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                        hasImage: boolean;
+                        hasPendingChange: boolean;
+                        /** Format: uuid */
+                        id: string;
+                        isAvailable: boolean;
+                        isFeatured: boolean;
+                        name: string;
+                        /** Format: uuid */
+                        pendingChangeRequestId: string | null;
+                        price: number;
+                        stock: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "RESTAURANT" | "HOMEMAKER";
+                            name: string;
+                        };
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    applyMenuBulk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    action: "availability";
+                    adminDisabled: boolean;
+                    ids: string[];
+                    reason?: string;
+                } | {
+                    /** @enum {string} */
+                    action: "category";
+                    /** Format: uuid */
+                    categoryId: string;
+                    ids: string[];
+                } | {
+                    /** @enum {string} */
+                    action: "price";
+                    ids: string[];
+                    /** @enum {string} */
+                    mode: "percent" | "amount";
+                    value: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Applied */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        action: "availability" | "category" | "price";
+                        changes: {
+                            after: number | boolean | string;
+                            before: number | boolean | string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                        skipped: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            reason: "UNCHANGED" | "PRICE_BELOW_MINIMUM" | "PRICE_ABOVE_MAXIMUM" | "CATEGORY_OTHER_ZONE";
+                        }[];
+                        updated: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    previewMenuBulk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    action: "availability";
+                    adminDisabled: boolean;
+                    ids: string[];
+                    reason?: string;
+                } | {
+                    /** @enum {string} */
+                    action: "category";
+                    /** Format: uuid */
+                    categoryId: string;
+                    ids: string[];
+                } | {
+                    /** @enum {string} */
+                    action: "price";
+                    ids: string[];
+                    /** @enum {string} */
+                    mode: "percent" | "amount";
+                    value: number;
+                };
+            };
+        };
+        responses: {
+            /** @description What would change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        action: "availability" | "category" | "price";
+                        changes: {
+                            after: number | boolean | string;
+                            before: number | boolean | string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                        skipped: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            reason: "UNCHANGED" | "PRICE_BELOW_MINIMUM" | "PRICE_ABOVE_MAXIMUM" | "CATEGORY_OTHER_ZONE";
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listMenuChangeRequests: {
+        parameters: {
+            query?: {
+                kind?: "CREATE" | "UPDATE" | "DELETE";
+                menuItemId?: string;
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                status?: "PENDING" | "APPROVED" | "REJECTED" | "SUPERSEDED";
+                vendorId?: string;
+                vendorKind?: "RESTAURANT" | "HOMEMAKER";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            decidedAt: string | null;
+                            decidedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            decisionReason: string | null;
+                            fields: ("name" | "description" | "price" | "categoryId" | "dietary" | "imageKey")[];
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "CREATE" | "UPDATE" | "DELETE";
+                            menuItem: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            name: string;
+                            /** @enum {string} */
+                            status: "PENDING" | "APPROVED" | "REJECTED" | "SUPERSEDED";
+                            vendor: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                kind: "RESTAURANT" | "HOMEMAKER";
+                                name: string;
+                            };
+                            version: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getMenuChangeRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        base: {
+                            /** Format: uuid */
+                            categoryId?: string;
+                            description?: string | null;
+                            /** @enum {string|null} */
+                            dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            imageKey?: string | null;
+                            isAvailable?: boolean;
+                            name?: string;
+                            price?: number;
+                            stock?: number;
+                        } | null;
+                        changes: {
+                            base: string | number | boolean | null;
+                            /** @enum {string} */
+                            field: "name" | "description" | "price" | "categoryId" | "dietary" | "imageKey";
+                            live: string | number | boolean | null;
+                            liveChanged: boolean;
+                            proposed: string | number | boolean | null;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        fields: ("name" | "description" | "price" | "categoryId" | "dietary" | "imageKey")[];
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "CREATE" | "UPDATE" | "DELETE";
+                        live: {
+                            /** Format: uuid */
+                            categoryId?: string;
+                            description?: string | null;
+                            /** @enum {string|null} */
+                            dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            imageKey?: string | null;
+                            isAvailable?: boolean;
+                            name?: string;
+                            price?: number;
+                            stock?: number;
+                        } | null;
+                        menuItem: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        name: string;
+                        proposed: {
+                            /** Format: uuid */
+                            categoryId?: string;
+                            description?: string | null;
+                            /** @enum {string|null} */
+                            dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            imageKey?: string | null;
+                            isAvailable?: boolean;
+                            name?: string;
+                            price?: number;
+                            stock?: number;
+                        };
+                        /** @enum {string} */
+                        status: "PENDING" | "APPROVED" | "REJECTED" | "SUPERSEDED";
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "RESTAURANT" | "HOMEMAKER";
+                            name: string;
+                        };
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    approveMenuChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        base: {
+                            /** Format: uuid */
+                            categoryId?: string;
+                            description?: string | null;
+                            /** @enum {string|null} */
+                            dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            imageKey?: string | null;
+                            isAvailable?: boolean;
+                            name?: string;
+                            price?: number;
+                            stock?: number;
+                        } | null;
+                        changes: {
+                            base: string | number | boolean | null;
+                            /** @enum {string} */
+                            field: "name" | "description" | "price" | "categoryId" | "dietary" | "imageKey";
+                            live: string | number | boolean | null;
+                            liveChanged: boolean;
+                            proposed: string | number | boolean | null;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        fields: ("name" | "description" | "price" | "categoryId" | "dietary" | "imageKey")[];
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "CREATE" | "UPDATE" | "DELETE";
+                        live: {
+                            /** Format: uuid */
+                            categoryId?: string;
+                            description?: string | null;
+                            /** @enum {string|null} */
+                            dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            imageKey?: string | null;
+                            isAvailable?: boolean;
+                            name?: string;
+                            price?: number;
+                            stock?: number;
+                        } | null;
+                        menuItem: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        name: string;
+                        proposed: {
+                            /** Format: uuid */
+                            categoryId?: string;
+                            description?: string | null;
+                            /** @enum {string|null} */
+                            dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            imageKey?: string | null;
+                            isAvailable?: boolean;
+                            name?: string;
+                            price?: number;
+                            stock?: number;
+                        };
+                        /** @enum {string} */
+                        status: "PENDING" | "APPROVED" | "REJECTED" | "SUPERSEDED";
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "RESTAURANT" | "HOMEMAKER";
+                            name: string;
+                        };
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rejectMenuChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        base: {
+                            /** Format: uuid */
+                            categoryId?: string;
+                            description?: string | null;
+                            /** @enum {string|null} */
+                            dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            imageKey?: string | null;
+                            isAvailable?: boolean;
+                            name?: string;
+                            price?: number;
+                            stock?: number;
+                        } | null;
+                        changes: {
+                            base: string | number | boolean | null;
+                            /** @enum {string} */
+                            field: "name" | "description" | "price" | "categoryId" | "dietary" | "imageKey";
+                            live: string | number | boolean | null;
+                            liveChanged: boolean;
+                            proposed: string | number | boolean | null;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        fields: ("name" | "description" | "price" | "categoryId" | "dietary" | "imageKey")[];
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "CREATE" | "UPDATE" | "DELETE";
+                        live: {
+                            /** Format: uuid */
+                            categoryId?: string;
+                            description?: string | null;
+                            /** @enum {string|null} */
+                            dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            imageKey?: string | null;
+                            isAvailable?: boolean;
+                            name?: string;
+                            price?: number;
+                            stock?: number;
+                        } | null;
+                        menuItem: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        name: string;
+                        proposed: {
+                            /** Format: uuid */
+                            categoryId?: string;
+                            description?: string | null;
+                            /** @enum {string|null} */
+                            dietary?: "VEGETARIAN" | "NON_VEG" | "EGG" | null;
+                            imageKey?: string | null;
+                            isAvailable?: boolean;
+                            name?: string;
+                            price?: number;
+                            stock?: number;
+                        };
+                        /** @enum {string} */
+                        status: "PENDING" | "APPROVED" | "REJECTED" | "SUPERSEDED";
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "RESTAURANT" | "HOMEMAKER";
+                            name: string;
+                        };
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
