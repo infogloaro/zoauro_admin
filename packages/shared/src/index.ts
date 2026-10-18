@@ -21,3 +21,4 @@ export * from './exports';
 export * from './customers';
 export * from './notifications';
 export * from './support';
+export * from './dashboard';
