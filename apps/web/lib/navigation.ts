@@ -197,23 +197,9 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'bike',
     description:
       'Onboarding requests from delivery partners with a verification review and decisions.',
-    status: 'coming-soon',
-    zonal: { permission: 'delivery' },
-    blueprint: {
-      phase: 'Phase 1',
-      roadmap: ['R12'],
-      screens: [
-        'Request queue with status and zone filters',
-        'Verification review: profile, contact, proposed zone, documents, review history',
-        'Decision dialogs: approve, reject, request more information, suspend (authorised only)',
-      ],
-      flow: ['Submitted', 'Under Review', 'More Information Required', 'Verified', 'Rejected'],
-      rules: [
-        'Verification status (Pending / Verified / Rejected) is separate from the account status (Active / Inactive / Suspended)',
-        'Applicants use the partner app; this panel only processes what arrives',
-      ],
-      dependsOn: ['Delivery Partners (M10)', 'Integration Hub (M21)'],
-    },
+    status: 'live',
+    superAdminHref: '/super-admin/partner-requests',
+    zonal: { href: '/zone/partner-requests', permission: 'delivery' },
   },
   {
     id: 'R13',
@@ -365,16 +351,9 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'delivery',
     icon: 'bike',
     description: 'Partner records, documents, verification, availability, cash in hand and rating.',
-    status: 'coming-soon',
-    zonal: { permission: 'delivery' },
-    blueprint: {
-      phase: 'Phase 1',
-      screens: [
-        'Partner list with online status',
-        'Partner detail: documents, verification, deliveries, cash in hand',
-      ],
-      rules: ['Verification status is separate from the operational account status'],
-    },
+    status: 'live',
+    superAdminHref: '/super-admin/delivery-partners',
+    zonal: { href: '/zone/delivery-partners', permission: 'delivery' },
   },
   {
     id: 'M14',

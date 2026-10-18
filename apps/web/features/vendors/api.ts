@@ -116,10 +116,15 @@ export function fileProblem(file: File, allowPdf: boolean): string | null {
 export function useUploadFile() {
   const client = useApiClient();
   return useCallback(
-    async (file: File, zoneId: string, entityId: string): Promise<string> => {
+    async (
+      file: File,
+      zoneId: string,
+      entityId: string,
+      purpose: 'VENDOR_DOC' | 'PARTNER_DOC' = 'VENDOR_DOC',
+    ): Promise<string> => {
       const presign = await client.post('/uploads/presign', {
         body: {
-          purpose: 'VENDOR_DOC',
+          purpose,
           contentType: file.type,
           sizeBytes: file.size,
           zoneId,
