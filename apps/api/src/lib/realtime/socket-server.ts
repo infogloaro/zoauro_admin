@@ -13,8 +13,8 @@ import { allZonesRoom, userRoom, zoneRoom, type RealtimeMessage } from './events
 //  - scope.changed: the member's sockets drop every scoped room, re-join from the access tables and get the event,
 //    so the client refetches /me (doc 14, doc 23).
 
-/** Modules with zone rooms (doc 14 section 4). */
-export const REALTIME_MODULES: readonly PermissionModule[] = ['orders', 'refunds'];
+/** Modules with zone rooms (doc 14 section 4; support: D139, zone:<id>:support). */
+export const REALTIME_MODULES: readonly PermissionModule[] = ['orders', 'refunds', 'support'];
 
 export interface RealtimeCaller {
   userId: string;

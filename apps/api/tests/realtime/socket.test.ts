@@ -276,6 +276,21 @@ describe('outbox -> messages', () => {
     ).toEqual([]);
     expect(realtimeMessagesOf({ eventType: 'zone.updated', zoneId: A, payload: {} })).toEqual([]);
     expect(
+      realtimeMessagesOf({
+        eventType: 'admin.ticket_changed',
+        zoneId: A,
+        payload: { data: { ticketId: 't1', change: 'escalated', assigneeId: null } },
+      }),
+    ).toEqual([
+      {
+        kind: 'zone',
+        zoneId: A,
+        module: 'support',
+        event: 'support.ticket_changed',
+        payload: { ticketId: 't1', zoneId: A, change: 'escalated', assigneeId: null },
+      },
+    ]);
+    expect(
       realtimeMessagesOf({ eventType: 'order.status_changed', zoneId: null, payload: {} }),
     ).toEqual([]);
   });
@@ -284,7 +299,8 @@ describe('outbox -> messages', () => {
     expect(
       roomsFor(ctxOf('u', { [A]: ['orders:view', 'refunds:view'], [B]: ['refunds:view'] })).sort(),
     ).toEqual([`zone:${A}:orders`, `zone:${A}:refunds`, `zone:${B}:refunds`].sort());
-    expect(roomsFor(ctxOf('s', {}, true))).toEqual(['all:orders', 'all:refunds']);
+    expect(roomsFor(ctxOf('s', {}, true))).toEqual(['all:orders', 'all:refunds', 'all:support']);
+    expect(roomsFor(ctxOf('u', { [A]: ['support:view'] }))).toEqual([`zone:${A}:support`]);
   });
 });
 

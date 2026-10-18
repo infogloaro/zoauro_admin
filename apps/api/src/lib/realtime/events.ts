@@ -50,6 +50,25 @@ export function realtimeMessagesOf(row: OutboxLike): RealtimeMessage[] {
       },
     ];
   }
+  if (row.eventType === 'admin.ticket_changed') {
+    // support desk (D139-D140): ids and what changed; the client refetches the ticket through the scoped API
+    const ticketId = str(data['ticketId']);
+    if (!row.zoneId || !ticketId) return [];
+    return [
+      {
+        kind: 'zone',
+        zoneId: row.zoneId,
+        module: 'support',
+        event: 'support.ticket_changed',
+        payload: {
+          ticketId,
+          zoneId: row.zoneId,
+          change: str(data['change']),
+          assigneeId: str(data['assigneeId']),
+        },
+      },
+    ];
+  }
   if (row.eventType === 'admin.zones_changed') {
     const userId = str(data['userId']);
     return userId ? [{ kind: 'scope', userId }] : [];

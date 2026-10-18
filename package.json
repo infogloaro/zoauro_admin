@@ -20,6 +20,7 @@
     "infra:down": "docker compose -f docker-compose.dev.yml down",
     "e2e:system-logs": "pnpm --filter @zoauro/api exec tsx ../../tests/e2e/system-logs/run.ts",
     "e2e:auth": "pnpm --filter @zoauro/api exec tsx ../../tests/e2e/auth/run.ts",
+    "e2e:flows": "pnpm --filter @zoauro/api exec tsx ../../tests/e2e/flows/run.ts",
     "e2e:shell": "playwright test -c tests/e2e/shell/playwright.config.ts",
     "openapi:generate": "pnpm --filter @zoauro/api openapi:generate",
     "openapi:check": "pnpm --filter @zoauro/api openapi:check"

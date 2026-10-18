@@ -431,6 +431,93 @@ export interface paths {
         patch: operations["updateCategory"];
         trace?: never;
     };
+    "/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Customers with an address or an order in the zones the caller can view (D25, ?zoneId repeatable): search q (name, phone, email), status, source, sort, pages, tab counts. Orders and total spent are scope-filtered; phone and email masked (D26) */
+        get: operations["listCustomers"];
+        put?: never;
+        /** Add a customer (D28: source ADMIN, unique phone, no login) with a first address in a zone the caller can add customers to */
+        post: operations["createCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One customer: in-scope addresses, the 10 latest in-scope orders, scope-filtered figures (D25). 404 when not visible */
+        get: operations["getCustomer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit name, phone (unique) or email */
+        patch: operations["updateCustomer"];
+        trace?: never;
+    };
+    "/customers/{id}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Block with a reason (kept in the audit trail) */
+        post: operations["blockCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The unmasked phone and email (D26): the reveal flag in a zone where the customer is visible (Super Admin always), audited, 30 per hour */
+        get: operations["revealCustomerContact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/unblock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unblock (back to ACTIVE) */
+        post: operations["unblockCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/delivery-partners": {
         parameters: {
             query?: never;
@@ -4509,6 +4596,806 @@ export interface operations {
                 };
             };
             /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listCustomers: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                source?: "APP" | "ADMIN" | "REFERRAL" | "OTHER" | "IMPORT";
+                status?: "ACTIVE" | "INACTIVE" | "BLOCKED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            email: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: date-time */
+                            lastOrderAt: string | null;
+                            name: string;
+                            orderCount: number;
+                            phone: string;
+                            source: string | null;
+                            /** @enum {string} */
+                            status: "ACTIVE" | "INACTIVE" | "BLOCKED";
+                            totalSpentPaise: number;
+                            zones: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            }[];
+                        }[];
+                        meta: {
+                            counts: {
+                                active: number;
+                                blocked: number;
+                                inactive: number;
+                                total: number;
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    address: {
+                        address: string;
+                        area?: string;
+                        label?: string;
+                        pincode?: string;
+                        /** Format: uuid */
+                        zoneId: string;
+                    };
+                    /** Format: email */
+                    email?: string;
+                    name: string;
+                    phone: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        addresses: {
+                            address: string;
+                            area: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isDefault: boolean;
+                            label: string | null;
+                            pincode: string | null;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: date-time */
+                        lastOrderAt: string | null;
+                        name: string;
+                        orderCount: number;
+                        phone: string;
+                        recentOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                            totalPaise: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        source: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "INACTIVE" | "BLOCKED";
+                        totalSpentPaise: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        walletBalancePaise: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The customer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        addresses: {
+                            address: string;
+                            area: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isDefault: boolean;
+                            label: string | null;
+                            pincode: string | null;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: date-time */
+                        lastOrderAt: string | null;
+                        name: string;
+                        orderCount: number;
+                        phone: string;
+                        recentOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                            totalPaise: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        source: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "INACTIVE" | "BLOCKED";
+                        totalSpentPaise: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        walletBalancePaise: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email?: string | null;
+                    name?: string;
+                    phone?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        addresses: {
+                            address: string;
+                            area: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isDefault: boolean;
+                            label: string | null;
+                            pincode: string | null;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: date-time */
+                        lastOrderAt: string | null;
+                        name: string;
+                        orderCount: number;
+                        phone: string;
+                        recentOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                            totalPaise: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        source: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "INACTIVE" | "BLOCKED";
+                        totalSpentPaise: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        walletBalancePaise: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    blockCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Blocked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        addresses: {
+                            address: string;
+                            area: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isDefault: boolean;
+                            label: string | null;
+                            pincode: string | null;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: date-time */
+                        lastOrderAt: string | null;
+                        name: string;
+                        orderCount: number;
+                        phone: string;
+                        recentOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                            totalPaise: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        source: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "INACTIVE" | "BLOCKED";
+                        totalSpentPaise: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        walletBalancePaise: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    revealCustomerContact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Contact details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        email: string | null;
+                        phone: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    unblockCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Unblocked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        addresses: {
+                            address: string;
+                            area: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isDefault: boolean;
+                            label: string | null;
+                            pincode: string | null;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: date-time */
+                        lastOrderAt: string | null;
+                        name: string;
+                        orderCount: number;
+                        phone: string;
+                        recentOrders: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** Format: date-time */
+                            placedAt: string;
+                            status: string;
+                            totalPaise: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        source: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "INACTIVE" | "BLOCKED";
+                        totalSpentPaise: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        walletBalancePaise: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state */
             409: {
                 headers: {
                     [name: string]: unknown;
