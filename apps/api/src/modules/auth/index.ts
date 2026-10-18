@@ -71,6 +71,8 @@ export function createAuthModule(deps: {
   mfaIssuer?: string;
   /** SMS_PROVIDER and SMS_DLT_TEMPLATE_ID_OTP: whether the policy may switch SMS on (doc 52 section 5) */
   smsSettings?: { provider: SmsProviderName; dltTemplateIdOtp?: string | undefined };
+  /** D142: every session eviction, so the realtime server can disconnect those sockets (server.ts wires it) */
+  onSessionsEvicted?: (tokenHashes: string[]) => void;
 }): AuthModule {
   const config = deps.config ?? DEFAULT_AUTH_CONFIG;
   const clock = deps.clock ?? (() => new Date());
@@ -81,6 +83,7 @@ export function createAuthModule(deps: {
     config,
     clock,
     sessionSecret: deps.sessionSecret,
+    ...(deps.onSessionsEvicted ? { onEvicted: deps.onSessionsEvicted } : {}),
   });
   const limiter = new RedisRateLimiter(deps.redis);
   const mailer = deps.mailer ?? noopAuthMailer;

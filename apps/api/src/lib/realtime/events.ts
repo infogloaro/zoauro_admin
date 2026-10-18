@@ -15,7 +15,9 @@ export type RealtimeMessage =
       payload: Record<string, unknown>;
     }
   /** a member's zones or permissions changed (admin.zones_changed with userId, doc 10 / doc 14): re-join rooms */
-  | { kind: 'scope'; userId: string };
+  | { kind: 'scope'; userId: string }
+  /** sessions revoked, logged out or expired (D142): their sockets are disconnected at once */
+  | { kind: 'evict'; tokenHashes: string[] };
 
 interface OutboxLike {
   eventType: string;

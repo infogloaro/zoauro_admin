@@ -108,6 +108,8 @@ export class SessionStore {
       config: AuthConfig;
       clock: Clock;
       sessionSecret: string;
+      /** D142: told about every eviction (revoke, logout, expiry) so realtime can drop those sessions' sockets */
+      onEvicted?: (tokenHashes: string[]) => void;
     },
   ) {}
 
@@ -242,6 +244,7 @@ export class SessionStore {
   }
 
   async evict(tokenHash: string): Promise<void> {
+    this.notifyEvicted([tokenHash]);
     try {
       await this.deps.redis.del(this.key(tokenHash));
     } catch {
@@ -250,7 +253,26 @@ export class SessionStore {
   }
 
   async evictMany(tokenHashes: string[]): Promise<void> {
-    await Promise.all(tokenHashes.map((h) => this.evict(h)));
+    if (tokenHashes.length === 0) return;
+    this.notifyEvicted(tokenHashes);
+    await Promise.all(tokenHashes.map((h) => this.evictCacheOnly(h)));
+  }
+
+  private async evictCacheOnly(tokenHash: string): Promise<void> {
+    try {
+      await this.deps.redis.del(this.key(tokenHash));
+    } catch {
+      /* cache only: the database row is revoked separately */
+    }
+  }
+
+  /** Best effort: a failing listener never blocks an eviction. */
+  private notifyEvicted(tokenHashes: string[]): void {
+    try {
+      this.deps.onEvicted?.(tokenHashes);
+    } catch {
+      /* realtime only */
+    }
   }
 
   private async loadFromDatabase(tokenHash: string, now: number): Promise<CachedSession | null> {

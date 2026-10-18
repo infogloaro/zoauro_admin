@@ -25,6 +25,8 @@ function isMessage(v: unknown): v is RealtimeMessage {
   if (v === null || typeof v !== 'object') return false;
   const m = v as Record<string, unknown>;
   if (m['kind'] === 'scope') return typeof m['userId'] === 'string';
+  if (m['kind'] === 'evict')
+    return Array.isArray(m['tokenHashes']) && m['tokenHashes'].every((h) => typeof h === 'string');
   return (
     m['kind'] === 'zone' &&
     typeof m['zoneId'] === 'string' &&

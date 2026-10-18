@@ -18,6 +18,8 @@ export const REALTIME_MODULES: readonly PermissionModule[] = ['orders', 'refunds
 
 export interface RealtimeCaller {
   userId: string;
+  /** the session behind the socket (D142: its eviction disconnects the socket) */
+  tokenHash: string;
   role: AuthContext['role'];
   mustChangePassword: boolean;
 }
@@ -80,10 +82,29 @@ export function attachRealtime(httpServer: HttpServer, deps: RealtimeDeps): Real
     });
   });
 
+  /** tokenHash -> its sockets in this process */
+  const bySession = new Map<string, Set<Socket>>();
+
   io.on('connection', (socket) => {
     const caller = socket.data['caller'] as RealtimeCaller;
+    const set = bySession.get(caller.tokenHash) ?? new Set<Socket>();
+    set.add(socket);
+    bySession.set(caller.tokenHash, set);
+    socket.on('disconnect', () => {
+      set.delete(socket);
+      if (set.size === 0) bySession.delete(caller.tokenHash);
+    });
     join(socket, caller).catch(() => socket.disconnect(true));
   });
+
+  function evict(tokenHashes: readonly string[]) {
+    for (const h of tokenHashes) {
+      for (const socket of [...(bySession.get(h) ?? [])]) {
+        socket.emit('session.ended', {});
+        socket.disconnect(true);
+      }
+    }
+  }
 
   async function rescope(userId: string) {
     for (const s of await io.in(userRoom(userId)).fetchSockets()) {
@@ -104,6 +125,7 @@ export function attachRealtime(httpServer: HttpServer, deps: RealtimeDeps): Real
     async deliver(messages) {
       for (const m of messages) {
         if (m.kind === 'scope') await rescope(m.userId);
+        else if (m.kind === 'evict') evict(m.tokenHashes);
         else io.to([zoneRoom(m.zoneId, m.module), allZonesRoom(m.module)]).emit(m.event, m.payload);
       }
     },

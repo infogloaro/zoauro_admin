@@ -49,6 +49,7 @@ function member(id: string, ctx: AuthContext, opts: { mustChangePassword?: boole
   const sid = `sid-${id}`;
   sessions.set(sid, {
     userId: id,
+    tokenHash: `hash-${sid}`,
     role: ctx.role,
     mustChangePassword: opts.mustChangePassword ?? false,
   });
@@ -87,6 +88,8 @@ interface TestSocket {
   ready: Promise<string>;
   events: [string, unknown][];
   close(): void;
+  /** the server closed the connection (or it never opened) */
+  closed(): boolean;
 }
 
 function connect(cookie: string | null, origin = ORIGIN): TestSocket {
@@ -94,9 +97,13 @@ function connect(cookie: string | null, origin = ORIGIN): TestSocket {
   if (cookie) headers['Cookie'] = cookie;
   const ws = new WebSocket(url, { headers } as unknown as string[]);
   const events: [string, unknown][] = [];
+  let isClosed = false;
   const ready = new Promise<string>((resolve) => {
     ws.onerror = () => resolve('refused');
-    ws.onclose = () => resolve('refused');
+    ws.onclose = () => {
+      isClosed = true;
+      resolve('refused');
+    };
     ws.onmessage = (e) => {
       const msg = String(e.data);
       if (msg.startsWith('0'))
@@ -113,7 +120,7 @@ function connect(cookie: string | null, origin = ORIGIN): TestSocket {
       }
     };
   });
-  return { ready, events, close: () => ws.close() };
+  return { ready, events, close: () => ws.close(), closed: () => isClosed };
 }
 
 const settle = () => new Promise((r) => setTimeout(r, 100));
@@ -202,6 +209,36 @@ describe('scope.changed (TC-AC-14: the socket leaves B rooms)', () => {
     expect(other.events.map(([, p]) => (p as { orderId: string }).orderId)).toEqual(['x-b']);
     s.close();
     other.close();
+  });
+});
+
+describe('session eviction (D142)', () => {
+  it('disconnects the evicted session at once; the same member keeps its other session', async () => {
+    const ctx = ctxOf('ev', { [A]: ['orders:view'] });
+    const first = member('ev', ctx);
+    // a second session of the same member
+    sessions.set('sid-ev-2', {
+      userId: 'ev',
+      tokenHash: 'hash-sid-ev-2',
+      role: ctx.role,
+      mustChangePassword: false,
+    });
+    const s1 = connect(first);
+    const s2 = connect('zo_sid=sid-ev-2');
+    expect(await s1.ready).toBe('connected');
+    expect(await s2.ready).toBe('connected');
+
+    await rt.deliver([{ kind: 'evict', tokenHashes: ['hash-sid-ev'] }]);
+    await settle();
+    expect(s1.events).toEqual([['session.ended', {}]]);
+    expect(s1.closed()).toBe(true);
+    expect(s2.closed()).toBe(false);
+
+    await rt.deliver([orderEvent(A, 'after-evict')]);
+    await settle();
+    expect(s1.events).toHaveLength(1);
+    expect(s2.events.map(([n]) => n)).toEqual(['order.status_changed']);
+    s2.close();
   });
 });
 

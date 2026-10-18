@@ -2,7 +2,9 @@ import type { Server as HttpServer } from 'node:http';
 import type { Request, RequestHandler, Response } from 'express';
 import { getAuth } from '../auth/middleware';
 import type { AccessService } from '../authz';
-import { subscribeRealtime } from './relay';
+import { Redis } from 'ioredis';
+import type { RealtimeMessage } from './events';
+import { REALTIME_CHANNEL, subscribeRealtime } from './relay';
 import { attachRealtime, type RealtimeCaller, type RealtimeServer } from './socket-server';
 
 // The API side in one call, for server.ts: the handshake resolves the session with the SAME session middleware the
@@ -23,7 +25,14 @@ export function sessionAuthenticator(
         if (err) return reject(err instanceof Error ? err : new Error('session lookup failed'));
         const s = getAuth(res);
         resolve(
-          s ? { userId: s.userId, role: s.role, mustChangePassword: s.mustChangePassword } : null,
+          s
+            ? {
+                userId: s.userId,
+                tokenHash: s.tokenHash,
+                role: s.role,
+                mustChangePassword: s.mustChangePassword,
+              }
+            : null,
         );
       };
       Promise.resolve(sessionMiddleware(req, res, done)).catch(done);
@@ -36,7 +45,7 @@ export async function startApiRealtime(deps: {
   redisUrl: string;
   sessionMiddleware: RequestHandler;
   access: Pick<AccessService, 'buildContext'>;
-}): Promise<RealtimeServer> {
+}): Promise<RealtimeServer & { sessionsEvicted(tokenHashes: string[]): void }> {
   const rt = attachRealtime(deps.httpServer, {
     appOrigin: deps.appOrigin,
     authenticate: sessionAuthenticator(deps.sessionMiddleware),
@@ -45,10 +54,18 @@ export async function startApiRealtime(deps: {
   const sub = await subscribeRealtime(deps.redisUrl, (messages) => {
     void rt.deliver(messages).catch(() => undefined); // clients fall back to polling (doc 06)
   });
+  // D142: evictions happen in whichever API instance handled the request; every instance drops its own sockets
+  const pub = new Redis(deps.redisUrl, { maxRetriesPerRequest: 2 });
+  pub.on('error', () => undefined);
   return {
     io: rt.io,
     deliver: rt.deliver,
+    sessionsEvicted: (tokenHashes) => {
+      const msg: RealtimeMessage[] = [{ kind: 'evict', tokenHashes }];
+      void pub.publish(REALTIME_CHANNEL, JSON.stringify(msg)).catch(() => undefined);
+    },
     close: async () => {
+      pub.disconnect();
       await sub.close();
       await rt.close();
     },
