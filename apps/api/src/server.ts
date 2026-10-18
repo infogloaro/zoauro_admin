@@ -14,6 +14,7 @@ import {
 } from './modules/access';
 import { createAuditModule } from './modules/audit';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
+import { createMenuModule } from './modules/menu';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
 import { createUploadsModule } from './modules/uploads';
@@ -141,6 +142,15 @@ const uploads = createUploadsModule({
 });
 uploadsGate.service = uploads.service;
 
+// SA-2.4 menu items, categories and R09 change requests (D119, D124-D127): item images through the same uploads gate
+const menu = createMenuModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  uploads: {
+    assertUploaded: (ctx, fileKey) => uploads.service.assertUploaded(ctx, fileKey),
+  },
+});
+
 // M17 notifications (D134–D137): the API enqueues each zone's send; the worker process sends (notifications.jobs.ts)
 const notifications = createNotificationsModule({
   prisma,
@@ -171,6 +181,7 @@ const app = createApp({
       partners.router,
       notifications.router,
       uploads.router,
+      menu.router,
     ],
   },
 });

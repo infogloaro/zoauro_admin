@@ -105,6 +105,19 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         attachPartnerDocument: { ownObject: true },
         getPartnerDocumentUrl: { ownObject: true },
         verifyPartnerDocument: { ownObject: true },
+        // SA-2.4 menu: one zone category, menu item and pending change request per zone A, B, C (C is nobody's); object
+        // routes use the zone A ones (placeholder id). Scope and rules: tests/menu/menu-api.test.ts
+        listMenuItems: { listedZones: vendorZones },
+        listMenuChangeRequests: { listedZones: vendorZones },
+        listCategories: { listedZones: vendorZones },
+        getMenuItem: { ownObject: true },
+        updateMenuItem: { ownObject: true },
+        deleteMenuItem: { ownObject: true },
+        getMenuChangeRequest: { ownObject: true },
+        approveMenuChange: { ownObject: true },
+        rejectMenuChange: { ownObject: true },
+        updateCategory: { ownObject: true },
+        deleteCategory: { ownObject: true },
         // M17 notifications: one per zone A, B, C (C is nobody's); a list row names its zones. Object routes use the
         // zone A one (placeholder id): an actor without notifications:view there gets 404 (scope: tests/notifications/)
         listNotifications: {
@@ -134,7 +147,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // 49 until P11 (auth, audit, zones) + 20 M03 access + 2 D92 zone services + 8 platform settings + 8 access
     // requests and zone scope (doc 59) + 5 orders (M11) + 24 restaurants and homemakers + 2 uploads (M06, M07, SA-2.1) + 13 delivery partners (M10)
     // + 7 notifications (M17)
-    expect(report.coveredRoutes).toHaveLength(138);
+    // + 15 menu items, bulk, change requests and categories (SA-2.4)
+    expect(report.coveredRoutes).toHaveLength(153);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

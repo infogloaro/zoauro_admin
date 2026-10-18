@@ -120,6 +120,7 @@ import {
   type PermissionKey,
 } from '@zoauro/shared';
 import type { AuditRouteMeta } from '../lib/audit';
+import { MENU_OPERATIONS } from './operations.menu';
 import { PARTNER_OPERATIONS } from './operations.partners';
 import { NOTIFICATION_OPERATIONS } from './operations.notifications';
 import { VENDOR_OPERATIONS } from './operations.vendors';
@@ -1380,6 +1381,8 @@ export const OPERATIONS: OperationDef[] = [
   // M06/M07 vendors and SA-2.1 uploads (operations.vendors.ts)
   ...VENDOR_OPERATIONS,
   ...PARTNER_OPERATIONS,
+  // SA-2.4 menu items, categories, bulk and R09 change requests (operations.menu.ts)
+  ...MENU_OPERATIONS,
   ...NOTIFICATION_OPERATIONS,
 ];
 

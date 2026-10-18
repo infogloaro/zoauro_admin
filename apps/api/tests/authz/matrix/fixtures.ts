@@ -236,6 +236,27 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     [zones.A],
   );
 
+  // SA-2.4 menu: per zone A, B, C a zone category, an item of that zone's restaurant (made above) and a pending change
+  // request, so the menu lists show which zones an actor reached; the zone A ones carry the placeholder id
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000d0${i}0`;
+    const restaurantId = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000f0${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO categories (id, zone_id, name, updated_at) VALUES ($1, $2, 'Matrix starters', now())`,
+      [id, zones[z]],
+    );
+    await env.db.owner.query(
+      `INSERT INTO menu_items (id, zone_id, restaurant_id, category_id, name, price, stock, updated_at)
+       VALUES ($1, $2, $3, $1, 'Matrix idli', 4000, 5, now())`,
+      [id, zones[z], restaurantId],
+    );
+    await env.db.owner.query(
+      `INSERT INTO menu_item_change_requests (id, zone_id, menu_item_id, restaurant_id, kind, proposed_json, source, updated_at)
+       VALUES ($1, $2, $1, $3, 'UPDATE', '{"price": 4500}', 'APP', now())`,
+      [id, zones[z], restaurantId],
+    );
+  }
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,

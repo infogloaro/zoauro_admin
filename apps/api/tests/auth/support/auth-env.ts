@@ -21,6 +21,7 @@ import {
   type AccessMailer,
 } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
+import { createMenuModule } from '../../../src/modules/menu';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
 import { createUploadsModule } from '../../../src/modules/uploads';
@@ -327,6 +328,12 @@ export async function createAuthTestEnv() {
       appOrigin: APP_ORIGIN,
     });
     uploadsGate.service = uploads.service;
+    const menu = createMenuModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      uploads: { assertUploaded: (ctx, fileKey) => uploads.service.assertUploaded(ctx, fileKey) },
+      clock: clock.now,
+    });
     const moduleRouters = [
       auth.router,
       createAuditModule({ prisma }).router,
@@ -351,6 +358,7 @@ export async function createAuthTestEnv() {
         clock: clock.now,
       }).router,
       uploads.router,
+      menu.router,
     ];
     const extraRouters = [
       ...(extra.routers ?? []),
