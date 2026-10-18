@@ -25,6 +25,8 @@ import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
 import { createUploadsModule } from '../../../src/modules/uploads';
 import { createPartnersModule } from '../../../src/modules/delivery-partners';
+import { createNotificationsModule } from '../../../src/modules/notifications';
+import { noopMailer } from '../../../src/lib/mailer';
 import { createVendorsModule } from '../../../src/modules/vendors';
 import { createFakeStorage } from '../../uploads/fake-storage';
 import {
@@ -339,6 +341,15 @@ export async function createAuthTestEnv() {
       }).router,
       vendors.router,
       partners.router,
+      // M17: sends are not queued here; tests/notifications drive the send step on their own service
+      createNotificationsModule({
+        prisma,
+        appOrigin: APP_ORIGIN,
+        settings: settings.reader,
+        queue: { enqueue: async () => undefined },
+        mailer: noopMailer,
+        clock: clock.now,
+      }).router,
       uploads.router,
     ];
     const extraRouters = [

@@ -222,6 +222,15 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
       [id, zones[z], `+91970000000${i}`],
     );
   }
+  // M17 notifications (D134–D137): one MESSAGE per zone A, B, C (C is nobody's), the zone A one with the placeholder id
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000c0${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO notifications (id, kind, audience, zone_ids, title, body, channels, status, updated_at)
+       VALUES ($1, 'MESSAGE', 'CUSTOMERS', ARRAY[$2]::uuid[], 'Matrix notice', 'Body', '{IN_APP}', 'SCHEDULED', now())`,
+      [id, zones[z]],
+    );
+  }
   await env.db.owner.query(
     `UPDATE admin_zone_assignments SET can_reveal = true WHERE zone_id = $1`,
     [zones.A],

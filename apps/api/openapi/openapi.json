@@ -34280,6 +34280,2483 @@
           "action": "partner.document_verified"
         }
       }
+    },
+    "/notifications": {
+      "get": {
+        "operationId": "listNotifications",
+        "tags": [
+          "notifications"
+        ],
+        "summary": "History of notifications naming a zone the caller can view (?zoneId repeatable); all-zones ones are the Super Admin’s. Filters status, kind, audience, q, from/to",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING_APPROVAL",
+                "SCHEDULED",
+                "SENT",
+                "CANCELLED",
+                "FAILED",
+                "REJECTED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MESSAGE",
+                "PROMOTION"
+              ]
+            },
+            "required": false,
+            "name": "kind",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CUSTOMERS",
+                "VENDORS",
+                "PARTNERS",
+                "ALL"
+              ]
+            },
+            "required": false,
+            "name": "audience",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false,
+            "name": "to",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "MESSAGE",
+                              "PROMOTION"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING_APPROVAL",
+                              "SCHEDULED",
+                              "SENT",
+                              "CANCELLED",
+                              "FAILED",
+                              "REJECTED"
+                            ]
+                          },
+                          "audience": {
+                            "type": "string",
+                            "enum": [
+                              "CUSTOMERS",
+                              "VENDORS",
+                              "PARTNERS",
+                              "ALL"
+                            ]
+                          },
+                          "zones": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "code": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name",
+                                "code"
+                              ]
+                            }
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "body": {
+                            "type": "string"
+                          },
+                          "channels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "IN_APP",
+                                "PUSH",
+                                "EMAIL",
+                                "SMS"
+                              ]
+                            }
+                          },
+                          "scheduledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "requestedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "decidedBy": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "decisionNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "status",
+                          "audience",
+                          "zones",
+                          "title",
+                          "body",
+                          "channels",
+                          "scheduledAt",
+                          "sentAt",
+                          "requestedBy",
+                          "decidedBy",
+                          "decidedAt",
+                          "decisionNote",
+                          "createdAt",
+                          "version"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "notifications:view",
+          "zone": "query"
+        }
+      },
+      "post": {
+        "operationId": "createNotification",
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Compose (D135). A Zonal Admin’s PROMOTION waits for a Super Admin (D94); others are scheduled at once, one send per zone, a PROMOTION held to each zone’s window (D100, D136). Channels gated by Platform Settings; SMS refused until a provider is ready",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "MESSAGE",
+                      "PROMOTION"
+                    ]
+                  },
+                  "audience": {
+                    "type": "string",
+                    "enum": [
+                      "CUSTOMERS",
+                      "VENDORS",
+                      "PARTNERS",
+                      "ALL"
+                    ]
+                  },
+                  "zoneIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "maxItems": 50
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 80
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "IN_APP",
+                        "PUSH",
+                        "EMAIL",
+                        "SMS"
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "scheduledAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "audience",
+                  "zoneIds",
+                  "title",
+                  "body",
+                  "channels"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "MESSAGE",
+                        "PROMOTION"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_APPROVAL",
+                        "SCHEDULED",
+                        "SENT",
+                        "CANCELLED",
+                        "FAILED",
+                        "REJECTED"
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "CUSTOMERS",
+                        "VENDORS",
+                        "PARTNERS",
+                        "ALL"
+                      ]
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IN_APP",
+                          "PUSH",
+                          "EMAIL",
+                          "SMS"
+                        ]
+                      }
+                    },
+                    "scheduledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "sentAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "requestedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "decisionNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "sends": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "sendAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "SENT",
+                              "FAILED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "emailsSent": {
+                            "type": "integer"
+                          },
+                          "emailsFailed": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "zone",
+                          "sendAt",
+                          "status",
+                          "sentAt",
+                          "emailsSent",
+                          "emailsFailed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "audience",
+                    "zones",
+                    "title",
+                    "body",
+                    "channels",
+                    "scheduledAt",
+                    "sentAt",
+                    "requestedBy",
+                    "decidedBy",
+                    "decidedAt",
+                    "decisionNote",
+                    "createdAt",
+                    "version",
+                    "sends"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "notifications:add",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "notifications",
+          "action": "broadcast.created"
+        }
+      }
+    },
+    "/notifications/{id}": {
+      "get": {
+        "operationId": "getNotification",
+        "tags": [
+          "notifications"
+        ],
+        "summary": "One notification with its per-zone sends (time, status, emails sent/failed)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The notification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "MESSAGE",
+                        "PROMOTION"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_APPROVAL",
+                        "SCHEDULED",
+                        "SENT",
+                        "CANCELLED",
+                        "FAILED",
+                        "REJECTED"
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "CUSTOMERS",
+                        "VENDORS",
+                        "PARTNERS",
+                        "ALL"
+                      ]
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IN_APP",
+                          "PUSH",
+                          "EMAIL",
+                          "SMS"
+                        ]
+                      }
+                    },
+                    "scheduledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "sentAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "requestedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "decisionNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "sends": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "sendAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "SENT",
+                              "FAILED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "emailsSent": {
+                            "type": "integer"
+                          },
+                          "emailsFailed": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "zone",
+                          "sendAt",
+                          "status",
+                          "sentAt",
+                          "emailsSent",
+                          "emailsFailed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "audience",
+                    "zones",
+                    "title",
+                    "body",
+                    "channels",
+                    "scheduledAt",
+                    "sentAt",
+                    "requestedBy",
+                    "decidedBy",
+                    "decidedAt",
+                    "decisionNote",
+                    "createdAt",
+                    "version",
+                    "sends"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "notifications:view",
+          "zone": "none"
+        }
+      },
+      "patch": {
+        "operationId": "updateNotification",
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Edit before any zone is sent (version). A Zonal Admin’s edit sends a promotion back to approval",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "audience": {
+                    "type": "string",
+                    "enum": [
+                      "CUSTOMERS",
+                      "VENDORS",
+                      "PARTNERS",
+                      "ALL"
+                    ]
+                  },
+                  "zoneIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "maxItems": 50
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 80
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "IN_APP",
+                        "PUSH",
+                        "EMAIL",
+                        "SMS"
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "scheduledAt": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The notification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "MESSAGE",
+                        "PROMOTION"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_APPROVAL",
+                        "SCHEDULED",
+                        "SENT",
+                        "CANCELLED",
+                        "FAILED",
+                        "REJECTED"
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "CUSTOMERS",
+                        "VENDORS",
+                        "PARTNERS",
+                        "ALL"
+                      ]
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IN_APP",
+                          "PUSH",
+                          "EMAIL",
+                          "SMS"
+                        ]
+                      }
+                    },
+                    "scheduledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "sentAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "requestedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "decisionNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "sends": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "sendAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "SENT",
+                              "FAILED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "emailsSent": {
+                            "type": "integer"
+                          },
+                          "emailsFailed": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "zone",
+                          "sendAt",
+                          "status",
+                          "sentAt",
+                          "emailsSent",
+                          "emailsFailed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "audience",
+                    "zones",
+                    "title",
+                    "body",
+                    "channels",
+                    "scheduledAt",
+                    "sentAt",
+                    "requestedBy",
+                    "decidedBy",
+                    "decidedAt",
+                    "decisionNote",
+                    "createdAt",
+                    "version",
+                    "sends"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "notifications:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "notifications",
+          "action": "notification.updated"
+        }
+      }
+    },
+    "/notifications/{id}/approve": {
+      "post": {
+        "operationId": "approveNotification",
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Approve a pending promotion (Super Admin, never the requester; D94, D134)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The notification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "MESSAGE",
+                        "PROMOTION"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_APPROVAL",
+                        "SCHEDULED",
+                        "SENT",
+                        "CANCELLED",
+                        "FAILED",
+                        "REJECTED"
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "CUSTOMERS",
+                        "VENDORS",
+                        "PARTNERS",
+                        "ALL"
+                      ]
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IN_APP",
+                          "PUSH",
+                          "EMAIL",
+                          "SMS"
+                        ]
+                      }
+                    },
+                    "scheduledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "sentAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "requestedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "decisionNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "sends": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "sendAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "SENT",
+                              "FAILED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "emailsSent": {
+                            "type": "integer"
+                          },
+                          "emailsFailed": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "zone",
+                          "sendAt",
+                          "status",
+                          "sentAt",
+                          "emailsSent",
+                          "emailsFailed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "audience",
+                    "zones",
+                    "title",
+                    "body",
+                    "channels",
+                    "scheduledAt",
+                    "sentAt",
+                    "requestedBy",
+                    "decidedBy",
+                    "decidedAt",
+                    "decisionNote",
+                    "createdAt",
+                    "version",
+                    "sends"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "notifications:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "notifications",
+          "action": "notification.approved"
+        }
+      }
+    },
+    "/notifications/{id}/reject": {
+      "post": {
+        "operationId": "rejectNotification",
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Reject a pending promotion with a note (Super Admin; D134)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "version",
+                  "note"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The notification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "MESSAGE",
+                        "PROMOTION"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_APPROVAL",
+                        "SCHEDULED",
+                        "SENT",
+                        "CANCELLED",
+                        "FAILED",
+                        "REJECTED"
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "CUSTOMERS",
+                        "VENDORS",
+                        "PARTNERS",
+                        "ALL"
+                      ]
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IN_APP",
+                          "PUSH",
+                          "EMAIL",
+                          "SMS"
+                        ]
+                      }
+                    },
+                    "scheduledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "sentAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "requestedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "decisionNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "sends": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "sendAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "SENT",
+                              "FAILED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "emailsSent": {
+                            "type": "integer"
+                          },
+                          "emailsFailed": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "zone",
+                          "sendAt",
+                          "status",
+                          "sentAt",
+                          "emailsSent",
+                          "emailsFailed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "audience",
+                    "zones",
+                    "title",
+                    "body",
+                    "channels",
+                    "scheduledAt",
+                    "sentAt",
+                    "requestedBy",
+                    "decidedBy",
+                    "decidedAt",
+                    "decisionNote",
+                    "createdAt",
+                    "version",
+                    "sends"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "notifications:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "notifications",
+          "action": "notification.rejected"
+        }
+      }
+    },
+    "/notifications/{id}/cancel": {
+      "post": {
+        "operationId": "cancelNotification",
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Cancel before any zone is sent (the delete action, D137)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The notification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "MESSAGE",
+                        "PROMOTION"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_APPROVAL",
+                        "SCHEDULED",
+                        "SENT",
+                        "CANCELLED",
+                        "FAILED",
+                        "REJECTED"
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "CUSTOMERS",
+                        "VENDORS",
+                        "PARTNERS",
+                        "ALL"
+                      ]
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IN_APP",
+                          "PUSH",
+                          "EMAIL",
+                          "SMS"
+                        ]
+                      }
+                    },
+                    "scheduledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "sentAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "requestedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "decisionNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "sends": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "sendAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "SENT",
+                              "FAILED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "emailsSent": {
+                            "type": "integer"
+                          },
+                          "emailsFailed": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "zone",
+                          "sendAt",
+                          "status",
+                          "sentAt",
+                          "emailsSent",
+                          "emailsFailed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "audience",
+                    "zones",
+                    "title",
+                    "body",
+                    "channels",
+                    "scheduledAt",
+                    "sentAt",
+                    "requestedBy",
+                    "decidedBy",
+                    "decidedAt",
+                    "decisionNote",
+                    "createdAt",
+                    "version",
+                    "sends"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "notifications:delete",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "notifications",
+          "action": "notification.cancelled"
+        }
+      }
     }
   },
   "webhooks": {}

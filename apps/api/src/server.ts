@@ -18,6 +18,7 @@ import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
 import { createUploadsModule } from './modules/uploads';
 import { createPartnersModule } from './modules/delivery-partners';
+import { createNotificationQueue, createNotificationsModule } from './modules/notifications';
 import { createVendorsModule } from './modules/vendors';
 import { createS3Storage } from './lib/s3-storage';
 import { RedisRateLimiter } from './lib/rate-limiter';
@@ -140,6 +141,15 @@ const uploads = createUploadsModule({
 });
 uploadsGate.service = uploads.service;
 
+// M17 notifications (D134–D137): the API enqueues each zone's send; the worker process sends (notifications.jobs.ts)
+const notifications = createNotificationsModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  settings: settings.reader,
+  queue: createNotificationQueue({ redisUrl: env.REDIS_URL }),
+  mailer,
+});
+
 const app = createApp({
   trustProxyHops: env.TRUST_PROXY_HOPS,
   readiness: createReadinessChecks({ databaseUrl: env.DATABASE_URL, redisUrl: env.REDIS_URL }),
@@ -159,6 +169,7 @@ const app = createApp({
       }).router,
       vendors.router,
       partners.router,
+      notifications.router,
       uploads.router,
     ],
   },

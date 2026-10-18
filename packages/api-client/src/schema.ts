@@ -1065,6 +1065,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** History of notifications naming a zone the caller can view (?zoneId repeatable); all-zones ones are the Super Admin’s. Filters status, kind, audience, q, from/to */
+        get: operations["listNotifications"];
+        put?: never;
+        /** Compose (D135). A Zonal Admin’s PROMOTION waits for a Super Admin (D94); others are scheduled at once, one send per zone, a PROMOTION held to each zone’s window (D100, D136). Channels gated by Platform Settings; SMS refused until a provider is ready */
+        post: operations["createNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One notification with its per-zone sends (time, status, emails sent/failed) */
+        get: operations["getNotification"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit before any zone is sent (version). A Zonal Admin’s edit sends a promotion back to approval */
+        patch: operations["updateNotification"];
+        trace?: never;
+    };
+    "/notifications/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a pending promotion (Super Admin, never the requester; D94, D134) */
+        post: operations["approveNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel before any zone is sent (the delete action, D137) */
+        post: operations["cancelNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a pending promotion with a note (Super Admin; D134) */
+        post: operations["rejectNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/openapi.json": {
         parameters: {
             query?: never;
@@ -8554,6 +8641,871 @@ export interface operations {
             };
             /** @description Not found (also used for objects in zones the caller cannot see) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listNotifications: {
+        parameters: {
+            query?: {
+                audience?: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                from?: string;
+                kind?: "MESSAGE" | "PROMOTION";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING_APPROVAL" | "SCHEDULED" | "SENT" | "CANCELLED" | "FAILED" | "REJECTED";
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of notifications */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {string} */
+                            audience: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                            body: string;
+                            channels: ("IN_APP" | "PUSH" | "EMAIL" | "SMS")[];
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            decidedAt: string | null;
+                            decidedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            decisionNote: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            kind: "MESSAGE" | "PROMOTION";
+                            requestedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            /** Format: date-time */
+                            scheduledAt: string | null;
+                            /** Format: date-time */
+                            sentAt: string | null;
+                            /** @enum {string} */
+                            status: "PENDING_APPROVAL" | "SCHEDULED" | "SENT" | "CANCELLED" | "FAILED" | "REJECTED";
+                            title: string;
+                            version: number;
+                            zones: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            }[];
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    audience: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                    body: string;
+                    channels: ("IN_APP" | "PUSH" | "EMAIL" | "SMS")[];
+                    /** @enum {string} */
+                    kind: "MESSAGE" | "PROMOTION";
+                    /** Format: date-time */
+                    scheduledAt?: string;
+                    title: string;
+                    zoneIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        audience: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                        body: string;
+                        channels: ("IN_APP" | "PUSH" | "EMAIL" | "SMS")[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionNote: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "MESSAGE" | "PROMOTION";
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** Format: date-time */
+                        scheduledAt: string | null;
+                        sends: {
+                            emailsFailed: number;
+                            emailsSent: number;
+                            /** Format: date-time */
+                            sendAt: string;
+                            /** Format: date-time */
+                            sentAt: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "SENT" | "FAILED" | "CANCELLED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        /** Format: date-time */
+                        sentAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_APPROVAL" | "SCHEDULED" | "SENT" | "CANCELLED" | "FAILED" | "REJECTED";
+                        title: string;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The notification */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        audience: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                        body: string;
+                        channels: ("IN_APP" | "PUSH" | "EMAIL" | "SMS")[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionNote: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "MESSAGE" | "PROMOTION";
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** Format: date-time */
+                        scheduledAt: string | null;
+                        sends: {
+                            emailsFailed: number;
+                            emailsSent: number;
+                            /** Format: date-time */
+                            sendAt: string;
+                            /** Format: date-time */
+                            sentAt: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "SENT" | "FAILED" | "CANCELLED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        /** Format: date-time */
+                        sentAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_APPROVAL" | "SCHEDULED" | "SENT" | "CANCELLED" | "FAILED" | "REJECTED";
+                        title: string;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    audience?: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                    body?: string;
+                    channels?: ("IN_APP" | "PUSH" | "EMAIL" | "SMS")[];
+                    /** Format: date-time */
+                    scheduledAt?: string | null;
+                    title?: string;
+                    version: number;
+                    zoneIds?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description The notification */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        audience: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                        body: string;
+                        channels: ("IN_APP" | "PUSH" | "EMAIL" | "SMS")[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionNote: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "MESSAGE" | "PROMOTION";
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** Format: date-time */
+                        scheduledAt: string | null;
+                        sends: {
+                            emailsFailed: number;
+                            emailsSent: number;
+                            /** Format: date-time */
+                            sendAt: string;
+                            /** Format: date-time */
+                            sentAt: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "SENT" | "FAILED" | "CANCELLED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        /** Format: date-time */
+                        sentAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_APPROVAL" | "SCHEDULED" | "SENT" | "CANCELLED" | "FAILED" | "REJECTED";
+                        title: string;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    approveNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The notification */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        audience: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                        body: string;
+                        channels: ("IN_APP" | "PUSH" | "EMAIL" | "SMS")[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionNote: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "MESSAGE" | "PROMOTION";
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** Format: date-time */
+                        scheduledAt: string | null;
+                        sends: {
+                            emailsFailed: number;
+                            emailsSent: number;
+                            /** Format: date-time */
+                            sendAt: string;
+                            /** Format: date-time */
+                            sentAt: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "SENT" | "FAILED" | "CANCELLED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        /** Format: date-time */
+                        sentAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_APPROVAL" | "SCHEDULED" | "SENT" | "CANCELLED" | "FAILED" | "REJECTED";
+                        title: string;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    cancelNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The notification */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        audience: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                        body: string;
+                        channels: ("IN_APP" | "PUSH" | "EMAIL" | "SMS")[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionNote: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "MESSAGE" | "PROMOTION";
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** Format: date-time */
+                        scheduledAt: string | null;
+                        sends: {
+                            emailsFailed: number;
+                            emailsSent: number;
+                            /** Format: date-time */
+                            sendAt: string;
+                            /** Format: date-time */
+                            sentAt: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "SENT" | "FAILED" | "CANCELLED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        /** Format: date-time */
+                        sentAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_APPROVAL" | "SCHEDULED" | "SENT" | "CANCELLED" | "FAILED" | "REJECTED";
+                        title: string;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rejectNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The notification */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        audience: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                        body: string;
+                        channels: ("IN_APP" | "PUSH" | "EMAIL" | "SMS")[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionNote: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "MESSAGE" | "PROMOTION";
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** Format: date-time */
+                        scheduledAt: string | null;
+                        sends: {
+                            emailsFailed: number;
+                            emailsSent: number;
+                            /** Format: date-time */
+                            sendAt: string;
+                            /** Format: date-time */
+                            sentAt: string | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "SENT" | "FAILED" | "CANCELLED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        /** Format: date-time */
+                        sentAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING_APPROVAL" | "SCHEDULED" | "SENT" | "CANCELLED" | "FAILED" | "REJECTED";
+                        title: string;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

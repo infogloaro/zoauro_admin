@@ -105,6 +105,25 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         attachPartnerDocument: { ownObject: true },
         getPartnerDocumentUrl: { ownObject: true },
         verifyPartnerDocument: { ownObject: true },
+        // M17 notifications: one per zone A, B, C (C is nobody's); a list row names its zones. Object routes use the
+        // zone A one (placeholder id): an actor without notifications:view there gets 404 (scope: tests/notifications/)
+        listNotifications: {
+          listedZones: (body) => {
+            const ids = [
+              ...new Set(
+                (body as { data: { zones: { id: string }[] }[] }).data.flatMap((n) =>
+                  n.zones.map((z) => z.id),
+                ),
+              ),
+            ];
+            return Object.values(fixtures.zones).every((z) => ids.includes(z)) ? 'ALL' : ids;
+          },
+        },
+        getNotification: { ownObject: true },
+        updateNotification: { ownObject: true },
+        approveNotification: { ownObject: true },
+        rejectNotification: { ownObject: true },
+        cancelNotification: { ownObject: true },
       },
     });
     publishReport('real-routes', report);
@@ -114,7 +133,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
     // 49 until P11 (auth, audit, zones) + 20 M03 access + 2 D92 zone services + 8 platform settings + 8 access
     // requests and zone scope (doc 59) + 5 orders (M11) + 24 restaurants and homemakers + 2 uploads (M06, M07, SA-2.1) + 13 delivery partners (M10)
-    expect(report.coveredRoutes).toHaveLength(131);
+    // + 7 notifications (M17)
+    expect(report.coveredRoutes).toHaveLength(138);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

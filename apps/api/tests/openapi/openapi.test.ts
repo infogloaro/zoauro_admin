@@ -185,6 +185,14 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /delivery-partners/{id}/documents',
         'GET /delivery-partners/{id}/documents/{docId}/url',
         'POST /delivery-partners/{id}/documents/{docId}/verify',
+        // M17 notifications (D137)
+        'GET /notifications',
+        'POST /notifications',
+        'GET /notifications/{id}',
+        'PATCH /notifications/{id}',
+        'POST /notifications/{id}/approve',
+        'POST /notifications/{id}/reject',
+        'POST /notifications/{id}/cancel',
       ].sort(),
     );
   });

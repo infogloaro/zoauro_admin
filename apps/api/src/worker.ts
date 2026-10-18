@@ -16,6 +16,14 @@ import { createAccessService } from './modules/access';
 import { createSecretBox } from './modules/auth/mfa/secret-box';
 import { createExportQueue, createExportsService, startExportJobs } from './modules/exports';
 import { createOrdersModule } from './modules/orders';
+import {
+  createNotificationQueue,
+  createNotificationsModule,
+  startNotificationJobs,
+} from './modules/notifications';
+import { SettingsDatabase } from './modules/settings/settings.repository';
+import { SettingsReader } from './modules/settings/settings.service';
+import { createSmtpMailer, noopMailer } from './lib/mailer';
 
 // BullMQ worker process (doc 06). Processors: outbox publisher + webhook delivery (SA-4.5, IH-5 delivery part) and
 // export jobs (doc 09, D129). The retention / cleanup jobs register here as they are built.
@@ -64,14 +72,33 @@ const exportsService = createExportsService({
   contexts: createAccessService({ prisma, redis }),
 });
 
+// Notification sends (M17, D136): the worker side of the module. The settings reader (channels, each zone's promotion
+// window) caches 30 s, so a settings change reaches the worker within that; email goes through SMTP_URL like the API.
+const notificationQueue = createNotificationQueue({ redisUrl: env.REDIS_URL });
+const notificationsService = createNotificationsModule({
+  prisma,
+  appOrigin: env.APP_URL,
+  settings: new SettingsReader({ repo: new SettingsDatabase(prisma).repo, now: () => Date.now() }),
+  queue: notificationQueue,
+  mailer: env.SMTP_URL
+    ? createSmtpMailer({
+        smtpUrl: env.SMTP_URL,
+        ...(env.SES_FROM_ADDRESS ? { from: env.SES_FROM_ADDRESS } : {}),
+      })
+    : noopMailer,
+}).service;
+
 let jobs: OutboxJobs | null = null;
 let exportJobs: { close(): Promise<void> } | null = null;
+let notificationJobs: { close(): Promise<void> } | null = null;
 
 async function shutdown(signal: string) {
   console.log(`worker stopping (${signal})`);
   await jobs?.close();
   await exportJobs?.close();
   await exportQueue.close();
+  await notificationJobs?.close();
+  await notificationQueue.close();
   redis.disconnect();
   await prisma.$disconnect();
   process.exit(0);
@@ -86,9 +113,15 @@ assertDatabaseRole({
   .then(async () => {
     jobs = await startOutboxJobs({ redisUrl: env.REDIS_URL, publisher });
     exportJobs = await startExportJobs({ redisUrl: env.REDIS_URL, service: exportsService });
+    notificationJobs = await startNotificationJobs({
+      redisUrl: env.REDIS_URL,
+      service: notificationsService,
+    });
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
     process.once('SIGINT', () => void shutdown('SIGINT'));
-    console.log(`worker started (outbox publisher, webhook delivery: ${transport.name}, exports)`);
+    console.log(
+      `worker started (outbox publisher, webhook delivery: ${transport.name}, exports, notifications)`,
+    );
   })
   .catch((err: unknown) => {
     console.error(
