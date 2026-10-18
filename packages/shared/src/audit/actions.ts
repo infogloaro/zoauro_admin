@@ -20,6 +20,7 @@ export const AUDIT_MODULES = [
   'audit',
   'system',
   'hotels', // D118
+  'support', // D93, D139
 ] as const;
 export type AuditModule = (typeof AUDIT_MODULES)[number];
 export type AuditSensitivity = 'NORMAL' | 'HIGH';
@@ -175,6 +176,13 @@ export const AUDIT_ACTIONS = {
   'order.status_changed': a('orders', 'Changed order status'),
   'order.marked_delayed': a('orders', 'Marked order delayed'),
   'order.exported': a('orders', 'Exported orders', H),
+  // support desk (D139-D141)
+  'ticket.created': a('support', 'Created support ticket'),
+  'ticket.assigned': a('support', 'Assigned support ticket'),
+  'ticket.status_changed': a('support', 'Changed support ticket status'),
+  'ticket.replied': a('support', 'Replied to customer on ticket'),
+  'ticket.note_added': a('support', 'Added internal note to ticket'),
+  'ticket.escalated': a('support', 'Escalated support ticket (SLA)'),
   // money
   'refund.requested': a('refunds', 'Requested refund'),
   'refund.approved': a('refunds', 'Approved refund', H),
@@ -233,6 +241,7 @@ export const ZONE_REQUIRED_ENTITY_TYPES: ReadonlySet<string> = new Set([
   'hotel',
   'room_booking',
   'dining_reservation',
+  'ticket', // D139: a ticket belongs to exactly one zone
 ]);
 /** Zone-related but the zone depends on context (e.g. customer): `zoneId` must be passed explicitly, `null` allowed. */
 export const ZONE_EXPLICIT_ENTITY_TYPES: ReadonlySet<string> = new Set([

@@ -3887,7 +3887,8 @@
                 "notifications",
                 "audit",
                 "system",
-                "hotels"
+                "hotels",
+                "support"
               ]
             },
             "required": false,
@@ -4265,7 +4266,8 @@
                           "notifications",
                           "audit",
                           "system",
-                          "hotels"
+                          "hotels",
+                          "support"
                         ]
                       }
                     },
@@ -4299,7 +4301,8 @@
                               "notifications",
                               "audit",
                               "system",
-                              "hotels"
+                              "hotels",
+                              "support"
                             ]
                           },
                           "label": {
