@@ -315,6 +315,8 @@ model User {
   notificationsRequested        Notification[]          @relation("NotificationRequester")
   notificationsDecided          Notification[]          @relation("NotificationDecider")
   menuChangesDecided            MenuItemChangeRequest[] @relation("MenuChangeDecider")
+  assignedTickets               SupportTicket[]         @relation("TicketAssignee")
+  ticketMessages                TicketMessage[]         @relation("TicketMessageAuthor")
 
   @@index([roleId])
   @@map("users")
@@ -652,6 +654,7 @@ model Zone {
   roomBookings       RoomBooking[]
   diningReservations DiningReservation[]
   notificationSends  NotificationZoneSend[]
+  supportTickets     SupportTicket[]
 
   @@index([status])
   @@map("zones")
@@ -895,6 +898,7 @@ model Customer {
   orders              Order[]
   reviews             Review[]
   dataSubjectRequests DataSubjectRequest[]
+  supportTickets      SupportTicket[]
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "customers_name_trgm_idx")
   @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "customers_phone_trgm_idx")
@@ -1041,6 +1045,8 @@ model Order {
   reviews         Review[]
 
   // CHECK exactly one of restaurant_id / homemaker_id: constraints migration
+  supportTickets SupportTicket[]
+
   @@index([zoneId, status, placedAt(sort: Desc)])
   @@index([customerId])
   @@index([restaurantId])
@@ -1123,10 +1129,11 @@ model Refund {
   createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: Restrict)
-  requester User     @relation("RefundRequestedBy", fields: [requestedBy], references: [id], onDelete: Restrict)
-  approver  User?    @relation("RefundApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict)
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  payment        Payment?        @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  requester      User            @relation("RefundRequestedBy", fields: [requestedBy], references: [id], onDelete: Restrict)
+  approver       User?           @relation("RefundApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict)
+  supportTickets SupportTicket[]
 
   @@index([orderId])
   @@index([paymentId])
@@ -1804,4 +1811,94 @@ model NotificationZoneSend {
   @@unique([notificationId, zoneId])
   @@index([status, sendAt])
   @@map("notification_zone_sends")
+}
+
+// ---- support desk (D139-D141) -------------------------------------------------------------------------------------
+
+enum TicketStatus {
+  OPEN
+  ASSIGNED
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+/// D141: ADMIN only in v1, APP after D18
+enum TicketSource {
+  ADMIN
+  APP
+}
+
+enum TicketMessageVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+model SupportTicket {
+  id                 String         @id @db.Uuid
+  ticketNo           String         @unique @map("ticket_no") // "TCK-" + 8 characters, set by the service
+  zoneId             String         @map("zone_id") @db.Uuid
+  customerId         String         @map("customer_id") @db.Uuid
+  orderId            String?        @map("order_id") @db.Uuid
+  refundId           String?        @map("refund_id") @db.Uuid
+  category           String // values in shared code (ORDER, PAYMENT_REFUND, DELIVERY, ACCOUNT, OTHER)
+  priority           TicketPriority @default(NORMAL)
+  status             TicketStatus   @default(OPEN)
+  source             TicketSource   @default(ADMIN)
+  subject            String // CHECK 1..200 characters: SQL
+  assigneeId         String?        @map("assignee_id") @db.Uuid
+  assignedAt         DateTime?      @map("assigned_at") @db.Timestamptz // round-robin = least recently assigned member
+  firstResponseDueAt DateTime       @map("first_response_due_at") @db.Timestamptz
+  resolutionDueAt    DateTime       @map("resolution_due_at") @db.Timestamptz
+  escalationDueAt    DateTime       @map("escalation_due_at") @db.Timestamptz
+  firstRespondedAt   DateTime?      @map("first_responded_at") @db.Timestamptz
+  pausedAt           DateTime?      @map("paused_at") @db.Timestamptz // WAITING_CUSTOMER began; due dates shift on resume
+  escalatedAt        DateTime?      @map("escalated_at") @db.Timestamptz
+  resolvedAt         DateTime?      @map("resolved_at") @db.Timestamptz
+  closedAt           DateTime?      @map("closed_at") @db.Timestamptz
+  reopenCount        Int            @default(0) @map("reopen_count")
+  version            Int            @default(1)
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime?      @map("deleted_at") @db.Timestamptz
+  createdBy          String?        @map("created_by") @db.Uuid
+  updatedBy          String?        @map("updated_by") @db.Uuid
+
+  zone     Zone            @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  customer Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  order    Order?          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  refund   Refund?         @relation(fields: [refundId], references: [id], onDelete: Restrict)
+  assignee User?           @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  messages TicketMessage[]
+
+  @@index([zoneId, status, createdAt(sort: Desc)])
+  @@index([assigneeId, status])
+  @@index([status, escalationDueAt])
+  @@index([status, resolutionDueAt])
+  @@index([customerId])
+  @@index([orderId])
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id             String                  @id @db.Uuid
+  ticketId       String                  @map("ticket_id") @db.Uuid
+  authorId       String                  @map("author_id") @db.Uuid
+  visibility     TicketMessageVisibility @default(INTERNAL)
+  body           String // CHECK 1..5000 characters: SQL
+  attachmentKeys String[]                @default([]) @map("attachment_keys") // upload keys (SA-2.1), at most 5: SQL
+  createdAt      DateTime                @default(now()) @map("created_at") @db.Timestamptz
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  author User          @relation("TicketMessageAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_messages")
 }
