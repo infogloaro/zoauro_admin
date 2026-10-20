@@ -39,7 +39,8 @@ Zone list counts (restaurants, homemakers, partners, customers, admins) are deri
 | homemakers | id, zone_id, name, phone, email, address, **area ★**, lat, lng, speciality_tags, **food_category ★★, experience_years ★★, is_available ★★ (D45)**, **daily_capacity ★ (int ≥ 1; doc 22 had it, v1.0 schema lacked it)**, commission_pct, status, **verification_status ★, verification_note ★**, verified_at, verified_by, opening_hours_json, photo_key, min_order, fssai_no |
 | vendor_documents | id, vendor_type, vendor_id, doc_type, file_key, verified, verified_by, rejection_note |
 | categories | id, zone_id nullable (global), name, sort_order |
-| menu_items | id, zone_id, restaurant_id nullable, homemaker_id nullable, category_id, name, description, price, stock, is_available, is_featured, image_key; CHECK exactly one of restaurant_id / homemaker_id. UI "Out of stock" = stock = 0 |
+| menu_items | id, zone_id, restaurant_id nullable, homemaker_id nullable, category_id, name, description, price, stock, is_available, is_featured, image_key, **dietary ★★ (VEGETARIAN, NON_VEG, EGG; D119), admin_override_at ★★ (doc 44, D127)**; CHECK exactly one of restaurant_id / homemaker_id. UI "Out of stock" = stock = 0 |
+| **menu_item_change_requests ★★ (R09, D119)** | id, zone_id, menu_item_id nullable (null until a CREATE is approved), restaurant_id / homemaker_id (CHECK one), external_item_id, kind (CREATE, UPDATE, DELETE), status (PENDING, APPROVED, REJECTED, SUPERSEDED), proposed_json, base_json, source, submitted_by_client_id, decided_by, decided_at, decision_reason, version; partial unique: one PENDING per menu_item_id, one PENDING CREATE per (submitted_by_client_id, external_item_id) |
 
 ## People
 | customers | id, name, phone (unique), email, status (ACTIVE, INACTIVE, **BLOCKED ★**), wallet_balance, **source ★ (APP, ADMIN, REFERRAL, OTHER — Figma "registration source")**, user_type (CUSTOMER) |

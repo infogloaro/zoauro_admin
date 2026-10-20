@@ -14,6 +14,7 @@
     {"type": "vendor.status_changed", "to": ["VENDOR_APP"], "data": {"verificationStatus": "PENDING|VERIFIED|REJECTED", "status": "PENDING|ACTIVE|INACTIVE|SUSPENDED", "note": "string?"}},
     {"type": "vendor.updated", "to": ["VENDOR_APP"], "data": {"fields": "object of admin-owned fields changed (commissionPct, zoneId, zoneName)"}},
     {"type": "menu_item.admin_changed", "to": ["VENDOR_APP","CUSTOMER_APP"], "data": {"itemId": "externalId", "adminDisabled": "bool", "reason": "string?"}},
+    {"type": "menu_item.change_decided", "to": ["VENDOR_APP"], "data": {"requestId": "uuid", "kind": "CREATE|UPDATE|DELETE", "decision": "APPROVED|REJECTED", "itemId": "externalId (ours when none)", "menuItemId": "uuid?", "reason": "string? (rejected)"}},
     {"type": "partner.status_changed", "to": ["PARTNER_APP"], "data": {"verificationStatus": "PENDING|VERIFIED|REJECTED", "status": "PENDING_VERIFICATION|VERIFIED|ACTIVE|INACTIVE|SUSPENDED", "note": "string?"}},
     {"type": "partner.force_offline", "to": ["PARTNER_APP"], "data": {"reason": "string", "until": "iso8601"}},
     {"type": "partner.updated", "to": ["PARTNER_APP"], "data": {"fields": "object of admin-owned fields changed (zoneId, zoneName); D131"}},

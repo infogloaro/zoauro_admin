@@ -186,7 +186,7 @@ Defined once in `packages/shared/src/audit/actions.ts` as `AUDIT_ACTIONS: Record
 | zones | `zone.created`, `zone.updated`, `zone.deactivated`*, `zone.activated`, `zone.delivery_charge_changed`*, `zone.pincodes_changed`*, `zone.deleted` (doc 53 §4) |
 | admins / access | `member.created`, `member.updated`, `member.suspended`, `member.reactivated`, `member.password_reset`*, `member.deleted`* (D102, added with M03), `access.profile_set`*, `access.override_set`*, `access.limit_set`*, `access.zone_added`*, `access.zone_removed`*, `access_profile.created/updated/deleted`* |
 | restaurants, homemakers | `restaurant.created/updated/deleted`, `restaurant.verified`*, `restaurant.rejected`*, `restaurant.activated/deactivated/suspended`*, `restaurant.commission_changed`*, `restaurant.zone_moved`*, `restaurant.document_added`, `restaurant.document_viewed`*, `restaurant.document_verified`*, `restaurant.document_rejected`* (D120), `restaurant.contact_revealed`* (D123) (and `homemaker.*`). `/uploads/presign` and `/uploads/confirm` write nothing: `{ none: 'upload-signing' }` |
-| menu | `menu_item.created/updated/deleted`, `menu_item.admin_disabled`, `menu_item.bulk_updated` |
+| menu | `menu_item.created/updated/deleted`, `menu_item.admin_disabled`, `menu_item.admin_enabled` (D126), `menu_item.bulk_updated` (one row per zone touched), `menu_item.change_approved`, `menu_item.change_rejected` (R09), `category.created/updated/deleted`. `/menu-items/bulk/preview` writes nothing: `{ none: 'preview' }` |
 | customers | `customer.created`, `customer.updated`, `customer.blocked`*, `customer.unblocked`*, `customer.contact_revealed`* |
 | delivery | `partner.created/updated`, `partner.verified/rejected`*, `partner.suspended`*, `partner.force_offline`*, `partner.document_viewed`* |
 | orders | `order.cancelled_by_admin`, `order.accepted_on_behalf`, `order.partner_assigned`, `order.partner_reassigned`, `order.status_changed` (other admin moves of doc 10, incl. unassign; D121), `order.marked_delayed`, `order.exported`* |
@@ -199,7 +199,7 @@ Defined once in `packages/shared/src/audit/actions.ts` as `AUDIT_ACTIONS: Record
 
 ### 4.0 Zone rule for `entity.zoneId` (enforced by `record()`)
 * **Must be a uuid:** `restaurant, homemaker, menu_item, partner, order, refund, cod_settlement`.
-* **Must be passed explicitly (uuid, or `null` if truly global):** `customer, payout, payment`. A customer has no single zone, so pass the zone in which the action happened (for a reveal: the zone the member was working in; for Super Admin edits: the zone of the customer's latest order or address, else `null`). Rows with `null` are invisible to Zonal members (D63).
+* **Must be passed explicitly (uuid, or `null` if truly global):** `customer, payout, payment, category` (a global category is `null`). A customer has no single zone, so pass the zone in which the action happened (for a reveal: the zone the member was working in; for Super Admin edits: the zone of the customer's latest order or address, else `null`). Rows with `null` are invisible to Zonal members (D63).
 * Anything else (zones, access, settings, integrations, system): any value, normally `null`.
 
 ### 4.1 Naming rules

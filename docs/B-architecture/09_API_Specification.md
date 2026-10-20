@@ -66,9 +66,13 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /restaurants/{id}/documents/{docId}/url | restaurants:view | 300 s signed view link; every link is audited (D120) |
 | POST | /restaurants/{id}/documents/{docId}/verify | restaurants:status | verify / reject a pending document (note required) (D120) |
 | (same set) | /homemakers … | homemakers:* | Home Food checklist not configured (D113) |
-| GET/POST | /menu-items | menu:* | filter by vendor/category/status |
-| PATCH/DELETE | /menu-items/{id} | | |
-| POST | /menu-items/bulk | menu:edit | preview + confirm; import via `/menu-items/import` (P1) |
+| GET/POST | /menu-items | menu:view / menu:add | list filters vendorKind, vendorId, categoryId, availability (live / out_of_stock / vendor_off / admin_disabled), featured, dietary, q; tab counts. POST names one vendor; the item's zone is the vendor's (409 while the vendor has no zone); category global or of that zone (D119) |
+| GET/PATCH/DELETE | /menu-items/{id} | view / edit / delete | PATCH applies at once; a vendor-owned field sets `admin_override_at` (doc 44); `adminDisabled` (+ `reason` to disable) is the admin toggle, emits `menu_item.admin_changed` (D126); DELETE is soft |
+| POST | /menu-items/bulk/preview, /menu-items/bulk | menu:edit | `{action: availability \| category \| price, ids ≤ 500}`; price by signed percent (half-up) or amount in paise, ≥ 1 paise; all-or-nothing: any id outside the caller's zones → 404, nothing changes (D124); preview writes nothing. Import via `/menu-items/import` (P1) |
+| GET | /menu-items/change-requests, /menu-items/change-requests/{id} | menu:view | vendor item-change requests (R09, D119), default status PENDING; detail has base / live / proposed per field |
+| POST | /menu-items/change-requests/{id}/approve, /reject | menu:status | `{version}` (+ `reason` to reject); approve applies only name, description, price, category, dietary, image (D127); 409 STALE_VERSION / INVALID_STATE_TRANSITION; emits `menu_item.change_decided` (D125) |
+| GET/POST | /categories | menu:view / menu:add | global (`zoneId: null`, Super Admin only) plus zone categories in scope; names unique per zone ignoring case (409) |
+| PATCH/DELETE | /categories/{id} | menu:edit / menu:delete | DELETE soft; 409 CATEGORY_IN_USE while live items use it |
 | GET | /orders | orders:view | filters, search, scope |
 | GET | /orders/{id} | orders:view | items, timeline, payment panel |
 | POST | /orders/{id}/transition | orders:status | `{ to, note }` |
