@@ -23,6 +23,8 @@ const ERROR_DESCRIPTION: Record<ErrorCode, string> = {
   VALIDATION_ERROR: 'Invalid input',
   CONFLICT: 'Conflict',
   RATE_LIMITED: 'Too many requests',
+  SERVICE_UNAVAILABLE:
+    'A dependency (file storage, payment gateway) is unavailable; try again later',
   INVALID_STATE_TRANSITION: 'Not allowed from the current state',
   REFUND_LIMIT_EXCEEDED: 'Over the refund limit',
   REAUTH_REQUIRED: 'Recent re-authentication required',

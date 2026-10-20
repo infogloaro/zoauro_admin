@@ -28,6 +28,8 @@ export const ERROR_STATUS = {
   CATEGORY_IN_USE: 409,
   /** D127: the stay overlaps total_rooms blocking bookings on at least one night */
   NO_ROOMS_AVAILABLE: 409,
+  /** a dependency (object storage, payment gateway) is unreachable or not configured; try again later (doc 32) */
+  SERVICE_UNAVAILABLE: 503,
   INTERNAL: 500,
 } as const;
 

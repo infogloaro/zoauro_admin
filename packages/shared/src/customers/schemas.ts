@@ -73,9 +73,9 @@ export const customerBlockSchema = z
   .strict();
 export type CustomerBlockInput = z.infer<typeof customerBlockSchema>;
 
-/** POST /customers/{id}/unblock */
+/** POST /customers/{id}/unblock: the reason is kept in the audit trail like the block reason. */
 export const customerUnblockSchema = z
-  .object({ reason: text(BLOCK_REASON.min, BLOCK_REASON.max).optional() })
+  .object({ reason: text(BLOCK_REASON.min, BLOCK_REASON.max) })
   .strict();
 export type CustomerUnblockInput = z.infer<typeof customerUnblockSchema>;
 
