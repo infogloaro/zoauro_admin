@@ -21,6 +21,7 @@ import {
   type AccessMailer,
 } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
+import { createHotelsModule } from '../../../src/modules/hotels';
 import { createMenuModule } from '../../../src/modules/menu';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
@@ -341,6 +342,12 @@ export async function createAuthTestEnv() {
       uploads: { assertUploaded: (ctx, fileKey) => uploads.service.assertUploaded(ctx, fileKey) },
       clock: clock.now,
     });
+    const hotels = createHotelsModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      services: zones.service,
+      clock: clock.now,
+    });
     const moduleRouters = [
       auth.router,
       createAuditModule({ prisma }).router,
@@ -378,6 +385,7 @@ export async function createAuthTestEnv() {
       }).router,
       uploads.router,
       menu.router,
+      hotels.router,
     ];
     const extraRouters = [
       ...(extra.routers ?? []),

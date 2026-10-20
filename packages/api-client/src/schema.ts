@@ -966,6 +966,198 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hotels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hotels in the zones the caller can view (?zoneId repeatable): status, verification, area, search q (name, owner, area), sort, pages, tab counts, rooms occupied tonight. Phone and email masked (D26) */
+        get: operations["listHotels"];
+        put?: never;
+        /** Add a hotel in a zone (body zoneId). Refused with ZONE_SERVICE_DISABLED when Hotel Booking is off there (D92); commissionPct is Super Admin only */
+        post: operations["createHotel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One hotel. 404 outside the caller’s view scope */
+        get: operations["getHotel"];
+        put?: never;
+        post?: never;
+        /** Soft delete; an active hotel is deactivated first */
+        delete: operations["deleteHotel"];
+        options?: never;
+        head?: never;
+        /** Edit the hotel; the zone is fixed. commissionPct: Super Admin only (audited hotel.commission_changed) */
+        patch: operations["updateHotel"];
+        trace?: never;
+    };
+    "/hotels/{id}/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Room bookings of one hotel (bookings:view in its zone, else 404) */
+        get: operations["listHotelRoomBookings"];
+        put?: never;
+        /** Book a stay [checkIn, checkOut) at an active hotel; the hotel row is locked and the stay must fit total_rooms on every night (409 NO_ROOMS_AVAILABLE, D127). Needs Hotel Booking on (D92); payment status is informational */
+        post: operations["createRoomBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate (only once verified), deactivate or suspend (doc 10 section 4). Audited as activated, deactivated or suspended */
+        post: operations["setHotelStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/{id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify or reject (note required). Audited as hotel.verified or hotel.rejected */
+        post: operations["verifyHotel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Room bookings in the zones the caller can view with bookings:view; customer phone masked (D26) */
+        get: operations["listRoomBookings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/bookings/{bookingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One room booking. 404 outside the caller’s view scope */
+        get: operations["getRoomBooking"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/bookings/{bookingId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm, check in, check out or cancel at the version seen (PENDING -> CONFIRMED -> CHECKED_IN -> CHECKED_OUT; cancel before check-in). A cancel never changes the payment status (D127) */
+        post: operations["setRoomBookingStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/dining": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dining reservations in the zones the caller can view with dining:view; customer phone masked (D26) */
+        get: operations["listDiningReservations"];
+        put?: never;
+        /** Reserve a table at exactly one venue, a hotel or a restaurant; the zone is the venue’s (404 outside the caller’s zones). Needs Hotel Booking on in that zone (D92) */
+        post: operations["createDiningReservation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/dining/{diningId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One dining reservation. 404 outside the caller’s view scope */
+        get: operations["getDiningReservation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/dining/{diningId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm, complete, cancel or mark a no-show at the version seen (PENDING -> CONFIRMED -> COMPLETED | NO_SHOW; cancel before completion) */
+        post: operations["setDiningReservationStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/login-history": {
         parameters: {
             query?: never;
@@ -6238,8 +6430,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -6250,8 +6443,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -6384,8 +6576,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -6396,8 +6589,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -6599,8 +6791,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -6611,8 +6804,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -6733,8 +6925,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                    docType: string;
                     fileKey: string;
                 };
             };
@@ -6753,8 +6944,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -6765,8 +6957,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -6979,8 +7170,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -6991,8 +7183,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7133,8 +7324,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7145,8 +7337,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7287,8 +7478,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7299,8 +7491,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7511,8 +7702,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7523,8 +7715,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7665,8 +7856,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7677,8 +7869,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7953,8 +8144,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7965,8 +8157,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8099,8 +8290,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8111,8 +8303,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8329,8 +8520,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8341,8 +8533,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8464,8 +8655,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                    docType: string;
                     fileKey: string;
                 };
             };
@@ -8483,8 +8673,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8495,8 +8686,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8700,8 +8890,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8712,8 +8903,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8854,8 +9044,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8866,8 +9057,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -9069,8 +9259,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -9081,8 +9272,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -9223,8 +9413,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -9235,8 +9426,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -9327,6 +9517,1690 @@ export interface operations {
                 };
             };
             /** @description Conflict; Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listHotels: {
+        parameters: {
+            query?: {
+                area?: string;
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                verification?: "PENDING" | "VERIFIED" | "REJECTED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            area: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            email: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            occupiedRooms: number;
+                            ownerName: string;
+                            phone: string;
+                            /** @enum {string} */
+                            status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                            totalRooms: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            /** @enum {string} */
+                            verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            counts: {
+                                active: number;
+                                pendingVerification: number;
+                                suspended: number;
+                                total: number;
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createHotel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    address: string;
+                    area?: string;
+                    commissionPct?: number;
+                    /** Format: email */
+                    email?: string;
+                    gstNo?: string;
+                    name: string;
+                    ownerName: string;
+                    phone: string;
+                    totalRooms: number;
+                    /** Format: uuid */
+                    zoneId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created (status and verification PENDING) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string;
+                        area: string | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        gstNo: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        occupiedRooms: number;
+                        ownerName: string;
+                        phone: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        totalRooms: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The service is switched off in this zone (error.meta.service, D92) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getHotel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The hotel */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string;
+                        area: string | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        gstNo: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        occupiedRooms: number;
+                        ownerName: string;
+                        phone: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        totalRooms: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteHotel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateHotel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    address?: string;
+                    area?: string | null;
+                    commissionPct?: number;
+                    /** Format: email */
+                    email?: string | null;
+                    gstNo?: string | null;
+                    name?: string;
+                    ownerName?: string;
+                    phone?: string;
+                    totalRooms?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string;
+                        area: string | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        gstNo: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        occupiedRooms: number;
+                        ownerName: string;
+                        phone: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        totalRooms: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listHotelRoomBookings: {
+        parameters: {
+            query?: {
+                checkInFrom?: string;
+                checkInTo?: string;
+                hotelId?: string;
+                page?: number;
+                pageSize?: number;
+                paymentStatus?: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                q?: string;
+                sort?: string;
+                status?: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            amount: number;
+                            /** Format: date */
+                            checkIn: string;
+                            /** Format: date */
+                            checkOut: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            customerName: string;
+                            customerPhone: string;
+                            guests: number;
+                            hotel: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** Format: uuid */
+                            id: string;
+                            note: string | null;
+                            /** @enum {string} */
+                            paymentStatus: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                            roomType: string;
+                            /** @enum {string} */
+                            status: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            version: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createRoomBooking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    amount: number;
+                    /** Format: date */
+                    checkIn: string;
+                    /** Format: date */
+                    checkOut: string;
+                    customerName: string;
+                    customerPhone: string;
+                    guests: number;
+                    note?: string;
+                    /**
+                     * @default PENDING
+                     * @enum {string}
+                     */
+                    paymentStatus?: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                    roomType: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created (PENDING) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        amount: number;
+                        /** Format: date */
+                        checkIn: string;
+                        /** Format: date */
+                        checkOut: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        customerName: string;
+                        customerPhone: string;
+                        guests: number;
+                        hotel: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        /** @enum {string} */
+                        paymentStatus: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                        roomType: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; No room is free for every night of the stay (D127); The service is switched off in this zone (error.meta.service, D92) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    setHotelStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                    /** @enum {string} */
+                    status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                };
+            };
+        };
+        responses: {
+            /** @description Moved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string;
+                        area: string | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        gstNo: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        occupiedRooms: number;
+                        ownerName: string;
+                        phone: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        totalRooms: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    verifyHotel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "VERIFIED" | "REJECTED";
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Decided */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string;
+                        area: string | null;
+                        commissionPct: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string | null;
+                        gstNo: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        name: string;
+                        occupiedRooms: number;
+                        ownerName: string;
+                        phone: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        totalRooms: number;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        verificationNote: string | null;
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        /** Format: date-time */
+                        verifiedAt: string | null;
+                        verifiedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listRoomBookings: {
+        parameters: {
+            query?: {
+                checkInFrom?: string;
+                checkInTo?: string;
+                hotelId?: string;
+                page?: number;
+                pageSize?: number;
+                paymentStatus?: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                q?: string;
+                sort?: string;
+                status?: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            amount: number;
+                            /** Format: date */
+                            checkIn: string;
+                            /** Format: date */
+                            checkOut: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            customerName: string;
+                            customerPhone: string;
+                            guests: number;
+                            hotel: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** Format: uuid */
+                            id: string;
+                            note: string | null;
+                            /** @enum {string} */
+                            paymentStatus: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                            roomType: string;
+                            /** @enum {string} */
+                            status: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            version: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getRoomBooking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bookingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The booking */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        amount: number;
+                        /** Format: date */
+                        checkIn: string;
+                        /** Format: date */
+                        checkOut: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        customerName: string;
+                        customerPhone: string;
+                        guests: number;
+                        hotel: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        /** @enum {string} */
+                        paymentStatus: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                        roomType: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    setRoomBookingStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bookingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                    /** @enum {string} */
+                    status: "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED";
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Moved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        amount: number;
+                        /** Format: date */
+                        checkIn: string;
+                        /** Format: date */
+                        checkOut: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        customerName: string;
+                        customerPhone: string;
+                        guests: number;
+                        hotel: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        /** @enum {string} */
+                        paymentStatus: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                        roomType: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listDiningReservations: {
+        parameters: {
+            query?: {
+                hotelId?: string;
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                reservedDate?: string;
+                restaurantId?: string;
+                sort?: string;
+                status?: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            amount: number | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            customerName: string;
+                            customerPhone: string;
+                            guests: number;
+                            hotel: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            /** Format: uuid */
+                            id: string;
+                            note: string | null;
+                            /** @enum {string} */
+                            paymentStatus: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                            /** Format: date */
+                            reservedDate: string;
+                            reservedTime: string;
+                            restaurant: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            /** @enum {string} */
+                            status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+                            tableArea: string | null;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            version: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createDiningReservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    amount?: number;
+                    customerName: string;
+                    customerPhone: string;
+                    guests: number;
+                    /** Format: uuid */
+                    hotelId?: string;
+                    note?: string;
+                    /**
+                     * @default PENDING
+                     * @enum {string}
+                     */
+                    paymentStatus?: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                    /** Format: date */
+                    reservedDate: string;
+                    reservedTime: string;
+                    /** Format: uuid */
+                    restaurantId?: string;
+                    tableArea?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created (PENDING) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        amount: number | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        customerName: string;
+                        customerPhone: string;
+                        guests: number;
+                        hotel: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        /** @enum {string} */
+                        paymentStatus: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                        /** Format: date */
+                        reservedDate: string;
+                        reservedTime: string;
+                        restaurant: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+                        tableArea: string | null;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; The service is switched off in this zone (error.meta.service, D92) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getDiningReservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                diningId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reservation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        amount: number | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        customerName: string;
+                        customerPhone: string;
+                        guests: number;
+                        hotel: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        /** @enum {string} */
+                        paymentStatus: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                        /** Format: date */
+                        reservedDate: string;
+                        reservedTime: string;
+                        restaurant: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+                        tableArea: string | null;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    setDiningReservationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                diningId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                    /** @enum {string} */
+                    status: "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Moved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        amount: number | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        customerName: string;
+                        customerPhone: string;
+                        guests: number;
+                        hotel: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        /** @enum {string} */
+                        paymentStatus: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                        /** Format: date */
+                        reservedDate: string;
+                        reservedTime: string;
+                        restaurant: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+                        tableArea: string | null;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -13547,8 +15421,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -13559,8 +15434,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -13693,8 +15567,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -13705,8 +15580,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -13923,8 +15797,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -13935,8 +15810,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -14058,8 +15932,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                    docType: string;
                     fileKey: string;
                 };
             };
@@ -14077,8 +15950,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -14089,8 +15963,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -14294,8 +16167,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -14306,8 +16180,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -14448,8 +16321,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -14460,8 +16334,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -14663,8 +16536,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -14675,8 +16549,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -14817,8 +16690,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -14829,8 +16703,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;

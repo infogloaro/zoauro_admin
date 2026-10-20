@@ -121,6 +121,7 @@ import {
 } from '@zoauro/shared';
 import type { AuditRouteMeta } from '../lib/audit';
 import { CUSTOMER_OPERATIONS } from './operations.customers';
+import { HOTEL_OPERATIONS } from './operations.hotels';
 import { MENU_OPERATIONS } from './operations.menu';
 import { PARTNER_OPERATIONS } from './operations.partners';
 import { NOTIFICATION_OPERATIONS } from './operations.notifications';
@@ -1386,6 +1387,8 @@ export const OPERATIONS: OperationDef[] = [
   ...PARTNER_OPERATIONS,
   // SA-2.4 menu items, categories, bulk and R09 change requests (operations.menu.ts)
   ...MENU_OPERATIONS,
+  // D118 hotels, room bookings and dining reservations (operations.hotels.ts)
+  ...HOTEL_OPERATIONS,
   ...NOTIFICATION_OPERATIONS,
   ...DASHBOARD_OPERATIONS,
   ...SEARCH_OPERATIONS,

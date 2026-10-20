@@ -137,6 +137,22 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         rejectMenuChange: { ownObject: true },
         updateCategory: { ownObject: true },
         deleteCategory: { ownObject: true },
+        // D118 hotels: one hotel, room booking and dining reservation per zone A, B, C (C is nobody's); object routes
+        // use the zone A ones (placeholder id). Scope and rules: tests/hotels/hotels-api.test.ts
+        listHotels: { listedZones: vendorZones },
+        listRoomBookings: { listedZones: vendorZones },
+        listDiningReservations: { listedZones: vendorZones },
+        getHotel: { ownObject: true },
+        updateHotel: { ownObject: true },
+        deleteHotel: { ownObject: true },
+        setHotelStatus: { ownObject: true },
+        verifyHotel: { ownObject: true },
+        listHotelRoomBookings: { ownObject: true },
+        createRoomBooking: { ownObject: true },
+        getRoomBooking: { ownObject: true },
+        setRoomBookingStatus: { ownObject: true },
+        getDiningReservation: { ownObject: true },
+        setDiningReservationStatus: { ownObject: true },
         // M17 notifications: one per zone A, B, C (C is nobody's); a list row names its zones. Object routes use the
         // zone A one (placeholder id): an actor without notifications:view there gets 404 (scope: tests/notifications/)
         listNotifications: {
@@ -168,7 +184,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 7 notifications (M17)
     // + 15 menu items, bulk, change requests and categories (SA-2.4)
     // + 7 dashboard tiles (M16) + 1 global search (M18)
-    expect(report.coveredRoutes).toHaveLength(168);
+    // + 16 hotels, room bookings and dining reservations (D118)
+    expect(report.coveredRoutes).toHaveLength(184);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

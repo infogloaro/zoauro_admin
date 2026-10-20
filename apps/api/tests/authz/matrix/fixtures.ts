@@ -257,6 +257,30 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     );
   }
 
+  // D118 hotels: per zone A, B, C a hotel, a room booking and a dining reservation (zone A ones: placeholder id). Zone
+  // members need the hotels, bookings and dining permissions to reach them; FULL does not grant them, so Zonal Admins
+  // see none (the scope rules per actor: tests/hotels/hotels-api.test.ts)
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000c0${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO hotels (id, zone_id, name, owner_name, phone, address, total_rooms, updated_at)
+       VALUES ($1, $2, 'Matrix inn', 'Owner', '+919800000100', '1 Road', 3, now())`,
+      [id, zones[z]],
+    );
+    await env.db.owner.query(
+      `INSERT INTO room_bookings (id, zone_id, hotel_id, customer_name, customer_phone, room_type, check_in, check_out,
+         guests, amount, updated_at)
+       VALUES ($1, $2, $1, 'Matrix guest', '+919800000101', 'Deluxe', '2027-01-01', '2027-01-02', 1, 0, now())`,
+      [id, zones[z]],
+    );
+    await env.db.owner.query(
+      `INSERT INTO dining_reservations (id, zone_id, hotel_id, customer_name, customer_phone, reserved_date,
+         reserved_time, guests, updated_at)
+       VALUES ($1, $2, $1, 'Matrix diner', '+919800000102', '2027-01-01', '19:30', 2, now())`,
+      [id, zones[z]],
+    );
+  }
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,

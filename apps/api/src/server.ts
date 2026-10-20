@@ -14,6 +14,7 @@ import {
 } from './modules/access';
 import { createAuditModule } from './modules/audit';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
+import { createHotelsModule } from './modules/hotels';
 import { createMenuModule } from './modules/menu';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
@@ -154,6 +155,13 @@ const menu = createMenuModule({
   },
 });
 
+// D118 hotels, room bookings and dining (D127): new hotels, bookings and reservations need HOTEL_BOOKING on (D92)
+const hotels = createHotelsModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  services: zones.service,
+});
+
 // M17 notifications (D134–D137): the API enqueues each zone's send; the worker process sends (notifications.jobs.ts)
 const notifications = createNotificationsModule({
   prisma,
@@ -194,6 +202,7 @@ const app = createApp({
       createSearchModule({ prisma, limiter: new RedisRateLimiter(redis) }).router,
       uploads.router,
       menu.router,
+      hotels.router,
     ],
   },
 });

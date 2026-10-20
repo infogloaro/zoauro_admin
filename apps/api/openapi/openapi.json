@@ -20147,14 +20147,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -20219,14 +20212,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -20240,6 +20232,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -20618,14 +20612,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -20690,14 +20677,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -20711,6 +20697,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -21218,14 +21206,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -21290,14 +21271,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -21311,6 +21291,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -21808,14 +21790,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -21880,14 +21855,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -21901,6 +21875,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -22308,14 +22284,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -22380,14 +22349,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -22401,6 +22369,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -22806,14 +22776,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -22878,14 +22841,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -22899,6 +22861,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -23151,14 +23115,7 @@
                 "properties": {
                   "docType": {
                     "type": "string",
-                    "enum": [
-                      "FSSAI",
-                      "GST",
-                      "PAN",
-                      "BANK_DETAILS",
-                      "ID_PROOF",
-                      "OTHER"
-                    ]
+                    "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                   },
                   "fileKey": {
                     "type": "string",
@@ -23417,14 +23374,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -23489,14 +23439,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -23510,6 +23459,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -24029,14 +23980,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -24101,14 +24045,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -24122,6 +24065,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -25008,14 +24953,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -25080,14 +25018,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -25101,6 +25038,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -25479,14 +25418,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -25551,14 +25483,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -25572,6 +25503,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -26082,14 +26015,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -26154,14 +26080,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -26175,6 +26100,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -26672,14 +26599,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -26744,14 +26664,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -26765,6 +26684,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -27172,14 +27093,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -27244,14 +27158,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -27265,6 +27178,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -27670,14 +27585,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -27742,14 +27650,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -27763,6 +27670,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -28016,14 +27925,7 @@
                 "properties": {
                   "docType": {
                     "type": "string",
-                    "enum": [
-                      "FSSAI",
-                      "GST",
-                      "PAN",
-                      "BANK_DETAILS",
-                      "ID_PROOF",
-                      "OTHER"
-                    ]
+                    "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                   },
                   "fileKey": {
                     "type": "string",
@@ -28281,14 +28183,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -28353,14 +28248,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -28374,6 +28268,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -28893,14 +28789,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -28965,14 +28854,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -28986,6 +28874,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -30054,14 +29944,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -30126,14 +30009,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -30147,6 +30029,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -30499,14 +30383,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -30571,14 +30448,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -30592,6 +30468,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -30987,14 +30865,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -31059,14 +30930,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -31080,6 +30950,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -31551,14 +31423,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -31623,14 +31488,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -31644,6 +31508,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -32025,14 +31891,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -32097,14 +31956,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -32118,6 +31976,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -32497,14 +32357,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -32569,14 +32422,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -32590,6 +32442,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -32969,14 +32823,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -33041,14 +32888,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -33062,6 +32908,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -33342,14 +33190,7 @@
                 "properties": {
                   "docType": {
                     "type": "string",
-                    "enum": [
-                      "PAN",
-                      "BANK_DETAILS",
-                      "DRIVING_LICENCE",
-                      "VEHICLE_RC",
-                      "ID_PROOF",
-                      "OTHER"
-                    ]
+                    "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                   },
                   "fileKey": {
                     "type": "string",
@@ -33564,14 +33405,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -33636,14 +33470,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -33657,6 +33490,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -34160,14 +33995,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -34232,14 +34060,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -34253,6 +34080,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -38899,6 +38728,4335 @@
         "x-audit": {
           "module": "menu",
           "action": "category.deleted"
+        }
+      }
+    },
+    "/hotels": {
+      "get": {
+        "operationId": "listHotels",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Hotels in the zones the caller can view (?zoneId repeatable): status, verification, area, search q (name, owner, area), sort, pages, tab counts, rooms occupied tonight. Phone and email masked (D26)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "ACTIVE",
+                "INACTIVE",
+                "SUSPENDED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "VERIFIED",
+                "REJECTED"
+              ]
+            },
+            "required": false,
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "required": false,
+            "name": "area",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "ownerName": {
+                            "type": "string"
+                          },
+                          "phone": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "area": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "totalRooms": {
+                            "type": "integer"
+                          },
+                          "occupiedRooms": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "ACTIVE",
+                              "INACTIVE",
+                              "SUSPENDED"
+                            ]
+                          },
+                          "verificationStatus": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "zone",
+                          "name",
+                          "ownerName",
+                          "phone",
+                          "email",
+                          "area",
+                          "totalRooms",
+                          "occupiedRooms",
+                          "status",
+                          "verificationStatus",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "counts": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "active": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "pendingVerification": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "suspended": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "total",
+                            "active",
+                            "pendingVerification",
+                            "suspended"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "counts"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "hotels:view",
+          "zone": "query"
+        }
+      },
+      "post": {
+        "operationId": "createHotel",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Add a hotel in a zone (body zoneId). Refused with ZONE_SERVICE_DISABLED when Hotel Booking is off there (D92); commissionPct is Super Admin only",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "zoneId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "ownerName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email"
+                  },
+                  "address": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 240
+                  },
+                  "area": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "totalRooms": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  },
+                  "commissionPct": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 50
+                  },
+                  "gstNo": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                },
+                "required": [
+                  "zoneId",
+                  "name",
+                  "ownerName",
+                  "phone",
+                  "address",
+                  "totalRooms"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created (status and verification PENDING)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ownerName": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totalRooms": {
+                      "type": "integer"
+                    },
+                    "occupiedRooms": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "commissionPct": {
+                      "type": "number"
+                    },
+                    "gstNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "name",
+                    "ownerName",
+                    "phone",
+                    "email",
+                    "area",
+                    "totalRooms",
+                    "occupiedRooms",
+                    "status",
+                    "verificationStatus",
+                    "createdAt",
+                    "updatedAt",
+                    "address",
+                    "commissionPct",
+                    "gstNo",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The service is switched off in this zone (error.meta.service, D92)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "hotels:add",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "hotel.created"
+        }
+      }
+    },
+    "/hotels/bookings": {
+      "get": {
+        "operationId": "listRoomBookings",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Room bookings in the zones the caller can view with bookings:view; customer phone masked (D26)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "hotelId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "CHECKED_IN",
+                "CHECKED_OUT",
+                "CANCELLED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "PAID",
+                "REFUNDED",
+                "FAILED"
+              ]
+            },
+            "required": false,
+            "name": "paymentStatus",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "checkInFrom",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "checkInTo",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "hotel": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "customerName": {
+                            "type": "string"
+                          },
+                          "customerPhone": {
+                            "type": "string"
+                          },
+                          "roomType": {
+                            "type": "string"
+                          },
+                          "checkIn": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "checkOut": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "guests": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "CONFIRMED",
+                              "CHECKED_IN",
+                              "CHECKED_OUT",
+                              "CANCELLED"
+                            ]
+                          },
+                          "paymentStatus": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "PAID",
+                              "REFUNDED",
+                              "FAILED"
+                            ]
+                          },
+                          "amount": {
+                            "type": "integer"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "zone",
+                          "hotel",
+                          "customerName",
+                          "customerPhone",
+                          "roomType",
+                          "checkIn",
+                          "checkOut",
+                          "guests",
+                          "status",
+                          "paymentStatus",
+                          "amount",
+                          "note",
+                          "version",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "bookings:view",
+          "zone": "query"
+        }
+      }
+    },
+    "/hotels/bookings/{bookingId}": {
+      "get": {
+        "operationId": "getRoomBooking",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "One room booking. 404 outside the caller’s view scope",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "bookingId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "hotel": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "customerPhone": {
+                      "type": "string"
+                    },
+                    "roomType": {
+                      "type": "string"
+                    },
+                    "checkIn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "checkOut": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "guests": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "CONFIRMED",
+                        "CHECKED_IN",
+                        "CHECKED_OUT",
+                        "CANCELLED"
+                      ]
+                    },
+                    "paymentStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PAID",
+                        "REFUNDED",
+                        "FAILED"
+                      ]
+                    },
+                    "amount": {
+                      "type": "integer"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "hotel",
+                    "customerName",
+                    "customerPhone",
+                    "roomType",
+                    "checkIn",
+                    "checkOut",
+                    "guests",
+                    "status",
+                    "paymentStatus",
+                    "amount",
+                    "note",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "bookings:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/hotels/bookings/{bookingId}/status": {
+      "post": {
+        "operationId": "setRoomBookingStatus",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Confirm, check in, check out or cancel at the version seen (PENDING -> CONFIRMED -> CHECKED_IN -> CHECKED_OUT; cancel before check-in). A cancel never changes the payment status (D127)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "bookingId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "CONFIRMED",
+                      "CHECKED_IN",
+                      "CHECKED_OUT",
+                      "CANCELLED"
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "status",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "hotel": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "customerPhone": {
+                      "type": "string"
+                    },
+                    "roomType": {
+                      "type": "string"
+                    },
+                    "checkIn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "checkOut": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "guests": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "CONFIRMED",
+                        "CHECKED_IN",
+                        "CHECKED_OUT",
+                        "CANCELLED"
+                      ]
+                    },
+                    "paymentStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PAID",
+                        "REFUNDED",
+                        "FAILED"
+                      ]
+                    },
+                    "amount": {
+                      "type": "integer"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "hotel",
+                    "customerName",
+                    "customerPhone",
+                    "roomType",
+                    "checkIn",
+                    "checkOut",
+                    "guests",
+                    "status",
+                    "paymentStatus",
+                    "amount",
+                    "note",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "bookings:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "room_booking.status_changed"
+        }
+      }
+    },
+    "/hotels/dining": {
+      "get": {
+        "operationId": "listDiningReservations",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Dining reservations in the zones the caller can view with dining:view; customer phone masked (D26)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "hotelId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "restaurantId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "COMPLETED",
+                "CANCELLED",
+                "NO_SHOW"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "reservedDate",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "hotel": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "restaurant": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "customerName": {
+                            "type": "string"
+                          },
+                          "customerPhone": {
+                            "type": "string"
+                          },
+                          "reservedDate": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "reservedTime": {
+                            "type": "string"
+                          },
+                          "guests": {
+                            "type": "integer"
+                          },
+                          "tableArea": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "CONFIRMED",
+                              "COMPLETED",
+                              "CANCELLED",
+                              "NO_SHOW"
+                            ]
+                          },
+                          "paymentStatus": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "PAID",
+                              "REFUNDED",
+                              "FAILED"
+                            ]
+                          },
+                          "amount": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "zone",
+                          "hotel",
+                          "restaurant",
+                          "customerName",
+                          "customerPhone",
+                          "reservedDate",
+                          "reservedTime",
+                          "guests",
+                          "tableArea",
+                          "status",
+                          "paymentStatus",
+                          "amount",
+                          "note",
+                          "version",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dining:view",
+          "zone": "query"
+        }
+      },
+      "post": {
+        "operationId": "createDiningReservation",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Reserve a table at exactly one venue, a hotel or a restaurant; the zone is the venue’s (404 outside the caller’s zones). Needs Hotel Booking on in that zone (D92)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hotelId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "restaurantId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "customerName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "customerPhone": {
+                    "type": "string"
+                  },
+                  "reservedDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "reservedTime": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "guests": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50
+                  },
+                  "tableArea": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "paymentStatus": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "PAID",
+                      "REFUNDED",
+                      "FAILED"
+                    ],
+                    "default": "PENDING"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "customerName",
+                  "customerPhone",
+                  "reservedDate",
+                  "reservedTime",
+                  "guests"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created (PENDING)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "hotel": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "restaurant": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "customerPhone": {
+                      "type": "string"
+                    },
+                    "reservedDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "reservedTime": {
+                      "type": "string"
+                    },
+                    "guests": {
+                      "type": "integer"
+                    },
+                    "tableArea": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "CONFIRMED",
+                        "COMPLETED",
+                        "CANCELLED",
+                        "NO_SHOW"
+                      ]
+                    },
+                    "paymentStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PAID",
+                        "REFUNDED",
+                        "FAILED"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "hotel",
+                    "restaurant",
+                    "customerName",
+                    "customerPhone",
+                    "reservedDate",
+                    "reservedTime",
+                    "guests",
+                    "tableArea",
+                    "status",
+                    "paymentStatus",
+                    "amount",
+                    "note",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; The service is switched off in this zone (error.meta.service, D92)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dining:add",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "dining_reservation.created"
+        }
+      }
+    },
+    "/hotels/dining/{diningId}": {
+      "get": {
+        "operationId": "getDiningReservation",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "One dining reservation. 404 outside the caller’s view scope",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "diningId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The reservation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "hotel": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "restaurant": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "customerPhone": {
+                      "type": "string"
+                    },
+                    "reservedDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "reservedTime": {
+                      "type": "string"
+                    },
+                    "guests": {
+                      "type": "integer"
+                    },
+                    "tableArea": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "CONFIRMED",
+                        "COMPLETED",
+                        "CANCELLED",
+                        "NO_SHOW"
+                      ]
+                    },
+                    "paymentStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PAID",
+                        "REFUNDED",
+                        "FAILED"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "hotel",
+                    "restaurant",
+                    "customerName",
+                    "customerPhone",
+                    "reservedDate",
+                    "reservedTime",
+                    "guests",
+                    "tableArea",
+                    "status",
+                    "paymentStatus",
+                    "amount",
+                    "note",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dining:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/hotels/dining/{diningId}/status": {
+      "post": {
+        "operationId": "setDiningReservationStatus",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Confirm, complete, cancel or mark a no-show at the version seen (PENDING -> CONFIRMED -> COMPLETED | NO_SHOW; cancel before completion)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "diningId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "CONFIRMED",
+                      "COMPLETED",
+                      "CANCELLED",
+                      "NO_SHOW"
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "status",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "hotel": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "restaurant": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "customerPhone": {
+                      "type": "string"
+                    },
+                    "reservedDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "reservedTime": {
+                      "type": "string"
+                    },
+                    "guests": {
+                      "type": "integer"
+                    },
+                    "tableArea": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "CONFIRMED",
+                        "COMPLETED",
+                        "CANCELLED",
+                        "NO_SHOW"
+                      ]
+                    },
+                    "paymentStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PAID",
+                        "REFUNDED",
+                        "FAILED"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "hotel",
+                    "restaurant",
+                    "customerName",
+                    "customerPhone",
+                    "reservedDate",
+                    "reservedTime",
+                    "guests",
+                    "tableArea",
+                    "status",
+                    "paymentStatus",
+                    "amount",
+                    "note",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dining:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "dining_reservation.status_changed"
+        }
+      }
+    },
+    "/hotels/{id}": {
+      "get": {
+        "operationId": "getHotel",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "One hotel. 404 outside the caller’s view scope",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The hotel",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ownerName": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totalRooms": {
+                      "type": "integer"
+                    },
+                    "occupiedRooms": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "commissionPct": {
+                      "type": "number"
+                    },
+                    "gstNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "name",
+                    "ownerName",
+                    "phone",
+                    "email",
+                    "area",
+                    "totalRooms",
+                    "occupiedRooms",
+                    "status",
+                    "verificationStatus",
+                    "createdAt",
+                    "updatedAt",
+                    "address",
+                    "commissionPct",
+                    "gstNo",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "hotels:view",
+          "zone": "none"
+        }
+      },
+      "patch": {
+        "operationId": "updateHotel",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Edit the hotel; the zone is fixed. commissionPct: Super Admin only (audited hotel.commission_changed)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "ownerName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 254,
+                    "format": "email"
+                  },
+                  "address": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 240
+                  },
+                  "area": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "totalRooms": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  },
+                  "commissionPct": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 50
+                  },
+                  "gstNo": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ownerName": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totalRooms": {
+                      "type": "integer"
+                    },
+                    "occupiedRooms": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "commissionPct": {
+                      "type": "number"
+                    },
+                    "gstNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "name",
+                    "ownerName",
+                    "phone",
+                    "email",
+                    "area",
+                    "totalRooms",
+                    "occupiedRooms",
+                    "status",
+                    "verificationStatus",
+                    "createdAt",
+                    "updatedAt",
+                    "address",
+                    "commissionPct",
+                    "gstNo",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "hotels:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "hotel.updated"
+        }
+      },
+      "delete": {
+        "operationId": "deleteHotel",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Soft delete; an active hotel is deactivated first",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "hotels:delete",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "hotel.deleted"
+        }
+      }
+    },
+    "/hotels/{id}/status": {
+      "post": {
+        "operationId": "setHotelStatus",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Activate (only once verified), deactivate or suspend (doc 10 section 4). Audited as activated, deactivated or suspended",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVE",
+                      "INACTIVE",
+                      "SUSPENDED"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ownerName": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totalRooms": {
+                      "type": "integer"
+                    },
+                    "occupiedRooms": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "commissionPct": {
+                      "type": "number"
+                    },
+                    "gstNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "name",
+                    "ownerName",
+                    "phone",
+                    "email",
+                    "area",
+                    "totalRooms",
+                    "occupiedRooms",
+                    "status",
+                    "verificationStatus",
+                    "createdAt",
+                    "updatedAt",
+                    "address",
+                    "commissionPct",
+                    "gstNo",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "hotels:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "hotel.activated"
+        }
+      }
+    },
+    "/hotels/{id}/verification": {
+      "post": {
+        "operationId": "verifyHotel",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Verify or reject (note required). Audited as hotel.verified or hotel.rejected",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "VERIFIED",
+                      "REJECTED"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "decision"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ownerName": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totalRooms": {
+                      "type": "integer"
+                    },
+                    "occupiedRooms": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "commissionPct": {
+                      "type": "number"
+                    },
+                    "gstNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verificationNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "verifiedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "name",
+                    "ownerName",
+                    "phone",
+                    "email",
+                    "area",
+                    "totalRooms",
+                    "occupiedRooms",
+                    "status",
+                    "verificationStatus",
+                    "createdAt",
+                    "updatedAt",
+                    "address",
+                    "commissionPct",
+                    "gstNo",
+                    "verificationNote",
+                    "verifiedAt",
+                    "verifiedBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "hotels:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "hotel.verified"
+        }
+      }
+    },
+    "/hotels/{id}/bookings": {
+      "get": {
+        "operationId": "listHotelRoomBookings",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Room bookings of one hotel (bookings:view in its zone, else 404)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "hotelId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "CHECKED_IN",
+                "CHECKED_OUT",
+                "CANCELLED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "PAID",
+                "REFUNDED",
+                "FAILED"
+              ]
+            },
+            "required": false,
+            "name": "paymentStatus",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "checkInFrom",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "checkInTo",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "hotel": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "customerName": {
+                            "type": "string"
+                          },
+                          "customerPhone": {
+                            "type": "string"
+                          },
+                          "roomType": {
+                            "type": "string"
+                          },
+                          "checkIn": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "checkOut": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "guests": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "CONFIRMED",
+                              "CHECKED_IN",
+                              "CHECKED_OUT",
+                              "CANCELLED"
+                            ]
+                          },
+                          "paymentStatus": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "PAID",
+                              "REFUNDED",
+                              "FAILED"
+                            ]
+                          },
+                          "amount": {
+                            "type": "integer"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "zone",
+                          "hotel",
+                          "customerName",
+                          "customerPhone",
+                          "roomType",
+                          "checkIn",
+                          "checkOut",
+                          "guests",
+                          "status",
+                          "paymentStatus",
+                          "amount",
+                          "note",
+                          "version",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "bookings:view",
+          "zone": "none"
+        }
+      },
+      "post": {
+        "operationId": "createRoomBooking",
+        "tags": [
+          "hotels"
+        ],
+        "summary": "Book a stay [checkIn, checkOut) at an active hotel; the hotel row is locked and the stay must fit total_rooms on every night (409 NO_ROOMS_AVAILABLE, D127). Needs Hotel Booking on (D92); payment status is informational",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customerName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "customerPhone": {
+                    "type": "string"
+                  },
+                  "roomType": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "checkIn": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "checkOut": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "guests": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "paymentStatus": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "PAID",
+                      "REFUNDED",
+                      "FAILED"
+                    ],
+                    "default": "PENDING"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "customerName",
+                  "customerPhone",
+                  "roomType",
+                  "checkIn",
+                  "checkOut",
+                  "guests",
+                  "amount"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created (PENDING)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "hotel": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "customerPhone": {
+                      "type": "string"
+                    },
+                    "roomType": {
+                      "type": "string"
+                    },
+                    "checkIn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "checkOut": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "guests": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "CONFIRMED",
+                        "CHECKED_IN",
+                        "CHECKED_OUT",
+                        "CANCELLED"
+                      ]
+                    },
+                    "paymentStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PAID",
+                        "REFUNDED",
+                        "FAILED"
+                      ]
+                    },
+                    "amount": {
+                      "type": "integer"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "hotel",
+                    "customerName",
+                    "customerPhone",
+                    "roomType",
+                    "checkIn",
+                    "checkOut",
+                    "guests",
+                    "status",
+                    "paymentStatus",
+                    "amount",
+                    "note",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; No room is free for every night of the stay (D127); The service is switched off in this zone (error.meta.service, D92)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "bookings:add",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "room_booking.created"
         }
       }
     },
