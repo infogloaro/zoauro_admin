@@ -28,6 +28,7 @@ enum AccessAction {
   EDIT
   DELETE
   STATUS
+  EXPORT // D149: per-module export (the zone flag canExport stays the master switch)
 }
 
 enum OverrideEffect {
@@ -317,6 +318,8 @@ model User {
   menuChangesDecided            MenuItemChangeRequest[] @relation("MenuChangeDecider")
   assignedTickets               SupportTicket[]         @relation("TicketAssignee")
   ticketMessages                TicketMessage[]         @relation("TicketMessageAuthor")
+  rewardEntries                 RewardPointEntry[]      @relation("RewardEntryActor")
+  walletTransactions            WalletTransaction[]     @relation("WalletTransactionActor")
 
   @@index([roleId])
   @@map("users")
@@ -363,6 +366,7 @@ model ProfilePermission {
   canEdit   Boolean @default(false) @map("can_edit")
   canDelete Boolean @default(false) @map("can_delete")
   canStatus Boolean @default(false) @map("can_status")
+  canExport Boolean @default(false) @map("can_export") // D149
 
   profile AccessProfile @relation(fields: [profileId], references: [id], onDelete: Restrict)
 
@@ -655,6 +659,9 @@ model Zone {
   diningReservations DiningReservation[]
   notificationSends  NotificationZoneSend[]
   supportTickets     SupportTicket[]
+  rewardEntries      RewardPointEntry[]
+  walletTransactions WalletTransaction[]
+  assignmentOffers   OrderAssignmentOffer[]
 
   @@index([status])
   @@map("zones")
@@ -884,7 +891,8 @@ model Customer {
   phone           String         @unique
   email           String?
   status          CustomerStatus @default(ACTIVE)
-  walletBalance   Int            @default(0) @map("wallet_balance") // paise
+  walletBalance   Int            @default(0) @map("wallet_balance") // paise; ledger: wallet_transactions
+  rewardPoints    Int            @default(0) @map("reward_points") // ledger: reward_point_entries
   source          String? // doc 08 lists two different value sets (see handoff)
   userType        String         @default("CUSTOMER") @map("user_type")
   sourceUpdatedAt DateTime?      @map("source_updated_at") @db.Timestamptz
@@ -899,6 +907,8 @@ model Customer {
   reviews             Review[]
   dataSubjectRequests DataSubjectRequest[]
   supportTickets      SupportTicket[]
+  rewardEntries       RewardPointEntry[]
+  walletTransactions  WalletTransaction[]
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "customers_name_trgm_idx")
   @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "customers_phone_trgm_idx")
@@ -954,6 +964,10 @@ model DeliveryPartner {
   ratingAvg            Decimal?             @map("rating_avg") @db.Decimal(3, 2)
   deliveriesCount      Int                  @default(0) @map("deliveries_count")
   forceOfflineUntil    DateTime?            @map("force_offline_until") @db.Timestamptz
+  // D154 auto-assign: latest location (plain columns until PostGIS, D164); all three set or none: SQL
+  lastLat              Float?               @map("last_lat")
+  lastLng              Float?               @map("last_lng")
+  lastLocationAt       DateTime?            @map("last_location_at") @db.Timestamptz
   source               RecordSource
   sourceUpdatedAt      DateTime?            @map("source_updated_at") @db.Timestamptz
   createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz
@@ -962,13 +976,15 @@ model DeliveryPartner {
   createdBy            String?              @map("created_by") @db.Uuid
   updatedBy            String?              @map("updated_by") @db.Uuid
 
-  zone            Zone?            @relation(fields: [zoneId], references: [id], onDelete: Restrict)
-  orders          Order[]
-  cashSettlements CashSettlement[]
-  verifier        User?            @relation("PartnerVerifier", fields: [verifiedBy], references: [id], onDelete: Restrict)
+  zone             Zone?                  @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  orders           Order[]
+  cashSettlements  CashSettlement[]
+  verifier         User?                  @relation("PartnerVerifier", fields: [verifiedBy], references: [id], onDelete: Restrict)
+  assignmentOffers OrderAssignmentOffer[]
 
   @@index([zoneId, status])
   @@index([zoneId, verificationStatus])
+  @@index([zoneId, lastLocationAt])
   @@index([zoneId, createdAt(sort: Desc)])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "delivery_partners_name_trgm_idx")
   @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "delivery_partners_phone_trgm_idx")
@@ -1045,7 +1061,9 @@ model Order {
   reviews         Review[]
 
   // CHECK exactly one of restaurant_id / homemaker_id: constraints migration
-  supportTickets SupportTicket[]
+  supportTickets   SupportTicket[]
+  rewardEntries    RewardPointEntry[]
+  assignmentOffers OrderAssignmentOffer[]
 
   @@index([zoneId, status, placedAt(sort: Desc)])
   @@index([customerId])
@@ -1901,4 +1919,109 @@ model TicketMessage {
 
   @@index([ticketId, createdAt])
   @@map("ticket_messages")
+}
+
+// ---- reward points and wallet ledger (owner 2026-10-20; loyalty settings D101) ------------------------------------
+
+enum RewardEntryType {
+  ORDER_EARN // credited when an order is delivered
+  ORDER_REVERSAL // an earned credit taken back (order refunded)
+  MANUAL_GRANT // an admin adds points with a reason
+  MANUAL_DEDUCT // an admin removes points with a reason
+  CHECKOUT_REDEEM // points spent as a discount at checkout
+  WALLET_CONVERT // points turned into wallet credit
+  EXPIRY // unused points past their expiry
+}
+
+/// Append-only points ledger: corrections are new rows, never updates of old ones (doc 16).
+model RewardPointEntry {
+  id             String          @id @db.Uuid
+  customerId     String          @map("customer_id") @db.Uuid
+  zoneId         String?         @map("zone_id") @db.Uuid // the zone of the order or of the admin action (D63)
+  type           RewardEntryType
+  points         Int // signed: credits > 0, debits < 0
+  balanceAfter   Int             @map("balance_after") // CHECK >= 0: SQL
+  // credits only: points of this credit not yet spent or expired (spent oldest first)
+  remaining      Int?
+  expiresAt      DateTime?       @map("expires_at") @db.Timestamptz // credits only
+  orderId        String?         @map("order_id") @db.Uuid
+  reason         String?
+  actorId        String?         @map("actor_id") @db.Uuid // admin for manual entries; null for system
+  idempotencyKey String?         @unique @map("idempotency_key")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  zone     Zone?    @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  order    Order?   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  actor    User?    @relation("RewardEntryActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([expiresAt]) // expiry job; partial index on open credits in SQL
+  @@index([orderId])
+  @@map("reward_point_entries")
+}
+
+enum WalletEntryType {
+  REWARD_CONVERT // credit from reward points
+  REFUND_CREDIT // a refund paid to the wallet
+  ORDER_DEBIT // wallet spent on an order
+  MANUAL_ADJUST // admin correction with a reason
+}
+
+/// Append-only wallet ledger; customers.wallet_balance is the running balance (doc 16).
+model WalletTransaction {
+  id                String          @id @db.Uuid
+  customerId        String          @map("customer_id") @db.Uuid
+  zoneId            String?         @map("zone_id") @db.Uuid
+  type              WalletEntryType
+  amountPaise       Int             @map("amount_paise") // signed
+  balanceAfterPaise Int             @map("balance_after_paise") // CHECK >= 0: SQL
+  refType           String?         @map("ref_type") // reward_point_entry, refund, order
+  refId             String?         @map("ref_id") @db.Uuid
+  reason            String?
+  actorId           String?         @map("actor_id") @db.Uuid
+  idempotencyKey    String?         @unique @map("idempotency_key")
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  zone     Zone?    @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  actor    User?    @relation("WalletTransactionActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([refType, refId])
+  @@map("wallet_transactions")
+}
+
+// ---- D154 auto-assign (infra session) -----------------------------------------------------------------------------
+
+enum OfferStatus {
+  OFFERED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  WITHDRAWN
+}
+
+model OrderAssignmentOffer {
+  id          String      @id @db.Uuid
+  orderId     String      @map("order_id") @db.Uuid
+  partnerId   String      @map("partner_id") @db.Uuid
+  zoneId      String      @map("zone_id") @db.Uuid
+  rank        Int // 1 = nearest
+  distanceM   Int         @map("distance_m")
+  status      OfferStatus @default(OFFERED)
+  offeredAt   DateTime    @default(now()) @map("offered_at") @db.Timestamptz
+  expiresAt   DateTime    @map("expires_at") @db.Timestamptz
+  respondedAt DateTime?   @map("responded_at") @db.Timestamptz
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  partner DeliveryPartner @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  zone    Zone            @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  // at most one OFFERED offer per order: partial unique index in SQL
+  @@unique([orderId, rank])
+  @@index([status, expiresAt])
+  @@index([partnerId, status])
+  @@map("order_assignment_offers")
 }
