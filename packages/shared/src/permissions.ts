@@ -36,6 +36,8 @@ export const PERMISSION_MODULES = [
   'hotels',
   'bookings',
   'dining',
+  // D169: reward points (the zone's loyalty values)
+  'loyalty',
 ] as const;
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
 
@@ -81,6 +83,8 @@ export const GRANTABLE_ACTIONS: Readonly<Record<PermissionModule, readonly Permi
   hotels: ALL_ACTIONS,
   bookings: ['view', 'add', 'status'],
   dining: ['view', 'add', 'status'],
+  // D169 (owner, 2026-10-20): a Zonal Admin may see and set their zones' reward-point values when granted
+  loyalty: ['view', 'edit'],
 };
 
 export const permissionKey = (module: PermissionModule, action: PermissionAction): PermissionKey =>

@@ -46,6 +46,7 @@ export const MODULE_LABEL: Record<PermissionModule, string> = {
   hotels: 'Hotels',
   bookings: 'Room bookings',
   dining: 'Dining reservations',
+  loyalty: 'Reward points',
 };
 
 export const ACTION_LABEL: Record<PermissionAction, string> = {

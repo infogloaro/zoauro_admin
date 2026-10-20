@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { mfaPolicySchema, DEFAULT_SECURITY_POLICY } from '../auth-mfa';
+import type { PermissionKey } from '../permissions';
 import { MAX_DELIVERY_CHARGE_PAISE } from '../zones/schemas';
 
 // Platform settings registry (doc 59 §2–3, owner decisions D109–D116). One typed list: every setting's key, group,
@@ -373,12 +374,20 @@ export const smsProviderSchema = z
   })
   .strict();
 
-/** D101: every loyalty value is a Super Admin setting with no default (null = loyalty off). */
+/**
+ * D101, D169 (reward points): no default (null = reward points off until set). Zone-overridable; a Zonal Admin with
+ * loyalty:edit in a zone may set that zone's value.
+ */
 export const loyaltyValuesSchema = z
   .object({
     earnRatePercent: z.number().min(0).max(100),
     pointsExpiryDays: z.number().int().min(1).max(3650),
     pointValuePaise: z.number().int().min(1).max(10_000),
+    minRedeemPoints: z.number().int().min(0).max(1_000_000),
+    maxRedeemPercentPerOrder: z.number().int().min(1).max(100),
+    /** null = no monthly cap */
+    monthlyEarnCapPoints: z.number().int().min(1).max(10_000_000).nullable(),
+    walletConversionEnabled: z.boolean(),
   })
   .strict()
   .nullable();
@@ -402,6 +411,11 @@ export interface SettingDef {
   /** the customer, vendor or partner apps read it (a change emits config.changed); none yet */
   appsRead: boolean;
   effect: SettingEffect;
+  /**
+   * D169: a Zonal Admin holding these permissions in a zone may read (view) and set or remove (edit) that zone's value;
+   * absent = Super Admin only (settings:* is never grantable).
+   */
+  zoneDelegate?: { view: PermissionKey; edit: PermissionKey };
 }
 
 const pending = (module: string): SettingEffect => ({ state: 'PENDING_MODULE', module });
@@ -669,16 +683,17 @@ export const SETTINGS: readonly SettingDef[] = [
   {
     key: 'loyalty.values',
     group: 'loyalty',
-    label: 'Loyalty values',
+    label: 'Reward points',
     description:
-      'Earn rate, expiry and point value. No defaults: loyalty stays off until they are set (D101).',
+      'Earn rate, expiry, point value, redemption limits, monthly earn cap and wallet conversion. No defaults: reward points stay off until they are set (D101, D169).',
     schema: loyaltyValuesSchema,
     default: null,
-    zoneOverride: false,
+    zoneOverride: true,
+    zoneDelegate: { view: 'loyalty:view', edit: 'loyalty:edit' },
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Loyalty (Phase 2)'),
+    effect: pending('Reward points'),
   },
   {
     key: 'security.mfa',

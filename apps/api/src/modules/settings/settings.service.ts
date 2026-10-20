@@ -9,6 +9,7 @@ import {
   payoutCycleSchema,
   sessionRememberSchema,
   supportSlaSchema,
+  loyaltyValuesSchema,
   zoneDeliveryChargeCapSchema,
   type OnboardingDocumentType,
   type OnboardingParty,
@@ -34,7 +35,7 @@ import {
 } from '@zoauro/shared';
 import type { z } from 'zod';
 import { noteAuditNoop, record } from '../../lib/audit';
-import type { AuthContext } from '../../lib/authz';
+import { assertCanRead, assertCanWrite, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
 import type { SettingsDatabase, SettingsTx, StoredSetting } from './settings.repository';
 
@@ -43,6 +44,21 @@ import type { SettingsDatabase, SettingsTx, StoredSetting } from './settings.rep
 // the saved value. Settings History is the audit trail of module `settings`.
 
 const notFound = () => new AppError('NOT_FOUND', 'Not found');
+const forbidden = () => new AppError('FORBIDDEN', 'You do not have permission to do this');
+
+/**
+ * D169: a Zonal Admin may change only a zone's own value of keys delegated to them (loyalty.values with loyalty:edit
+ * in that zone): 404 for a zone not theirs, 403 otherwise.
+ */
+function assertDelegatedWrite(ctx: AuthContext, keys: readonly string[], zoneId: string | null) {
+  if (ctx.isSuperAdmin) return;
+  if (zoneId === null) throw forbidden();
+  for (const k of keys) {
+    const d = settingDef(k)?.zoneDelegate;
+    if (!d) throw forbidden();
+    assertCanWrite(ctx, d.edit, zoneId);
+  }
+}
 
 /** JSON with object keys sorted: jsonb reorders keys, so two equal values must compare equal whatever their order. */
 function canonical(v: unknown): string {
@@ -121,11 +137,21 @@ export class SettingsService {
     group?: SettingGroup,
     zoneId?: string,
   ): Promise<SettingListResponse> {
-    const defs = group ? settingsOfGroup(group) : [...SETTINGS];
+    let defs = group ? settingsOfGroup(group) : [...SETTINGS];
+    if (!ctx.isSuperAdmin) {
+      // D169: a Zonal Admin sees only the keys delegated to them, for one zone where they hold the view permission
+      defs = defs.filter((d) => d.zoneDelegate);
+      if (defs.length === 0) throw forbidden();
+      if (!zoneId)
+        throw new AppError('VALIDATION_ERROR', 'Name the zone', [
+          { field: 'zoneId', issue: 'required' },
+        ]);
+      for (const d of defs) if (d.zoneDelegate) assertCanRead(ctx, d.zoneDelegate.view, zoneId);
+    }
     const keys = defs.map((d) => d.key);
     if (zoneId && !(await this.deps.db.repo.findZone(ctx, zoneId))) throw notFound();
     const [platform, zone] = await Promise.all([
-      this.deps.db.repo.platform(ctx, keys),
+      this.deps.db.repo.platform(ctx, keys, zoneId ?? null),
       zoneId
         ? this.deps.db.repo.zone(ctx, zoneId, keys)
         : Promise.resolve(new Map<string, StoredSetting>()),
@@ -209,12 +235,13 @@ export class SettingsService {
     input: PutSettingsInput,
     zoneId: string | null,
   ): Promise<SettingListResponse> {
+    assertDelegatedWrite(ctx, Object.keys(input.values), zoneId);
     const items = this.validate(group, input.values, zoneId);
     if (zoneId && !(await this.deps.db.repo.findZone(ctx, zoneId))) throw notFound();
     await this.write(async (tx) => {
       let changed = 0;
       for (const { def, value } of items) {
-        await tx.repo.lockKey(ctx, def.key);
+        await tx.repo.lockKey(ctx, def.key, zoneId);
         const current = (
           zoneId
             ? await tx.repo.zone(ctx, zoneId, [def.key])
@@ -254,12 +281,13 @@ export class SettingsService {
     reason: string,
     zoneId: string | null,
   ): Promise<SettingListResponse> {
+    assertDelegatedWrite(ctx, [key], zoneId);
     const def = settingDef(key);
     if (!def || def.group !== group || !def.editable || (zoneId && !def.zoneOverride))
       throw notFound();
     if (zoneId && !(await this.deps.db.repo.findZone(ctx, zoneId))) throw notFound();
     await this.write(async (tx) => {
-      await tx.repo.lockKey(ctx, key);
+      await tx.repo.lockKey(ctx, key, zoneId);
       const current = (
         zoneId ? await tx.repo.zone(ctx, zoneId, [key]) : await tx.repo.platform(ctx, [key])
       ).get(key);
@@ -537,6 +565,11 @@ export class SettingsReader {
   /** D98, D140: support response times and the assignment mode of a zone. */
   supportSla(zoneId: string) {
     return this.effective('support.sla', supportSlaSchema, zoneId);
+  }
+
+  /** D101, D169: a zone's reward-point values; null = reward points off. */
+  loyalty(zoneId: string) {
+    return this.effective('loyalty.values', loyaltyValuesSchema, zoneId);
   }
 
   /** D163 */

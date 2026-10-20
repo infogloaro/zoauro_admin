@@ -27,7 +27,7 @@ export const GROUP_LABEL: Record<SettingGroup, string> = {
   notifications: 'Notifications',
   orders: 'Orders',
   sms: 'SMS',
-  loyalty: 'Loyalty (Phase 2)',
+  loyalty: 'Reward points',
   security: 'Security',
   payouts: 'Payouts',
   zones: 'Zones',

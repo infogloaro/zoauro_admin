@@ -1,14 +1,16 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
 import type { SettingHistoryQuery } from '@zoauro/shared';
-import { cursorFetchSize } from '@zoauro/shared';
+import { cursorFetchSize, settingDef } from '@zoauro/shared';
 import type { AuditTx } from '../../lib/audit';
-import type { AuthContext } from '../../lib/authz';
+import { can, type AuthContext } from '../../lib/authz';
 import { auditTx } from '../../lib/db';
 import { AppError } from '../../lib/errors';
 
 // Platform settings and zone overrides (doc 59 §4: settings, zone_settings), and the settings history read from the
 // append-only audit log. The only file of the settings module that imports Prisma. settings:* is never grantable, so
-// every admin method refuses anyone but a Super Admin; the reader methods at the bottom serve other modules.
+// every admin method refuses anyone but a Super Admin, except a zone's own value of a key with a zone delegate (D169:
+// loyalty.values for a member holding loyalty:view/edit in that zone). The reader methods at the bottom serve other
+// modules.
 
 export interface StoredSetting {
   key: string;
@@ -27,8 +29,31 @@ export class SettingsRepository {
     if (!ctx.isSuperAdmin) throw new AppError('FORBIDDEN', 'You do not have permission to do this');
   }
 
-  async platform(ctx: AuthContext, keys: readonly string[]): Promise<Map<string, StoredSetting>> {
-    this.superAdminOnly(ctx);
+  /** Super Admin; or (D169) a member holding every key's delegated permission in that zone. */
+  private delegated(
+    ctx: AuthContext,
+    zoneId: string | null,
+    keys: readonly string[],
+    action: 'view' | 'edit',
+  ): void {
+    if (ctx.isSuperAdmin) return;
+    const ok =
+      zoneId !== null &&
+      keys.length > 0 &&
+      keys.every((k) => {
+        const d = settingDef(k)?.zoneDelegate;
+        return d !== undefined && can(ctx, d[action], zoneId);
+      });
+    if (!ok) throw new AppError('FORBIDDEN', 'You do not have permission to do this');
+  }
+
+  /** `zoneId`: the zone a delegated member reads for (the platform value is part of that zone's effective value). */
+  async platform(
+    ctx: AuthContext,
+    keys: readonly string[],
+    zoneId: string | null = null,
+  ): Promise<Map<string, StoredSetting>> {
+    this.delegated(ctx, zoneId, keys, 'view');
     return this.platformValues(keys);
   }
 
@@ -37,7 +62,7 @@ export class SettingsRepository {
     zoneId: string,
     keys: readonly string[],
   ): Promise<Map<string, StoredSetting>> {
-    this.superAdminOnly(ctx);
+    this.delegated(ctx, zoneId, keys, 'view');
     const rows = await this.db.zoneSetting.findMany({
       where: { zoneId, key: { in: [...keys] } },
       select: { key: true, valueJson: true, version: true, updatedAt: true, updater },
@@ -60,7 +85,7 @@ export class SettingsRepository {
     ctx: AuthContext,
     id: string,
   ): Promise<{ id: string; name: string; code: string } | null> {
-    this.superAdminOnly(ctx);
+    if (!ctx.isSuperAdmin && !ctx.assignedZoneIds.includes(id)) return null; // not theirs: 404
     return this.db.zone.findFirst({
       where: { id, deletedAt: null },
       select: { id: true, name: true, code: true },
@@ -77,8 +102,8 @@ export class SettingsRepository {
   }
 
   /** Serialises writes of one key (platform and zone rows alike) for the rest of the transaction. */
-  async lockKey(ctx: AuthContext, key: string): Promise<void> {
-    this.superAdminOnly(ctx);
+  async lockKey(ctx: AuthContext, key: string, zoneId: string | null = null): Promise<void> {
+    this.delegated(ctx, zoneId, [key], 'edit');
     await this.db.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`settings:${key}`}))`;
   }
 
@@ -110,7 +135,7 @@ export class SettingsRepository {
     ctx: AuthContext,
     s: { zoneId: string; key: string; value: unknown; nextVersion: number },
   ): Promise<void> {
-    this.superAdminOnly(ctx);
+    this.delegated(ctx, s.zoneId, [s.key], 'edit');
     const value = s.value as Prisma.InputJsonValue;
     await this.db.zoneSetting.upsert({
       where: { zoneId_key: { zoneId: s.zoneId, key: s.key } },
@@ -126,7 +151,7 @@ export class SettingsRepository {
   }
 
   async deleteZone(ctx: AuthContext, zoneId: string, key: string): Promise<void> {
-    this.superAdminOnly(ctx);
+    this.delegated(ctx, zoneId, [key], 'edit');
     await this.db.zoneSetting.deleteMany({ where: { zoneId, key } });
   }
 
