@@ -22,6 +22,10 @@ vi.mock('next/navigation', () => ({
   notFound: nav.notFound,
   usePathname: () => '/super-admin/dashboard',
 }));
+// the header search calls the API (its own tests in global-search.test.tsx); here only that the shell mounts it
+vi.mock('./PageSearch', () => ({
+  PageSearch: ({ userRole }: { userRole: string }) => <span>{`search:${userRole}`}</span>,
+}));
 // the zone switcher has its own tests (zone-switcher.test.tsx); here only that the shell mounts it for each role
 vi.mock('./ZoneSwitcher', () => ({
   ZoneSwitcher: ({ role, zones }: { role: string; zones: unknown[] }) => (
@@ -137,8 +141,8 @@ describe('sidebar', () => {
       <Sidebar items={items} userRole="SUPER_ADMIN" activePath="/super-admin/settings/logs" />,
     );
     const soon = items.filter((i) => i.status === 'coming-soon').length;
-    expect(html).toContain('aria-label="Orders (coming soon)"');
-    expect(html).toContain('href="/coming-soon/orders"');
+    expect(html).toContain('aria-label="Customers (coming soon)"');
+    expect(html).toContain('href="/coming-soon/customers"');
     expect(html.match(/data-status="coming-soon"/g)).toHaveLength(soon);
     expect(html.match(/>Soon</g)).toHaveLength(soon);
     expect(html).toContain('Requests &amp; Approvals');

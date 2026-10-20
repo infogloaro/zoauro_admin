@@ -154,7 +154,7 @@ export function AppShell({
             </span>
           ) : null}
           <div className="flex flex-1 justify-center px-2">
-            <PageSearch items={menu} />
+            <PageSearch items={menu} userRole={user.role} showZone={zones.length !== 1} />
           </div>
           <Suspense fallback={null}>
             <ZoneSwitcher

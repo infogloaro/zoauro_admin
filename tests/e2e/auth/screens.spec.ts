@@ -78,7 +78,7 @@ test('Super Admin: dashboard, Recent Activities, Security settings save (STRONG)
 
   // the page finder: Ctrl+K, type, Enter
   await page.keyboard.press('Control+k');
-  await expect(page.getByRole('combobox', { name: 'Find a page' })).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Search pages and records' })).toBeFocused();
   await page.keyboard.type('security set');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/super-admin\/settings\/security$/);
