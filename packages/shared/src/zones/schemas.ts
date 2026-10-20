@@ -13,7 +13,10 @@ export const PINCODE_SOURCES = ['RANGE', 'MANUAL', 'IMPORT'] as const;
 export type PincodeSource = (typeof PINCODE_SOURCES)[number];
 
 export const ZONE_CODE_PATTERN = /^[A-Z][A-Z0-9]{1,5}$/;
-/** R-ZONE-5: integer paise, ₹1 000 sanity ceiling. */
+/**
+ * R-ZONE-5: integer paise, ₹1 000 hard ceiling (also the database CHECK). D165: the Super Admin's cap, settings
+ * `zones.deliveryChargeCapPaise` (default ₹1 000), may lower it; the zones service enforces the cap.
+ */
 export const MAX_DELIVERY_CHARGE_PAISE = 100_000;
 export const ZONE_NAME = { min: 2, max: 60 } as const;
 export const ZONE_DESCRIPTION_MAX = 500;

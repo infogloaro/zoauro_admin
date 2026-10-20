@@ -1,5 +1,6 @@
 import {
   buildCursorPage,
+  MAX_DELIVERY_CHARGE_PAISE,
   pageWindow,
   type CreateZoneInput,
   type DeactivateZoneInput,
@@ -122,8 +123,29 @@ export class ZonesService {
       impact: ImpactService;
       cache: ZonesCacheVersion;
       clock: () => Date;
+      /** D165: settings zones.deliveryChargeCapPaise (absent or unreadable: the ₹1 000 ceiling) */
+      deliveryChargeCap?: () => Promise<number>;
     },
   ) {}
+
+  /** D165: 422 ABOVE_ZONE_CAP when a charge is above the Super Admin's cap. */
+  private async assertWithinChargeCap(charge: number | undefined): Promise<void> {
+    if (charge === undefined) return;
+    let cap = MAX_DELIVERY_CHARGE_PAISE;
+    try {
+      if (this.deps.deliveryChargeCap) cap = await this.deps.deliveryChargeCap();
+    } catch {
+      cap = MAX_DELIVERY_CHARGE_PAISE;
+    }
+    if (charge > cap)
+      throw new AppError(
+        'VALIDATION_ERROR',
+        'The delivery charge is above the cap (Settings > Zones)',
+        [{ field: 'deliveryChargePaise', issue: 'ABOVE_ZONE_CAP' }],
+        undefined,
+        { capPaise: cap },
+      );
+  }
 
   // ---- reads ---------------------------------------------------------------------------------------------------------
 
@@ -375,6 +397,7 @@ export class ZonesService {
   }
 
   async create(ctx: AuthContext, input: CreateZoneInput): Promise<ZoneDto> {
+    await this.assertWithinChargeCap(input.deliveryChargePaise);
     const rows = initialPincodes(input);
     if (input.status === 'ACTIVE') {
       const missing = missingForActivation({
@@ -445,7 +468,10 @@ export class ZonesService {
       const chargeChanged =
         input.deliveryChargePaise !== undefined &&
         input.deliveryChargePaise !== before.deliveryChargePaise;
-      if (chargeChanged) changes.deliveryCharge = input.deliveryChargePaise;
+      if (chargeChanged) {
+        await this.assertWithinChargeCap(input.deliveryChargePaise);
+        changes.deliveryCharge = input.deliveryChargePaise;
+      }
 
       if (Object.keys(changes).length === 0) {
         // nothing changed: nothing recorded (audit no-op), no event, no version bump

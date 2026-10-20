@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { mfaPolicySchema, DEFAULT_SECURITY_POLICY } from '../auth-mfa';
+import { MAX_DELIVERY_CHARGE_PAISE } from '../zones/schemas';
 
 // Platform settings registry (doc 59 §2–3, owner decisions D109–D116). One typed list: every setting's key, group,
 // value schema, the decided default ("the default rule"), whether a zone may override it, the re-authentication it needs
@@ -264,7 +265,10 @@ export const deliveryAutoAssignSchema = z
 export const payoutCycleSchema = z.object({ days: z.number().int().min(1).max(31) }).strict();
 
 /** D165 (D86): the most a zone's delivery charge may be; the zones module checks every create and edit against it. */
-export const zoneDeliveryChargeCapSchema = z.object({ capPaise: paise }).strict();
+/** At most the database ceiling (₹1 000) until a migration raises it. */
+export const zoneDeliveryChargeCapSchema = z
+  .object({ capPaise: z.number().int().min(0).max(MAX_DELIVERY_CHARGE_PAISE) })
+  .strict();
 
 /** D155: commission:edit can be given to a Zonal Admin per member and zone only while this is on. */
 export const commissionEditGrantableSchema = z.object({ enabled: z.boolean() }).strict();
@@ -613,7 +617,7 @@ export const SETTINGS: readonly SettingDef[] = [
     description:
       'The highest delivery charge a zone can be given. Existing zones keep their charge.',
     schema: zoneDeliveryChargeCapSchema,
-    default: { capPaise: 1_000_00 },
+    default: { capPaise: MAX_DELIVERY_CHARGE_PAISE },
     zoneOverride: false,
     reauth: 'PASSWORD',
     editable: true,
