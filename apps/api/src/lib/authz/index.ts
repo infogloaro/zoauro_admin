@@ -1,6 +1,6 @@
 export type { AuthContext, ZoneLimits, ZoneScope } from './types';
 export { can, zonesFor, scopeKey, assertCanRead, assertCanWrite, holdsAnywhere } from './can';
-export { resolveAccess, EMPTY_ACCESS } from './resolver';
+export { resolveAccess, EMPTY_ACCESS, isOverrideAction } from './resolver';
 export type {
   AccessAssignment,
   ProfilePermissionRow,

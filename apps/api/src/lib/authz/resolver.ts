@@ -26,6 +26,13 @@ const ACTION_BY_OVERRIDE: Record<OverrideAction, PermissionAction> = {
   STATUS: 'status',
 };
 
+/**
+ * The override actions the resolver knows. The database enum may hold more (D149 EXPORT); until the permission catalogue
+ * has them, such rows are skipped (they give nothing: fail closed).
+ */
+export const isOverrideAction = (a: string): a is OverrideAction =>
+  Object.prototype.hasOwnProperty.call(ACTION_BY_OVERRIDE, a);
+
 export interface ProfilePermissionRow {
   module: string;
   canView: boolean;

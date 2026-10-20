@@ -12,7 +12,12 @@ import type {
 } from '@zoauro/shared';
 import { cursorFetchSize, isPermissionModule, PERMISSION_ACTIONS } from '@zoauro/shared';
 import type { AuditTx } from '../../lib/audit';
-import type { AccessAssignment, AuthContext, OverrideAction } from '../../lib/authz';
+import {
+  isOverrideAction,
+  type AccessAssignment,
+  type AuthContext,
+  type OverrideAction,
+} from '../../lib/authz';
 import { auditTx } from '../../lib/db';
 import { AppError } from '../../lib/errors';
 
@@ -178,7 +183,7 @@ export interface AssignmentRecord {
 function toAssignment(a: AssignmentRow): AssignmentRecord {
   const overrides: AccessOverride[] = [];
   for (const o of a.overrides) {
-    if (!isPermissionModule(o.module)) continue;
+    if (!isPermissionModule(o.module) || !isOverrideAction(o.action)) continue; // D149 EXPORT: not resolved yet
     overrides.push({ module: o.module, action: PERMISSION_ACTION[o.action], effect: o.effect });
   }
   overrides.sort((x, y) => `${x.module}:${x.action}`.localeCompare(`${y.module}:${y.action}`));
@@ -210,7 +215,9 @@ function toAssignment(a: AssignmentRow): AssignmentRecord {
         defaultCanExport: a.profile.defaultCanExport,
         permissions: a.profile.permissions,
       },
-      overrides: a.overrides,
+      overrides: a.overrides.flatMap((o) =>
+        isOverrideAction(o.action) ? [{ ...o, action: o.action }] : [],
+      ),
     },
   };
 }
@@ -873,7 +880,7 @@ export class AccessAdminRepository {
   ) {
     return {
       ...r,
-      action: r.action ? PERMISSION_ACTION[r.action] : null,
+      action: r.action && isOverrideAction(r.action) ? PERMISSION_ACTION[r.action] : null,
       module: r.module && isPermissionModule(r.module) ? r.module : null,
     };
   }

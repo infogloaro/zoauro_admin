@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import type { AccessAssignment, AccessDataSource } from '../../lib/authz';
+import { isOverrideAction, type AccessAssignment, type AccessDataSource } from '../../lib/authz';
 
 // Reads the access tables (doc 08: admin_zone_assignments, access_profiles, profile_permissions, assignment_overrides).
 // Writes arrive with the Access Control module. These queries are about the caller's own access, so there is no zone
@@ -55,7 +55,9 @@ export class AccessRepository implements AccessDataSource {
         defaultCanExport: r.profile.defaultCanExport,
         permissions: r.profile.permissions,
       },
-      overrides: r.overrides,
+      overrides: r.overrides.flatMap((o) =>
+        isOverrideAction(o.action) ? [{ ...o, action: o.action }] : [],
+      ),
     }));
   }
 
