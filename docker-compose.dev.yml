@@ -16,10 +16,12 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./infra/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U zoauro_app -d zoauro']
-      interval: 3s
-      timeout: 3s
-      retries: 20
+      # TCP, not the unix socket: socket connections from the health check crashed backends (exit code 2) on this host.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U zoauro_app -d zoauro']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
 
   redis:
     image: redis:7

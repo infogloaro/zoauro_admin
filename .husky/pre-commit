@@ -1,2 +1,3 @@
-pnpm exec lint-staged --no-stash
-pnpm typecheck
+# Check the commit itself, not the shared working tree: prettier, eslint and tsc
+# run read-only on a snapshot of what is being committed. Nothing is re-staged.
+node scripts/typecheck-commit.mjs
