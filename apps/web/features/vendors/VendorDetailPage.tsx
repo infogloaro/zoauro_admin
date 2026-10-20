@@ -31,7 +31,7 @@ import { useApiClient } from '../../lib/api-client';
 import type { ScopeZone } from '../../lib/zone-scope';
 import { formatPaise } from '../audit/format';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
-import { CardError, CardSkeleton } from '../dashboard/parts';
+import { CardSkeleton, DetailError } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
 import { fileProblem, useInvalidateVendors, useUploadFile, useVendorDetail } from './api';
@@ -105,7 +105,13 @@ export function VendorDetailPage({
           title={meta.title}
           crumbs={[{ label: meta.title, href: listPath }, { label: 'Not found' }]}
         />
-        <CardError what={`This ${meta.noun}`} onRetry={() => void detail.refetch()} />
+        <DetailError
+          error={detail.error}
+          what={meta.noun.charAt(0).toUpperCase() + meta.noun.slice(1)}
+          backHref={listPath}
+          backLabel={`Back to ${meta.title}`}
+          onRetry={() => void detail.refetch()}
+        />
       </div>
     );
   if (!detail.data) return <CardSkeleton rows={8} />;
@@ -562,6 +568,7 @@ function DocumentsCard({
               accept="image/jpeg,image/png,image/webp,application/pdf"
               className="sr-only"
               id="vendor-doc-file"
+              aria-label="Choose a file to upload"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) void add(f);

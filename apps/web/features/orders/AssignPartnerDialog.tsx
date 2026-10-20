@@ -137,9 +137,9 @@ export function AssignPartnerDialog({
                     </span>
                   </span>
                   <span className="text-xs tabular-nums text-muted">
-                    {p.currentOrders}
-                    {p.maxConcurrentOrders !== null ? ` of ${p.maxConcurrentOrders}` : ''} order
-                    {p.currentOrders === 1 ? '' : 's'}
+                    {p.maxConcurrentOrders !== null
+                      ? `${p.currentOrders} of ${p.maxConcurrentOrders} order${p.maxConcurrentOrders === 1 ? '' : 's'}`
+                      : `${p.currentOrders} order${p.currentOrders === 1 ? '' : 's'}`}
                     {full ? ' · full' : ''}
                   </span>
                 </label>

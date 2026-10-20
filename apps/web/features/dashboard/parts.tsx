@@ -1,6 +1,7 @@
 'use client';
 
-import { CircleAlert, RefreshCw } from 'lucide-react';
+import { ApiError } from '@zoauro/api-client';
+import { CircleAlert, RefreshCw, SearchX } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -25,6 +26,43 @@ export function CardError({ what, onRetry }: { what: string; onRetry: () => void
       </button>
     </div>
   );
+}
+
+/**
+ * A detail page's error: a 404 (the record does not exist, or it is outside the member's zones, which the API answers
+ * the same way on purpose) is a calm not-found state with a way back, not a temporary error to retry.
+ */
+export function DetailError({
+  error,
+  what,
+  backHref,
+  backLabel,
+  onRetry,
+}: {
+  error: unknown;
+  what: string;
+  backHref: string;
+  backLabel: string;
+  onRetry: () => void;
+}) {
+  if (error instanceof ApiError && error.status === 404)
+    return (
+      <div
+        role="status"
+        className="flex flex-col items-start gap-3 rounded-card border border-line bg-surface p-6 text-sm"
+      >
+        <p className="flex items-center gap-2 font-semibold">
+          <SearchX aria-hidden className="size-5 text-muted" /> {what} not found
+        </p>
+        <p className="text-muted">
+          It may have been deleted, or it belongs to a zone you do not manage.
+        </p>
+        <a href={backHref} className="font-medium text-primary-strong hover:underline">
+          {backLabel}
+        </a>
+      </div>
+    );
+  return <CardError what={what} onRetry={onRetry} />;
 }
 
 export function CardSkeleton({ rows = 4 }: { rows?: number }) {

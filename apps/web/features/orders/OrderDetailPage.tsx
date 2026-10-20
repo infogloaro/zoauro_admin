@@ -14,7 +14,7 @@ import { useToast } from '../../components/ui/toast';
 import { useApiClient } from '../../lib/api-client';
 import { formatPaise } from '../audit/format';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
-import { CardError, CardSkeleton } from '../dashboard/parts';
+import { CardSkeleton, DetailError } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useInvalidateOrders, useOrderDetail } from './api';
 import { AssignPartnerDialog } from './AssignPartnerDialog';
@@ -66,7 +66,13 @@ export function OrderDetailPage({
           title="Order"
           crumbs={[{ label: 'Orders', href: listPath }, { label: 'Not found' }]}
         />
-        <CardError what="This order" onRetry={() => void detail.refetch()} />
+        <DetailError
+          error={detail.error}
+          what="Order"
+          backHref={listPath}
+          backLabel="Back to Orders"
+          onRetry={() => void detail.refetch()}
+        />
       </div>
     );
   if (!detail.data) return <CardSkeleton rows={8} />;

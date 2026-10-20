@@ -26,7 +26,7 @@ import { useApiClient } from '../../lib/api-client';
 import type { ScopeZone } from '../../lib/zone-scope';
 import { formatPaise } from '../audit/format';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
-import { CardError, CardSkeleton } from '../dashboard/parts';
+import { CardSkeleton, DetailError } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { ORDER_STATUS_LABEL } from '../orders/labels';
 import { useZoneOptions } from '../platform-settings/api';
@@ -96,7 +96,13 @@ export function PartnerDetailPage({
           title="Delivery partner"
           crumbs={[{ label: 'Delivery Partners', href: listPath }, { label: 'Not found' }]}
         />
-        <CardError what="This partner" onRetry={() => void detail.refetch()} />
+        <DetailError
+          error={detail.error}
+          what="Delivery partner"
+          backHref={listPath}
+          backLabel="Back to Delivery Partners"
+          onRetry={() => void detail.refetch()}
+        />
       </div>
     );
   if (!detail.data) return <CardSkeleton rows={8} />;

@@ -14,7 +14,7 @@ import { useToast } from '../../components/ui/toast';
 import { useApiClient } from '../../lib/api-client';
 import type { ScopeZone } from '../../lib/zone-scope';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
-import { CardError, CardSkeleton } from '../dashboard/parts';
+import { CardSkeleton, DetailError } from '../dashboard/parts';
 import { useZoneOptions } from '../platform-settings/api';
 import { useInvalidateNotifications, useNotificationDetail } from './api';
 import {
@@ -67,7 +67,13 @@ export function NotificationDetailPage({
           title="Notification"
           crumbs={[{ label: 'Notifications', href: listPath }, { label: 'Not found' }]}
         />
-        <CardError what="This notification" onRetry={() => void detail.refetch()} />
+        <DetailError
+          error={detail.error}
+          what="Notification"
+          backHref={listPath}
+          backLabel="Back to Notifications"
+          onRetry={() => void detail.refetch()}
+        />
       </div>
     );
   if (!detail.data) return <CardSkeleton rows={6} />;
