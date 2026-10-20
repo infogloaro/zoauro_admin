@@ -167,7 +167,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // requests and zone scope (doc 59) + 5 orders (M11) + 24 restaurants and homemakers + 2 uploads (M06, M07, SA-2.1) + 13 delivery partners (M10)
     // + 7 notifications (M17)
     // + 15 menu items, bulk, change requests and categories (SA-2.4)
-    expect(report.coveredRoutes).toHaveLength(160);
+    // + 7 dashboard tiles (M16) + 1 global search (M18)
+    expect(report.coveredRoutes).toHaveLength(168);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

@@ -28,6 +28,8 @@ import { createCustomersModule } from '../../../src/modules/customers';
 import { createUploadsModule } from '../../../src/modules/uploads';
 import { createPartnersModule } from '../../../src/modules/delivery-partners';
 import { createNotificationsModule } from '../../../src/modules/notifications';
+import { createDashboardModule } from '../../../src/modules/dashboard';
+import { createSearchModule } from '../../../src/modules/search';
 import { noopMailer } from '../../../src/lib/mailer';
 import { createVendorsModule } from '../../../src/modules/vendors';
 import { createFakeStorage } from '../../uploads/fake-storage';
@@ -98,6 +100,10 @@ interface AppExtras {
     /** a second connection pool (concurrency tests) */
     prisma?: ReturnType<typeof createPrismaClient>;
   };
+  /** the M16 tile cache (default: none, fresh counts per test) */
+  dashboardCache?: Parameters<typeof createDashboardModule>[0]['redis'];
+  /** the M18 rate limiter (default: Redis-backed, as server.ts) */
+  searchLimiter?: Parameters<typeof createSearchModule>[0]['limiter'];
 }
 
 export interface TestUser {
@@ -363,6 +369,12 @@ export async function createAuthTestEnv() {
         queue: { enqueue: async () => undefined },
         mailer: noopMailer,
         clock: clock.now,
+      }).router,
+      createDashboardModule({ prisma, redis: extra.dashboardCache ?? null, clock: clock.now })
+        .router,
+      createSearchModule({
+        prisma,
+        limiter: extra.searchLimiter ?? new RedisRateLimiter(appRedis),
       }).router,
       uploads.router,
       menu.router,

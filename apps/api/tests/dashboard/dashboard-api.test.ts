@@ -1,6 +1,5 @@
 import type { Express } from 'express';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDashboardModule } from '../../src/modules/dashboard';
 import { uuidv7 } from '../audit/support/db';
 import { createAuthTestEnv, type AuthTestEnv, type TestUser } from '../auth/support/auth-env';
 import { client, type Signed } from '../zones/support';
@@ -118,9 +117,7 @@ async function menuItem(zoneId: string, restaurantId: string, category: string) 
 
 beforeAll(async () => {
   env = await createAuthTestEnv();
-  app = env.makeAuthzApp({
-    routers: [createDashboardModule({ prisma: env.prisma, redis, clock: env.clock.now }).router],
-  }).app;
+  app = env.makeAuthzApp({ dashboardCache: redis }).app;
   const superAdmin = await env.createUser('SUPER_ADMIN');
   sa = await signed(superAdmin);
   zoneA = await env.createZone();

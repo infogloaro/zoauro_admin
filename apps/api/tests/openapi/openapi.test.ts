@@ -217,6 +217,15 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /notifications/{id}/approve',
         'POST /notifications/{id}/reject',
         'POST /notifications/{id}/cancel',
+        // M16 dashboard tiles and M18 global search (doc 09)
+        'GET /dashboard/summary',
+        'GET /dashboard/order-status',
+        'GET /dashboard/order-overview',
+        'GET /dashboard/zone-orders',
+        'GET /dashboard/top-restaurants',
+        'GET /dashboard/top-categories',
+        'GET /dashboard/new-registrations',
+        'GET /search',
       ].sort(),
     );
   });

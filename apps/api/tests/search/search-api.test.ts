@@ -1,6 +1,5 @@
 import type { Express } from 'express';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createSearchModule } from '../../src/modules/search';
 import { uuidv7 } from '../audit/support/db';
 import { createAuthTestEnv, type AuthTestEnv, type TestUser } from '../auth/support/auth-env';
 import { client, type Signed } from '../zones/support';
@@ -37,9 +36,7 @@ const CUSTOMER_PHONE = '+919812345678';
 
 beforeAll(async () => {
   env = await createAuthTestEnv();
-  app = env.makeAuthzApp({
-    routers: [createSearchModule({ prisma: env.prisma, limiter }).router],
-  }).app;
+  app = env.makeAuthzApp({ searchLimiter: limiter }).app;
   const superAdmin = await env.createUser('SUPER_ADMIN');
   sa = await signed(superAdmin);
   zoneA = await env.createZone();

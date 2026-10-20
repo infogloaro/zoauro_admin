@@ -68,6 +68,7 @@
                   "ZONE_SERVICE_DISABLED",
                   "CATEGORY_IN_USE",
                   "NO_ROOMS_AVAILABLE",
+                  "SERVICE_UNAVAILABLE",
                   "INTERNAL"
                 ]
               },
@@ -3666,7 +3667,12 @@
                                         "dining:add",
                                         "dining:edit",
                                         "dining:delete",
-                                        "dining:status"
+                                        "dining:status",
+                                        "loyalty:view",
+                                        "loyalty:add",
+                                        "loyalty:edit",
+                                        "loyalty:delete",
+                                        "loyalty:status"
                                       ]
                                     }
                                   },
@@ -8389,7 +8395,11 @@
                               "orders",
                               "sms",
                               "loyalty",
-                              "security"
+                              "security",
+                              "payouts",
+                              "zones",
+                              "access",
+                              "sessions"
                             ]
                           },
                           "label": {
@@ -8621,7 +8631,11 @@
                 "orders",
                 "sms",
                 "loyalty",
-                "security"
+                "security",
+                "payouts",
+                "zones",
+                "access",
+                "sessions"
               ]
             },
             "required": false,
@@ -8879,7 +8893,11 @@
                 "orders",
                 "sms",
                 "loyalty",
-                "security"
+                "security",
+                "payouts",
+                "zones",
+                "access",
+                "sessions"
               ]
             },
             "required": true,
@@ -8929,7 +8947,11 @@
                               "orders",
                               "sms",
                               "loyalty",
-                              "security"
+                              "security",
+                              "payouts",
+                              "zones",
+                              "access",
+                              "sessions"
                             ]
                           },
                           "label": {
@@ -9160,7 +9182,11 @@
                 "orders",
                 "sms",
                 "loyalty",
-                "security"
+                "security",
+                "payouts",
+                "zones",
+                "access",
+                "sessions"
               ]
             },
             "required": true,
@@ -9234,7 +9260,11 @@
                               "orders",
                               "sms",
                               "loyalty",
-                              "security"
+                              "security",
+                              "payouts",
+                              "zones",
+                              "access",
+                              "sessions"
                             ]
                           },
                           "label": {
@@ -9482,7 +9512,11 @@
                 "orders",
                 "sms",
                 "loyalty",
-                "security"
+                "security",
+                "payouts",
+                "zones",
+                "access",
+                "sessions"
               ]
             },
             "required": true,
@@ -9674,7 +9708,11 @@
                 "orders",
                 "sms",
                 "loyalty",
-                "security"
+                "security",
+                "payouts",
+                "zones",
+                "access",
+                "sessions"
               ]
             },
             "required": true,
@@ -9746,7 +9784,11 @@
                               "orders",
                               "sms",
                               "loyalty",
-                              "security"
+                              "security",
+                              "payouts",
+                              "zones",
+                              "access",
+                              "sessions"
                             ]
                           },
                           "label": {
@@ -9993,7 +10035,11 @@
                 "orders",
                 "sms",
                 "loyalty",
-                "security"
+                "security",
+                "payouts",
+                "zones",
+                "access",
+                "sessions"
               ]
             },
             "required": true,
@@ -10067,7 +10113,11 @@
                               "orders",
                               "sms",
                               "loyalty",
-                              "security"
+                              "security",
+                              "payouts",
+                              "zones",
+                              "access",
+                              "sessions"
                             ]
                           },
                           "label": {
@@ -10324,7 +10374,11 @@
                 "orders",
                 "sms",
                 "loyalty",
-                "security"
+                "security",
+                "payouts",
+                "zones",
+                "access",
+                "sessions"
               ]
             },
             "required": true,
@@ -10396,7 +10450,11 @@
                               "orders",
                               "sms",
                               "loyalty",
-                              "security"
+                              "security",
+                              "payouts",
+                              "zones",
+                              "access",
+                              "sessions"
                             ]
                           },
                           "label": {
@@ -10726,6 +10784,7 @@
                               "hotels",
                               "bookings",
                               "dining",
+                              "loyalty",
                               null
                             ]
                           },
@@ -10871,7 +10930,8 @@
                                   "audit",
                                   "hotels",
                                   "bookings",
-                                  "dining"
+                                  "dining",
+                                  "loyalty"
                                 ]
                               },
                               "action": {
@@ -11016,7 +11076,8 @@
                           "audit",
                           "hotels",
                           "bookings",
-                          "dining"
+                          "dining",
+                          "loyalty"
                         ]
                       },
                       "action": {
@@ -11149,6 +11210,7 @@
                         "hotels",
                         "bookings",
                         "dining",
+                        "loyalty",
                         null
                       ]
                     },
@@ -11412,6 +11474,7 @@
                         "hotels",
                         "bookings",
                         "dining",
+                        "loyalty",
                         null
                       ]
                     },
@@ -11722,6 +11785,7 @@
                               "hotels",
                               "bookings",
                               "dining",
+                              "loyalty",
                               null
                             ]
                           },
@@ -12002,6 +12066,7 @@
                         "hotels",
                         "bookings",
                         "dining",
+                        "loyalty",
                         null
                       ]
                     },
@@ -12283,6 +12348,7 @@
                         "hotels",
                         "bookings",
                         "dining",
+                        "loyalty",
                         null
                       ]
                     },
@@ -12575,6 +12641,7 @@
                         "hotels",
                         "bookings",
                         "dining",
+                        "loyalty",
                         null
                       ]
                     },
@@ -13018,7 +13085,8 @@
                               "audit",
                               "hotels",
                               "bookings",
-                              "dining"
+                              "dining",
+                              "loyalty"
                             ]
                           },
                           "action": {
@@ -13244,7 +13312,12 @@
                           "dining:add",
                           "dining:edit",
                           "dining:delete",
-                          "dining:status"
+                          "dining:status",
+                          "loyalty:view",
+                          "loyalty:add",
+                          "loyalty:edit",
+                          "loyalty:delete",
+                          "loyalty:status"
                         ]
                       }
                     },
@@ -14838,7 +14911,8 @@
                                     "audit",
                                     "hotels",
                                     "bookings",
-                                    "dining"
+                                    "dining",
+                                    "loyalty"
                                   ]
                                 },
                                 "action": {
@@ -15064,7 +15138,12 @@
                                 "dining:add",
                                 "dining:edit",
                                 "dining:delete",
-                                "dining:status"
+                                "dining:status",
+                                "loyalty:view",
+                                "loyalty:add",
+                                "loyalty:edit",
+                                "loyalty:delete",
+                                "loyalty:status"
                               ]
                             }
                           },
@@ -15242,7 +15321,8 @@
                                   "audit",
                                   "hotels",
                                   "bookings",
-                                  "dining"
+                                  "dining",
+                                  "loyalty"
                                 ]
                               },
                               "action": {
@@ -15269,7 +15349,7 @@
                               "effect"
                             ]
                           },
-                          "maxItems": 130,
+                          "maxItems": 135,
                           "default": []
                         },
                         "limits": {
@@ -15451,7 +15531,8 @@
                                     "audit",
                                     "hotels",
                                     "bookings",
-                                    "dining"
+                                    "dining",
+                                    "loyalty"
                                   ]
                                 },
                                 "action": {
@@ -15677,7 +15758,12 @@
                                 "dining:add",
                                 "dining:edit",
                                 "dining:delete",
-                                "dining:status"
+                                "dining:status",
+                                "loyalty:view",
+                                "loyalty:add",
+                                "loyalty:edit",
+                                "loyalty:delete",
+                                "loyalty:status"
                               ]
                             }
                           },
@@ -15980,7 +16066,12 @@
                           "dining:add",
                           "dining:edit",
                           "dining:delete",
-                          "dining:status"
+                          "dining:status",
+                          "loyalty:view",
+                          "loyalty:add",
+                          "loyalty:edit",
+                          "loyalty:delete",
+                          "loyalty:status"
                         ]
                       }
                     },
@@ -16042,7 +16133,8 @@
                               "audit",
                               "hotels",
                               "bookings",
-                              "dining"
+                              "dining",
+                              "loyalty"
                             ]
                           },
                           "action": {
@@ -16116,7 +16208,8 @@
                           "audit",
                           "hotels",
                           "bookings",
-                          "dining"
+                          "dining",
+                          "loyalty"
                         ]
                       }
                     }
@@ -16698,7 +16791,8 @@
                             "audit",
                             "hotels",
                             "bookings",
-                            "dining"
+                            "dining",
+                            "loyalty"
                           ]
                         },
                         "actions": {
@@ -16721,7 +16815,7 @@
                         "actions"
                       ]
                     },
-                    "maxItems": 26,
+                    "maxItems": 27,
                     "default": []
                   }
                 },
@@ -16835,7 +16929,8 @@
                               "audit",
                               "hotels",
                               "bookings",
-                              "dining"
+                              "dining",
+                              "loyalty"
                             ]
                           },
                           "actions": {
@@ -17063,7 +17158,8 @@
                               "audit",
                               "hotels",
                               "bookings",
-                              "dining"
+                              "dining",
+                              "loyalty"
                             ]
                           },
                           "actions": {
@@ -17300,7 +17396,8 @@
                               "audit",
                               "hotels",
                               "bookings",
-                              "dining"
+                              "dining",
+                              "loyalty"
                             ]
                           },
                           "actions": {
@@ -17560,7 +17657,8 @@
                               "audit",
                               "hotels",
                               "bookings",
-                              "dining"
+                              "dining",
+                              "loyalty"
                             ]
                           },
                           "actions": {
@@ -17737,7 +17835,8 @@
                             "audit",
                             "hotels",
                             "bookings",
-                            "dining"
+                            "dining",
+                            "loyalty"
                           ]
                         },
                         "actions": {
@@ -17760,7 +17859,7 @@
                         "actions"
                       ]
                     },
-                    "maxItems": 26
+                    "maxItems": 27
                   },
                   "defaults": {
                     "type": "object",
@@ -17850,7 +17949,8 @@
                               "audit",
                               "hotels",
                               "bookings",
-                              "dining"
+                              "dining",
+                              "loyalty"
                             ]
                           },
                           "actions": {
@@ -41279,6 +41379,1600 @@
         }
       }
     },
+    "/dashboard/summary": {
+      "get": {
+        "operationId": "getDashboardSummary",
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "KPIs: orders in the range (unpaid online orders excluded, D52) with the cancellation rate; restaurants, home kitchens, delivery partners (incl. on duty) and customers all-time; Super Admin also zones without a team and platform health (D34). ?range=today|7d|30d|month (IST days, default 7d)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "7d",
+                "30d",
+                "month"
+              ],
+              "default": "7d"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The KPIs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "range": {
+                      "type": "string",
+                      "enum": [
+                        "today",
+                        "7d",
+                        "30d",
+                        "month"
+                      ]
+                    },
+                    "orders": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "delivered": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "cancelled": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "cancellationRate": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "delivered",
+                        "cancelled",
+                        "cancellationRate"
+                      ]
+                    },
+                    "restaurants": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "active": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "pendingVerification": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "suspended": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "active",
+                        "pendingVerification",
+                        "suspended"
+                      ]
+                    },
+                    "homemakers": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "active": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "pendingVerification": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "suspended": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "active",
+                        "pendingVerification",
+                        "suspended"
+                      ]
+                    },
+                    "deliveryPartners": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "active": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "pendingVerification": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "onDuty": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "active",
+                        "pendingVerification",
+                        "onDuty"
+                      ]
+                    },
+                    "customers": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "zonesWithoutTeam": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "platformHealth": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "pendingVerifications": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "activeSessions": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "pendingVerifications",
+                        "activeSessions"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "range",
+                    "orders",
+                    "restaurants",
+                    "homemakers",
+                    "deliveryPartners",
+                    "customers",
+                    "zonesWithoutTeam",
+                    "platformHealth"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dashboard:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/dashboard/order-status": {
+      "get": {
+        "operationId": "getDashboardOrderStatus",
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Orders in the range by status (the donut). ?range=today|7d|30d|month (IST days, default 7d)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "7d",
+                "30d",
+                "month"
+              ],
+              "default": "7d"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Counts per status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "range": {
+                      "type": "string",
+                      "enum": [
+                        "today",
+                        "7d",
+                        "30d",
+                        "month"
+                      ]
+                    },
+                    "data": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PLACED",
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "ASSIGNED",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "CANCELLED",
+                              "REFUNDED"
+                            ]
+                          },
+                          "count": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "count"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "range",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dashboard:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/dashboard/order-overview": {
+      "get": {
+        "operationId": "getDashboardOrderOverview",
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Orders and delivered orders per IST hour (today) or day, every bucket present. ?range=today|7d|30d|month (IST days, default 7d)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "7d",
+                "30d",
+                "month"
+              ],
+              "default": "7d"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The series",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "range": {
+                      "type": "string",
+                      "enum": [
+                        "today",
+                        "7d",
+                        "30d",
+                        "month"
+                      ]
+                    },
+                    "bucket": {
+                      "type": "string",
+                      "enum": [
+                        "hour",
+                        "day"
+                      ]
+                    },
+                    "data": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "orders": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "delivered": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "at",
+                          "orders",
+                          "delivered"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "range",
+                    "bucket",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dashboard:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/dashboard/zone-orders": {
+      "get": {
+        "operationId": "getDashboardZoneOrders",
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Orders per zone when the scope has more than one zone, per vendor area for one zone. ?range=today|7d|30d|month (IST days, default 7d)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "7d",
+                "30d",
+                "month"
+              ],
+              "default": "7d"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The bars",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "range": {
+                      "type": "string",
+                      "enum": [
+                        "today",
+                        "7d",
+                        "30d",
+                        "month"
+                      ]
+                    },
+                    "by": {
+                      "type": "string",
+                      "enum": [
+                        "zone",
+                        "area"
+                      ]
+                    },
+                    "data": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "orders": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "orders"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "range",
+                    "by",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dashboard:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/dashboard/top-restaurants": {
+      "get": {
+        "operationId": "getDashboardTopRestaurants",
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Top 5 restaurants and home kitchens by delivered orders. ?range=today|7d|30d|month (IST days, default 7d)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "7d",
+                "30d",
+                "month"
+              ],
+              "default": "7d"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The top 5",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "range": {
+                      "type": "string",
+                      "enum": [
+                        "today",
+                        "7d",
+                        "30d",
+                        "month"
+                      ]
+                    },
+                    "data": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "vendorType": {
+                            "type": "string",
+                            "enum": [
+                              "RESTAURANT",
+                              "HOMEMAKER"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "deliveredOrders": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "vendorType",
+                          "name",
+                          "zone",
+                          "deliveredOrders"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "range",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dashboard:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/dashboard/top-categories": {
+      "get": {
+        "operationId": "getDashboardTopCategories",
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Top 5 food categories by item quantity of delivered orders. ?range=today|7d|30d|month (IST days, default 7d)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "7d",
+                "30d",
+                "month"
+              ],
+              "default": "7d"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The top 5",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "range": {
+                      "type": "string",
+                      "enum": [
+                        "today",
+                        "7d",
+                        "30d",
+                        "month"
+                      ]
+                    },
+                    "data": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "quantity"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "range",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dashboard:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/dashboard/new-registrations": {
+      "get": {
+        "operationId": "getDashboardNewRegistrations",
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "New customers, vendors and delivery partners in the range, with the latest five of each. ?range=today|7d|30d|month (IST days, default 7d)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "7d",
+                "30d",
+                "month"
+              ],
+              "default": "7d"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tabs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "range": {
+                      "type": "string",
+                      "enum": [
+                        "today",
+                        "7d",
+                        "30d",
+                        "month"
+                      ]
+                    },
+                    "customers": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "latest": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "createdAt"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "latest"
+                      ]
+                    },
+                    "vendors": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "latest": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "vendorType": {
+                                "type": "string",
+                                "enum": [
+                                  "RESTAURANT",
+                                  "HOMEMAKER"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "createdAt",
+                              "vendorType"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "latest"
+                      ]
+                    },
+                    "deliveryPartners": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "latest": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "createdAt"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "latest"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "range",
+                    "customers",
+                    "vendors",
+                    "deliveryPartners"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "dashboard:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "globalSearch",
+        "tags": [
+          "search"
+        ],
+        "summary": "Header search (q ≥ 2 characters; types = orders,customers,restaurants,homemakers,partners, default all): up to 5 rows per group in the caller’s view zones, contacts masked; a typed mobile is matched exactly. 60 per minute",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            },
+            "required": true,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "types",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The groups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    },
+                    "groups": {
+                      "type": "object",
+                      "properties": {
+                        "orders": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "subtitle": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "zone": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "code"
+                                ]
+                              },
+                              "href": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "subtitle",
+                              "zone",
+                              "href"
+                            ]
+                          }
+                        },
+                        "customers": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "subtitle": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "zone": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "code"
+                                ]
+                              },
+                              "href": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "subtitle",
+                              "zone",
+                              "href"
+                            ]
+                          }
+                        },
+                        "restaurants": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "subtitle": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "zone": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "code"
+                                ]
+                              },
+                              "href": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "subtitle",
+                              "zone",
+                              "href"
+                            ]
+                          }
+                        },
+                        "homemakers": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "subtitle": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "zone": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "code"
+                                ]
+                              },
+                              "href": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "subtitle",
+                              "zone",
+                              "href"
+                            ]
+                          }
+                        },
+                        "partners": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "subtitle": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "zone": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "code"
+                                ]
+                              },
+                              "href": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "subtitle",
+                              "zone",
+                              "href"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "orders",
+                        "customers",
+                        "restaurants",
+                        "homemakers",
+                        "partners"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "q",
+                    "groups"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
+        }
+      }
+    },
     "/customers": {
       "get": {
         "operationId": "listCustomers",
@@ -42965,6 +44659,9 @@
                     "maxLength": 300
                   }
                 },
+                "required": [
+                  "reason"
+                ],
                 "additionalProperties": false
               }
             }

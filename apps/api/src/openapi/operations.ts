@@ -124,6 +124,8 @@ import { CUSTOMER_OPERATIONS } from './operations.customers';
 import { MENU_OPERATIONS } from './operations.menu';
 import { PARTNER_OPERATIONS } from './operations.partners';
 import { NOTIFICATION_OPERATIONS } from './operations.notifications';
+import { DASHBOARD_OPERATIONS } from './operations.dashboard';
+import { SEARCH_OPERATIONS } from './operations.search';
 import { VENDOR_OPERATIONS } from './operations.vendors';
 
 // The API contract, in one place. Every route the API serves under /api/v1 is declared here with:
@@ -1385,6 +1387,8 @@ export const OPERATIONS: OperationDef[] = [
   // SA-2.4 menu items, categories, bulk and R09 change requests (operations.menu.ts)
   ...MENU_OPERATIONS,
   ...NOTIFICATION_OPERATIONS,
+  ...DASHBOARD_OPERATIONS,
+  ...SEARCH_OPERATIONS,
   // M09 customers (operations.customers.ts)
   ...CUSTOMER_OPERATIONS,
 ];
