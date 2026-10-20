@@ -29,6 +29,10 @@ export const GROUP_LABEL: Record<SettingGroup, string> = {
   sms: 'SMS',
   loyalty: 'Loyalty (Phase 2)',
   security: 'Security',
+  payouts: 'Payouts',
+  zones: 'Zones',
+  access: 'Access',
+  sessions: 'Sessions',
 };
 
 const SOURCE: Record<SettingItem['source'], { label: string; tone: BadgeTone }> = {

@@ -1,6 +1,17 @@
 import {
   AUDIT_ACTIONS,
   buildCursorPage,
+  commissionEditGrantableSchema,
+  deliveryAutoAssignSchema,
+  orderCancellationRulesSchema,
+  orderPreorderSchema,
+  orderUnpaidTimeoutSchema,
+  payoutCycleSchema,
+  sessionRememberSchema,
+  supportSlaSchema,
+  zoneDeliveryChargeCapSchema,
+  type OnboardingDocumentType,
+  type OnboardingParty,
   deliveryMaxConcurrentOrdersSchema,
   notificationChannelsSchema,
   notificationTimingSchema,
@@ -59,15 +70,20 @@ const view = (
   platform: StoredSetting | undefined,
   zone: StoredSetting | undefined,
 ): SettingView => {
+  // a value saved in an older shape is shown upgraded (D145: onboarding.documents before the catalogue)
+  const norm = (v: unknown): unknown => {
+    const p = def.schema.safeParse(v);
+    return p.success ? p.data : v;
+  };
   const eff = effectiveSetting(
     def,
-    platform ? { value: platform.value } : null,
-    zone ? { value: zone.value } : null,
+    platform ? { value: norm(platform.value) } : null,
+    zone ? { value: norm(zone.value) } : null,
   );
   const stored = (s: StoredSetting | undefined) =>
     s
       ? {
-          value: s.value,
+          value: norm(s.value),
           version: s.version,
           updatedAt: s.updatedAt.toISOString(),
           updatedBy: s.updatedBy,
@@ -432,21 +448,100 @@ export class SettingsReader {
     return own.success ? own.data.perPartner : platform;
   }
 
-  /** D97 checklist for the vendor screens; HOME_FOOD null = not configured (D113). */
-  async onboardingDocuments(zoneId: string): Promise<OnboardingDocuments> {
-    const key = 'onboarding.documents';
+  /**
+   * The effective value of a registered key (zone value ?? platform ?? default, D109). A stored value that no longer
+   * passes its schema falls back to the next source, so a bad row never breaks a workflow.
+   */
+  private async effective<T>(key: string, schema: z.ZodType<T>, zoneId?: string): Promise<T> {
     const def = settingDef(key);
     if (!def) throw new Error(`${key} is not registered`);
     const platform = await this.cached(`platform:${key}`, async () => {
       const row = (await this.deps.repo.platformValues([key])).get(key);
-      const parsed = onboardingDocumentsSchema.safeParse(row?.value);
-      return parsed.success ? parsed.data : (def.default as OnboardingDocuments);
+      const parsed = schema.safeParse(row?.value);
+      return parsed.success ? parsed.data : (def.default as T);
     });
+    if (!zoneId || !def.zoneOverride) return platform;
     const zones = await this.cached(`zones:${key}:${zoneId}`, () =>
       this.deps.repo.zoneValues(key, [zoneId]),
     );
-    const own = onboardingDocumentsSchema.safeParse(zones.get(zoneId));
+    const own = schema.safeParse(zones.get(zoneId));
     return own.success ? own.data : platform;
+  }
+
+  /** D145: the document catalogue of one party (null = not configured: no checklist). Platform-wide. */
+  async onboardingCatalogue(party: OnboardingParty): Promise<OnboardingDocumentType[] | null> {
+    const all = await this.effective('onboarding.documents', onboardingDocumentsSchema);
+    return all[party];
+  }
+
+  /**
+   * The mandatory codes per party, in the shape the vendor and partner modules read since D97 (HOME_FOOD = homemakers;
+   * null = not configured). The catalogue is platform-wide (no zone override), so the callers' zone id is not needed.
+   */
+  async onboardingDocuments(): Promise<{
+    RESTAURANT: string[];
+    HOME_FOOD: string[] | null;
+    DELIVERY_PARTNER: string[];
+    HOTEL: string[] | null;
+  }> {
+    const all = await this.effective('onboarding.documents', onboardingDocumentsSchema);
+    const codes = (l: OnboardingDocumentType[] | null) =>
+      l ? l.filter((d) => d.mandatory).map((d) => d.code) : null;
+    return {
+      RESTAURANT: codes(all.RESTAURANT) ?? [],
+      HOME_FOOD: codes(all.HOMEMAKER),
+      DELIVERY_PARTNER: codes(all.DELIVERY_PARTNER) ?? [],
+      HOTEL: codes(all.HOTEL),
+    };
+  }
+
+  /** D161: minutes before an unpaid order is cancelled; null for cash on delivery (visible at once). */
+  async unpaidTimeoutMinutes(zoneId: string, method: 'ONLINE' | 'COD' | 'WALLET') {
+    if (method === 'COD') return null;
+    const v = await this.effective('orders.unpaidTimeoutMinutes', orderUnpaidTimeoutSchema, zoneId);
+    return v[method];
+  }
+
+  /** D156 (R-ORD-3) */
+  cancellationRules(zoneId: string) {
+    return this.effective('orders.cancellationRules', orderCancellationRulesSchema, zoneId);
+  }
+
+  /** D167 */
+  preorderRules(zoneId: string) {
+    return this.effective('orders.preorder', orderPreorderSchema, zoneId);
+  }
+
+  /** D154 */
+  autoAssign(zoneId: string) {
+    return this.effective('delivery.autoAssign', deliveryAutoAssignSchema, zoneId);
+  }
+
+  /** D152 */
+  async payoutCycleDays(zoneId: string): Promise<number> {
+    return (await this.effective('payouts.cycleDays', payoutCycleSchema, zoneId)).days;
+  }
+
+  /** D165: the highest delivery charge any zone may have (platform-wide). */
+  async deliveryChargeCapPaise(): Promise<number> {
+    return (await this.effective('zones.deliveryChargeCapPaise', zoneDeliveryChargeCapSchema))
+      .capPaise;
+  }
+
+  /** D155: whether commission:edit may reach a Zonal Admin through an override. */
+  async commissionEditGrantable(): Promise<boolean> {
+    return (await this.effective('access.commissionEditGrantable', commissionEditGrantableSchema))
+      .enabled;
+  }
+
+  /** D98, D140: support response times and the assignment mode of a zone. */
+  supportSla(zoneId: string) {
+    return this.effective('support.sla', supportSlaSchema, zoneId);
+  }
+
+  /** D163 */
+  sessionRemember() {
+    return this.effective('sessions.remember', sessionRememberSchema);
   }
 
   /** D100: the promotion window of a zone (zone value ?? platform ?? 09:00–21:00 IST). */
@@ -489,5 +584,3 @@ export class SettingsReader {
     });
   }
 }
-
-type OnboardingDocuments = import('zod').infer<typeof onboardingDocumentsSchema>;

@@ -2,6 +2,9 @@ import { createHash } from 'node:crypto';
 import {
   buildCursorPage,
   isGrantable,
+  isOverrideGrantable,
+  NO_GRANT_SWITCHES,
+  type GrantSwitches,
   PERMISSION_ACTIONS,
   PERMISSION_MODULES,
   permissionKey,
@@ -111,17 +114,26 @@ const sortedMatrix = (p: readonly ProfilePermission[]): ProfilePermission[] =>
     }))
     .sort((a, b) => a.module.localeCompare(b.module));
 
-/** TC-AC-6, D108: anything a Zonal Admin can never hold is refused, every offender listed. */
-function assertGrantable(grants: { field: string; module: string; action: string }[]): void {
-  const offenders = grants.filter(
-    (g) =>
+/**
+ * TC-AC-6, D108: anything a Zonal Admin can never hold is refused, every offender listed. `overrideSwitches`: the grants
+ * are a member's overrides, which may also hold what an on Control Panel switch opens (D155); profiles never may.
+ */
+function assertGrantable(
+  grants: { field: string; module: string; action: string }[],
+  overrideSwitches?: GrantSwitches,
+): void {
+  const offenders = grants.filter((g) => {
+    if (
       !(PERMISSION_MODULES as readonly string[]).includes(g.module) ||
-      !(PERMISSION_ACTIONS as readonly string[]).includes(g.action) ||
-      !isGrantable(
-        g.module as (typeof PERMISSION_MODULES)[number],
-        g.action as (typeof PERMISSION_ACTIONS)[number],
-      ),
-  );
+      !(PERMISSION_ACTIONS as readonly string[]).includes(g.action)
+    )
+      return true;
+    const module = g.module as (typeof PERMISSION_MODULES)[number];
+    const action = g.action as (typeof PERMISSION_ACTIONS)[number];
+    return overrideSwitches
+      ? !isOverrideGrantable(module, action, overrideSwitches)
+      : !isGrantable(module, action);
+  });
   if (offenders.length > 0)
     throw new AppError(
       'VALIDATION_ERROR',
@@ -139,8 +151,11 @@ function versionOf(assignments: readonly AssignmentRecord[]): string {
   return createHash('sha256').update(JSON.stringify(canonical)).digest('base64url').slice(0, 22);
 }
 
-function toAssignmentDto(a: AssignmentRecord): MemberAssignment {
-  const resolved = resolveAccess([a.resolverInput]);
+function toAssignmentDto(
+  a: AssignmentRecord,
+  switches: GrantSwitches = NO_GRANT_SWITCHES,
+): MemberAssignment {
+  const resolved = resolveAccess([a.resolverInput], switches);
   const limits = resolved.limits[a.zone.id] ?? {
     perRefund: 0,
     dailyRefund: 0,
@@ -200,6 +215,8 @@ export interface AccessAdminDeps {
   clock: () => Date;
   /** D110: zone refund caps (settings refunds.limits); absent = no cap check (the read-only team port) */
   refundCaps?: RefundCapsReader;
+  /** D155: Control Panel switches (settings access.commissionEditGrantable); absent or unreadable = all off */
+  grantSwitches?: () => Promise<GrantSwitches>;
 }
 
 interface CapCheck {
@@ -217,6 +234,16 @@ interface AfterCommit {
 
 export class AccessAdminService {
   constructor(private readonly deps: AccessAdminDeps) {}
+
+  /** D155: fail closed. */
+  private async switches(): Promise<GrantSwitches> {
+    if (!this.deps.grantSwitches) return NO_GRANT_SWITCHES;
+    try {
+      return await this.deps.grantSwitches();
+    } catch {
+      return NO_GRANT_SWITCHES;
+    }
+  }
 
   /** One transaction; then cache, sessions and mail, which never undo a committed change. */
   private async write<T>(fn: (tx: AccessAdminTx, after: AfterCommit) => Promise<T>): Promise<T> {
@@ -515,11 +542,14 @@ export class AccessAdminService {
   async getAccess(ctx: AuthContext, id: string): Promise<MemberAccess> {
     const m = await this.deps.db.repo.findMember(ctx, id);
     if (!m) throw notFound();
-    const assignments = await this.deps.db.repo.activeAssignments(ctx, id);
+    const [assignments, sw] = await Promise.all([
+      this.deps.db.repo.activeAssignments(ctx, id),
+      this.switches(),
+    ]);
     return {
       memberId: id,
       version: versionOf(assignments),
-      assignments: assignments.map(toAssignmentDto),
+      assignments: assignments.map((a) => toAssignmentDto(a, sw)),
     };
   }
 
@@ -533,12 +563,14 @@ export class AccessAdminService {
     id: string,
     input: PutMemberAccessInput,
   ): Promise<MemberAccess> {
+    const sw = await this.switches();
     assertGrantable(
       input.assignments.flatMap((a, i) =>
         a.overrides
           .map((o, j) => ({ ...o, field: `assignments.${i}.overrides.${j}` }))
           .filter((o) => o.effect === 'GRANT'),
       ),
+      sw,
     );
     await this.write(async (tx, after) => {
       const m = await this.member(tx, ctx, id);
@@ -553,7 +585,7 @@ export class AccessAdminService {
             current: {
               memberId: id,
               version: versionOf(current),
-              assignments: current.map(toAssignmentDto),
+              assignments: current.map((a) => toAssignmentDto(a, sw)),
             },
           },
         );
@@ -776,7 +808,8 @@ export class AccessAdminService {
         visibleModules: [],
       };
     }
-    const resolved = resolveAccess([assignment.resolverInput]);
+    const sw = await this.switches();
+    const resolved = resolveAccess([assignment.resolverInput], sw);
     const permissions = resolved.permissions[zoneId] ?? [];
     const effective = new Set<string>(permissions);
     const profile = assignment.resolverInput.profile;
@@ -793,7 +826,7 @@ export class AccessAdminService {
         return {
           module,
           action,
-          grantable: isGrantable(module, action),
+          grantable: isOverrideGrantable(module, action, sw),
           fromProfile: row?.[column] === true,
           override: override?.effect ?? null,
           effective: effective.has(permissionKey(module, action)),
@@ -914,7 +947,7 @@ export class AccessAdminService {
       (a) => a.zone.id === zoneId,
     );
     if (!added) throw notFound();
-    return toAssignmentDto(added);
+    return toAssignmentDto(added, await this.switches());
   }
 
   async removeTeamMember(ctx: AuthContext, zoneId: string, userId: string): Promise<void> {
@@ -975,9 +1008,9 @@ export class AccessAdminService {
 
   /** GET /zones/{id}/team (the zones module answers 404 for an unknown zone first). */
   async team(ctx: AuthContext, zoneId: string) {
-    const rows = await this.deps.db.repo.team(ctx, zoneId);
+    const [rows, sw] = await Promise.all([this.deps.db.repo.team(ctx, zoneId), this.switches()]);
     return rows.map((r) => {
-      const dto = toAssignmentDto(r.assignment);
+      const dto = toAssignmentDto(r.assignment, sw);
       return {
         userId: r.userId,
         name: r.name,

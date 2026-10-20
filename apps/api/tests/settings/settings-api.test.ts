@@ -81,7 +81,22 @@ describe('registry and the default rule (D109)', () => {
       state: 'PENDING_MODULE',
       module: 'Support desk',
     });
-    expect(byKey(r.body, 'onboarding.documents')?.effective).toMatchObject({ HOME_FOOD: null }); // D113
+    expect(byKey(r.body, 'onboarding.documents')?.effective).toMatchObject({ HOTEL: null }); // D145
+    expect(
+      (byKey(r.body, 'onboarding.documents')?.effective as { HOMEMAKER: { code: string }[] })
+        .HOMEMAKER[0],
+    ).toMatchObject({ code: 'FSSAI_REGISTRATION', mandatory: true });
+    for (const k of [
+      'orders.unpaidTimeoutMinutes',
+      'orders.cancellationRules',
+      'orders.preorder',
+      'delivery.autoAssign',
+      'payouts.cycleDays',
+      'zones.deliveryChargeCapPaise',
+      'access.commissionEditGrantable',
+      'sessions.remember',
+    ])
+      expect(byKey(r.body, k)?.source, k).toBe('DEFAULT');
     expect(byKey(r.body, 'security.mfa')).toMatchObject({
       editable: false,
       effect: { state: 'ENFORCED' },
