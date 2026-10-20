@@ -320,6 +320,10 @@ model User {
   ticketMessages                TicketMessage[]         @relation("TicketMessageAuthor")
   rewardEntries                 RewardPointEntry[]      @relation("RewardEntryActor")
   walletTransactions            WalletTransaction[]     @relation("WalletTransactionActor")
+  claimsHeld                    RecordClaim[]           @relation("RecordClaimClaimer")
+  claimsReleased                RecordClaim[]           @relation("RecordClaimReleaser")
+  takeoversRequested            ClaimTakeoverRequest[]  @relation("TakeoverRequester")
+  takeoversDecided              ClaimTakeoverRequest[]  @relation("TakeoverDecider")
 
   @@index([roleId])
   @@map("users")
@@ -662,6 +666,7 @@ model Zone {
   rewardEntries      RewardPointEntry[]
   walletTransactions WalletTransaction[]
   assignmentOffers   OrderAssignmentOffer[]
+  recordClaims       RecordClaim[]
 
   @@index([status])
   @@map("zones")
@@ -2035,4 +2040,71 @@ model OrderAssignmentOffer {
   @@index([status, expiresAt])
   @@index([partnerId, status])
   @@map("order_assignment_offers")
+}
+
+// ---- D174 record claims (control-panel session) -------------------------------------------------------------------
+
+enum ClaimEntityType {
+  HOTEL
+  RESTAURANT
+  HOMEMAKER
+  DELIVERY_PARTNER
+}
+
+enum ClaimEndReason {
+  RELEASED
+  EXPIRED
+  OVERRIDDEN
+  TAKEN_OVER
+}
+
+enum TakeoverStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+/// One open claim per record (partial unique index in SQL); released_at and end_reason are set together (CHECK).
+model RecordClaim {
+  id             String          @id @db.Uuid
+  entityType     ClaimEntityType @map("entity_type")
+  entityId       String          @map("entity_id") @db.Uuid // polymorphic: no foreign key
+  zoneId         String?         @map("zone_id") @db.Uuid // null = unzoned record (Super Admin only)
+  claimedBy      String          @map("claimed_by") @db.Uuid
+  claimedAt      DateTime        @default(now()) @map("claimed_at") @db.Timestamptz
+  lastActivityAt DateTime        @default(now()) @map("last_activity_at") @db.Timestamptz
+  expiresAt      DateTime        @map("expires_at") @db.Timestamptz
+  releasedAt     DateTime?       @map("released_at") @db.Timestamptz
+  releasedBy     String?         @map("released_by") @db.Uuid
+  endReason      ClaimEndReason? @map("end_reason")
+  note           String?
+  version        Int             @default(1)
+
+  zone      Zone?                  @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  claimer   User                   @relation("RecordClaimClaimer", fields: [claimedBy], references: [id], onDelete: Restrict)
+  releaser  User?                  @relation("RecordClaimReleaser", fields: [releasedBy], references: [id], onDelete: Restrict)
+  takeovers ClaimTakeoverRequest[]
+
+  @@map("record_claims")
+}
+
+/// One pending takeover per claim (partial unique index in SQL).
+model ClaimTakeoverRequest {
+  id          String         @id @db.Uuid
+  claimId     String         @map("claim_id") @db.Uuid
+  requestedBy String         @map("requested_by") @db.Uuid
+  reason      String
+  status      TakeoverStatus @default(PENDING)
+  expiresAt   DateTime       @map("expires_at") @db.Timestamptz
+  decidedBy   String?        @map("decided_by") @db.Uuid
+  decidedAt   DateTime?      @map("decided_at") @db.Timestamptz
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  claim     RecordClaim @relation(fields: [claimId], references: [id], onDelete: Restrict)
+  requester User        @relation("TakeoverRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  decider   User?       @relation("TakeoverDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@map("claim_takeover_requests")
 }
