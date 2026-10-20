@@ -275,6 +275,8 @@ model User {
   // derived from user_mfa_methods, updated in the same transaction as any method change (doc 52 section 3)
   mfaEnabled         Boolean   @default(false) @map("mfa_enabled")
   mustChangePassword Boolean   @default(false) @map("must_change_password")
+  // D178: the one primary Super Admin (partial unique index in SQL)
+  isPrimary          Boolean   @default(false) @map("is_primary")
   passwordChangedAt  DateTime? @map("password_changed_at") @db.Timestamptz
   failedAttempts     Int       @default(0) @map("failed_attempts")
   lockedUntil        DateTime? @map("locked_until") @db.Timestamptz
@@ -324,6 +326,12 @@ model User {
   claimsReleased                RecordClaim[]           @relation("RecordClaimReleaser")
   takeoversRequested            ClaimTakeoverRequest[]  @relation("TakeoverRequester")
   takeoversDecided              ClaimTakeoverRequest[]  @relation("TakeoverDecider")
+  controlGrantsHeld             ControlGrant[]          @relation("ControlGrantGrantee")
+  controlGrantsGiven            ControlGrant[]          @relation("ControlGrantGrantedBy")
+  controlGrantsRevoked          ControlGrant[]          @relation("ControlGrantRevokedBy")
+  superAdminRequestsAbout       SuperAdminRequest[]     @relation("SuperAdminRequestTarget")
+  superAdminRequestsMade        SuperAdminRequest[]     @relation("SuperAdminRequestRequester")
+  superAdminRequestsDecided     SuperAdminRequest[]     @relation("SuperAdminRequestDecider")
 
   @@index([roleId])
   @@map("users")
@@ -667,6 +675,7 @@ model Zone {
   walletTransactions WalletTransaction[]
   assignmentOffers   OrderAssignmentOffer[]
   recordClaims       RecordClaim[]
+  controlGrants      ControlGrant[]
 
   @@index([status])
   @@map("zones")
@@ -2107,4 +2116,68 @@ model ClaimTakeoverRequest {
   decider   User?       @relation("TakeoverDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
 
   @@map("claim_takeover_requests")
+}
+
+// ---- D178 delegation (control-panel session) ----------------------------------------------------------------------
+
+/// A delegated control (a key such as a settings group) for one grantee; one active grant per grantee, key and zone
+/// (partial unique index in SQL). zone_id is required for a Zonal Admin grantee; null = all zones (Super Admin).
+model ControlGrant {
+  id           String    @id @db.Uuid
+  granteeId    String    @map("grantee_id") @db.Uuid
+  key          String
+  zoneId       String?   @map("zone_id") @db.Uuid
+  reason       String
+  grantedBy    String    @map("granted_by") @db.Uuid
+  grantedAt    DateTime  @default(now()) @map("granted_at") @db.Timestamptz
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
+  revokedBy    String?   @map("revoked_by") @db.Uuid
+  revokeReason String?   @map("revoke_reason")
+
+  grantee User  @relation("ControlGrantGrantee", fields: [granteeId], references: [id], onDelete: Restrict)
+  granter User  @relation("ControlGrantGrantedBy", fields: [grantedBy], references: [id], onDelete: Restrict)
+  revoker User? @relation("ControlGrantRevokedBy", fields: [revokedBy], references: [id], onDelete: Restrict)
+  zone    Zone? @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  @@map("control_grants")
+}
+
+enum SuperAdminRequestKind {
+  CREATE
+  SUSPEND
+  REACTIVATE
+  DELETE
+  DEMOTE
+}
+
+enum SuperAdminRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+/// A delegate's request about a Super Admin account, decided by the primary Super Admin.
+model SuperAdminRequest {
+  id             String                  @id @db.Uuid
+  kind           SuperAdminRequestKind
+  targetUserId   String?                 @map("target_user_id") @db.Uuid // null for CREATE
+  payloadJson    Json?                   @map("payload_json") // CREATE: {name, email, phone}; never a password
+  passwordHash   String?                 @map("password_hash") // CREATE: hash of the temporary password; cleared on decision
+  reason         String
+  status         SuperAdminRequestStatus @default(PENDING)
+  requestedBy    String                  @map("requested_by") @db.Uuid
+  decidedBy      String?                 @map("decided_by") @db.Uuid
+  decidedAt      DateTime?               @map("decided_at") @db.Timestamptz
+  decisionReason String?                 @map("decision_reason")
+  expiresAt      DateTime                @map("expires_at") @db.Timestamptz
+  createdAt      DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  version        Int                     @default(1)
+
+  target    User? @relation("SuperAdminRequestTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
+  requester User  @relation("SuperAdminRequestRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  decider   User? @relation("SuperAdminRequestDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@map("super_admin_requests")
 }
