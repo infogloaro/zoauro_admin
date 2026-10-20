@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
-import type { OrderListQuery, OrderStatus } from '@zoauro/shared';
+import { normaliseIndianMobile, type OrderListQuery, type OrderStatus } from '@zoauro/shared';
 import type { AuditTx } from '../../lib/audit';
 import { BaseRepository, type AuthContext, type ScopedDelegate } from '../../lib/authz';
 import { auditTx } from '../../lib/db';
@@ -114,13 +114,20 @@ function listWhere(q: OrderListQuery): Prisma.OrderWhereInput {
   if (q.from) and.push({ placedAt: { gte: new Date(q.from) } });
   if (q.to) and.push({ placedAt: { lte: new Date(q.to) } });
   if (q.q) {
-    const contains = { contains: q.q, mode: 'insensitive' as const };
+    // LIKE wildcards typed by the member match themselves; a typed mobile also finds the customer's orders (doc 20,
+    // D143)
+    const contains = {
+      contains: q.q.replace(/[\\%_]/g, (c) => `\\${c}`),
+      mode: 'insensitive' as const,
+    };
+    const phone = normaliseIndianMobile(q.q);
     and.push({
       OR: [
         { orderNo: contains },
         { customer: { name: contains } },
         { restaurant: { name: contains } },
         { homemaker: { name: contains } },
+        ...(phone ? [{ customer: { phone } }] : []),
       ],
     });
   }
