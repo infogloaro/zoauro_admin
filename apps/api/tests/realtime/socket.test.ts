@@ -306,7 +306,7 @@ describe('outbox -> messages', () => {
 
 describe('relay over Redis (worker -> API)', () => {
   it('publishes what the outbox published and the subscriber delivers it', async () => {
-    const redisUrl = process.env['REDIS_URL'] ?? 'redis://localhost:6390';
+    const redisUrl = process.env['REDIS_URL'] ?? 'redis://127.0.0.1:6390';
     const received: RealtimeMessage[] = [];
     const sub = await subscribeRealtime(redisUrl, (m) => received.push(...m));
     const pub = new Redis(redisUrl);

@@ -6,7 +6,7 @@ import { startOutboxJobs, type OutboxPublisher } from '../../src/lib/outbox';
 // BullMQ wiring against the local Redis (pnpm infra:up): both schedulers run their processor. A test-only prefix keeps
 // these keys away from a dev worker; they are deleted afterwards. No database is touched.
 
-const redisUrl = process.env['REDIS_URL'] ?? 'redis://localhost:6390';
+const redisUrl = process.env['REDIS_URL'] ?? 'redis://127.0.0.1:6390';
 const prefix = `zoauro:test:${randomBytes(4).toString('hex')}`;
 
 afterAll(async () => {
