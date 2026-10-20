@@ -23,7 +23,7 @@ export default defineConfig({
   retries: 0,
   reporter: [['list']],
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: `http://127.0.0.1:${PORT}`,
     ...(executablePath ? { launchOptions: { executablePath } } : {}),
   },
   webServer: {

@@ -12,7 +12,7 @@ interface State {
   rows: number;
 }
 const state = JSON.parse(readFileSync(process.env['E2E_STATE'] ?? '', 'utf8')) as State;
-const BASE = process.env['E2E_BASE_URL'] ?? 'http://localhost:3720';
+const BASE = process.env['E2E_BASE_URL'] ?? 'http://127.0.0.1:3720';
 const PATH = '/super-admin/settings/logs';
 const BUDGET_MS = 2000;
 // A failing test restarts the Playwright worker, so timings are appended to a file as they happen (run.ts empties it first).

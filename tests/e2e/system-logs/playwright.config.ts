@@ -10,7 +10,7 @@ export default defineConfig({
   retries: 0,
   reporter: [['list']],
   use: {
-    baseURL: process.env['E2E_BASE_URL'] ?? 'http://localhost:3720',
+    baseURL: process.env['E2E_BASE_URL'] ?? 'http://127.0.0.1:3720',
     // tracing snapshots the DOM around every action and distorts the timings this suite exists to measure: opt in
     trace: process.env['E2E_TRACE'] === '1' ? 'retain-on-failure' : 'off',
     ...(process.env['PLAYWRIGHT_CHROMIUM_PATH']

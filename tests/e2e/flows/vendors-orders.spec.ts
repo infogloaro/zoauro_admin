@@ -104,7 +104,7 @@ test('Flow 6: order PLACED -> ACCEPTED -> PREPARING -> READY -> ASSIGNED; a stal
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText('Ravi Rider')).toBeVisible();
   await expect(dialog.getByText('Bala Rider')).toHaveCount(0);
-  await expect(dialog.getByText(/0 of 1 orders/)).toBeVisible();
+  await expect(dialog.getByText(/0 of 1 order\b/)).toBeVisible();
   await axe(page, 'assign partner dialog');
   await dialog.getByRole('radio').first().check();
   await dialog.getByRole('button', { name: 'Assign', exact: true }).click();

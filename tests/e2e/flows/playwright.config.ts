@@ -11,7 +11,7 @@ export default defineConfig({
   retries: 0,
   reporter: [['list']],
   use: {
-    baseURL: process.env['E2E_BASE_URL'] ?? 'http://localhost:3731',
+    baseURL: process.env['E2E_BASE_URL'] ?? 'http://127.0.0.1:3731',
     viewport: { width: 1440, height: 900 },
     trace: process.env['E2E_TRACE'] === '1' ? 'retain-on-failure' : 'off',
     ...(process.env['PLAYWRIGHT_CHROMIUM_PATH']

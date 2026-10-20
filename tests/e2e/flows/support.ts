@@ -81,11 +81,12 @@ export async function signIn(
   await expect(page).toHaveURL(/\/2fa$/);
   await page.waitForLoadState('networkidle');
   await pickMethod(page, 'Authenticator app');
-  // a code typed into a field that is not ready yet is lost: retry with the next unused step
+  // a code typed into a field that is not ready yet is lost: retry with the next unused step. The wait is long because a
+  // slow landing (a loaded machine) would otherwise send the retry into a 2FA field that is about to go away
   for (let attempt = 0; attempt < 3; attempt++) {
     await typeCode(page, await unusedTotp(user.totpSecret ?? ''));
     const ok = await page
-      .waitForURL(landing, { timeout: 10_000 })
+      .waitForURL(landing, { timeout: 25_000 })
       .then(() => true)
       .catch(() => false);
     if (ok) return;

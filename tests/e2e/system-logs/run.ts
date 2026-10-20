@@ -17,11 +17,11 @@ import { PASSWORD, createAuthTestEnv } from '../../../apps/api/tests/auth/suppor
 // uncommon ports on purpose: a developer machine often has other projects on 3000/3100/4000/4100
 const API_PORT = Number(process.env['E2E_API_PORT'] ?? 4720);
 const WEB_PORT = Number(process.env['E2E_WEB_PORT'] ?? 3720);
-const WEB = `http://localhost:${WEB_PORT}`;
-const API = `http://localhost:${API_PORT}`;
+const WEB = `http://127.0.0.1:${WEB_PORT}`;
+const API = `http://127.0.0.1:${API_PORT}`;
 const ROWS = Number(process.env['E2E_ROWS'] ?? 2_000_000);
 // always Mailpit, whatever SMTP_URL apps/api/.env holds: the run's addresses are fake and must never reach a real mailbox
-const SMTP = process.env['E2E_SMTP_URL'] ?? 'smtp://localhost:1025';
+const SMTP = process.env['E2E_SMTP_URL'] ?? 'smtp://127.0.0.1:1025';
 
 const apiDir = process.cwd();
 const root = path.resolve(apiDir, '../..');

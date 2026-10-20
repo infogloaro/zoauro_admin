@@ -24,10 +24,10 @@ import { uuidv7 } from '../../../apps/api/tests/audit/support/db';
 // own ports (auth uses 4721/3721): two harnesses may run on one machine, one after the other
 const API_PORT = Number(process.env['E2E_API_PORT'] ?? 4731);
 const WEB_PORT = Number(process.env['E2E_WEB_PORT'] ?? 3731);
-const WEB = `http://localhost:${WEB_PORT}`;
-const API = `http://localhost:${API_PORT}`;
-const MAILPIT = process.env['E2E_MAILPIT_URL'] ?? 'http://localhost:8025';
-const SMTP = process.env['E2E_SMTP_URL'] ?? 'smtp://localhost:1025';
+const WEB = `http://127.0.0.1:${WEB_PORT}`;
+const API = `http://127.0.0.1:${API_PORT}`;
+const MAILPIT = process.env['E2E_MAILPIT_URL'] ?? 'http://127.0.0.1:8025';
+const SMTP = process.env['E2E_SMTP_URL'] ?? 'smtp://127.0.0.1:1025';
 
 const apiDir = process.cwd();
 const root = path.resolve(apiDir, '../..');
