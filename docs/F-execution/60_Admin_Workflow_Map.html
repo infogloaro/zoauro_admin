@@ -1,0 +1,1195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>ZOAURO Admin Workflow Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky section index on the left, long reference column on the right; wireframes drawn as 12-col block grids. */
+:root{
+  --bg:#F3F5FA; --surface:#FFFFFF; --ink:#111A2E; --muted:#5A6580; --line:#DCE1EC;
+  --navy:#0D1527; --sa:#2F6BFF; --za:#E8521A; --sa-soft:#E6EDFF; --za-soft:#FDEBE3;
+  --ok:#11845B; --ok-soft:#E1F4EC; --warn:#A86200; --warn-soft:#FCF0DA; --bad:#C2312F; --bad-soft:#FBE6E5;
+  --wf-h:#C9D3EA; --wf-k:#DCE6FF; --wf-f:#EEF1F7; --wf-t:#F7F9FD; --wf-c:#E4F1EC; --wf-p:#FFF3EA; --wf-n:#ECE8FA; --wf-m:#F1F4E6;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Public Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A0F1C; --surface:#121A2C; --ink:#E7ECF7; --muted:#9AA6C2; --line:#25304A;
+  --navy:#060A14; --sa:#6E97FF; --za:#FF8550; --sa-soft:#1A2649; --za-soft:#3A2016;
+  --ok:#4FCB97; --ok-soft:#12352A; --warn:#F0B34F; --warn-soft:#3A2C12; --bad:#FF7B77; --bad-soft:#3F1B1C;
+  --wf-h:#2B3756; --wf-k:#1E2D57; --wf-f:#1A2238; --wf-t:#151D31; --wf-c:#173229; --wf-p:#38261A; --wf-n:#272247; --wf-m:#262E1B;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A0F1C; --surface:#121A2C; --ink:#E7ECF7; --muted:#9AA6C2; --line:#25304A;
+  --navy:#060A14; --sa:#6E97FF; --za:#FF8550; --sa-soft:#1A2649; --za-soft:#3A2016;
+  --ok:#4FCB97; --ok-soft:#12352A; --warn:#F0B34F; --warn-soft:#3A2C12; --bad:#FF7B77; --bad-soft:#3F1B1C;
+  --wf-h:#2B3756; --wf-k:#1E2D57; --wf-f:#1A2238; --wf-t:#151D31; --wf-c:#173229; --wf-p:#38261A; --wf-n:#272247; --wf-m:#262E1B;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+a{color:var(--sa)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+.top{background:var(--navy);color:#EEF2FB}
+.top-in{max-width:1320px;margin:0 auto;padding-block:36px 30px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9FB2DA;font-weight:600}
+.top h1{font-size:clamp(30px,4.4vw,48px);color:#fff}
+.top h1 span{color:#FF8550}
+.top p{max-width:72ch;margin:0;color:#C8D2EA}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:#C8D2EA}
+.legend b{color:#fff;font-weight:600}
+.wrap{max-width:1320px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:220px minmax(0,1fr);gap:36px}
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;display:grid;gap:2px;font-size:13.5px}
+nav.toc a{color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:6px}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--surface);color:var(--ink)}
+nav.toc .n{font-family:var(--mono);font-size:11px;color:var(--muted);margin-right:6px}
+main{min-width:0;display:grid;gap:56px}
+section{display:grid;gap:18px;min-width:0}
+.sec-h{display:grid;gap:6px}
+.sec-h .n{font-family:var(--mono);font-size:12px;color:var(--za);font-weight:500}
+.sec-h h2{font-size:28px}
+.sec-h p{margin:0;color:var(--muted);max-width:75ch}
+:focus-visible{outline:2px solid var(--sa);outline-offset:2px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;min-width:0}
+.diagram{overflow-x:auto}
+.diagram pre.mermaid{margin:0;background:transparent;min-width:640px;text-align:center;font-family:var(--body)}
+.dg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:18px}
+.dg-title{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-bottom:10px}
+.dg-title h3{font-size:18px}
+.dg-title small{color:var(--muted);font-size:12.5px}
+.note{font-size:13px;color:var(--muted);margin:10px 0 0}
+.built-note{font-size:13.5px;margin:12px 0 0;display:grid;gap:8px}
+.built-note > div{border-radius:8px;padding:10px 14px}
+.built-note .yes{background:var(--ok-soft)} .built-note .no{background:var(--warn-soft)}
+.built-note b{display:block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.built-note .yes b{color:var(--ok)} .built-note .no b{color:var(--warn)}
+.built-note ul{margin:0;padding-left:18px;display:grid;gap:2px}
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;letter-spacing:.01em}
+td .chip{white-space:normal;border-radius:8px}
+.c-sa{background:var(--sa-soft);color:var(--sa)} .c-za{background:var(--za-soft);color:var(--za)}
+.c-ok{background:var(--ok-soft);color:var(--ok)} .c-warn{background:var(--warn-soft);color:var(--warn)} .c-bad{background:var(--bad-soft);color:var(--bad)}
+.c-n{background:var(--wf-f);color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+/* change requests */
+.req{display:grid;gap:12px}
+.req-item{display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.req-item .num{font-family:var(--mono);font-size:13px;color:var(--za);font-weight:500;padding-top:2px}
+.req-item h3{font-size:17px;margin-bottom:6px}
+.req-item p{margin:0 0 6px;font-size:14px;color:var(--muted)}
+.req-item ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:14px}
+.req-item a{font-size:13.5px}
+/* nav map */
+.navmap{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}
+.side{background:var(--navy);border-radius:12px;padding:16px;color:#C8D2EA;display:grid;gap:3px;align-content:start}
+.side .who{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--display);color:#fff;font-size:17px;margin-bottom:6px}
+.side .it{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 10px;border-radius:7px;font-size:13.5px}
+.side .grp{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7F8DAE;padding:10px 10px 2px}
+.side.sa .it.on{background:#2F6BFF;color:#fff} .side.za .it.on{background:#E8521A;color:#fff}
+.side .it.soon{color:#8391B2}
+.side .tg{font-size:10px;font-weight:600;letter-spacing:.04em;padding:1px 7px;border-radius:999px;background:#1E2A45;color:#9FB2DA;white-space:nowrap}
+.side .tg.live{background:#123A2C;color:#5FD3A1}
+.side .it.on .tg{background:rgba(255,255,255,.2);color:#fff}
+.side .it.add{border:1px dashed #FF8550;color:#FFD2BD}
+.side .it.add .tg{background:#4A2414;color:#FFB08A}
+.side .switch{border:1px solid #2A3757;border-radius:9px;padding:9px 10px;font-size:13px;color:#fff;margin-bottom:6px}
+.shell{display:grid;gap:12px;align-content:start}
+.shell ul,.shell ol{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+.filters button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 12px;border-radius:999px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.count{font-size:13px;color:var(--muted)}
+/* page cards */
+.pages{display:grid;gap:18px}
+.pg{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.pg-h{padding:16px 20px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.pg-h .row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.pg-h h3{font-size:19px}
+.pg-h .route{font-family:var(--mono);font-size:12.5px;color:var(--muted);word-break:break-all}
+.pg-h .tags{display:flex;flex-wrap:wrap;gap:6px}
+.pg-b{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:0}
+.wf{padding:18px;border-right:1px solid var(--line);background:var(--bg);min-width:0}
+.wf-cap{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+.frame{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:8px;display:grid;gap:6px}
+.wrow{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px}
+.blk{border-radius:5px;padding:6px 7px;font-size:11px;line-height:1.3;color:var(--ink);min-height:30px;display:flex;align-items:center;min-width:0;overflow-wrap:anywhere}
+.k-h{background:var(--wf-h);font-weight:600} .k-k{background:var(--wf-k);min-height:44px} .k-f{background:var(--wf-f);border:1px dashed var(--line)}
+.k-t{background:var(--wf-t);border:1px solid var(--line);min-height:96px;align-items:flex-start} .k-c{background:var(--wf-c);min-height:80px}
+.k-p{background:var(--wf-p);min-height:60px;align-items:flex-start} .k-n{background:var(--wf-n)} .k-m{background:var(--wf-m);min-height:40px}
+.spec{padding:18px 20px;display:grid;gap:14px;min-width:0}
+.spec h4{margin:0 0 4px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--body)}
+.spec ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:14px}
+.spec .ref{font-size:13.5px;border-left:3px solid var(--za);padding:4px 0 4px 12px;color:var(--muted)}
+.spec .zadiff{font-size:13.5px;background:var(--za-soft);border-radius:8px;padding:8px 12px}
+.spec .builtbox{background:var(--ok-soft);border-radius:8px;padding:10px 14px}
+.spec .builtbox h4{color:var(--ok)}
+.spec .gapbox{background:var(--warn-soft);border-radius:8px;padding:10px 14px}
+.spec .gapbox h4{color:var(--warn)}
+.wf-key{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted)}
+.wf-key span{display:inline-flex;align-items:center;gap:5px}
+.wf-key i{width:14px;height:10px;border-radius:2px;display:inline-block}
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+td ul{margin:0;padding-left:16px;display:grid;gap:2px}
+/* roadmap */
+.road{display:grid;gap:10px}
+.lane{display:grid;grid-template-columns:44px minmax(0,1fr) 150px;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.lane .n{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.lane b{font-size:15px}
+.lane p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.bar{height:8px;border-radius:999px;background:var(--wf-f);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--ok)}
+.lane .st{justify-self:end}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px}
+.list-plain{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+@media (max-width:980px){
+  .wrap{grid-template-columns:minmax(0,1fr)}
+  nav.toc{position:static;display:flex;flex-wrap:wrap;gap:4px}
+  nav.toc a{background:var(--surface);border:1px solid var(--line)}
+  .pg-b{grid-template-columns:minmax(0,1fr)}
+  .wf{border-right:0;border-bottom:1px solid var(--line)}
+}
+@media (max-width:560px){
+  .lane{grid-template-columns:minmax(0,1fr)}
+  .lane .st{justify-self:start}
+  .lane .n{display:none}
+  .blk{font-size:10px;padding:4px}
+  .req-item{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="eyebrow">GloAro · ZOAURO food delivery · admin panel · version 3, 18 Oct 2026</div>
+    <h1>ZOAURO Admin <span>Workflow Map</span></h1>
+    <p>The whole admin panel in one place: how data moves between the apps and the panel, how each workflow runs, which screen each step happens on, and what every screen shows and does. Version 2 is checked against the pages already built in <code>apps/web</code>: each screen card says what is built today and what is still missing.</p>
+    <div class="legend">
+      <span><b>SA</b> Super Admin, all zones</span>
+      <span><b>ZA</b> Zonal Admin, assigned zones only</span>
+      <span><b>P0/P1/P2</b> launch-critical / launch / after pilot</span>
+      <span><b>Built · In progress · Planned</b> from the code on 17 Oct 2026</span>
+      <span><b>Proposal</b> not in the spec yet, needs an owner decision</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Sections">
+    <a href="#changes"><span class="n">00</span>Requested changes</a>
+    <a href="#ecosystem"><span class="n">01</span>System flow</a>
+    <a href="#navigation"><span class="n">02</span>Navigation map</a>
+    <a href="#workflows"><span class="n">03</span>Workflows</a>
+    <a href="#states"><span class="n">04</span>Status lifecycles</a>
+    <a href="#pages"><span class="n">05</span>Every page</a>
+    <a href="#check"><span class="n">06</span>Built-page check</a>
+    <a href="#rules"><span class="n">07</span>Rules on every page</a>
+    <a href="#roadmap"><span class="n">08</span>Build roadmap</a>
+    <a href="#competitors"><span class="n">09</span>Competitor patterns</a>
+    <a href="#open"><span class="n">10</span>Open decisions</a>
+    <a href="#decisions"><span class="n">11</span>Owner decisions 18 Oct</a>
+  </nav>
+
+  <main>
+
+<!-- 00 -->
+<section id="changes">
+  <div class="sec-h"><span class="n">00</span><h2>Requested changes in this version</h2>
+    <p>What the team asked for, what the built panel does today, and what this map now proposes. The owner's answers of 18 Oct (D143–D166: hotels with pre-orders, auto-assign, maps, dynamic Control Panel settings) are in <a href="#decisions">section 11</a>.</p></div>
+  <div class="req">
+    <div class="req-item"><span class="num">1</span><div>
+      <h3>Vendor onboarding as a request: vendor applies, admin verifies, then accepts or rejects</h3>
+      <p>Covers restaurants, shops and Home Food; the owner decided on 18 Oct that a cloud kitchen is a Home Food vendor. Today the vendor list has a "Pending verification" tab and vendor detail can verify documents, verify or reject the vendor, and activate it. There is no request queue, no "ask for more information" step, and the app intake API that receives vendor applications is still empty.</p>
+      <ul>
+        <li>New flow W4 with stages Submitted → Under review → More info required → Approved or Rejected.</li>
+        <li>New screen "Vendor onboarding requests" with type tabs and a review panel.</li>
+        <li>Cloud kitchen: decided by the owner on 18 Oct. A cloud kitchen is a home cook, so it joins as a Home Food vendor. No new vendor type.</li>
+        <li>"More info required" is not a status in the code yet (verification is only Pending / Verified / Rejected). Needs a decision too.</li>
+      </ul>
+      <a href="#wf-onboarding">See flow W4</a> · <a href="#pages">See the onboarding screen</a></div></div>
+    <div class="req-item"><span class="num">2</span><div>
+      <h3>Adding a Zonal Admin and controlling their access</h3>
+      <p>Built and working, but spread over separate pages: create account (dialog) → member access page → add zone → profile, overrides, limits → save. Preview shows saved access only, and creating an account does not ask for the password.</p>
+      <ul>
+        <li>Proposal: one five-step guided flow (details → zones → access per zone → preview draft → review and save), shown in flow W1b.</li>
+        <li>Fixes listed on the Zonal admins, Zone teams and Member access cards below.</li>
+      </ul>
+      <a href="#wf-admin">See flow W1b</a></div></div>
+    <div class="req-item"><span class="num">3</span><div>
+      <h3>Onboarding missing from the navigation</h3>
+      <p>The built sidebar has a "Requests &amp; approvals" group, but Restaurant onboarding, Food item requests and Delivery partner requests only open a "Coming soon" page. There is no Home Food onboarding entry and no "Needs a zone" view anywhere.</p>
+      <ul>
+        <li>Navigation map now shows the real built sidebar, with proposed additions marked with a dashed border.</li>
+        <li>Rename "Restaurant onboarding" to "Vendor onboarding" with tabs for each vendor type, and add pending-count badges.</li>
+      </ul>
+      <a href="#navigation">See navigation map</a></div></div>
+    <div class="req-item"><span class="num">4</span><div>
+      <h3>Check the pages already built</h3>
+      <p>Every built page was compared with the map. Each screen card now has a green "Built today" box and an orange "Gaps to fix" box, and section 06 lists all of them in one table.</p>
+      <a href="#check">See built-page check</a></div></div>
+  </div>
+</section>
+
+<!-- 01 -->
+<section id="ecosystem">
+  <div class="sec-h"><span class="n">01</span><h2>System flow</h2>
+    <p>The three apps only write through the signed intake API. The admin panel acts on the Core, and every decision goes back to the apps as a signed webhook. One writer per field: apps never write status, verification, commission, zone or admin-disabled.</p></div>
+  <div class="box diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph APPS["External apps"]
+    CA["Customer app"]
+    VA["Vendor app (restaurant, shop, Home Food / cloud kitchen)"]
+    PA["Delivery partner app"]
+  end
+  CA -- "profile, address, order, cancel" --> IN
+  VA -- "onboarding request, documents, menu, accept, ready" --> IN
+  PA -- "onboarding request, online, picked up, delivered, COD" --> IN
+  GW["Payment gateway"] -- "signed webhook" --> CORE
+  IN["Intake API /api/v1/intake/*  (HMAC + Idempotency-Key)"] --> CORE[("ZOAURO Core  (PostgreSQL)")]
+  CORE -- "live updates per zone room" --> ADM
+  ADM["Admin panel  (Super Admin + Zonal Admin)"] -- "approve, reject, assign, cancel, refund, settle" --> CORE
+  CORE --> OB["Outbox + BullMQ worker"]
+  OB -- "signed webhooks + 14-day pull feed" --> APPS
+</pre>
+    <p class="note">Built today: the Core, the admin panel and the outbox table. Not yet: the intake API (folder is empty) and the outbox publisher, so apps cannot send onboarding requests or receive decisions yet.</p>
+  </div>
+  <div class="box diagram">
+    <div class="dg-title"><h3>Sign in and role routing</h3><small>M01 · Built</small></div>
+<pre class="mermaid">
+flowchart TD
+  A["/login  - choose tab: Super Admin or Zonal Admin, email, password"] --> B{"Checks pass? rate limit, tab matches role, not locked, active, password"}
+  B -- "no" --> E["Generic error. 5 failures lock the account for 30 min"]
+  B -- "yes" --> C{"Has a 2-step method?"}
+  C -- "yes" --> D["/2fa  - authenticator, email code, SMS or backup code"]
+  C -- "no, required" --> F["/2fa/setup  - confirm email, add method, save 10 backup codes"]
+  F --> G
+  D --> G{"Must change password?"}
+  G -- "yes" --> H["/change-password  (restricted session)"]
+  G -- "no" --> I{"Role"}
+  H --> I
+  I -- "Super Admin" --> J["/super-admin/dashboard"]
+  I -- "Zonal Admin with zones" --> K["/zone/dashboard  (All my zones)"]
+  I -- "Zonal Admin, no zones" --> L["/zone/no-zones"]
+</pre>
+  </div>
+</section>
+
+<!-- 02 -->
+<section id="navigation">
+  <div class="sec-h"><span class="n">02</span><h2>Navigation map</h2>
+    <p>This is the sidebar as built in <code>apps/web/lib/navigation.ts</code>, which is newer than the sidebar in doc 18. Items tagged Soon open a "Coming soon" page with the module plan. Dashed orange items are proposed additions.</p></div>
+  <div class="navmap">
+    <div class="side sa">
+      <div class="who">Super Admin <span class="chip c-sa">/super-admin</span></div>
+      <div class="grp">Overview</div>
+      <div class="it on">Dashboard <span class="tg">Live</span></div>
+      <div class="it">Recent activities <span class="tg live">Live</span></div>
+      <div class="grp">Requests &amp; approvals</div>
+      <div class="it add">Vendor onboarding (rename) <span class="tg">Proposal</span></div>
+      <div class="it soon">Restaurant onboarding <span class="tg">Soon</span></div>
+      <div class="it add">Home Food onboarding <span class="tg">Missing</span></div>
+      <div class="it add">Needs a zone <span class="tg">Missing</span></div>
+      <div class="it soon">Food item requests <span class="tg">Soon</span></div>
+      <div class="it soon">Delivery partner requests <span class="tg">Soon</span></div>
+      <div class="it">Access requests <span class="tg live">Live</span></div>
+      <div class="grp">Service management</div>
+      <div class="it">Restaurants <span class="tg live">Live</span></div>
+      <div class="it">Home Food <span class="tg live">Live</span></div>
+      <div class="it soon">Hotel room booking <span class="tg">Soon</span></div>
+      <div class="it soon">Menus &amp; food items <span class="tg">Soon</span></div>
+      <div class="grp">Zone operations</div>
+      <div class="it">Zone management <span class="tg live">Live</span></div>
+      <div class="it soon">Zone &amp; admin performance <span class="tg">Soon</span></div>
+      <div class="it">Zone teams <span class="tg live">Live</span></div>
+      <div class="grp">Orders &amp; customers</div>
+      <div class="it">Orders <span class="tg live">Live</span></div>
+      <div class="it soon">Customers <span class="tg">Soon</span></div>
+      <div class="grp">Delivery</div>
+      <div class="it soon">Delivery partners <span class="tg">Soon</span></div>
+      <div class="it soon">COD cash settlement <span class="tg">Soon</span></div>
+      <div class="grp">Payments &amp; finance</div>
+      <div class="it soon">Payments · Refunds &amp; letters · Payouts <span class="tg">Soon</span></div>
+      <div class="grp">Support &amp; engagement</div>
+      <div class="it soon">Support · Notifications · Reviews · Analytics · Offers <span class="tg">Soon</span></div>
+      <div class="grp">Administration</div>
+      <div class="it">Control panel <span class="tg live">Live</span></div>
+      <div class="it">Zonal admins <span class="tg live">Live</span></div>
+      <div class="it">Access profiles · Access history <span class="tg live">Live</span></div>
+      <div class="it">Security · Platform settings · Settings history <span class="tg live">Live</span></div>
+      <div class="it">Audit &amp; logs <span class="tg live">Live</span></div>
+      <div class="it soon">Integration hub · Global search <span class="tg">Soon</span></div>
+      <div class="grp">My account</div>
+      <div class="it">Account security <span class="tg live">Live</span></div>
+    </div>
+    <div class="side za">
+      <div class="who">Zonal Admin <span class="chip c-za">/zone</span></div>
+      <div class="switch">Coimbatore, Madurai + 1 more ▾<br><span style="color:#7F8DAE;font-size:12px">Scope switcher: All my zones or one zone, kept in the URL as ?zone=CODE</span></div>
+      <div class="it on">Dashboard <span class="tg">Live</span></div>
+      <div class="grp">Requests &amp; approvals</div>
+      <div class="it add">Vendor onboarding (rename) <span class="tg">Proposal</span></div>
+      <div class="it soon">Restaurant onboarding <span class="tg">Soon</span></div>
+      <div class="it add">Home Food onboarding <span class="tg">Missing</span></div>
+      <div class="it soon">Food item requests <span class="tg">Soon</span></div>
+      <div class="it soon">Delivery partner requests <span class="tg">Soon</span></div>
+      <div class="it">Access requests <span class="tg live">Live</span></div>
+      <div class="grp">Service management</div>
+      <div class="it">Restaurants <span class="tg live">Live</span></div>
+      <div class="it">Home Food <span class="tg live">Live</span></div>
+      <div class="grp">Operations</div>
+      <div class="it">Orders <span class="tg live">Live</span></div>
+      <div class="it soon">Customers · Delivery partners · COD <span class="tg">Soon</span></div>
+      <div class="it soon">Payments · Refunds <span class="tg">Soon</span></div>
+      <div class="it soon">Support · Notifications <span class="tg">Soon</span></div>
+      <div class="grp">My account</div>
+      <div class="it">Account security <span class="tg live">Live</span></div>
+      <div class="grp">Never shown to Zonal Admins</div>
+      <div class="it" style="opacity:.6">Zones, zone teams, Needs a zone, menus, hotel, payouts, analytics, reviews, offers, all of Administration</div>
+    </div>
+    <div class="box shell">
+      <h3 style="font-size:18px">Navigation fixes</h3>
+      <ol>
+        <li><b>Build the onboarding queue</b> so the Requests &amp; approvals entries stop opening "Coming soon". Until then, link them to the Restaurants and Home Food lists with the Pending verification tab open.</li>
+        <li><b>Add Home Food onboarding.</b> Only restaurants have an onboarding entry. Simplest fix: rename the entry to "Vendor onboarding" with tabs Restaurants · Shops · Home Food (includes cloud kitchens).</li>
+        <li><b>Add "Needs a zone"</b> for the Super Admin, as a tab in Vendor onboarding and Delivery partner requests. The API already supports it (<code>assignment=UNASSIGNED</code>); the web never asks for it.</li>
+        <li><b>Show pending counts</b> as badges on each Requests &amp; approvals entry and add them to the bell.</li>
+        <li><b>Quick action "Add Zonal Admin"</b> on the dashboard and on Zone teams, opening the guided flow.</li>
+        <li><b>Update doc 18:</b> its sidebar list no longer matches the built one.</li>
+      </ol>
+      <h3 style="font-size:16px;margin-top:6px">Shell rules (built)</h3>
+      <ul>
+        <li>Groups fold. The active item is the longest matching link: blue for Super Admin, orange for Zonal Admin.</li>
+        <li>A Zonal Admin sees a module only with view permission in at least one zone. Hiding is not the security check: the server layouts are.</li>
+        <li>Zonal Admin on /super-admin/* gets 404; Super Admin on /zone/* gets Forbidden; no zones redirects to /zone/no-zones.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section id="workflows">
+  <div class="sec-h"><span class="n">03</span><h2>Workflows</h2>
+    <p>Each flow names the screen where the step happens. Under each flow, green lists what the built panel already does and orange lists what is missing. Every admin write runs in one transaction with an audit entry and, when the apps must know, an outbox event.</p></div>
+
+  <div class="box diagram" id="wf-onboarding">
+    <div class="dg-title"><h3>W4 · Vendor onboarding request: restaurant, shop, Home Food (cloud kitchen)</h3><small>M06, M07, R01, IH-2 · In progress</small></div>
+<pre class="mermaid">
+flowchart TD
+  S1["Vendor app: vendor fills the onboarding request. Type, business details, address, documents"] --> S2{"Pincode inside a zone?"}
+  A1["Or an admin adds the vendor for them. Zone required"] --> Q
+  S2 -- "no" --> NZ["Needs a zone  (Super Admin only)"]
+  NZ -- "assign zone, zone team notified" --> Q
+  NZ -- "reject: not serviceable" --> RJ
+  S2 -- "yes" --> Q["SUBMITTED. Shows in Vendor onboarding of that zone. Age turns amber at 24h, red at 48h"]
+  Q --> UR["UNDER REVIEW. Opened by a Super Admin, or a Zonal Admin with status permission in that zone"]
+  UR --> DC["Check each document: FSSAI, GST, PAN, bank. Accept, or reject with a note"]
+  DC --> V{"Decision"}
+  V -- "something missing" --> MI["MORE INFO REQUIRED. Message sent to the vendor app"]
+  MI --> RS["Vendor fixes and resubmits"] --> UR
+  V -- "reject with reason" --> RJ["REJECTED. Vendor told why, can apply again"]
+  V -- "approve" --> AP["APPROVED. Verification = VERIFIED"]
+  AP --> CM["Super Admin sets commission. Opening hours checked"]
+  CM --> AC["Activate. Status ACTIVE, visible in the customer app"]
+  AC --> MN["Vendor adds menu. Items go to Food item requests"]
+  AC -. "suspend with reason" .-> SU["SUSPENDED. No new orders, open ones finish"]
+  SU -. "reactivate" .-> AC
+</pre>
+    <div class="built-note">
+      <div class="yes"><b>Built today</b><ul>
+        <li>Admin adds a vendor (restaurant or shop; Home Food separately). It starts Pending and Not verified.</li>
+        <li>Restaurants and Home Food lists have a Pending verification tab and a Rejected tab.</li>
+        <li>Vendor detail: document checklist from the onboarding setting, upload, view, accept or reject each document.</li>
+        <li>Verify, reject (note required), activate (only when verified), deactivate, suspend. Each decision asks for the password.</li>
+        <li>Super Admin can move a vendor into a zone.</li>
+      </ul></div>
+      <div class="no"><b>Missing</b><ul>
+        <li>The intake API is empty, so vendors cannot apply from the app yet (IH-2).</li>
+        <li>No onboarding queue screen, no "More info required" step, no request timeline on the vendor page.</li>
+        <li>No Needs a zone tab in the web, although the API supports it.</li>
+        <li>Home Food document checklist: defaults until the Super Admin sets it in the Control Panel (D145).</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="dg-grid">
+    <div class="box diagram" id="wf-admin">
+      <div class="dg-title"><h3>W1b · Add a Zonal Admin and control access</h3><small>M03 · Built, guided flow is a proposal</small></div>
+<pre class="mermaid">
+flowchart TD
+  A["Zonal admins > Add Zonal Admin"] --> B["Step 1 Details: name, email, mobile, temporary password"]
+  B --> C["Step 2 Zones: pick one or more Active or Upcoming zones"]
+  C --> D["Step 3 Access per zone: profile, grant or deny overrides, refund limits, reveal, export"]
+  D --> E["Step 4 Preview the draft: sidebar, tiles and permissions per zone"]
+  E --> F["Step 5 Review changes + password"]
+  F --> G["Saved: audit, access history, email. Must change password at first sign-in"]
+  G --> H["Later: edit access, suspend, reset password or 2-step, sign out everywhere, remove zone"]
+  H --> I{"Last zone removed?"}
+  I -- "yes" --> J["Member lands on /zone/no-zones"]
+  R1["Zonal Admin: Access requests, ask for a zone or permission with a reason"] --> R2{"Super Admin reviews"}
+  R2 -- "approve: profile, reason, password" --> D
+  R2 -- "reject with reason" --> R3["Requester sees the decision"]
+</pre>
+      <div class="built-note">
+        <div class="yes"><b>Built today</b><ul>
+          <li>Create dialog (name, email, mobile, temporary password with Generate), then the member access page opens.</li>
+          <li>Member access: add zone with a profile, per-zone limits, reveal and export, override matrix (Profile → Grant → Deny), remove zone, save with password.</li>
+          <li>Zone teams: add or remove members per zone. Access profiles editor with impact count. Access history with before and after.</li>
+          <li>Access requests from Zonal Admins, approve or reject by Super Admin.</li>
+        </ul></div>
+        <div class="no"><b>Missing</b><ul>
+          <li>Not one guided flow: closing after step 1 leaves an account with no zone.</li>
+          <li>Preview shows saved access only; you cannot preview before saving.</li>
+          <li>Zones cannot be chosen in the create form. Creating does not ask for the password.</li>
+          <li>Zone teams "Add member" cannot set reveal, export or overrides.</li>
+        </ul></div>
+      </div>
+    </div>
+    <div class="box diagram">
+      <div class="dg-title"><h3>W1a · Zone set-up</h3><small>M02 · Built</small></div>
+<pre class="mermaid">
+flowchart TD
+  Z1["Zones > Add zone: name, code, city, state, pincodes, delivery charge"] --> Z2{"Pincode already in another zone?"}
+  Z2 -- "yes" --> Z3["Field error names the pincode and its zone"]
+  Z2 -- "no" --> Z4["Zone UPCOMING. Onboarding requests can wait here"]
+  Z4 --> Z5["Control panel: switch services on per zone. Restaurants, Home Food, Hotel"]
+  Z5 --> Z6["Activate: impact table, reason, password"]
+  Z6 --> Z7["Zone ACTIVE. zone.updated sent to apps"]
+  Z7 --> Z8["Add a team: W1b"]
+  Z7 -. "deactivate" .-> Z9["INACTIVE. New orders refused, open orders finish"]
+</pre>
+      <p class="note">Built: zone list, add and edit, zone detail with Services tab, activate and deactivate with impact check, service switches in the Control panel.</p>
+    </div>
+  </div>
+
+  <div class="dg-grid">
+    <div class="box diagram">
+      <div class="dg-title"><h3>W4b · Delivery partner request</h3><small>M10, R12 · API in progress</small></div>
+<pre class="mermaid">
+flowchart TD
+  P1["Partner app sends onboarding request, or admin adds partner"] --> P2{"Zone from pincode"}
+  P2 -- "none" --> P3["Needs a zone  (Super Admin)"] --> P4
+  P2 -- "found" --> P4["PENDING_VERIFICATION in Delivery partner requests"]
+  P4 --> P5["Documents: licence, RC, ID, bank"]
+  P5 --> P6{"Decision"}
+  P6 -- "missing item" --> P7["Ask for more info"] --> P5
+  P6 -- "reject with reason" --> P8["Rejected"]
+  P6 -- "approve" --> P9["VERIFIED, then ACTIVE"]
+  P9 --> P10{"Partner goes online"}
+  P10 -- "active + verified" --> P11["Online: can be assigned orders"]
+  P10 -- "otherwise" --> P12["Refused: PARTNER_NOT_ELIGIBLE"]
+  P11 -. "admin forces offline" .-> P13["partner.force_offline sent"]
+</pre>
+      <p class="note">One zone per partner. Partner API work is uncommitted in another lane; no partner screens yet.</p>
+    </div>
+    <div class="box diagram">
+      <div class="dg-title"><h3>W9 · Food item requests</h3><small>M08 · rules built, screen Soon</small></div>
+<pre class="mermaid">
+flowchart TD
+  V1["Vendor app edits an item"] --> V2{"Which field?"}
+  V2 -- "stock, available" --> V3["Applies immediately"]
+  V2 -- "name, price, description, category, diet, image" --> V4["Request PENDING. Old value stays live"]
+  V4 --> V5{"Reviewer decides at the version they saw"}
+  V5 -- "approve" --> V6["Approved fields written"]
+  V5 -- "reject with reason" --> V7["Rejected"]
+  V5 -- "item changed meanwhile" --> V8["Reload to see the latest"]
+  V6 --> V9["menu_item.change_decided to vendor"]
+  V7 --> V9
+  A1["Admin disables an item"] --> A2["Admin flag set, vendor value untouched"]
+</pre>
+    </div>
+  </div>
+
+  <div class="dg-grid">
+    <div class="box diagram">
+      <div class="dg-title"><h3>W5 · Order handling</h3><small>M11 · list and detail Built</small></div>
+<pre class="mermaid">
+flowchart TD
+  O1["Customer app places order"] --> O2{"Checks: customer not blocked, vendor active and open, prices match, address in zone"}
+  O2 -- "fail" --> OX["Rejected with code"]
+  O2 -- "online payment" --> O3{"Paid within 15 min?"}
+  O3 -- "no" --> OC["Auto-cancel PAYMENT_TIMEOUT"]
+  O3 -- "yes" --> O4
+  O2 -- "COD" --> O4["PLACED  (shown as Pending). Bell + toast to zone room"]
+  O4 --> O5{"Vendor accepts within 5 min?"}
+  O5 -- "no" --> O6["Admin accepts on vendor's behalf or auto-cancel + refund"]
+  O5 -- "yes" --> O7["ACCEPTED > PREPARING > READY"]
+  O6 --> O7
+  O7 --> O8["Assign partner: same zone, verified, online, under cap"]
+  O8 --> O9{"Partner accepts?"}
+  O9 -- "no" --> O8
+  O9 -- "yes" --> O10["Picked up > OUT_FOR_DELIVERY > DELIVERED"]
+</pre>
+      <p class="note">Built: list with status tabs and filters; detail with allowed status moves, cancel with reason, timeline, version check. Missing: assign partner dialog (waiting for the partner list API), live toasts, refund.</p>
+    </div>
+    <div class="box diagram">
+      <div class="dg-title"><h3>W6 · Cancel and refund</h3><small>M13 · Planned</small></div>
+<pre class="mermaid">
+flowchart TD
+  R0["Order detail > Refund  (or Cancel > refund suggested)"] --> R1["Type full / partial / goodwill, amount, reason code, note"]
+  R1 --> R2{"Within this member's limit for the order's zone?"}
+  R2 -- "yes" --> R3["APPROVED"]
+  R2 -- "no, or no limit set" --> R4["PENDING_APPROVAL > Super Admin queue"]
+  R4 --> R5{"Super Admin decides. Never their own refund"}
+  R5 -- "reject with note" --> R6["REJECTED"]
+  R5 -- "approve + password" --> R3
+  R3 --> R7["Process: gateway, wallet or manual COD. Idempotency key + ledger"]
+  R7 --> R8{"Result"}
+  R8 -- "ok" --> R9["PROCESSED. refund.updated to apps"]
+  R8 -- "failed" --> R10["FAILED: retry with same key"] --> R7
+</pre>
+      <p class="note">Default limits: ₹1,000 per refund and ₹5,000 per day per member per zone (editable in Platform settings, built). Above ₹10,000 needs two approvers (D95, not built).</p>
+    </div>
+  </div>
+
+  <div class="dg-grid">
+    <div class="box diagram">
+      <div class="dg-title"><h3>W7, W8 · COD cash, payouts, reconciliation</h3><small>M14, M15 · Planned</small></div>
+<pre class="mermaid">
+flowchart TD
+  C1["Partner marks COD collected"] --> C2["Partner cash in hand grows"]
+  C2 --> C3["Partner hands cash to hub"] --> C4["Settlement PENDING"]
+  C4 --> C5["Admin confirms amount. Variance flagged"] --> C6["settlement.confirmed to partner"]
+  P1["Weekly payout job per vendor and partner"] --> P2["Vendor net = subtotal - commission - vendor refunds"]
+  P2 --> P3{"Open dispute?"}
+  P3 -- "yes" --> P4["Payout frozen"]
+  P3 -- "no" --> P5["Super Admin reviews > Mark paid + password"]
+  Q1["Daily reconciliation with gateway"] --> Q2{"Mismatch?"}
+  Q2 -- "yes" --> Q3["Flagged. Alert finance after 48h"]
+</pre>
+    </div>
+    <div class="box diagram">
+      <div class="dg-title"><h3>W2 · A Zonal Admin's day</h3><small>M05 · Built</small></div>
+<pre class="mermaid">
+flowchart LR
+  L["Sign in"] --> S["All my zones (default)"]
+  S --> D["Dashboard: my zones, limits, modules I can open"]
+  D --> Q["Work queues: vendor onboarding, new orders, refunds"]
+  Q --> Z{"Need one zone?"}
+  Z -- "yes" --> ZS["Switch zone: URL ?zone=CODE"]
+  ZS --> Q
+  Z -- "no" --> A["Act: verify, accept, assign, refund within limit"]
+  A --> N{"Allowed?"}
+  N -- "no" --> R["Button disabled. Ask via Access requests"]
+  N -- "yes" --> T["Toast + timeline entry"]
+</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section id="states">
+  <div class="sec-h"><span class="n">04</span><h2>Status lifecycles</h2>
+    <p>Status moves only through these transitions. Anything else is refused with "This record changed" or an invalid-transition error.</p></div>
+  <div class="box diagram">
+    <div class="dg-title"><h3>Vendor onboarding request</h3><small>Stages from the module plan · More info required needs a decision</small></div>
+<pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> SUBMITTED: vendor app or admin
+  SUBMITTED --> UNDER_REVIEW: reviewer opens it
+  UNDER_REVIEW --> MORE_INFO_REQUIRED: something missing
+  MORE_INFO_REQUIRED --> UNDER_REVIEW: vendor resubmits
+  UNDER_REVIEW --> APPROVED: verified
+  UNDER_REVIEW --> REJECTED: with reason
+  REJECTED --> SUBMITTED: vendor applies again
+  APPROVED --> [*]: activate vendor
+</pre>
+    <p class="note">The database today stores only verification Pending / Verified / Rejected and status Pending / Active / Inactive / Suspended. Submitted and Under review can be shown from those fields; More info required needs a new field or status.</p>
+  </div>
+  <div class="box diagram">
+    <div class="dg-title"><h3>Order</h3><small>doc 10 §1 · UI shows PLACED as "Pending"</small></div>
+<pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> PLACED: customer app
+  PLACED --> ACCEPTED: vendor or admin
+  PLACED --> CANCELLED: anyone with reason, or timeout
+  ACCEPTED --> PREPARING
+  ACCEPTED --> CANCELLED
+  PREPARING --> READY
+  PREPARING --> CANCELLED
+  READY --> ASSIGNED: admin or system
+  READY --> CANCELLED: admin
+  ASSIGNED --> READY: reassign or partner rejects
+  ASSIGNED --> OUT_FOR_DELIVERY: picked up
+  OUT_FOR_DELIVERY --> DELIVERED: partner
+  OUT_FOR_DELIVERY --> CANCELLED: admin with refund decision
+  DELIVERED --> REFUNDED: full refund
+  CANCELLED --> REFUNDED: paid and fully refunded
+</pre>
+  </div>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Record</th><th>Statuses and moves</th><th>Who moves it</th></tr></thead>
+      <tbody>
+        <tr><td><b>Vendor verification</b></td><td>PENDING → VERIFIED or REJECTED; REJECTED → PENDING on resubmission</td><td>Admin with status permission, Super Admin</td></tr>
+        <tr><td><b>Vendor status</b></td><td>PENDING → ACTIVE (only if verified) ↔ INACTIVE; ACTIVE ↔ SUSPENDED. Open/closed today is the vendor's own switch</td><td>Admin; vendor app for open/closed</td></tr>
+        <tr><td><b>Vendor type</b></td><td>Restaurant record: RESTAURANT or SHOP (built). Home Food is its own record and includes cloud kitchens</td><td>Set at onboarding</td></tr>
+        <tr><td><b>Delivery partner</b></td><td>PENDING_VERIFICATION → VERIFIED → ACTIVE ↔ INACTIVE, SUSPENDED. Online flag separate</td><td>Admin; partner app for online</td></tr>
+        <tr><td><b>Payment</b></td><td>PENDING → PAID or FAILED; PAID → PARTIALLY_REFUNDED → REFUNDED</td><td>Gateway webhook, COD collection</td></tr>
+        <tr><td><b>Refund</b></td><td>REQUESTED → APPROVED → PROCESSED / FAILED; or → PENDING_APPROVAL → APPROVED / REJECTED</td><td>Member within limit; Super Admin above</td></tr>
+        <tr><td><b>Food item request</b></td><td>PENDING → APPROVED, REJECTED or SUPERSEDED</td><td>Reviewer</td></tr>
+        <tr><td><b>Access request</b></td><td>PENDING → APPROVED, REJECTED, or CANCELLED by requester</td><td>Super Admin; requester cancels</td></tr>
+        <tr><td><b>Zone</b></td><td>UPCOMING → ACTIVE ↔ INACTIVE. Delete only if never live</td><td>Super Admin</td></tr>
+        <tr><td><b>Admin account</b></td><td>ACTIVE ↔ SUSPENDED, or removed (soft delete ends assignments and sessions)</td><td>Super Admin</td></tr>
+        <tr><td><b>Hotel booking</b></td><td>PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT, or CANCELLED</td><td>Not designed yet (D91)</td></tr>
+        <tr><td><b>Support ticket</b></td><td>Not defined in the docs</td><td>Planned (D93, D98)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 05 -->
+<section id="pages">
+  <div class="sec-h"><span class="n">05</span><h2>Every page</h2>
+    <p>Each card shows the target layout, what the page contains, what the user can do, the rules, how the Zonal Admin version differs, what is built today, the gaps, and what competitors do. Screens without a Figma frame are provisional until the designer reviews them (D47).</p></div>
+  <div class="wf-key" aria-label="Wireframe key">
+    <span><i style="background:var(--wf-h)"></i>Header</span><span><i style="background:var(--wf-k)"></i>KPI card / button</span><span><i style="background:var(--wf-f)"></i>Filters / search</span><span><i style="background:var(--wf-n)"></i>Tabs</span><span><i style="background:var(--wf-t)"></i>Table / list</span><span><i style="background:var(--wf-c)"></i>Chart</span><span><i style="background:var(--wf-p)"></i>Panel / drawer</span><span><i style="background:var(--wf-m)"></i>Form</span>
+  </div>
+  <div class="filters" id="pgFilters" role="group" aria-label="Filter pages"></div>
+  <div class="count" id="pgCount"></div>
+  <div class="pages" id="pgList"></div>
+</section>
+
+<!-- 06 -->
+<section id="check">
+  <div class="sec-h"><span class="n">06</span><h2>Built-page check</h2>
+    <p>Every screen in one table: whether it is built, whether it matches this map, and what to fix. Taken from the code in <code>apps/web</code> on 17 Oct 2026; all built pages use the real API, none use sample data.</p></div>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Screen</th><th>Status</th><th>Matches the map</th><th>Gaps to fix</th></tr></thead>
+      <tbody id="checkRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 07 -->
+<section id="rules">
+  <div class="sec-h"><span class="n">07</span><h2>Rules on every page</h2></div>
+  <div class="cols2">
+    <div class="box"><h3 style="font-size:18px;margin-bottom:10px">Every list</h3>
+      <ul class="list-plain">
+        <li>Search, filters, sort, server pagination (25 per page).</li>
+        <li>Sticky header and pagination footer. Row action menu; row checkboxes only when bulk actions exist.</li>
+        <li>All of it lives in the URL: <code>?page&amp;pageSize&amp;sort&amp;q&amp;filters&amp;zone</code>.</li>
+        <li>Zone column and Zone chip when the scope covers more than one zone.</li>
+        <li>Phones and emails masked; Reveal is an audited action.</li>
+        <li>CSV export only with the export permission; large exports run in the background.</li>
+      </ul></div>
+    <div class="box"><h3 style="font-size:18px;margin-bottom:10px">Every state</h3>
+      <ul class="list-plain">
+        <li><b>Loading:</b> skeleton shaped like the page.</li>
+        <li><b>Empty:</b> one line and the primary action, if allowed.</li>
+        <li><b>No results:</b> "No matches" and Clear filters.</li>
+        <li><b>Error:</b> message, request id, Retry.</li>
+        <li><b>Forbidden:</b> "You don't have access" and a link home.</li>
+        <li><b>Stale:</b> "This record changed. Reload."</li>
+        <li><b>Zone removed mid-session:</b> "No longer available".</li>
+      </ul></div>
+    <div class="box"><h3 style="font-size:18px;margin-bottom:10px">Forms and actions</h3>
+      <ul class="list-plain">
+        <li>Add and edit open in a side sheet or dialog. Labels above fields, * for required.</li>
+        <li>Validate on blur and on submit; focus the first invalid field; submit disabled while saving.</li>
+        <li>Leaving with unsaved changes asks first.</li>
+        <li>Destructive actions confirm and name the target. Risky ones (access, zones, vendor decisions, security, payouts) ask for the password, or password + code.</li>
+        <li>Toasts: success clears after 4 s, errors stay until dismissed.</li>
+      </ul></div>
+    <div class="box"><h3 style="font-size:18px;margin-bottom:10px">Formats</h3>
+      <ul class="list-plain">
+        <li>Money in Indian grouping: <code>₹12,48,320</code>. Stored as paise.</li>
+        <li>Dates: <code>09 Oct 2026, 14:30</code> in India time.</li>
+        <li>Status chips always carry text. Green: active, delivered, paid, verified. Orange: pending, preparing. Blue: assigned, out for delivery. Red: cancelled, failed, suspended, rejected. Grey: inactive, draft.</li>
+        <li>Sentence-case labels; buttons are verbs: "Approve vendor", "Save changes".</li>
+      </ul></div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section id="roadmap">
+  <div class="sec-h"><span class="n">08</span><h2>Build roadmap</h2>
+    <p>Order from doc 57, with the onboarding queue pulled into workstream 3. Progress is an estimate from the code; the module tracker sheet remains the source of truth.</p></div>
+  <div class="box diagram">
+<pre class="mermaid">
+flowchart LR
+  F["Foundation: sign-in, audit, zones, access control, zone switcher"] --> CP["Control panel: settings, service switches, limits"]
+  CP --> IN["Intake API: vendor and partner onboarding requests"]
+  IN --> VN["Vendors + Vendor onboarding queue"]
+  IN --> DP["Delivery partners + partner requests"]
+  VN --> MN["Menu + Food item requests"]
+  VN --> OR["Orders"]
+  DP --> OR
+  OR --> PY["Payments + refunds"]
+  PY --> SP["Support desk"]
+  PY --> FI["COD, payouts, analytics, reviews"]
+  CP --> NT["Notifications"]
+  CP --> HT["Hotel booking"]
+  NT --> P2["Phase 2: offers, loyalty, campaigns"]
+</pre>
+  </div>
+  <div class="road" id="road"></div>
+</section>
+
+<!-- 09 -->
+<section id="competitors">
+  <div class="sec-h"><span class="n">09</span><h2>Competitor patterns</h2>
+    <p>What Zomato, Swiggy, Uber Eats Manager, DoorDash, Deliveroo, Foodpanda, StackFood/6amMart and Shef do on the same jobs, and how ZOAURO compares. Items marked "Proposal" are not in the spec; each needs an owner decision in doc 03 before anyone builds it.</p></div>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Pattern</th><th>Seen at</th><th>ZOAURO today</th><th>Where it would live</th></tr></thead>
+      <tbody id="compRows"></tbody>
+    </table>
+  </div>
+  <div class="cols2">
+    <div class="box"><h3 style="font-size:18px;margin-bottom:10px">How others run vendor onboarding</h3>
+      <ul class="list-plain">
+        <li><b>Zomato:</b> FSSAI licence per outlet is mandatory; verification takes about 3–7 days, sometimes with a visit.</li>
+        <li><b>StackFood / 6amMart:</b> separate "new joining requests" lists for restaurants and riders, with custom required fields per platform.</li>
+        <li><b>Shef:</b> long home-cook onboarding with a food-safety test, then random audits and a rating floor.</li>
+        <li><b>Swiggy:</b> partner onboarding centres for riders, shift blocks after approval.</li>
+      </ul></div>
+    <div class="box"><h3 style="font-size:18px;margin-bottom:10px">Where ZOAURO is already ahead</h3>
+      <ul class="list-plain">
+        <li>Per-zone access with deny-wins overrides and per-zone refund limits. StackFood and Enatega have flat roles.</li>
+        <li>Separate verification and status, password check on every vendor decision, audited reveal of contact details.</li>
+        <li>Menu edits gated by approval while the live value stays on sale.</li>
+        <li>Every admin decision reaches the apps through a signed, retried event with replay.</li>
+      </ul>
+      <p class="note">Sources: Uber Eats Manager learning centre, DoorDash merchant help, Deliveroo help centre, 6amTech docs and blog, Inc42 (Zomato, Swiggy), TechCrunch (Shef). Zomato and Swiggy internal ops tools are not public, so those rows are partly inferred.</p></div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="open">
+  <div class="sec-h"><span class="n">10</span><h2>Open decisions that block screens</h2>
+    <p>These need the owner before the matching screen can be finished.</p></div>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Item</th><th>Blocks</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="num">New</td><td>Cloud kitchen: a home cook, so a Home Food vendor. No new vendor type</td><td><span class="chip c-ok">Decided 18 Oct</span></td></tr>
+        <tr><td class="num">New</td><td>"More info required" onboarding stage: new status or a request record, and how the vendor app shows it</td><td><span class="chip c-bad">Needs decision</span></td></tr>
+        <tr><td class="num">New</td><td>Guided "Add Zonal Admin" flow replacing the dialog + separate access page</td><td><span class="chip c-warn">Proposal</span></td></tr>
+        <tr><td class="num">D18 → D147</td><td>Apps are still being designed: build the full admin panel with two-way integration now, test with the simulators, connect the apps later</td><td><span class="chip c-ok">Decided 18 Oct</span></td></tr>
+        <tr><td class="num">D113 → D145</td><td>Home Food documents: dynamic catalogue in the Control Panel; defaults FSSAI registration, ID proof, address proof, bank (mandatory), PAN, kitchen photo (optional) until the owner defines the list</td><td><span class="chip c-ok">Defaults in use</span></td></tr>
+        <tr><td class="num">D47</td><td>Figma frames for about 16 screens: onboarding queue, order detail, payments, access control, 2-step, integration hub and others</td><td><span class="chip c-bad">Open</span></td></tr>
+        <tr><td class="num">D6</td><td>Razorpay chosen; test keys not received yet. Payout details beyond the 7-day default (D152) not answered</td><td><span class="chip c-warn">Waiting</span></td></tr>
+        <tr><td class="num">D44 / doc 20</td><td>Payments tab set: Transactions / Refunds / Payouts / Reconciliation vs Customer payments / Restaurant payouts / Partner payouts / Refunds</td><td><span class="chip c-warn">Not reconciled</span></td></tr>
+        <tr><td class="num">Dashboards</td><td>Built dashboards show zones, access and security; Figma shows orders and revenue. Switch once orders and payments go live</td><td><span class="chip c-warn">To plan</span></td></tr>
+        <tr><td class="num">doc 16 §5</td><td>Partner payout formula</td><td><span class="chip c-warn">Finance to confirm</span></td></tr>
+        <tr><td class="num">D91 → D150</td><td>Hotels: room booking, table booking and pre-orders, designed and built in-house; existing admin roles only in phase 1 (D144)</td><td><span class="chip c-ok">Decided 18 Oct</span></td></tr>
+        <tr><td class="num">D165</td><td>"Advanced" zone deactivation: only the basic mode chosen (stop new orders, finish open ones)</td><td><span class="chip c-warn">Details later</span></td></tr>
+        <tr><td class="num">R-ORD-3 vs doc 42</td><td>Customer cancel window: until Accepted, or only while Pending</td><td><span class="chip c-warn">Docs disagree</span></td></tr>
+        <tr><td class="num">doc 18</td><td>Sidebar list is older than the built navigation</td><td><span class="chip c-warn">Doc to update</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="decisions">
+  <div class="sec-h"><span class="n">11</span><h2>Owner decisions of 18 Oct 2026</h2>
+    <p>The owner answered the open list on 18 Oct; the decisions are D143–D166 in doc 03. Almost every business value becomes a dynamic Super Admin setting in the Control Panel, with a default until the Super Admin changes it. Flow steps beyond the decision text are marked as proposals.</p></div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>New feature</th><th>Decision</th><th>What the admin panel gets</th></tr></thead>
+      <tbody>
+        <tr><td><b>Hotels: rooms, tables, pre-orders</b></td><td class="num">D150, D144</td><td>Room booking, table booking and pre-orders (a traveller orders for a chosen time and place; the partner delivers at that time). Access, rules and monitoring in the admin panel; existing admin roles only in phase 1</td></tr>
+        <tr><td><b>Auto-assign partners</b></td><td class="num">D154</td><td>Per-zone setting, off by default: nearest available partner within 5 km, 60 s offer, then the next; manual fallback with an alert. Vendor side can also pick a nearby partner</td></tr>
+        <tr><td><b>Maps</b></td><td class="num">D164</td><td>OpenStreetMap + Leaflet, PostGIS polygons and distances; zones and delivery locations on the map alongside pincodes</td></tr>
+        <tr><td><b>Global search in v1</b></td><td class="num">D143</td><td>Orders, customers, restaurants, homemakers, partners; 5 rows per group; limited to the admin's zones</td></tr>
+        <tr><td><b>Vendor override requests</b></td><td class="num">D157</td><td>Minimum order and delivery charge per zone; a vendor override is a request the Super Admin approves</td></tr>
+        <tr><td><b>Commission edit for Zonal Admins</b></td><td class="num">D155</td><td>View always; edit only where the Super Admin enables it per member and zone</td></tr>
+        <tr><td><b>Nearest zone handles unzoned items</b></td><td class="num">D162</td><td>Super Admin grant lets the nearest zone's admins take Needs-a-zone vendors and partners</td></tr>
+        <tr><td><b>More Super Admins</b></td><td class="num">D148</td><td>One at launch; a Super Admin creates more from the Control Panel; the last one can never be demoted</td></tr>
+        <tr><td><b>Exports</b></td><td class="num">D149</td><td>Everything exportable by the Super Admin; Zonal Admins only where granted per zone and module</td></tr>
+        <tr><td><b>Payments with wallet</b></td><td class="num">D159, D160</td><td>Online (UPI/Card), COD, Wallet; filters by method, status, zone, date, vendor; "Refund processing" while a refund runs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dg-grid">
+    <div class="box diagram">
+      <div class="dg-title"><h3>W15 · Hotel pre-order</h3><small>D150 · steps after "scheduled" are a proposal</small></div>
+<pre class="mermaid">
+flowchart TD
+  P1["Customer app: pre-order with delivery time and location, e.g. a traveller"] --> P2{"Checks: vendor open at that time, location inside a zone, time inside the allowed window"}
+  P2 -- "fail" --> PX["Refused with a reason"]
+  P2 -- "ok" --> P3["SCHEDULED. Shown in Hotels > Pre-orders and in the zone's orders with a countdown"]
+  P3 --> P4["Kitchen start = delivery time - prep time - travel time"]
+  P4 --> P5["At start time: ACCEPTED > PREPARING"]
+  P5 --> P6["Partner assigned: auto-assign if on, otherwise Zonal Admin"]
+  P6 --> P7["Delivered at the chosen time"]
+  P3 -. "cancelled before start" .-> P8["Cancelled under the refund rules"]
+</pre>
+    </div>
+    <div class="box diagram">
+      <div class="dg-title"><h3>W16 · Auto-assign a delivery partner</h3><small>D154 · per-zone setting, off by default</small></div>
+<pre class="mermaid">
+flowchart TD
+  A1["Order READY, or a pre-order reaches its start time"] --> A2{"Auto-assign on in this zone?"}
+  A2 -- "no" --> M["Zonal Admin assigns, or the vendor picks a nearby partner"]
+  A2 -- "yes" --> A3["Find partners: online, active, verified, under the cap, within the radius (5 km)"]
+  A3 --> A4{"Anyone found?"}
+  A4 -- "no" --> AL["Alert the zone team, fall back to manual"] --> M
+  A4 -- "yes" --> A5["Offer to the nearest partner. Timeout 60 s"]
+  A5 --> A6{"Accepted?"}
+  A6 -- "yes" --> A7["ASSIGNED. order.assigned sent to the apps"]
+  A6 -- "no or timeout" --> A8{"Another partner in the list?"}
+  A8 -- "yes" --> A5
+  A8 -- "no" --> AL
+</pre>
+    </div>
+  </div>
+
+  <div class="dg-grid">
+    <div class="box diagram">
+      <div class="dg-title"><h3>W17 · Vendor override request</h3><small>D157</small></div>
+<pre class="mermaid">
+flowchart LR
+  V1["Vendor asks to change minimum order or delivery charge"] --> V2["Request in Requests & approvals"]
+  V2 --> V3{"Super Admin decides"}
+  V3 -- "approve" --> V4["Vendor value applies. Audit + vendor.updated"]
+  V3 -- "reject with reason" --> V5["Zone values stay"]
+</pre>
+    </div>
+    <div class="box diagram">
+      <div class="dg-title"><h3>W18 · Super Admin grants in the Control Panel</h3><small>D148, D149, D155, D162</small></div>
+<pre class="mermaid">
+flowchart LR
+  SA["Super Admin > Control Panel"] --> G1["Create another Super Admin (strong re-auth)"]
+  SA --> G2["Export flag per zone and module"]
+  SA --> G3["Commission edit per member and zone"]
+  SA --> G4["Nearest zone handles unzoned items"]
+  SA --> G5["Auto-assign per zone: on/off, radius, timeout"]
+  G2 --> Z["Zonal Admin sees the new action on the next request"]
+  G3 --> Z
+  G4 --> Z
+</pre>
+    </div>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Control Panel setting</th><th>Default until changed</th><th>Decision</th></tr></thead>
+      <tbody>
+        <tr><td><b>Onboarding documents per party</b> (restaurant, homemaker, partner, hotel): add, edit, remove, mandatory or optional</td><td>Restaurants and partners per D97; homemakers FSSAI registration, ID, address proof, bank mandatory; PAN, kitchen photo optional</td><td class="num">D145</td></tr>
+        <tr><td><b>Refund rules</b>: cancellation windows, reasons, who bears the cost</td><td>R-ORD-3 windows; vendor-fault, platform and customer reasons</td><td class="num">D146, D156</td></tr>
+        <tr><td><b>Payout cycle</b> per zone</td><td>7 days; vendor-fault refunds deducted in that cycle</td><td class="num">D152, D153</td></tr>
+        <tr><td><b>Unpaid online order timeout</b> per zone and payment method</td><td>15 minutes; COD visible at once</td><td class="num">D161</td></tr>
+        <tr><td><b>Zone delivery charge cap</b></td><td>₹1,000</td><td class="num">D165</td></tr>
+        <tr><td><b>Remember me / idle sign-out</b></td><td>7 days / 8 hours</td><td class="num">D163</td></tr>
+        <tr><td><b>Auto-assign</b> per zone</td><td>Off, 5 km, 60 s</td><td class="num">D154</td></tr>
+        <tr><td><b>Commission edit</b>, <b>export flag</b>, <b>nearest-zone handling</b></td><td>Off</td><td class="num">D155, D149, D162</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Confirmed as they were: D8, D11, D14/D25 (Super Admin sees every customer), D40, D53, D60, D73, D85, D16/D17/D31, D33, D42. Colleague branches stay on GitHub untouched; the build goes to <code>feature/admin-panel-v1</code> and to <code>main</code> after testing and the demo (D151). Still open: Razorpay test keys, payout details, the "More info required" stage, advanced zone deactivation.</p>
+</section>
+
+  </main>
+</div>
+
+<script>
+// Wireframe rows: "label|span|kind". kinds: h header, k kpi/button, f filter, n tabs, t table, c chart, p panel, m form
+const PAGES = [
+ {g:"Auth",name:"Sign in",route:"/login",roles:["SA","ZA"],pri:"P0",figma:true,st:"Built",
+  wf:[["Photo background|12|h"],["Card: Logo + ZOAURO|12|p"],["Tabs: Super Admin · Zonal Admin|12|n"],["Email|12|m"],["Password + show/hide|12|m"],["Remember me|6|f","Forgot password|6|f"],["Sign in|12|k"]],
+  content:["Two tabs: Super Admin (all zones) and Zonal Admin (assigned zones)","Email, password with show/hide, remember me"],
+  actions:["Sign in; then the 2-step step","Forgot password link"],
+  states:["Error is always generic","5 failures lock the account for 30 min","Server checks the tab against the real role (D46)"],
+  built:["Full-screen photo with a white sign-in card, both tabs, remember me, forgot password"],gap:[],
+  ref:"Uber Eats Manager and Zomato use one login with the role detected after sign-in."},
+ {g:"Auth",name:"Two-step verification and setup",route:"/2fa · /2fa/setup",roles:["SA","ZA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Two-step verification · a***@…|12|h"],["Method: Authenticator · Email · SMS|12|n"],["6 code cells|12|m"],["Resend in 0:42|6|f","Use backup code|6|f"],["Setup: QR · manual key · 10 backup codes|12|p"]],
+  content:["Code entry with method switch","Setup wizard: confirm email, add method, save 10 backup codes"],
+  actions:["Verify, resend, use backup code","Copy or download codes, continue only after confirming they are saved"],
+  states:["Wrong code, locked, expired"],built:["Both pages built"],gap:[],ref:""},
+ {g:"Auth",name:"Forgot, reset and change password",route:"/forgot-password · /reset-password · /change-password",roles:["SA","ZA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Reset your password|12|h"],["Email|12|m"],["Send reset link|12|k"],["New password · Confirm|12|m"]],
+  content:["Change password is forced after a temporary password"],
+  actions:["Send reset link (same message whether or not the email exists)","Set new password"],
+  states:["A reset never skips 2-step"],built:["All three built; reset link token not sent as referrer"],gap:[],ref:""},
+ {g:"Auth",name:"Account security",route:"/account/security",roles:["SA","ZA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Account security|12|h"],["Password|12|p"],["Two-step methods · primary · Add / Remove|12|p"],["Backup codes · Regenerate|12|p"],["Active sessions · Revoke|12|t"],["Recent sign-ins|12|t"]],
+  content:["Password, 2-step methods, backup codes, active sessions, recent sign-ins"],
+  actions:["Change password, add or remove method, regenerate codes, revoke sessions"],
+  states:["Sensitive actions ask for the password again"],built:["Matches the map"],gap:[],ref:""},
+
+ {g:"Dashboards",name:"Super Admin dashboard",route:"/super-admin/dashboard",roles:["SA"],pri:"P0",figma:true,st:"Built",
+  wf:[["Good morning, Priya|8|h","Date range|4|f"],["Orders|2|k","Revenue|2|k","Pending onboarding|2|k","Active vendors|2|k","Partners online|2|k","Cancel rate|2|k"],["Order overview|8|c","Order status|4|c"],["Revenue vs payouts|6|c","Zone performance|6|c"],["Waiting for you: onboarding · access · refunds|6|t","Recent orders|6|t"],["Zones without a team · Security status|12|p"]],
+  content:["Target (Figma): orders and money KPIs, order and revenue charts, zone performance, recent orders, new registrations","Proposal: a \"Waiting for you\" card with pending onboarding, access requests and refunds"],
+  actions:["Every tile opens the matching filtered list"],
+  states:["Money in Indian grouping"],
+  built:["Header buttons: System logs, Add zone","Tiles: total zones, active zones, zones without a team, 2-step %","Banner for pending access requests; warning when only one Super Admin is active","Cards: zones by status, security, Zonal Admin counts, recent access changes, recent activity, modules live"],
+  gap:["Orders and revenue tiles and charts wait for the orders and payments APIs","No pending-onboarding tile yet"],
+  ref:"Uber Home and Foodpanda lead with sales, orders and average order value."},
+ {g:"Dashboards",name:"Zonal Admin dashboard",route:"/zone/dashboard",roles:["ZA"],pri:"P0",figma:true,st:"Built",
+  wf:[["Welcome back · Coimbatore, Madurai + 1|12|h"],["Orders|3|k","Pending onboarding|3|k","Restaurants|2|k","Partners|2|k","Customers|2|k"],["Orders last 7 days|8|c","Status donut|4|c"],["My zones: limits + what I can do|6|p","Zone-wise orders|6|c"]],
+  content:["Target: orders, vendors, partners and customers for my zones, charts, recent items","Only modules the member can view"],
+  actions:["Switch scope from the sidebar card"],states:["Revenue hidden without payments view"],
+  built:["Tiles: my zones, modules I can open, highest per-refund limit, account security","One card per zone: limits, reveal, export, what I can do","My modules grid with Live and Soon"],
+  gap:["Operational tiles and charts wait for the order and vendor counts API","No pending-onboarding count for my zones"],ref:""},
+ {g:"Dashboards",name:"No zones assigned",route:"/zone/no-zones",roles:["ZA"],pri:"P0",figma:false,st:"Built",
+  wf:[["You are not assigned to any zone yet|12|h"],["Ask a Super Admin|12|p"],["Request a zone|6|k","Sign out|6|f"]],
+  content:["Shown when a Zonal Admin has no zone, also when the last one is removed"],actions:["Sign out"],states:[],
+  built:["Static message"],gap:["Add a \"Request a zone\" button that opens Access requests (check the area gate allows it)"],ref:""},
+ {g:"Dashboards",name:"Recent activities",route:"/super-admin/activity",roles:["SA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Recent activities|9|h","System logs|3|f"],["Everything · Denied · Sensitive · Module|12|f"],["Today / Yesterday groups: actor · action · record|12|t"]],
+  content:["Audit feed grouped by day, 30 per page"],actions:["Open detail drawer","Go to System logs"],states:[],built:["Matches the map"],gap:[],ref:""},
+
+ {g:"Onboarding",name:"Vendor onboarding requests",route:"/super-admin/registrations · /zone/registrations (nav slug restaurant-requests)",roles:["SA","ZA"],pri:"P0",figma:false,st:"Planned",
+  wf:[["Vendor onboarding · 14 waiting|9|h","+ Add vendor|3|k"],["Restaurants · Shops · Home Food (incl. cloud kitchens) · Needs a zone (SA)|12|n"],["Submitted · Under review · More info · Decided|12|n"],["Search · Zone · Source app · Age|12|f"],["Applicant · Type · Zone · Submitted · Age 26h · Docs 3/4|7|t","Review panel: details, map link, documents checklist|5|p"],["Ask for more info|4|f","Reject|4|f","Approve|4|k"]],
+  content:["Every onboarding request in the member's zones, by vendor type and stage","Age turns amber after 24 h and red after 48 h","Review panel: submitted data, address with map link, documents with preview, source app and time"],
+  actions:["Approve (verifies the vendor; activate next)","Reject with reason","Ask for more info with a message (proposal)","Super Admin: assign a zone or reject as not serviceable in Needs a zone"],
+  states:["Approve and reject ask for the password","Verifying needs the status permission in that zone","Unzoned requests are never shown to Zonal Admins"],
+  za:"Sees requests only in assigned zones and only for vendor types they can view. No Needs a zone tab.",
+  built:["Nothing yet: nav entry opens \"Coming soon\". Interim: Pending verification tab on the Restaurants and Home Food lists"],
+  gap:["Build the queue page (R01, IH-9)","Intake API for app requests (IH-2)","More info required stage needs a decision"],
+  ref:"StackFood \"new joining requests\" per type; Zomato checks FSSAI per outlet; Shef adds a food-safety test for home cooks."},
+ {g:"Onboarding",name:"Delivery partner requests",route:"nav slug partner-requests",roles:["SA","ZA"],pri:"P0",figma:false,st:"Planned",
+  wf:[["Delivery partner requests|12|h"],["Submitted · Under review · More info · Decided · Needs a zone (SA)|12|n"],["Applicant · Vehicle · Zone · Age · Docs|7|t","Review: licence, RC, ID, bank|5|p"]],
+  content:["Same layout as vendor onboarding, with partner documents"],actions:["Approve, reject, ask for more info"],states:[],
+  built:["Nav entry only (Coming soon). Partner API in progress in another lane"],gap:["Build after the partner API lands"],
+  ref:"Swiggy runs onboarding centres and shift blocks; StackFood has rider join requests."},
+ {g:"Onboarding",name:"Food item requests",route:"nav slug food-item-requests",roles:["SA","ZA"],pri:"P0",figma:false,st:"Planned",
+  wf:[["Food item requests|12|h"],["Pending · Decided|12|n"],["Vendor · Item · Kind · Changes · Age|7|t","Old vs new · Approve · Reject|5|p"]],
+  content:["Create, update and delete requests from the vendor app"],actions:["Approve at the version shown","Reject with reason"],
+  states:["Item changed meanwhile: reload"],built:["Rules and contract built; screen is Coming soon"],gap:["Waiting for the menu API"],
+  ref:"StackFood has a food approval queue; Foodpanda reportedly approves price changes."},
+
+ {g:"Zones & access",name:"Zone management",route:"/super-admin/zones",roles:["SA"],pri:"P0",figma:true,st:"Built",
+  wf:[["Zone management|9|h","+ Add zone|3|k"],["Total|3|k","Active|3|k","Inactive|3|k","Upcoming|3|k"],["Search · State|12|f"],["Zone · City/State · Pincodes · Delivery · Team · Restaurants · Home Food · Partners · Status · ⋯|12|t"]],
+  content:["KPI tiles that also filter","Add/edit form: name, code, city, state, delivery charge, description, pincodes by range or list"],
+  actions:["Add zone; row menu: view, edit, activate/deactivate, delete"],states:["Pincode overlap names the other zone"],
+  built:["Matches the map"],gap:[],ref:"StackFood draws zones as map polygons; ZOAURO uses pincodes (D82)."},
+ {g:"Zones & access",name:"Zone detail",route:"/super-admin/zones/[id]",roles:["SA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Coimbatore · CBE · Active|8|h","Edit · Deactivate|4|f"],["Overview · Pincodes · Services · Team · Activity|12|n"],["Counts + operational snapshot|6|p","Impact|6|p"]],
+  content:["Tabs: overview, pincodes, services on/off, team (read-only), activity"],
+  actions:["Deactivate with impact table, reason, acknowledgement, password"],states:[],built:["Matches the map, plus a Services tab"],gap:["Team tab is read-only: add a link to Add Zonal Admin / Zone teams"],ref:""},
+ {g:"Zones & access",name:"Zonal admins",route:"/super-admin/zonal-admins",roles:["SA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Zonal admins|9|h","+ Add Zonal Admin|3|k"],["Accounts|4|k","Without a zone|4|k","Without 2-step|4|k"],["Search · Status|12|f"],["Member · Zones + profile · Status · 2-step · Last sign-in · ⋯|12|t"]],
+  content:["List with zone chips and the profile per zone"],
+  actions:["Add Zonal Admin (guided flow W1b, proposal)","Row: zones and access, edit, reset password, sign out everywhere, suspend/reactivate, delete"],
+  states:["Each sensitive action asks for the password"],
+  built:["Tiles, search, status filter, columns and row menu as above","Create dialog: name, email, mobile, temporary password with Generate; then opens member access"],
+  gap:["\"Without a zone\" and \"Without 2-step\" tiles count only the current page","Creating an account does not ask for the password","No zone choice when creating; closing early leaves an account with no zone"],ref:""},
+ {g:"Zones & access",name:"Zonal admin detail",route:"/super-admin/zonal-admins/[id]",roles:["SA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Arun K · Active|8|h","Edit · Zones and access|4|f"],["Zones: zone · profile · zone status|6|t","Account: email, mobile, 2-step, sessions, lock|6|p"],["Reset password · Reset 2-step · Sign out everywhere · Suspend · Delete|12|f"]],
+  content:["Zones card, account facts, links to access history and system logs for this person"],
+  actions:["Reset password, reset 2-step (reason + strong check), sign out everywhere, suspend, delete"],states:[],built:["Matches the map"],gap:[],ref:""},
+ {g:"Zones & access",name:"Member access editor",route:"/super-admin/access/members/[userId]",roles:["SA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Arun K · Zonal Admin|8|h","+ Add zone|4|k"],["Coimbatore: profile · limits · reveal · export · overrides|6|p","Madurai: profile · limits · reveal · export · overrides|6|p"],["Preview: modules + permissions for a zone|12|p"],["Unsaved changes · Discard · Save + password|12|k"]],
+  content:["One card per zone","Override matrix: each cell Profile → Grant → Deny; Super Admin-only cells locked"],
+  actions:["Add or remove zone","Save with password; version clash asks to reload"],states:["Deny wins over grant","Leave-page warning for unsaved edits"],
+  built:["All of the above"],gap:["Preview shows saved access only: let it preview the draft","No \"same access in all zones\" shortcut"],
+  ref:"Uber Eats has fixed staff roles; ZOAURO's per-zone access is finer than any competitor reviewed."},
+ {g:"Zones & access",name:"Zone teams",route:"/super-admin/access/teams",roles:["SA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Zone teams|8|h","Zone picker|4|f"],["Team size|4|k","Active|4|k","With overrides|4|k"],["Member · Profile · Overrides · Per refund · Per day · Remove|12|t"],["+ Add member|12|k"]],
+  content:["Members of the chosen zone"],actions:["Add member (search, profile, limits, note, password)","Remove member (password)"],states:[],
+  built:["All of the above"],gap:["Add member cannot set reveal, export or overrides","No banner for zones with no members"],ref:""},
+ {g:"Zones & access",name:"Access profiles",route:"/super-admin/access/profiles · /[id]",roles:["SA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Access profiles|9|h","+ New profile|3|k"],["Profile · Used by · Per refund · Per day · Reveal/Export · Updated|12|t"],["Editor: module × View · Add · Edit · Delete · Status|8|t","Limits · Reveal · Export|4|m"],["Save → affects N members → password|12|k"]],
+  content:["Seed profiles marked","Super Admin-only modules shown locked"],actions:["New (start from an existing profile), rename, delete when unused, edit"],states:[],
+  built:["Matches the map"],gap:[],ref:""},
+ {g:"Zones & access",name:"Access requests",route:"/super-admin/access/requests · /zone/access-requests",roles:["SA","ZA"],pri:"P1",figma:false,st:"Built",
+  wf:[["Access requests · 3 pending|9|h","Status|3|f"],["Requester · Kind · Zone · Permission · Reason · Age|12|t"],["Review: current access · profile · reason · Approve / Reject|12|p"]],
+  content:["Zonal Admin asks for a permission in one of their zones, or another zone, with a business reason","Super Admin queue"],
+  actions:["Approve (profile for zone requests, reason, password)","Reject (reason)","Requester can cancel while pending"],
+  states:["Only grantable items can be requested","No self-approval"],built:["Matches the map"],gap:["Reject does not ask for the password (approve does); confirm this is intended"],ref:""},
+ {g:"Zones & access",name:"Access change history",route:"/super-admin/access/history",roles:["SA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Access change history|12|h"],["Member · Zone · Change type · Dates|12|f"],["Grouped by day · expand to before/after|12|t"]],
+  content:["Change types: profile set, override set, limit set, zone added, zone removed, profile edited"],actions:["Filter, expand, load older"],states:[],built:["Matches the map"],gap:[],ref:""},
+
+ {g:"Vendors",name:"Restaurants and Home Food list",route:"/super-admin/restaurants · /homemakers · /zone/restaurants · /zone/homemakers",roles:["SA","ZA"],pri:"P0",figma:true,st:"Built",
+  wf:[["Restaurants|9|h","+ Add restaurant|3|k"],["All · Pending verification · Active · Inactive · Suspended · Rejected (counts)|12|n"],["Search · Sort · Type (Restaurant, Shop) · Zone|12|f"],["Name + source · Zone · Area · Cuisines · Phone (masked) · Status + verification · Added|12|t"]],
+  content:["Same screen for both roles and both vendor modules","Name column shows Shop marker and \"Joined from the app\" or \"Added by an admin\""],
+  actions:["Add vendor","Open vendor"],states:["Zone column only when several zones are in scope"],
+  za:"Only granted zones; commission read-only; zone pre-filled when they have one zone.",
+  built:["Status tabs with counts, search, sort, columns above, 25 per page, zone switcher narrows the list"],
+  gap:["No type filter (Restaurant / Shop)","No Needs a zone filter for Super Admin","No bulk activate / suspend","Rating, commission and today's orders columns wait for orders data"],
+  ref:"StackFood keeps restaurants and joining requests as separate lists."},
+ {g:"Vendors",name:"Vendor detail",route:"…/restaurants/[id] · …/homemakers/[id]",roles:["SA","ZA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Spice Garden · Pending · Not verified · CBE|8|h","Edit · Move zone · Delete|4|f"],["Decisions: Verify · Reject · Activate · Deactivate · Suspend|12|p"],["Details|6|p","Opening hours|6|p"],["Documents checklist: FSSAI · GST · PAN · Bank|8|t","Onboarding timeline|4|t"],["Menu · Orders · Finance tabs (later)|12|n"]],
+  content:["Two badges: status and verification, plus verification note and who verified","Details: zone, type, owner, contact, address, tags, FSSAI, GST, minimum order, commission, source"],
+  actions:["Verify (optional note), reject (note required), activate when verified, deactivate or suspend with reason; each confirmed with password","Accept or reject each document; upload documents","Move zone (Super Admin, reason)","Reveal contact (audited)"],
+  states:["Unzoned vendor: edits blocked until moved into a zone","Delete disabled while active"],
+  built:["Everything listed above"],
+  gap:["No \"ask for more info\" action","No onboarding timeline (who did what, when)","Menu, orders and finance tabs not yet"],
+  ref:"DoorDash and Deliveroo show a store quality scorecard (reject rate, downtime, accuracy): proposal for later."},
+ {g:"Vendors",name:"Add / edit vendor",route:"Dialog on the vendor list",roles:["SA","ZA"],pri:"P0",figma:false,st:"Built",
+  wf:[["Add restaurant|12|h"],["Zone (required)|6|m","Type: Restaurant · Shop|6|m"],["Name · Owner · Mobile · Email|12|m"],["Address · Area|12|m"],["Cuisines|6|m","FSSAI · GST|6|m"],["Minimum order ₹|4|m","Commission % (SA)|4|m","Opening hours|4|m"],["Cancel|6|f","Save|6|k"]],
+  content:["Home Food: food category, specialities, experience, orders per day, taking orders"],actions:["Save"],
+  states:["New vendor starts Pending and Not verified","Service switched off in the zone: clear error"],
+  built:["All fields above; type is Restaurant or Shop (cloud kitchens join as Home Food)"],gap:[],ref:""},
+ {g:"Vendors",name:"Menus and food items",route:"nav slug menu-items",roles:["SA","ZA"],pri:"P0",figma:true,st:"Planned",
+  wf:[["Menus & food items|9|h","+ Add item|3|k"],["Search · Vendor · Category · Availability|12|f"],["Item · Vendor · Category · Price · Stock · Available · Featured · ⋯|12|t"]],
+  content:["Out of stock tag when stock is 0"],actions:["Add or edit item, bulk availability / category / price (all or nothing), admin disable"],states:[],
+  built:["Coming soon"],gap:["Waiting for the menu API"],ref:""},
+
+ {g:"Orders",name:"Orders list",route:"/super-admin/orders · /zone/orders",roles:["SA","ZA"],pri:"P0",figma:true,st:"Built",
+  wf:[["Orders|9|h","Export|3|f"],["All · Pending · Accepted · Preparing · Ready · Out · Delivered · Cancelled (counts)|12|n"],["Search · Payment · Vendor type · Dates|12|f"],["Order · Customer · Vendor · Zone · Partner · Amount · Payment · Status · Placed|12|t"]],
+  content:["Status tabs with counts","Payment methods: UPI, card, COD, wallet"],actions:["Open order"],states:[],
+  built:["Tabs with counts, search, payment / vendor type / date filters, columns above"],
+  gap:["No CSV export","No live new-order toast (Socket.IO module not built)","No partner filter"],
+  ref:"Deliveroo and Uber show SLA timers on live orders: proposal for an at-risk chip."},
+ {g:"Orders",name:"Order detail",route:"…/orders/[id]",roles:["SA","ZA"],pri:"P0",figma:false,st:"Built",
+  wf:[["ZO-CBE-00123 · Preparing · CBE|8|h","Move status · Cancel|4|f"],["Items|7|t","Payment|5|p"],["Customer + delivery|6|p","Partner · Assign|6|p"],["Timeline with source|12|t"]],
+  content:["Status with allowed next steps, items, payment, customer, timeline"],
+  actions:["Move status, cancel with reason; both sent with the version shown"],states:["Stale version reloads the order"],
+  built:["Everything listed above"],gap:["Assign partner dialog not done (waiting for the partner list API)","Refund not built","Internal notes not built"],ref:""},
+
+ {g:"People",name:"Customers",route:"nav slug customers",roles:["SA","ZA"],pri:"P0",figma:true,st:"Planned",
+  wf:[["Customers|9|h","+ Add customer|3|k"],["Search · Status · Area · Source · Joined|12|f"],["Name · Phone (masked) · Orders · Source · Blocked · ⋯|12|t"]],
+  content:["Profile: contact, addresses, orders, refunds"],actions:["Add, block or unblock, reveal contact (audited)"],states:[],
+  za:"Visible when the customer has an address or order in a zone where the member can view customers.",built:["Coming soon"],gap:[],ref:""},
+ {g:"People",name:"Delivery partners",route:"nav slug delivery-partners",roles:["SA","ZA"],pri:"P0",figma:true,st:"In progress",
+  wf:[["Delivery partners|9|h","+ Add partner|3|k"],["Search · Status · Online · Vehicle · Zone|12|f"],["Name · Vehicle · Zone · Verification · Status · Online · Cash in hand · ⋯|12|t"]],
+  content:["One zone per partner","Cash in hand from COD"],actions:["Add, verify documents, force offline, suspend"],states:[],
+  built:["API in progress in another lane; no screen"],gap:["Partner list shape needed by the order Assign dialog"],ref:""},
+
+ {g:"Money",name:"Payments, refunds, COD, payouts",route:"nav slugs payments · refunds · cod-settlement · payouts",roles:["SA","ZA"],pri:"P0",figma:false,st:"Planned",
+  wf:[["Payments|12|h"],["Transactions · Refunds · Payouts · Reconciliation · Cash|12|n"],["Refund dialog: type · amount · reason · daily limit left|6|p","Approval queue|6|t"]],
+  content:["Refund within member limits; above limit goes to Super Admin","COD cash: partner cash in hand, hand-overs, variance","Weekly payouts, reconciliation"],
+  actions:["Issue refund, approve or reject, confirm cash, mark payout paid"],states:["Refund limits already editable in Platform settings"],
+  built:["Coming soon pages; refund limit settings built"],gap:["Waiting for the gateway decision (D6)"],ref:"DoorDash ties disputes to payouts; StackFood limits cash in hand."},
+
+ {g:"Platform",name:"Control panel",route:"/super-admin/control-panel",roles:["SA"],pri:"P1",figma:false,st:"Built",
+  wf:[["Control panel|12|h"],["Zones|3|k","Restaurants on|3|k","Home Food on|3|k","Hotel on|3|k"],["Services by zone: on/off switches|12|t"],["People and access links|6|p","Platform settings summary|6|p"]],
+  content:["Service switches per zone and type","Links to Zonal admins, profiles, teams, history, zones, security"],
+  actions:["Switch a service on or off (confirm + password, audited)"],states:[],built:["Matches the map"],gap:[],ref:""},
+ {g:"Platform",name:"Platform settings and history",route:"/super-admin/settings/platform · /settings/history",roles:["SA"],pri:"P1",figma:false,st:"Built",
+  wf:[["Platform settings|8|h","Platform or zone|4|f"],["Refunds · Onboarding · Support · Notifications · Orders · SMS · Loyalty · Security|12|n"],["Setting · Source · Effect · Value · Edit|12|t"],["History: who, why, before → after|12|t"]],
+  content:["Refund limits and rules, onboarding documents, support SLA, notifications, order number format, max orders per partner, SMS, loyalty"],
+  actions:["Edit → preview → reason → password","Reset to default"],states:["Zone values override platform values"],
+  built:["Matches the map"],gap:["Home Food onboarding documents empty until the owner confirms (D113)"],ref:""},
+ {g:"Platform",name:"Security settings",route:"/super-admin/settings/security",roles:["SA"],pri:"P1",figma:true,st:"Built",
+  wf:[["Security|12|h"],["2-step policy per role|6|m","Security status|6|p"],["Lockout · session · SMS (read-only)|12|p"]],
+  content:["2-step policy per role editable; lockout, session and SMS values read-only"],actions:["Save with strong check"],states:[],built:["Built"],gap:[],ref:""},
+ {g:"Platform",name:"Audit logs",route:"/super-admin/settings/logs",roles:["SA"],pri:"P0",figma:false,st:"Built",
+  wf:[["System logs|9|h","Export|3|f"],["Activity · Sign-ins|12|n"],["Date · Actor · Module · Action · Zone · Outcome|12|f"],["Time · Actor · Action · Record · Zone · Flags|8|t","Drawer: before/after|4|p"]],
+  content:["Filters kept in the URL","Related logs in the drawer"],actions:["Filter, open drawer"],states:[],built:["Built"],gap:[],ref:""},
+ {g:"Platform",name:"Integration hub",route:"nav slug integrations",roles:["SA"],pri:"P0",figma:false,st:"Planned",
+  wf:[["Integration hub|12|h"],["Customer app|4|p","Vendor app|4|p","Partner app|4|p"],["Inbound · Outbound events|12|n"],["Time · App · Type · Record · Zone · Result|12|t"]],
+  content:["App connections, webhooks, event monitor, needs attention"],actions:["Rotate secret, disable app, retry or replay events"],states:[],
+  built:["Coming soon"],gap:["Needed before apps can send onboarding requests"],ref:""},
+ {g:"Platform",name:"Notifications, support, hotel, analytics, offers, reviews",route:"Coming soon pages",roles:["SA"],pri:"P2",figma:false,st:"Planned",
+  wf:[["Notifications · Support · Hotel · Analytics · Offers · Reviews|12|n"],["List|6|t","Detail|6|p"]],
+  content:["Planned modules; each Coming soon page already shows its plan"],actions:[],states:[],built:["Coming soon"],gap:[],ref:""}
+];
+
+const STATUS = {"Built":"c-ok","In progress":"c-warn","Planned":"c-n"};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const groups = ["All", ...new Set(PAGES.map(p => p.g)), "Zonal Admin", "Has gaps"];
+let current = "All";
+try { const saved = localStorage.getItem("zo-map-filter"); if (saved && groups.includes(saved)) current = saved; } catch (e) {}
+
+function wire(rows){
+  return rows.map(r => '<div class="wrow">' + r.map(cell => {
+    const [label, span, kind] = cell.split("|");
+    return '<div class="blk k-' + kind + '" style="grid-column:span ' + span + '">' + esc(label) + '</div>';
+  }).join("") + '</div>').join("");
+}
+function list(title, items, cls){
+  if (!items || !items.length) return "";
+  const inner = '<h4>' + title + '</h4><ul>' + items.map(i => '<li>' + esc(i) + '</li>').join("") + '</ul>';
+  return cls ? '<div class="' + cls + '">' + inner + '</div>' : '<div>' + inner + '</div>';
+}
+function card(p){
+  const roles = p.roles.map(r => '<span class="chip ' + (r === "SA" ? "c-sa" : "c-za") + '">' + r + '</span>').join("");
+  return '<article class="pg"><div class="pg-h"><div class="row"><h3>' + esc(p.name) + '</h3><div class="tags">' + roles +
+    '<span class="chip c-n">' + p.pri + '</span><span class="chip ' + STATUS[p.st] + '"><span class="dot"></span>' + p.st + '</span>' +
+    '<span class="chip c-n">' + (p.figma ? "Figma frame" : "No Figma frame") + '</span></div></div><div class="route">' + esc(p.route) + '</div></div>' +
+    '<div class="pg-b"><div class="wf"><div class="wf-cap">Target layout</div><div class="frame">' + wire(p.wf) + '</div></div>' +
+    '<div class="spec">' + list("Content", p.content) + list("Actions", p.actions) + list("Rules and states", p.states) +
+    (p.za ? '<div class="zadiff"><b>Zonal Admin:</b> ' + esc(p.za) + '</div>' : "") +
+    list("Built today", p.built, "builtbox") + list("Gaps to fix", p.gap, "gapbox") +
+    (p.ref ? '<div class="ref"><b>Competitors:</b> ' + esc(p.ref) + '</div>' : "") + '</div></div></article>';
+}
+function render(){
+  const shown = PAGES.filter(p => current === "All" ? true : current === "Zonal Admin" ? p.roles.includes("ZA") : current === "Has gaps" ? (p.gap && p.gap.length) : p.g === current);
+  document.getElementById("pgList").innerHTML = shown.map(card).join("");
+  document.getElementById("pgCount").textContent = shown.length + " of " + PAGES.length + " screens · " +
+    PAGES.filter(p => p.st === "Built").length + " built, " + PAGES.filter(p => p.st === "In progress").length + " in progress, " +
+    PAGES.filter(p => p.st === "Planned").length + " planned";
+  document.querySelectorAll("#pgFilters button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.g === current)));
+}
+document.getElementById("pgFilters").innerHTML = groups.map(g => '<button type="button" id="f-' + g.replace(/\W+/g, "-") + '" data-g="' + esc(g) + '">' + esc(g) + '</button>').join("");
+document.getElementById("pgFilters").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  current = b.dataset.g; try { localStorage.setItem("zo-map-filter", current); } catch (err) {}
+  render();
+});
+render();
+
+document.getElementById("checkRows").innerHTML = PAGES.map(p => {
+  const gaps = p.gap || [];
+  let match, cls;
+  if (p.st !== "Built") { match = p.st === "In progress" ? "Partly built" : "Not built"; cls = p.st === "In progress" ? "c-warn" : "c-n"; }
+  else if (!gaps.length) { match = "Yes"; cls = "c-ok"; }
+  else { match = "Mostly"; cls = "c-warn"; }
+  return '<tr><td><b>' + esc(p.name) + '</b><br><span class="mono" style="color:var(--muted)">' + esc(p.route) + '</span></td>' +
+    '<td><span class="chip ' + STATUS[p.st] + '">' + p.st + '</span></td><td><span class="chip ' + cls + '">' + match + '</span></td>' +
+    '<td>' + (gaps.length ? '<ul>' + gaps.map(g => '<li>' + esc(g) + '</li>').join("") + '</ul>' : '<span style="color:var(--muted)">None found</span>') + '</td></tr>';
+}).join("");
+
+const ROAD = [
+ ["1","Foundation: sign-in, audit, zones, access control, zone switcher","M01–M05",100,"Built"],
+ ["2","Control panel: service switches, platform settings, history, access requests","D92, D109",80,"Built"],
+ ["3","Vendors + Vendor onboarding queue (restaurant, shop, Home Food incl. cloud kitchens)","M06, M07, R01, IH-2, IH-9",55,"In progress"],
+ ["4","Orders: list, detail, timeline, assign, cancel","M11",60,"In progress"],
+ ["5","Menu items and food item requests","M08, R07–R09",20,"In progress"],
+ ["6","Delivery partners and partner requests","M10, R12",15,"In progress"],
+ ["7","Payments and refunds (gateway D6)","M12, M13, R16",5,"Planned"],
+ ["8","Support desk","D93, D98",0,"Planned"],
+ ["9","Notifications and live alerts","M17",0,"Planned"],
+ ["10","Hotel booking","D91, D118",10,"In progress"],
+ ["11","COD settlement, payouts, analytics, reviews","M14, M15, M20",0,"Planned"],
+ ["12","Phase 2: offers, loyalty, campaigns","M20",0,"Planned"]
+];
+document.getElementById("road").innerHTML = ROAD.map(([n,t,m,pct,st]) =>
+  '<div class="lane"><span class="n">' + n.padStart(2,"0") + '</span><div><b>' + esc(t) + '</b><p>' + esc(m) + ' · about ' + pct + '%</p><div class="bar"><i style="width:' + pct + '%"></i></div></div><span class="st chip ' + STATUS[st] + '"><span class="dot"></span>' + st + '</span></div>').join("");
+
+const COMP = [
+ ["Joining-request queue per vendor type, with document checklist","StackFood, Zomato (FSSAI)","Planned: Vendor onboarding requests; checklist built in settings","Vendor onboarding","warn"],
+ ["Ask the applicant for more information instead of rejecting","Zomato, Shef","Proposal: More info required stage","Vendor onboarding","n"],
+ ["Live order board with SLA timers and at-risk alerts","Deliveroo, Uber Eats, StackFood","Partly: live monitor in the docs, no route yet","Orders","warn"],
+ ["Mandatory reason codes on reject and cancel","Deliveroo, DoorDash","Built for cancel and vendor decisions","Order detail, vendor detail","ok"],
+ ["Reports grouped by cancel reason","DoorDash, Deliveroo","Proposal","Analytics (P2)","n"],
+ ["Vendor quality scorecard: reject rate, downtime, accuracy, prep time","DoorDash, Uber Eats, Deliveroo","Proposal","Vendor detail","n"],
+ ["Zone as the root of everything, per-zone shut-off","StackFood, 6amMart","Built: pincode zones, service switches per zone","Zones, Control panel","ok"],
+ ["Menu and price change approval","StackFood, Foodpanda","In spec (R09), rules built","Food item requests","ok"],
+ ["Dispatch queue of unassigned orders, reassign on a rider map","StackFood","Partly: same-zone assign dialog planned; maps out of scope","Order detail","warn"],
+ ["Disputes and error charges deducted from payouts","DoorDash","Partly: payouts frozen during disputes","Payouts","warn"],
+ ["Configurable payout cycle, daily option for small vendors","StackFood, Zomato","Weekly only","Payouts","n"],
+ ["Cash-in-hand limit that warns, then suspends","StackFood","Proposal; cash in hand is tracked","COD settlement","n"],
+ ["Rider shifts, vehicle classes, incentives","Swiggy, StackFood","Proposal","Delivery partners","n"],
+ ["Alert feed: vendor offline, cancel spike, 1-star review","Foodpanda","Partly: refund-spike alert, notifications planned","Bell, Dashboard","warn"],
+ ["Busy / pause / holiday controls, prep-time setting","DoorDash, Uber Eats, Deliveroo","Partly: opening hours, vendor open/closed switch","Vendor detail, Settings","warn"],
+ ["Tiered staff roles","Uber Eats","Built and stronger: per-zone access profiles with overrides","Access profiles","ok"],
+ ["Ongoing home-cook compliance: audits, rating floor, certificate expiry","Shef, Cookr","Proposal","Home Food detail","n"]
+];
+const LBL = {ok:"c-ok",warn:"c-warn",n:"c-n"};
+document.getElementById("compRows").innerHTML = COMP.map(([p,s,z,w,k]) =>
+  '<tr><td><b>' + esc(p) + '</b></td><td>' + esc(s) + '</td><td><span class="chip ' + LBL[k] + '">' + esc(z) + '</span></td><td>' + esc(w) + '</td></tr>').join("");
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default', securityLevel: 'strict', flowchart: { htmlLabels: true, useMaxWidth: false } });
+</script>
+</body>
+</html>
