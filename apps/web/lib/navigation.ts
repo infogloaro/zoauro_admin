@@ -523,6 +523,17 @@ export const NAV_MODULES: readonly NavModule[] = [
     superAdminHref: '/super-admin/control-panel',
   },
   {
+    id: 'M03-SA',
+    slug: 'super-admins',
+    label: 'Super Admins',
+    group: 'administration',
+    icon: 'shield',
+    description:
+      'Super Admin accounts (D148): add with a temporary password, suspend, reactivate or remove; never oneself or the last one.',
+    status: 'live',
+    superAdminHref: '/super-admin/super-admins',
+  },
+  {
     id: 'M03',
     slug: 'zonal-admins',
     label: 'Zonal Admins',
