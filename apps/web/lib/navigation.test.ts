@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Zonal Admins, Access Profiles, Access History, Security Settings, Audit & Logs, Account security and Global Search (top bar)', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Zonal Admins, Access Profiles, Access History, Security Settings, Audit & Logs, Account security, Orders and Global Search (top bar)', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -58,6 +58,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M03-TEAM',
       'M04',
       'M04-ACT',
+      'M11',
       'M16',
       'M18',
       'M19-SEC',
@@ -90,7 +91,7 @@ describe('menu by role', () => {
       href: '/super-admin/settings/security',
     });
     expect(byId['M01']).toMatchObject({ status: 'live', href: '/account/security' });
-    expect(byId['M11']).toMatchObject({ status: 'coming-soon', href: '/coming-soon/orders' });
+    expect(byId['M11']).toMatchObject({ status: 'live', href: '/super-admin/orders' });
     expect(byId['M19']).toMatchObject({ status: 'coming-soon', href: '/coming-soon/settings' });
     expect(byId['NEW-HOTEL']).toMatchObject({
       status: 'coming-soon',
@@ -159,7 +160,11 @@ describe('menu by role', () => {
 
   it('a Coming Soon page exists only for a module this person could see', () => {
     const zones = [zone('A', ['orders:view'])];
-    expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)?.id).toBe('M11');
+    expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)).toBeNull(); // live since M11
+    expect(menuFor('ZONAL_ADMIN', zones).find((m) => m.id === 'M11')).toMatchObject({
+      status: 'live',
+      href: '/zone/orders',
+    });
     expect(comingSoonModule('access-requests', 'ZONAL_ADMIN', zones)?.id).toBe('R13');
     expect(comingSoonModule('settings', 'ZONAL_ADMIN', zones)).toBeNull();
     expect(comingSoonModule('customers', 'ZONAL_ADMIN', zones)).toBeNull();

@@ -123,6 +123,8 @@ export const AUDIT_ACTIONS = {
   'partner.document_viewed': a('delivery', 'Viewed document', H),
   // orders
   'order.cancelled_by_admin': a('orders', 'Cancelled order (admin)'),
+  // doc 10 section 1: every admin status change is audited (preparing, ready, out for delivery, delivered)
+  'order.status_changed': a('orders', 'Changed order status'),
   'order.accepted_on_behalf': a('orders', 'Accepted order on vendor behalf'),
   'order.partner_assigned': a('orders', 'Assigned delivery partner'),
   'order.partner_reassigned': a('orders', 'Reassigned delivery partner'),

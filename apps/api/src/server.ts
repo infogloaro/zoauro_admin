@@ -13,6 +13,7 @@ import {
   createZoneTeamPort,
 } from './modules/access';
 import { createAuditModule } from './modules/audit';
+import { createOrdersModule } from './modules/orders';
 import { createSearchModule } from './modules/search';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
 import { createZonesModule, stubImpactSources } from './modules/zones';
@@ -90,6 +91,7 @@ const app = createApp({
       zones.router,
       accessControl.router,
       createSearchModule({ prisma }).router,
+      createOrdersModule({ prisma, appOrigin: new URL(env.APP_URL).origin }).router,
     ],
   },
 });

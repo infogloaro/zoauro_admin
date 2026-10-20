@@ -12964,6 +12964,1649 @@
         }
       }
     },
+    "/orders": {
+      "get": {
+        "operationId": "listOrders",
+        "tags": [
+          "orders"
+        ],
+        "summary": "Orders in the caller's zone scope (?zoneId= narrows), newest first; filters status, paymentMethod, from/to, q (order number or customer name)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PLACED",
+                "ACCEPTED",
+                "PREPARING",
+                "READY",
+                "ASSIGNED",
+                "OUT_FOR_DELIVERY",
+                "DELIVERED",
+                "CANCELLED",
+                "REFUNDED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ONLINE",
+                "COD",
+                "WALLET"
+              ]
+            },
+            "required": false,
+            "name": "paymentMethod",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false,
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "zoneId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zoneName": {
+                            "type": "string"
+                          },
+                          "customerName": {
+                            "type": "string"
+                          },
+                          "vendorType": {
+                            "type": "string",
+                            "enum": [
+                              "restaurant",
+                              "homemaker"
+                            ]
+                          },
+                          "vendorName": {
+                            "type": "string"
+                          },
+                          "itemCount": {
+                            "type": "integer"
+                          },
+                          "total": {
+                            "type": "integer"
+                          },
+                          "paymentMethod": {
+                            "type": "string",
+                            "enum": [
+                              "ONLINE",
+                              "COD",
+                              "WALLET"
+                            ]
+                          },
+                          "paymentStatus": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "PAID",
+                              "FAILED",
+                              "PARTIALLY_REFUNDED",
+                              "REFUNDED"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PLACED",
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "ASSIGNED",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "CANCELLED",
+                              "REFUNDED"
+                            ]
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "zoneId",
+                          "zoneName",
+                          "customerName",
+                          "vendorType",
+                          "vendorName",
+                          "itemCount",
+                          "total",
+                          "paymentMethod",
+                          "paymentStatus",
+                          "status",
+                          "placedAt",
+                          "version"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "orders:view",
+          "zone": "query"
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "operationId": "getOrder",
+        "tags": [
+          "orders"
+        ],
+        "summary": "One order: items, amounts, customer (phone masked), vendor, partner, address, payments, timeline and the actions the caller may take. 404 outside the caller's zones",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "orderNo": {
+                      "type": "string"
+                    },
+                    "zoneId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zoneName": {
+                      "type": "string"
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "vendorType": {
+                      "type": "string",
+                      "enum": [
+                        "restaurant",
+                        "homemaker"
+                      ]
+                    },
+                    "vendorName": {
+                      "type": "string"
+                    },
+                    "itemCount": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "paymentMethod": {
+                      "type": "string",
+                      "enum": [
+                        "ONLINE",
+                        "COD",
+                        "WALLET"
+                      ]
+                    },
+                    "paymentStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PAID",
+                        "FAILED",
+                        "PARTIALLY_REFUNDED",
+                        "REFUNDED"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PLACED",
+                        "ACCEPTED",
+                        "PREPARING",
+                        "READY",
+                        "ASSIGNED",
+                        "OUT_FOR_DELIVERY",
+                        "DELIVERED",
+                        "CANCELLED",
+                        "REFUNDED"
+                      ]
+                    },
+                    "placedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "subtotal": {
+                      "type": "integer"
+                    },
+                    "tax": {
+                      "type": "integer"
+                    },
+                    "deliveryCharge": {
+                      "type": "integer"
+                    },
+                    "discount": {
+                      "type": "integer"
+                    },
+                    "customer": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "phone"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "deliveryPartner": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "address": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "price": {
+                            "type": "integer"
+                          },
+                          "qty": {
+                            "type": "integer"
+                          },
+                          "lineTotal": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "price",
+                          "qty",
+                          "lineTotal"
+                        ]
+                      }
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "provider": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "PAID",
+                              "FAILED",
+                              "PARTIALLY_REFUNDED",
+                              "REFUNDED"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "provider",
+                          "amount",
+                          "status",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "timeline": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "from": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "PLACED",
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "ASSIGNED",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "CANCELLED",
+                              "REFUNDED",
+                              null
+                            ]
+                          },
+                          "to": {
+                            "type": "string",
+                            "enum": [
+                              "PLACED",
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "ASSIGNED",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "CANCELLED",
+                              "REFUNDED"
+                            ]
+                          },
+                          "actorType": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "from",
+                          "to",
+                          "actorType",
+                          "note",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "cancelReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "properties": {
+                        "transitions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED"
+                            ]
+                          }
+                        },
+                        "cancel": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "transitions",
+                        "cancel"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "orderNo",
+                    "zoneId",
+                    "zoneName",
+                    "customerName",
+                    "vendorType",
+                    "vendorName",
+                    "itemCount",
+                    "total",
+                    "paymentMethod",
+                    "paymentStatus",
+                    "status",
+                    "placedAt",
+                    "version",
+                    "subtotal",
+                    "tax",
+                    "deliveryCharge",
+                    "discount",
+                    "customer",
+                    "vendor",
+                    "deliveryPartner",
+                    "address",
+                    "items",
+                    "payments",
+                    "timeline",
+                    "cancelReason",
+                    "actions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "orders:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/orders/{id}/transition": {
+      "post": {
+        "operationId": "transitionOrder",
+        "tags": [
+          "orders"
+        ],
+        "summary": "Move the order one step through the state machine (accept, preparing, ready, out for delivery, delivered). Needs If-Match: <version>. Audited; emits order.status_changed",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "enum": [
+                      "ACCEPTED",
+                      "PREPARING",
+                      "READY",
+                      "OUT_FOR_DELIVERY",
+                      "DELIVERED"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "to"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The order after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "orderNo": {
+                      "type": "string"
+                    },
+                    "zoneId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zoneName": {
+                      "type": "string"
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "vendorType": {
+                      "type": "string",
+                      "enum": [
+                        "restaurant",
+                        "homemaker"
+                      ]
+                    },
+                    "vendorName": {
+                      "type": "string"
+                    },
+                    "itemCount": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "paymentMethod": {
+                      "type": "string",
+                      "enum": [
+                        "ONLINE",
+                        "COD",
+                        "WALLET"
+                      ]
+                    },
+                    "paymentStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PAID",
+                        "FAILED",
+                        "PARTIALLY_REFUNDED",
+                        "REFUNDED"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PLACED",
+                        "ACCEPTED",
+                        "PREPARING",
+                        "READY",
+                        "ASSIGNED",
+                        "OUT_FOR_DELIVERY",
+                        "DELIVERED",
+                        "CANCELLED",
+                        "REFUNDED"
+                      ]
+                    },
+                    "placedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "subtotal": {
+                      "type": "integer"
+                    },
+                    "tax": {
+                      "type": "integer"
+                    },
+                    "deliveryCharge": {
+                      "type": "integer"
+                    },
+                    "discount": {
+                      "type": "integer"
+                    },
+                    "customer": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "phone"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "deliveryPartner": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "address": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "price": {
+                            "type": "integer"
+                          },
+                          "qty": {
+                            "type": "integer"
+                          },
+                          "lineTotal": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "price",
+                          "qty",
+                          "lineTotal"
+                        ]
+                      }
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "provider": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "PAID",
+                              "FAILED",
+                              "PARTIALLY_REFUNDED",
+                              "REFUNDED"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "provider",
+                          "amount",
+                          "status",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "timeline": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "from": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "PLACED",
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "ASSIGNED",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "CANCELLED",
+                              "REFUNDED",
+                              null
+                            ]
+                          },
+                          "to": {
+                            "type": "string",
+                            "enum": [
+                              "PLACED",
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "ASSIGNED",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "CANCELLED",
+                              "REFUNDED"
+                            ]
+                          },
+                          "actorType": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "from",
+                          "to",
+                          "actorType",
+                          "note",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "cancelReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "properties": {
+                        "transitions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED"
+                            ]
+                          }
+                        },
+                        "cancel": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "transitions",
+                        "cancel"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "orderNo",
+                    "zoneId",
+                    "zoneName",
+                    "customerName",
+                    "vendorType",
+                    "vendorName",
+                    "itemCount",
+                    "total",
+                    "paymentMethod",
+                    "paymentStatus",
+                    "status",
+                    "placedAt",
+                    "version",
+                    "subtotal",
+                    "tax",
+                    "deliveryCharge",
+                    "discount",
+                    "customer",
+                    "vendor",
+                    "deliveryPartner",
+                    "address",
+                    "items",
+                    "payments",
+                    "timeline",
+                    "cancelReason",
+                    "actions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "orders:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "orders",
+          "action": "order.status_changed"
+        }
+      }
+    },
+    "/orders/{id}/cancel": {
+      "post": {
+        "operationId": "cancelOrder",
+        "tags": [
+          "orders"
+        ],
+        "summary": "Cancel an order that is placed, accepted, preparing or ready, with a reason. Needs If-Match: <version>. Audited; emits order.status_changed and order.cancelled",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reasonCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reasonCode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The cancelled order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "orderNo": {
+                      "type": "string"
+                    },
+                    "zoneId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zoneName": {
+                      "type": "string"
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "vendorType": {
+                      "type": "string",
+                      "enum": [
+                        "restaurant",
+                        "homemaker"
+                      ]
+                    },
+                    "vendorName": {
+                      "type": "string"
+                    },
+                    "itemCount": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "paymentMethod": {
+                      "type": "string",
+                      "enum": [
+                        "ONLINE",
+                        "COD",
+                        "WALLET"
+                      ]
+                    },
+                    "paymentStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PAID",
+                        "FAILED",
+                        "PARTIALLY_REFUNDED",
+                        "REFUNDED"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PLACED",
+                        "ACCEPTED",
+                        "PREPARING",
+                        "READY",
+                        "ASSIGNED",
+                        "OUT_FOR_DELIVERY",
+                        "DELIVERED",
+                        "CANCELLED",
+                        "REFUNDED"
+                      ]
+                    },
+                    "placedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "subtotal": {
+                      "type": "integer"
+                    },
+                    "tax": {
+                      "type": "integer"
+                    },
+                    "deliveryCharge": {
+                      "type": "integer"
+                    },
+                    "discount": {
+                      "type": "integer"
+                    },
+                    "customer": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "phone"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "deliveryPartner": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "address": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "price": {
+                            "type": "integer"
+                          },
+                          "qty": {
+                            "type": "integer"
+                          },
+                          "lineTotal": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "price",
+                          "qty",
+                          "lineTotal"
+                        ]
+                      }
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "provider": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "PAID",
+                              "FAILED",
+                              "PARTIALLY_REFUNDED",
+                              "REFUNDED"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "provider",
+                          "amount",
+                          "status",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "timeline": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "from": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "PLACED",
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "ASSIGNED",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "CANCELLED",
+                              "REFUNDED",
+                              null
+                            ]
+                          },
+                          "to": {
+                            "type": "string",
+                            "enum": [
+                              "PLACED",
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "ASSIGNED",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "CANCELLED",
+                              "REFUNDED"
+                            ]
+                          },
+                          "actorType": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "from",
+                          "to",
+                          "actorType",
+                          "note",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "cancelReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "properties": {
+                        "transitions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED"
+                            ]
+                          }
+                        },
+                        "cancel": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "transitions",
+                        "cancel"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "orderNo",
+                    "zoneId",
+                    "zoneName",
+                    "customerName",
+                    "vendorType",
+                    "vendorName",
+                    "itemCount",
+                    "total",
+                    "paymentMethod",
+                    "paymentStatus",
+                    "status",
+                    "placedAt",
+                    "version",
+                    "subtotal",
+                    "tax",
+                    "deliveryCharge",
+                    "discount",
+                    "customer",
+                    "vendor",
+                    "deliveryPartner",
+                    "address",
+                    "items",
+                    "payments",
+                    "timeline",
+                    "cancelReason",
+                    "actions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "orders:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "orders",
+          "action": "order.cancelled_by_admin"
+        }
+      }
+    },
     "/search": {
       "get": {
         "operationId": "globalSearch",

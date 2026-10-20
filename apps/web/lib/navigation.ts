@@ -365,8 +365,9 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'cart',
     description:
       'Order list, details and timeline; accept on the vendor’s behalf, assign or reassign a delivery partner, cancel, export.',
-    status: 'coming-soon',
-    zonal: { permission: 'orders' },
+    status: 'live',
+    superAdminHref: '/super-admin/orders',
+    zonal: { href: '/zone/orders', permission: 'orders' },
     blueprint: {
       phase: 'Phase 1',
       screens: [
@@ -378,7 +379,7 @@ export const NAV_MODULES: readonly NavModule[] = [
         'Accepted',
         'Preparing',
         'Ready',
-        'Picked up',
+        'Partner assigned',
         'Out for delivery',
         'Delivered',
       ],

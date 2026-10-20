@@ -633,6 +633,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Orders in the caller's zone scope (?zoneId= narrows), newest first; filters status, paymentMethod, from/to, q (order number or customer name) */
+        get: operations["listOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One order: items, amounts, customer (phone masked), vendor, partner, address, payments, timeline and the actions the caller may take. 404 outside the caller's zones */
+        get: operations["getOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an order that is placed, accepted, preparing or ready, with a reason. Needs If-Match: <version>. Audited; emits order.status_changed and order.cancelled */
+        post: operations["cancelOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move the order one step through the state machine (accept, preparing, ready, out for delivery, delivered). Needs If-Match: <version>. Audited; emits order.status_changed */
+        post: operations["transitionOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/search": {
         parameters: {
             query?: never;
@@ -3684,6 +3752,541 @@ export interface operations {
                     } & {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    listOrders: {
+        parameters: {
+            query?: {
+                from?: string;
+                page?: number;
+                pageSize?: number;
+                paymentMethod?: "ONLINE" | "COD" | "WALLET";
+                q?: string;
+                status?: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+                to?: string;
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of orders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            customerName: string;
+                            /** Format: uuid */
+                            id: string;
+                            itemCount: number;
+                            orderNo: string;
+                            /** @enum {string} */
+                            paymentMethod: "ONLINE" | "COD" | "WALLET";
+                            /** @enum {string} */
+                            paymentStatus: "PENDING" | "PAID" | "FAILED" | "PARTIALLY_REFUNDED" | "REFUNDED";
+                            /** Format: date-time */
+                            placedAt: string;
+                            /** @enum {string} */
+                            status: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+                            total: number;
+                            vendorName: string;
+                            /** @enum {string} */
+                            vendorType: "restaurant" | "homemaker";
+                            version: number;
+                            /** Format: uuid */
+                            zoneId: string;
+                            zoneName: string;
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        actions: {
+                            cancel: boolean;
+                            transitions: ("ACCEPTED" | "PREPARING" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED")[];
+                        };
+                        address: string | null;
+                        cancelReason: string | null;
+                        customer: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            phone: string;
+                        };
+                        customerName: string;
+                        deliveryCharge: number;
+                        deliveryPartner: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        discount: number;
+                        /** Format: uuid */
+                        id: string;
+                        itemCount: number;
+                        items: {
+                            /** Format: uuid */
+                            id: string;
+                            lineTotal: number;
+                            name: string;
+                            price: number;
+                            qty: number;
+                        }[];
+                        orderNo: string;
+                        /** @enum {string} */
+                        paymentMethod: "ONLINE" | "COD" | "WALLET";
+                        payments: {
+                            amount: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            provider: string;
+                            /** @enum {string} */
+                            status: "PENDING" | "PAID" | "FAILED" | "PARTIALLY_REFUNDED" | "REFUNDED";
+                        }[];
+                        /** @enum {string} */
+                        paymentStatus: "PENDING" | "PAID" | "FAILED" | "PARTIALLY_REFUNDED" | "REFUNDED";
+                        /** Format: date-time */
+                        placedAt: string;
+                        /** @enum {string} */
+                        status: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+                        subtotal: number;
+                        tax: number;
+                        timeline: {
+                            actorType: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string|null} */
+                            from: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED" | null;
+                            /** Format: uuid */
+                            id: string;
+                            note: string | null;
+                            /** @enum {string} */
+                            to: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+                        }[];
+                        total: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        vendorName: string;
+                        /** @enum {string} */
+                        vendorType: "restaurant" | "homemaker";
+                        version: number;
+                        /** Format: uuid */
+                        zoneId: string;
+                        zoneName: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    cancelOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                    reasonCode: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The cancelled order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        actions: {
+                            cancel: boolean;
+                            transitions: ("ACCEPTED" | "PREPARING" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED")[];
+                        };
+                        address: string | null;
+                        cancelReason: string | null;
+                        customer: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            phone: string;
+                        };
+                        customerName: string;
+                        deliveryCharge: number;
+                        deliveryPartner: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        discount: number;
+                        /** Format: uuid */
+                        id: string;
+                        itemCount: number;
+                        items: {
+                            /** Format: uuid */
+                            id: string;
+                            lineTotal: number;
+                            name: string;
+                            price: number;
+                            qty: number;
+                        }[];
+                        orderNo: string;
+                        /** @enum {string} */
+                        paymentMethod: "ONLINE" | "COD" | "WALLET";
+                        payments: {
+                            amount: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            provider: string;
+                            /** @enum {string} */
+                            status: "PENDING" | "PAID" | "FAILED" | "PARTIALLY_REFUNDED" | "REFUNDED";
+                        }[];
+                        /** @enum {string} */
+                        paymentStatus: "PENDING" | "PAID" | "FAILED" | "PARTIALLY_REFUNDED" | "REFUNDED";
+                        /** Format: date-time */
+                        placedAt: string;
+                        /** @enum {string} */
+                        status: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+                        subtotal: number;
+                        tax: number;
+                        timeline: {
+                            actorType: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string|null} */
+                            from: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED" | null;
+                            /** Format: uuid */
+                            id: string;
+                            note: string | null;
+                            /** @enum {string} */
+                            to: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+                        }[];
+                        total: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        vendorName: string;
+                        /** @enum {string} */
+                        vendorType: "restaurant" | "homemaker";
+                        version: number;
+                        /** Format: uuid */
+                        zoneId: string;
+                        zoneName: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    transitionOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                    /** @enum {string} */
+                    to: "ACCEPTED" | "PREPARING" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED";
+                };
+            };
+        };
+        responses: {
+            /** @description The order after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        actions: {
+                            cancel: boolean;
+                            transitions: ("ACCEPTED" | "PREPARING" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED")[];
+                        };
+                        address: string | null;
+                        cancelReason: string | null;
+                        customer: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            phone: string;
+                        };
+                        customerName: string;
+                        deliveryCharge: number;
+                        deliveryPartner: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        discount: number;
+                        /** Format: uuid */
+                        id: string;
+                        itemCount: number;
+                        items: {
+                            /** Format: uuid */
+                            id: string;
+                            lineTotal: number;
+                            name: string;
+                            price: number;
+                            qty: number;
+                        }[];
+                        orderNo: string;
+                        /** @enum {string} */
+                        paymentMethod: "ONLINE" | "COD" | "WALLET";
+                        payments: {
+                            amount: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            provider: string;
+                            /** @enum {string} */
+                            status: "PENDING" | "PAID" | "FAILED" | "PARTIALLY_REFUNDED" | "REFUNDED";
+                        }[];
+                        /** @enum {string} */
+                        paymentStatus: "PENDING" | "PAID" | "FAILED" | "PARTIALLY_REFUNDED" | "REFUNDED";
+                        /** Format: date-time */
+                        placedAt: string;
+                        /** @enum {string} */
+                        status: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+                        subtotal: number;
+                        tax: number;
+                        timeline: {
+                            actorType: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string|null} */
+                            from: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED" | null;
+                            /** Format: uuid */
+                            id: string;
+                            note: string | null;
+                            /** @enum {string} */
+                            to: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+                        }[];
+                        total: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        vendorName: string;
+                        /** @enum {string} */
+                        vendorType: "restaurant" | "homemaker";
+                        version: number;
+                        /** Format: uuid */
+                        zoneId: string;
+                        zoneName: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
                 };
             };
         };

@@ -1,209 +1,200 @@
-import { randomUUID } from 'node:crypto';
-import type { Prisma, PrismaClient } from '@prisma/client';
-
-import { prisma } from '../../lib/prisma';
-import type { ListOrdersInput } from './schemas';
-import type { OrderDashboardSummary, OrderListItem, OrderStatus, PaginatedOrders } from './types';
+import { Prisma, type PrismaClient } from '@prisma/client';
+import { pageWindow } from '@zoauro/shared';
+import type { AuthContext } from '../../lib/authz';
+import { auditTx } from '../../lib/db';
 import type { OrderRepository } from './repository';
+import type {
+  OrderDetailRow,
+  OrderForWrite,
+  OrderHistoryRow,
+  OrderListFilter,
+  OrderRow,
+  OrderStatusChange,
+  OrdersTx,
+  OutboxRow,
+} from './types';
+
+// The only code that reads or writes the orders tables (AGENTS.md: only repositories import Prisma). The zone scope of
+// a list arrives in the filter; this file applies it and refuses an empty one, so a member who may view no zone never
+// reaches a query.
+
+type Db = PrismaClient | Prisma.TransactionClient;
+
+const listInclude = {
+  zone: { select: { name: true } },
+  customer: { select: { name: true } },
+  restaurant: { select: { id: true, name: true } },
+  homemaker: { select: { id: true, name: true } },
+  items: { select: { qty: true } },
+} satisfies Prisma.OrderInclude;
+
+type ListRecord = Prisma.OrderGetPayload<{ include: typeof listInclude }>;
+
+function toRow(o: ListRecord): OrderRow {
+  const vendor = o.restaurant ?? o.homemaker;
+  return {
+    id: o.id,
+    orderNo: o.orderNo,
+    zoneId: o.zoneId,
+    zoneName: o.zone.name,
+    customerName: o.customer.name,
+    vendorType: o.restaurant ? 'restaurant' : 'homemaker',
+    vendorName: vendor?.name ?? '',
+    itemCount: o.items.reduce((sum, item) => sum + item.qty, 0),
+    total: o.total,
+    paymentMethod: o.paymentMethod,
+    paymentStatus: o.paymentStatus,
+    status: o.status,
+    placedAt: o.placedAt,
+    version: o.version,
+  };
+}
+
+function listWhere(filter: OrderListFilter): Prisma.OrderWhereInput {
+  const and: Prisma.OrderWhereInput[] = [];
+  if (filter.scope.kind === 'ZONES') {
+    if (filter.scope.zoneIds.length === 0)
+      throw new Error('orders list reached the repository with an empty zone scope');
+    and.push({ zoneId: { in: [...filter.scope.zoneIds] } });
+  }
+  if (filter.status) and.push({ status: filter.status });
+  if (filter.paymentMethod) and.push({ paymentMethod: filter.paymentMethod });
+  if (filter.from) and.push({ placedAt: { gte: new Date(filter.from) } });
+  if (filter.to) and.push({ placedAt: { lte: new Date(filter.to) } });
+  if (filter.q)
+    and.push({
+      OR: [
+        { orderNo: { contains: filter.q, mode: 'insensitive' } },
+        { customer: { name: { contains: filter.q, mode: 'insensitive' } } },
+      ],
+    });
+  return and.length === 0 ? {} : { AND: and };
+}
 
 export class PrismaOrderRepository implements OrderRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly db: Db) {}
 
-  async list(filters: ListOrdersInput): Promise<PaginatedOrders> {
-    const {
-      search,
-      status,
-      restaurantId,
-      customerId,
-      deliveryPartnerId,
-      paymentMethod,
-      paymentStatus,
-      zoneId,
-      from,
-      to,
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-    } = filters;
-
-    const where: Prisma.OrderWhereInput = {
-      ...(status ? { status } : {}),
-      ...(restaurantId ? { restaurantId } : {}),
-      ...(customerId ? { customerId } : {}),
-      ...(deliveryPartnerId ? { deliveryPartnerId } : {}),
-      ...(paymentMethod ? { paymentMethod } : {}),
-      ...(paymentStatus ? { paymentStatus } : {}),
-      ...(zoneId ? { zoneId } : {}),
-      ...(from || to
-        ? {
-            placedAt: {
-              ...(from ? { gte: from } : {}),
-              ...(to ? { lte: to } : {}),
-            },
-          }
-        : {}),
-      ...(search
-        ? {
-            OR: [
-              { orderNo: { contains: search, mode: 'insensitive' } },
-              { customer: { name: { contains: search, mode: 'insensitive' } } },
-              { restaurant: { is: { name: { contains: search, mode: 'insensitive' } } } },
-              { homemaker: { is: { name: { contains: search, mode: 'insensitive' } } } },
-            ],
-          }
-        : {}),
-    };
-
-    const orderBy: Prisma.OrderOrderByWithRelationInput =
-      sortBy === 'totalAmount' ? { total: sortOrder } : { placedAt: sortOrder };
-
-    const [rows, total] = await this.prisma.$transaction([
-      this.prisma.order.findMany({
+  async list(
+    _ctx: AuthContext,
+    filter: OrderListFilter,
+  ): Promise<{ rows: OrderRow[]; total: number }> {
+    const where = listWhere(filter);
+    const { skip, take } = pageWindow(filter);
+    const [records, total] = await Promise.all([
+      this.db.order.findMany({
         where,
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          customer: { select: { name: true } },
-          restaurant: { select: { name: true } },
-          homemaker: { select: { name: true } },
-          items: { select: { qty: true } },
-        },
+        include: listInclude,
+        orderBy: [{ placedAt: 'desc' }, { id: 'desc' }],
+        skip,
+        take,
       }),
-      this.prisma.order.count({ where }),
+      this.db.order.count({ where }),
     ]);
-
-    return {
-      items: rows.map((order) => ({
-        id: order.id,
-        orderNumber: order.orderNo,
-        customerName: order.customer.name,
-        restaurantName: order.restaurant?.name ?? order.homemaker?.name ?? '—',
-        itemCount: order.items.reduce((sum, item) => sum + item.qty, 0),
-        totalAmount: order.total,
-        paymentMethod: order.paymentMethod,
-        paymentStatus: order.paymentStatus,
-        status: order.status,
-        createdAt: order.placedAt,
-        version: order.version,
-      })),
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    };
+    return { rows: records.map(toRow), total };
   }
 
-  async getDashboard(from?: Date, to?: Date): Promise<OrderDashboardSummary> {
-    const placedAt =
-      from || to
-        ? {
-            ...(from ? { gte: from } : {}),
-            ...(to ? { lte: to } : {}),
-          }
-        : undefined;
-
-    const where: Prisma.OrderWhereInput = placedAt ? { placedAt } : {};
-
-    const [totalOrders, pendingOrders, outForDeliveryOrders, deliveredOrders] = await Promise.all([
-      this.prisma.order.count({ where }),
-      this.prisma.order.count({ where: { ...where, status: 'PLACED' } }),
-      this.prisma.order.count({
-        where: { ...where, status: 'OUT_FOR_DELIVERY' },
-      }),
-      this.prisma.order.count({ where: { ...where, status: 'DELIVERED' } }),
-    ]);
-
-    return {
-      totalOrders,
-      pendingOrders,
-      outForDeliveryOrders,
-      deliveredOrders,
-    };
-  }
-
-  async findStatusById(id: string): Promise<{ status: OrderStatus; version: number } | null> {
-    const order = await this.prisma.order.findUnique({
+  async findDetail(_ctx: AuthContext, id: string): Promise<OrderDetailRow | null> {
+    const o = await this.db.order.findUnique({
       where: { id },
-      select: { status: true, version: true },
+      include: {
+        ...listInclude,
+        customer: { select: { id: true, name: true, phone: true } },
+        deliveryPartner: { select: { id: true, name: true } },
+        items: {
+          select: { id: true, nameSnapshot: true, priceSnapshot: true, qty: true },
+          orderBy: { id: 'asc' },
+        },
+        payments: {
+          select: { id: true, provider: true, amount: true, status: true, createdAt: true },
+          orderBy: { createdAt: 'asc' },
+        },
+        statusHistory: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
+      },
     });
-
-    return order;
+    if (!o) return null;
+    return {
+      ...toRow(o),
+      subtotal: o.subtotal,
+      tax: o.tax,
+      deliveryCharge: o.deliveryCharge,
+      discount: o.discount,
+      customer: { id: o.customer.id, name: o.customer.name, phone: o.customer.phone },
+      vendorId: (o.restaurant ?? o.homemaker)?.id ?? '',
+      deliveryPartner: o.deliveryPartner,
+      addressSnapshot: o.addressSnapshotJson,
+      cancelReason: o.cancelReason,
+      items: o.items.map((i) => ({
+        id: i.id,
+        name: i.nameSnapshot,
+        price: i.priceSnapshot,
+        qty: i.qty,
+      })),
+      payments: o.payments,
+      timeline: o.statusHistory.map((h) => ({
+        id: h.id,
+        from: h.fromStatus,
+        to: h.toStatus,
+        actorType: h.actorType,
+        note: h.note,
+        createdAt: h.createdAt,
+      })),
+    };
   }
 
-  async updateStatus(input: {
-    id: string;
-    fromStatus: OrderStatus;
-    toStatus: OrderStatus;
-    expectedVersion: number;
-    actorId: string;
-  }): Promise<OrderListItem> {
-    return this.prisma.$transaction(async (tx) => {
-      // Atomic optimistic-lock check: only one request can update this version.
-      const result = await tx.order.updateMany({
-        where: {
-          id: input.id,
-          status: input.fromStatus,
-          version: input.expectedVersion,
-        },
-        data: {
-          status: input.toStatus,
-          version: { increment: 1 },
-          ...(input.toStatus === 'ACCEPTED' ? { acceptedAt: new Date() } : {}),
-          ...(input.toStatus === 'READY' ? { readyAt: new Date() } : {}),
-          ...(input.toStatus === 'DELIVERED' ? { deliveredAt: new Date() } : {}),
-          ...(input.toStatus === 'CANCELLED'
-            ? { cancelledAt: new Date(), cancelledBy: input.actorId }
-            : {}),
-        },
-      });
+  async findForWrite(_ctx: AuthContext, id: string): Promise<OrderForWrite | null> {
+    return this.db.order.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        orderNo: true,
+        zoneId: true,
+        status: true,
+        version: true,
+        paymentStatus: true,
+      },
+    });
+  }
 
-      if (result.count !== 1) {
-        const error = new Error('Order changed. Refresh and try again.');
-        Object.assign(error, { code: 'ORDER_VERSION_CONFLICT' });
-        throw error;
-      }
+  async updateStatus(
+    _ctx: AuthContext,
+    id: string,
+    expectedVersion: number,
+    change: OrderStatusChange,
+  ): Promise<boolean> {
+    const res = await this.db.order.updateMany({
+      where: { id, version: expectedVersion },
+      data: { ...change, version: { increment: 1 } },
+    });
+    return res.count === 1;
+  }
 
-      await tx.orderStatusHistory.create({
-        data: {
-          id: randomUUID(),
-          orderId: input.id,
-          fromStatus: input.fromStatus,
-          toStatus: input.toStatus,
-          actorId: input.actorId,
-          actorType: 'ADMIN',
-          sourceApp: 'ADMIN',
-        },
-      });
+  async addHistory(_ctx: AuthContext, row: OrderHistoryRow): Promise<void> {
+    await this.db.orderStatusHistory.create({ data: row });
+  }
 
-      const order = await tx.order.findUniqueOrThrow({
-        where: { id: input.id },
-        include: {
-          customer: { select: { name: true } },
-          restaurant: { select: { name: true } },
-          homemaker: { select: { name: true } },
-          items: { select: { qty: true } },
-        },
-      });
-
-      return {
-        id: order.id,
-        orderNumber: order.orderNo,
-        customerName: order.customer.name,
-        restaurantName: order.restaurant?.name ?? order.homemaker?.name ?? '—',
-        itemCount: order.items.reduce((sum, item) => sum + item.qty, 0),
-        totalAmount: order.total,
-        paymentMethod: order.paymentMethod,
-        paymentStatus: order.paymentStatus,
-        status: order.status,
-        createdAt: order.placedAt,
-        version: order.version,
-      };
+  async insertOutbox(_ctx: AuthContext, rows: readonly OutboxRow[]): Promise<void> {
+    await this.db.outbox.createMany({
+      data: rows.map((r) => ({
+        id: r.id,
+        eventType: r.eventType,
+        zoneId: r.zoneId,
+        payloadJson: r.payload as Prisma.InputJsonValue,
+      })),
     });
   }
 }
 
-export function createOrderRepository(): PrismaOrderRepository {
-  return new PrismaOrderRepository(prisma);
+/** Reads on the shared client; writes in one transaction with the audit writer on the same connection. */
+export class OrdersDatabase {
+  readonly repo: OrderRepository;
+
+  constructor(private readonly prisma: PrismaClient) {
+    this.repo = new PrismaOrderRepository(prisma);
+  }
+
+  transaction<T>(fn: (tx: OrdersTx) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction((tx) =>
+      fn({ repo: new PrismaOrderRepository(tx), audit: auditTx(tx) }),
+    );
+  }
 }

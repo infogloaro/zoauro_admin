@@ -1,69 +1,47 @@
-import type { NextFunction, Request, Response } from 'express';
-import { OrderService, OrderServiceError } from './service';
+import type { Request, RequestHandler } from 'express';
+import { authContextOf } from '../../lib/authz';
+import { AppError, parseBody } from '../../lib/errors';
+import {
+  orderCancelSchema,
+  orderIdParamsSchema,
+  orderListQuerySchema,
+  orderTransitionSchema,
+} from './schemas';
+import type { OrderService } from './service';
 
-import type { OrderActor } from './types';
+// Parse (shared Zod schemas) -> call the service -> send. No rules live here. Errors are AppErrors and reach the app's
+// error handler, which answers in the doc 09 error format.
 
-interface AuthenticatedRequest extends Request {
-  auth?: OrderActor;
+/** If-Match: the order version the client last saw (doc 09 "Optimistic locking"); `3` or `"3"`. */
+export function ifMatchVersion(req: Request): number {
+  const raw = req.header('If-Match')?.trim().replace(/^W\//, '').replace(/^"|"$/g, '');
+  const version = raw && /^\d{1,9}$/.test(raw) ? Number(raw) : NaN;
+  if (!Number.isInteger(version) || version < 1)
+    throw new AppError('VALIDATION_ERROR', 'Invalid input', [
+      { field: 'If-Match', issue: 'required' },
+    ]);
+  return version;
 }
 
-export const createOrderController = (service: OrderService) => ({
-  list: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const data = await service.listOrders(req.query);
-      res.status(200).json({ success: true, data });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  dashboard: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const from = req.query.from ? new Date(String(req.query.from)) : undefined;
-      const to = req.query.to ? new Date(String(req.query.to)) : undefined;
-
-      const data = await service.getDashboard(from, to);
-      res.status(200).json({ success: true, data });
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  transition: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const actor = authReq.auth;
-      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-
-      if (!actor) {
-        res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-        });
-        return;
-      }
-
-      if (!id) {
-        res.status(400).json({
-          success: false,
-          message: 'Order ID is required',
-        });
-        return;
-      }
-
-      const data = await service.transitionOrder(id, req.body, actor);
-      res.status(200).json({ success: true, data });
-    } catch (error) {
-      if (error instanceof OrderServiceError) {
-        res.status(error.statusCode).json({
-          success: false,
-          code: error.code,
-          message: error.message,
-        });
-        return;
-      }
-
-      next(error);
-    }
-  },
-});
+export function createOrderController(service: OrderService) {
+  const list: RequestHandler = async (req, res) => {
+    res.json(await service.list(authContextOf(res), parseBody(orderListQuerySchema, req.query)));
+  };
+  const detail: RequestHandler = async (req, res) => {
+    const { id } = parseBody(orderIdParamsSchema, req.params);
+    res.json(await service.detail(authContextOf(res), id));
+  };
+  const transition: RequestHandler = async (req, res) => {
+    const ctx = authContextOf(res);
+    const { id } = parseBody(orderIdParamsSchema, req.params);
+    const input = parseBody(orderTransitionSchema, req.body);
+    res.json(await service.transition(ctx, id, ifMatchVersion(req), input));
+  };
+  const cancel: RequestHandler = async (req, res) => {
+    const ctx = authContextOf(res);
+    const { id } = parseBody(orderIdParamsSchema, req.params);
+    const input = parseBody(orderCancelSchema, req.body);
+    res.json(await service.cancel(ctx, id, ifMatchVersion(req), input));
+  };
+  return { list, detail, transition, cancel };
+}

@@ -136,8 +136,8 @@ describe('sidebar', () => {
       <Sidebar items={items} userRole="SUPER_ADMIN" activePath="/super-admin/settings/logs" />,
     );
     const soon = items.filter((i) => i.status === 'coming-soon').length;
-    expect(html).toContain('aria-label="Orders (coming soon)"');
-    expect(html).toContain('href="/coming-soon/orders"');
+    expect(html).toContain('aria-label="Customers (coming soon)"');
+    expect(html).toContain('href="/coming-soon/customers"');
     expect(html.match(/data-status="coming-soon"/g)).toHaveLength(soon);
     expect(html.match(/>Soon</g)).toHaveLength(soon);
     expect(html).toContain('Requests &amp; Approvals');

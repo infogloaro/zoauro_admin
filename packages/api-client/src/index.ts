@@ -39,6 +39,8 @@ export interface RequestInitOf<O> {
   params?: Record<string, string>;
   /** required by refund, payment, intake order and cash-settlement POSTs (doc 09) */
   idempotencyKey?: string;
+  /** the version last seen, sent as If-Match (doc 09 optimistic locking: order transitions) */
+  ifMatch?: number;
   signal?: AbortSignal;
 }
 
@@ -92,6 +94,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
     if (init.body !== undefined) headers['Content-Type'] = 'application/json';
     if (method !== 'get' && csrfToken) headers['X-CSRF-Token'] = csrfToken;
     if (init.idempotencyKey) headers['Idempotency-Key'] = init.idempotencyKey;
+    if (init.ifMatch !== undefined) headers['If-Match'] = String(init.ifMatch);
 
     const res = await doFetch(`${baseUrl}${url}${query ? `?${query}` : ''}`, {
       method: method.toUpperCase(),

@@ -1,6 +1,7 @@
 import { isGrantable, parsePermissionKey, type PermissionKey } from '@zoauro/shared';
 import type { AuthTestEnv, PersonaRole, TestUser } from '../../auth/support/auth-env';
 import { PLACEHOLDER_ID } from './engine';
+import { seedOrder } from '../../orders/support';
 
 // Fixtures for the authorization matrix (doc 24 section 2, doc 36 section 6): zones A, B, C and the actors
 //   SuperAdmin, Admin(A full), Admin(A+B: full in A, read-only in B), Admin(A, payments denied), Admin(none)
@@ -91,6 +92,8 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     B: await env.createZone(),
     C: await env.createZone(),
   };
+  // one order per zone, so the orders list shows which zones a response leaked or hid
+  for (const zoneId of Object.values(zones)) await seedOrder(env.db.owner, zoneId);
   const admin = await env.createUser('SUPER_ADMIN', { emailPrefix: 'matrix-grantor' });
   const profileIds = new Map<Grants, string>();
   const profileFor = async (grants: Grants): Promise<string> => {

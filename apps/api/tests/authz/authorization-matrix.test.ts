@@ -40,6 +40,19 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         revokeSession: { ownObject: true },
         // revokes the actor's other sessions, including the one the engine cached for later cases
         revokeOtherSessions: { invalidatesSessions: true },
+        // the order zones a list answered with; all three fixture zones (one order each) = no zone filter
+        listOrders: {
+          listedZones: (body) => {
+            const ids = [
+              ...new Set((body as { data: { zoneId: string }[] }).data.map((o) => o.zoneId)),
+            ];
+            return ids.length === 3 && Object.values(fixtures.zones).every((z) => ids.includes(z))
+              ? 'ALL'
+              : ids;
+          },
+        },
+        // the matrix only has a placeholder id: 404 NOT_FOUND counts as past the guard; zone rules are in tests/orders
+        getOrder: { ownObject: true },
       },
     });
     publishReport('real-routes', report);
@@ -48,7 +61,7 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
     // 49 until P11 (auth, audit, zones) + 20 M03 access routes
-    expect(report.coveredRoutes).toHaveLength(70); // 69 + GET /search (M18)
+    expect(report.coveredRoutes).toHaveLength(74); // 69 + GET /search (M18) + 4 M11 orders routes
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

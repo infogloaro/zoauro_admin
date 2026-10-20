@@ -118,6 +118,22 @@ describe('api client', () => {
     expect(err).toMatchObject({ status: 409, code: 'PINCODE_OVERLAP', meta: { conflicts } });
   });
 
+  it('sends If-Match when a version is given (order transitions)', async () => {
+    let sent: Headers | undefined;
+    const client = createApiClient({
+      fetch: (async (_url: string, init: RequestInit) => {
+        sent = new Headers(init.headers);
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch,
+    });
+    await client.post('/orders/{id}/transition', {
+      params: { id: '0192f1d2-0000-7000-8000-0000000000a1' },
+      ifMatch: 3,
+      body: { to: 'ACCEPTED' },
+    });
+    expect(sent?.get('If-Match')).toBe('3');
+  });
+
   it('survives a non-JSON error (gateway page) as UNKNOWN', async () => {
     const client = createApiClient({
       fetch: (async () =>
@@ -128,8 +144,8 @@ describe('api client', () => {
 
   it('only accepts paths and methods that exist in the contract (compile-time)', () => {
     const client = createApiClient({ fetch: fakeFetch([]).fn });
-    // @ts-expect-error  /orders is not in the contract yet
-    void (() => client.get('/orders'));
+    // @ts-expect-error  /restaurants is not in the contract yet
+    void (() => client.get('/restaurants'));
     // @ts-expect-error  /me has no POST
     void (() => client.post('/me'));
     // @ts-expect-error  login needs email, password and tab

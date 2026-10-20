@@ -73,7 +73,6 @@ export default tseslint.config(
       'apps/api/prisma/**',
       'apps/api/prisma.config.ts', // Prisma CLI config, not application code
       'apps/api/src/lib/db.ts', // Prisma client adapters; lib/audit stays Prisma-free
-      'apps/api/src/lib/prisma.ts',
     ],
     rules: { 'no-restricted-imports': ['error', { patterns: [prismaRestriction] }] },
   },

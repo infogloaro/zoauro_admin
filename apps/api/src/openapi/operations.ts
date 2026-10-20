@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import {
+  orderCancelSchema,
+  orderDetailSchema,
+  orderIdParamsSchema,
+  orderListQuerySchema,
+  orderListResponseSchema,
+  orderTransitionSchema,
   searchQuerySchema,
   searchResponseSchema,
   auditActorSearchQuerySchema,
@@ -1072,6 +1078,58 @@ export const OPERATIONS: OperationDef[] = [
       description: 'Saved',
     },
     errors: ['NOT_FOUND'],
+  },
+  // ---- M11 Orders (doc 09, doc 10 section 1, doc 34 SA-4.3 / SA-4.4) -------------------------------------------------
+  {
+    operationId: 'listOrders',
+    method: 'get',
+    path: '/orders',
+    tags: ['orders'],
+    summary:
+      "Orders in the caller's zone scope (?zoneId= narrows), newest first; filters status, paymentMethod, from/to, q (order number or customer name)",
+    access: { kind: 'permission', permission: 'orders:view', zone: 'query' },
+    query: orderListQuerySchema,
+    response: { status: 200, schema: orderListResponseSchema, description: 'One page of orders' },
+  },
+  {
+    operationId: 'getOrder',
+    method: 'get',
+    path: '/orders/{id}',
+    tags: ['orders'],
+    summary:
+      "One order: items, amounts, customer (phone masked), vendor, partner, address, payments, timeline and the actions the caller may take. 404 outside the caller's zones",
+    access: { kind: 'permission', permission: 'orders:view', zone: 'none' },
+    params: orderIdParamsSchema,
+    response: { status: 200, schema: orderDetailSchema, description: 'The order' },
+    errors: ['NOT_FOUND'],
+  },
+  {
+    operationId: 'transitionOrder',
+    method: 'post',
+    path: '/orders/{id}/transition',
+    tags: ['orders'],
+    summary:
+      'Move the order one step through the state machine (accept, preparing, ready, out for delivery, delivered). Needs If-Match: <version>. Audited; emits order.status_changed',
+    access: { kind: 'permission', permission: 'orders:status', zone: 'none' },
+    audit: { module: 'orders', action: 'order.status_changed' },
+    params: orderIdParamsSchema,
+    body: orderTransitionSchema,
+    response: { status: 200, schema: orderDetailSchema, description: 'The order after the change' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
+  },
+  {
+    operationId: 'cancelOrder',
+    method: 'post',
+    path: '/orders/{id}/cancel',
+    tags: ['orders'],
+    summary:
+      'Cancel an order that is placed, accepted, preparing or ready, with a reason. Needs If-Match: <version>. Audited; emits order.status_changed and order.cancelled',
+    access: { kind: 'permission', permission: 'orders:status', zone: 'none' },
+    audit: { module: 'orders', action: 'order.cancelled_by_admin' },
+    params: orderIdParamsSchema,
+    body: orderCancelSchema,
+    response: { status: 200, schema: orderDetailSchema, description: 'The cancelled order' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
   },
   // ---- M18 Global Search (doc 09, D32, doc 34 SA-7.5) -------------------------------------------------------------------
   {
