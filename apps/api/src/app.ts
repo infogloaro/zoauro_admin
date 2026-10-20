@@ -41,6 +41,11 @@ export function createApp(deps: {
   auditCoverage?: AuditCoverageOptions;
   /** TRUST_PROXY_HOPS: how many proxies may set X-Forwarded-For for req.ip (rate limits, audit ip). Default 0. */
   trustProxyHops?: number;
+  /**
+   * Routers that authenticate by signature over the exact bytes received (the apps' Integration API, doc 42; payment
+   * gateway webhooks, doc 16). Mounted before /api/v1, so no session, CSRF or JSON parsing: req.body is the raw Buffer.
+   */
+  raw?: Array<{ path: string; router: Router }>;
 }): Express {
   const app = express();
   app.disable('x-powered-by');
@@ -68,6 +73,10 @@ export function createApp(deps: {
     openApiDocument ??= buildOpenApiDocument();
     res.json(openApiDocument);
   });
+
+  for (const { path, router } of deps.raw ?? []) {
+    app.use(path, express.raw({ type: 'application/json', limit: '100kb' }), router);
+  }
 
   if (deps.v1) {
     const coverage = deps.auditCoverage ?? {

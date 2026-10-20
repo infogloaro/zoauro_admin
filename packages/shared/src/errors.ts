@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { INTAKE_ERROR_STATUS } from './intake/errors';
 import { ZONE_ERROR_STATUS } from './zones/errors';
 
 // Error codes and the standard error body (doc 09 "Errors"). Single definition for the API, the generated OpenAPI
@@ -24,6 +25,8 @@ export const ERROR_STATUS = {
   STALE_VERSION: 409,
   // doc 53 section 5 (zones)
   ...ZONE_ERROR_STATUS,
+  // doc 42 section 4 (Integration API for the apps)
+  ...INTAKE_ERROR_STATUS,
   /** a category with live menu items cannot be deleted (SA-2.4) */
   CATEGORY_IN_USE: 409,
   /** D127: the stay overlaps total_rooms blocking bookings on at least one night */

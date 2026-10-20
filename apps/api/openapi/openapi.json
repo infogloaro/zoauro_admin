@@ -66,6 +66,22 @@
                   "REASON_REQUIRED",
                   "ZONE_HAS_HISTORY",
                   "ZONE_SERVICE_DISABLED",
+                  "SIGNATURE_INVALID",
+                  "TIMESTAMP_SKEW",
+                  "CLIENT_DISABLED",
+                  "SCOPE_DENIED",
+                  "ENTITY_MISMATCH",
+                  "CUSTOMER_BLOCKED",
+                  "UNKNOWN_ENTITY",
+                  "IDEMPOTENCY_CONFLICT",
+                  "IDEMPOTENCY_IN_PROGRESS",
+                  "DUPLICATE_ORDER",
+                  "OFFER_EXPIRED",
+                  "NOT_SERVICEABLE",
+                  "VENDOR_UNAVAILABLE",
+                  "PRICE_MISMATCH",
+                  "ITEM_UNAVAILABLE",
+                  "PARTNER_NOT_ELIGIBLE",
                   "CATEGORY_IN_USE",
                   "NO_ROOMS_AVAILABLE",
                   "SERVICE_UNAVAILABLE",
@@ -20303,7 +20319,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -20368,13 +20391,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -20388,8 +20412,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -20768,7 +20790,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -20833,13 +20862,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -20853,8 +20883,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -21362,7 +21390,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -21427,13 +21462,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -21447,8 +21483,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -21946,7 +21980,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -22011,13 +22052,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -22031,8 +22073,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -22440,7 +22480,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -22505,13 +22552,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -22525,8 +22573,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -22932,7 +22978,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -22997,13 +23050,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -23017,8 +23071,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -23271,7 +23323,14 @@
                 "properties": {
                   "docType": {
                     "type": "string",
-                    "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                    "enum": [
+                      "FSSAI",
+                      "GST",
+                      "PAN",
+                      "BANK_DETAILS",
+                      "ID_PROOF",
+                      "OTHER"
+                    ]
                   },
                   "fileKey": {
                     "type": "string",
@@ -23530,7 +23589,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -23595,13 +23661,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -23615,8 +23682,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -24136,7 +24201,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -24201,13 +24273,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -24221,8 +24294,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -25109,7 +25180,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -25174,13 +25252,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -25194,8 +25273,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -25574,7 +25651,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -25639,13 +25723,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -25659,8 +25744,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -26171,7 +26254,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -26236,13 +26326,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -26256,8 +26347,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -26755,7 +26844,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -26820,13 +26916,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -26840,8 +26937,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -27249,7 +27344,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -27314,13 +27416,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -27334,8 +27437,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -27741,7 +27842,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -27806,13 +27914,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -27826,8 +27935,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -28081,7 +28188,14 @@
                 "properties": {
                   "docType": {
                     "type": "string",
-                    "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                    "enum": [
+                      "FSSAI",
+                      "GST",
+                      "PAN",
+                      "BANK_DETAILS",
+                      "ID_PROOF",
+                      "OTHER"
+                    ]
                   },
                   "fileKey": {
                     "type": "string",
@@ -28339,7 +28453,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -28404,13 +28525,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -28424,8 +28546,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -28945,7 +29065,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -29010,13 +29137,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "FSSAI",
+                              "GST",
+                              "PAN",
+                              "BANK_DETAILS",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -29030,8 +29158,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -30100,7 +30226,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -30165,13 +30298,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -30185,8 +30319,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -30539,7 +30671,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -30604,13 +30743,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -30624,8 +30764,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -31021,7 +31159,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -31086,13 +31231,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -31106,8 +31252,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -31579,7 +31723,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -31644,13 +31795,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -31664,8 +31816,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -32047,7 +32197,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -32112,13 +32269,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -32132,8 +32290,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -32513,7 +32669,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -32578,13 +32741,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -32598,8 +32762,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -32979,7 +33141,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -33044,13 +33213,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -33064,8 +33234,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -33346,7 +33514,14 @@
                 "properties": {
                   "docType": {
                     "type": "string",
-                    "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                    "enum": [
+                      "PAN",
+                      "BANK_DETAILS",
+                      "DRIVING_LICENCE",
+                      "VEHICLE_RC",
+                      "ID_PROOF",
+                      "OTHER"
+                    ]
                   },
                   "fileKey": {
                     "type": "string",
@@ -33561,7 +33736,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -33626,13 +33808,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -33646,8 +33829,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }
@@ -34151,7 +34332,14 @@
                           },
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "status": {
                             "type": "string",
@@ -34216,13 +34404,14 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "mandatory": {
-                            "type": "boolean"
+                            "enum": [
+                              "PAN",
+                              "BANK_DETAILS",
+                              "DRIVING_LICENCE",
+                              "VEHICLE_RC",
+                              "ID_PROOF",
+                              "OTHER"
+                            ]
                           },
                           "state": {
                             "type": "string",
@@ -34236,8 +34425,6 @@
                         },
                         "required": [
                           "docType",
-                          "label",
-                          "mandatory",
                           "state"
                         ]
                       }

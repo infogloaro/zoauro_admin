@@ -45,6 +45,23 @@ const ERROR_DESCRIPTION: Record<ErrorCode, string> = {
   ZONE_HAS_HISTORY: 'The zone has history and cannot be deleted (error.meta.counts)',
   CATEGORY_IN_USE: 'The category still has live menu items',
   NO_ROOMS_AVAILABLE: 'No room is free for every night of the stay (D127)',
+  // Integration API for the apps (doc 42 section 4)
+  SIGNATURE_INVALID: 'Unknown key id or a signature that does not match',
+  TIMESTAMP_SKEW: 'X-Zoauro-Timestamp is more than 300 s from server time',
+  CLIENT_DISABLED: 'The API client is switched off in the Integration Hub',
+  SCOPE_DENIED: 'The API client does not have the scope this call needs',
+  ENTITY_MISMATCH: 'The record belongs to another vendor or partner',
+  CUSTOMER_BLOCKED: 'The customer is blocked',
+  UNKNOWN_ENTITY: 'No record with this external id for this client',
+  IDEMPOTENCY_CONFLICT: 'This Idempotency-Key was used for a different request',
+  IDEMPOTENCY_IN_PROGRESS: 'The first request with this Idempotency-Key is still running',
+  DUPLICATE_ORDER: 'This order id was already sent (error.meta.orderId)',
+  OFFER_EXPIRED: 'The auto-assign offer is no longer open (D154)',
+  NOT_SERVICEABLE: 'The address is outside the vendor zone, or the zone is not active',
+  VENDOR_UNAVAILABLE: 'The vendor is inactive, suspended or closed',
+  PRICE_MISMATCH: 'A price or total differs from the menu (error.details lists the items)',
+  ITEM_UNAVAILABLE: 'A menu item is unavailable',
+  PARTNER_NOT_ELIGIBLE: 'The partner is not active and verified',
   INTERNAL: 'Server error',
 };
 

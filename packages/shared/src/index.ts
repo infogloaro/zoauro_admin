@@ -23,3 +23,4 @@ export * from './notifications';
 export * from './support';
 export * from './dashboard';
 export * from './search';
+export * from './intake';

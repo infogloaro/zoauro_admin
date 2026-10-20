@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { orderPreorderInfoSchema } from './preorders';
 import {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
@@ -86,6 +87,11 @@ export const orderListQuerySchema = z
     homemakerId: z.uuid().optional(),
     customerId: z.uuid().optional(),
     deliveryPartnerId: z.uuid().optional(),
+    /** D167: true = pre-orders only, false = orders for now only */
+    scheduled: z.preprocess(
+      (v) => (v === 'true' ? true : v === 'false' ? false : v),
+      z.boolean().optional(),
+    ),
   })
   .refine((v) => !v.from || !v.to || v.from <= v.to, {
     message: 'from must be before to',
@@ -156,6 +162,8 @@ export const orderListItemSchema = z.object({
   deliveryPartnerId: z.uuid().nullable(),
   placedAt: iso,
   version: z.number().int(),
+  /** D167: null for an order placed for now */
+  preorder: orderPreorderInfoSchema.nullable(),
 });
 export type OrderListItem = z.infer<typeof orderListItemSchema>;
 

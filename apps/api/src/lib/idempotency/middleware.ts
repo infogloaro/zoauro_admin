@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import type { RequestHandler } from 'express';
+import type { RequestHandler, Response } from 'express';
+import type { ErrorCode } from '@zoauro/shared';
 import { noteAuditNoop } from '../audit';
 import type { Clock } from '../auth/config';
 import { getAuth } from '../auth/middleware';
@@ -59,8 +60,16 @@ export function idempotency(deps: {
   store: IdempotencyStore;
   clock: Clock;
   settleTimeoutMs?: number;
+  /**
+   * Whose key space the request uses. Default: the session user (`<userId>:`). The Integration API scopes by API client
+   * (`intake:<clientId>:`, kept 7 days by the store) and has no user.
+   */
+  scopeOf?: (res: Response) => { prefix: string; userId: string | null };
+  /** Default: doc 09 (CONFLICT, VALIDATION_ERROR). The Integration API answers doc 42's IDEMPOTENCY_* codes. */
+  codes?: { inProgress: ErrorCode; mismatch: ErrorCode };
 }): RequestHandler {
   const settleTimeoutMs = deps.settleTimeoutMs ?? SETTLE_TIMEOUT_MS;
+  const codes = deps.codes ?? { inProgress: 'CONFLICT', mismatch: 'VALIDATION_ERROR' };
   return async (req, res, next) => {
     const header = req.get('idempotency-key');
     if (!header) {
@@ -74,8 +83,9 @@ export function idempotency(deps: {
       ]);
     }
 
-    const userId = getAuth(res)?.userId ?? null;
-    const key = `${userId ?? 'anonymous'}:${header}`;
+    const scope = deps.scopeOf?.(res);
+    const userId = scope ? scope.userId : (getAuth(res)?.userId ?? null);
+    const key = scope ? `${scope.prefix}${header}` : `${userId ?? 'anonymous'}:${header}`;
     const path = req.baseUrl + req.path;
     const result = await deps.store.begin({
       key,
@@ -95,7 +105,7 @@ export function idempotency(deps: {
     }
     if (result.kind === 'in_progress') {
       throw new AppError(
-        'CONFLICT',
+        codes.inProgress,
         'A request with this Idempotency-Key is still being processed',
         undefined,
         {
@@ -105,7 +115,7 @@ export function idempotency(deps: {
     }
     if (result.kind === 'mismatch') {
       throw new AppError(
-        'VALIDATION_ERROR',
+        codes.mismatch,
         'This Idempotency-Key was already used for a different request',
         [{ field: 'Idempotency-Key', issue: 'reused' }],
       );

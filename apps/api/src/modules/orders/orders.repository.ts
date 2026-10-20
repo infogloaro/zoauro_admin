@@ -26,6 +26,14 @@ const listSelect = {
   deliveryPartnerId: true,
   placedAt: true,
   version: true,
+  // D167 pre-orders
+  scheduledFor: true,
+  dispatchAt: true,
+  releasedAt: true,
+  rescheduleCount: true,
+  deliveryAddress: true,
+  deliveryLat: true,
+  deliveryLng: true,
 } satisfies Prisma.OrderSelect;
 export type OrderListRow = Prisma.OrderGetPayload<{ select: typeof listSelect }>;
 
@@ -111,6 +119,8 @@ function listWhere(q: OrderListQuery): Prisma.OrderWhereInput {
   if (q.homemakerId) and.push({ homemakerId: q.homemakerId });
   if (q.customerId) and.push({ customerId: q.customerId });
   if (q.deliveryPartnerId) and.push({ deliveryPartnerId: q.deliveryPartnerId });
+  if (q.scheduled === true) and.push({ scheduledFor: { not: null } });
+  if (q.scheduled === false) and.push({ scheduledFor: null });
   if (q.from) and.push({ placedAt: { gte: new Date(q.from) } });
   if (q.to) and.push({ placedAt: { lte: new Date(q.to) } });
   if (q.q) {

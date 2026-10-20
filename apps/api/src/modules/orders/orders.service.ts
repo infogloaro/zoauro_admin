@@ -83,6 +83,18 @@ export function toListItem(row: OrderListRow): OrderListItem {
     deliveryPartnerId: row.deliveryPartnerId,
     placedAt: row.placedAt.toISOString(),
     version: row.version,
+    preorder:
+      row.scheduledFor && row.dispatchAt
+        ? {
+            scheduledFor: row.scheduledFor.toISOString(),
+            dispatchAt: row.dispatchAt.toISOString(),
+            releasedAt: row.releasedAt?.toISOString() ?? null,
+            rescheduleCount: row.rescheduleCount,
+            deliveryAddress: row.deliveryAddress,
+            deliveryLat: row.deliveryLat === null ? null : row.deliveryLat.toNumber(),
+            deliveryLng: row.deliveryLng === null ? null : row.deliveryLng.toNumber(),
+          }
+        : null,
   };
 }
 

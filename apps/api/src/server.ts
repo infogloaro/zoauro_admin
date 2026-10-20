@@ -27,6 +27,8 @@ import { createSearchModule } from './modules/search';
 import { createVendorsModule } from './modules/vendors';
 import { createS3Storage } from './lib/s3-storage';
 import { RedisRateLimiter } from './lib/rate-limiter';
+import { createSecretBox } from './modules/auth/mfa/secret-box';
+import { createIntakeModule } from './modules/intake';
 import { createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
 
@@ -173,6 +175,19 @@ const notifications = createNotificationsModule({
 
 const app = createApp({
   trustProxyHops: env.TRUST_PROXY_HOPS,
+  // M21 Integration API for the apps (doc 42, D147): HMAC-signed, outside the staff session stack
+  raw: [
+    createIntakeModule({
+      prisma,
+      secretBox: createSecretBox({
+        current: env.ENCRYPTION_KEY,
+        ...(env.ENCRYPTION_KEY_PREVIOUS ? { previous: env.ENCRYPTION_KEY_PREVIOUS } : {}),
+      }),
+      limiter: new RedisRateLimiter(redis),
+      resolver: zones.resolver,
+      clock: () => new Date(),
+    }),
+  ],
   readiness: createReadinessChecks({ databaseUrl: env.DATABASE_URL, redisUrl: env.REDIS_URL }),
   v1: {
     sessionMiddleware: auth.sessionMiddleware,

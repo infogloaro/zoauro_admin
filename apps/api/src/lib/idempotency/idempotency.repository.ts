@@ -5,6 +5,11 @@ import type { BeginResult, IdempotencyStore } from './middleware';
 // A row with no status_code is a request that started and has not finished.
 
 export const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+/** Keys of the apps' Integration API (`intake:<clientId>:<key>`) are kept 7 days (doc 42 section 1). */
+export const INTAKE_KEY_PREFIX = 'intake:';
+export const INTAKE_IDEMPOTENCY_TTL_MS = 7 * IDEMPOTENCY_TTL_MS;
+const ttlOf = (key: string): number =>
+  key.startsWith(INTAKE_KEY_PREFIX) ? INTAKE_IDEMPOTENCY_TTL_MS : IDEMPOTENCY_TTL_MS;
 /** A request still "in progress" after this long is assumed to have died with its process and may be taken over. */
 export const IN_PROGRESS_TIMEOUT_MS = 60 * 1000;
 
@@ -18,7 +23,7 @@ export class IdempotencyRepository implements IdempotencyStore {
     requestHash: string;
     now: Date;
   }): Promise<BeginResult> {
-    const expired = new Date(i.now.getTime() - IDEMPOTENCY_TTL_MS);
+    const expired = new Date(i.now.getTime() - ttlOf(i.key));
     const abandoned = new Date(i.now.getTime() - IN_PROGRESS_TIMEOUT_MS);
 
     // Drop what no longer counts, then try to claim the key. createMany + skipDuplicates is one atomic INSERT .. ON CONFLICT DO NOTHING.
@@ -65,10 +70,18 @@ export class IdempotencyRepository implements IdempotencyStore {
     await this.db.idempotencyKey.deleteMany({ where: { key, statusCode: null } });
   }
 
-  /** Retention: "purge after 24 h" (doc 08). Called by a worker job. */
+  /** Retention: "purge after 24 h" (doc 08), 7 days for Integration API keys (doc 42). Called by a worker job. */
   async purgeExpired(now: Date): Promise<number> {
     const r = await this.db.idempotencyKey.deleteMany({
-      where: { createdAt: { lt: new Date(now.getTime() - IDEMPOTENCY_TTL_MS) } },
+      where: {
+        OR: [
+          {
+            NOT: { key: { startsWith: INTAKE_KEY_PREFIX } },
+            createdAt: { lt: new Date(now.getTime() - IDEMPOTENCY_TTL_MS) },
+          },
+          { createdAt: { lt: new Date(now.getTime() - INTAKE_IDEMPOTENCY_TTL_MS) } },
+        ],
+      },
     });
     return r.count;
   }

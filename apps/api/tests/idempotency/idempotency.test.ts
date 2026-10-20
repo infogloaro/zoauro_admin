@@ -4,6 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppError } from '../../src/lib/errors';
 import {
   IDEMPOTENCY_TTL_MS,
+  INTAKE_IDEMPOTENCY_TTL_MS,
+  INTAKE_KEY_PREFIX,
   IN_PROGRESS_TIMEOUT_MS,
   IdempotencyRepository,
   canonicalJson,
@@ -293,5 +295,49 @@ describe('retention: 24 hours', () => {
     expect((await post('/_t/refunds', cookie, 'stale-key-00001', { amount: 9 })).status).toBe(409);
     env.clock.advance(IN_PROGRESS_TIMEOUT_MS + 1000);
     expect((await post('/_t/refunds', cookie, 'stale-key-00001', { amount: 9 })).status).toBe(201);
+  });
+});
+
+describe('retention: 7 days for the Integration API (doc 42)', () => {
+  const begin = (key: string, hash = 'h1') =>
+    repo.begin({
+      key,
+      route: 'POST /api/v1/intake/orders',
+      userId: null,
+      requestHash: hash,
+      now: env.clock.now(),
+    });
+
+  it('an intake key is replayed after 24 h and until 7 days; a user key of the same age is not', async () => {
+    const intakeKey = `${INTAKE_KEY_PREFIX}client-1:week-key-0001`;
+    const userKey = 'anonymous:week-key-0002';
+    for (const key of [intakeKey, userKey]) {
+      expect(await begin(key)).toEqual({ kind: 'started' });
+      await repo.complete(key, 201, { ok: true });
+    }
+    env.clock.advance(IDEMPOTENCY_TTL_MS + 1000);
+    expect(await begin(intakeKey)).toEqual({ kind: 'replay', statusCode: 201, body: { ok: true } });
+    expect(await begin(userKey)).toEqual({ kind: 'started' }); // expired: a new request
+
+    env.clock.advance(INTAKE_IDEMPOTENCY_TTL_MS - IDEMPOTENCY_TTL_MS - 2000);
+    expect(await begin(intakeKey, 'h2')).toEqual({ kind: 'mismatch' }); // still held, still checked
+    env.clock.advance(2000);
+    expect(await begin(intakeKey)).toEqual({ kind: 'started' });
+  });
+
+  it('purgeExpired() keeps intake keys younger than 7 days and removes older ones', async () => {
+    const young = `${INTAKE_KEY_PREFIX}client-1:purge-week-01`;
+    const old = `${INTAKE_KEY_PREFIX}client-1:purge-week-02`;
+    await begin(old);
+    await repo.complete(old, 201, {});
+    env.clock.advance(INTAKE_IDEMPOTENCY_TTL_MS - IDEMPOTENCY_TTL_MS);
+    await begin(young);
+    await repo.complete(young, 201, {});
+    env.clock.advance(IDEMPOTENCY_TTL_MS + 1000); // old: 7 days + 1 s; young: 24 h + 1 s
+    await repo.purgeExpired(env.clock.now());
+    const left = await env.db.owner.query(
+      `SELECT key FROM idempotency_keys WHERE key LIKE '%purge-week-%' ORDER BY key`,
+    );
+    expect(left.rows.map((r: { key: string }) => r.key)).toEqual([young]);
   });
 });
