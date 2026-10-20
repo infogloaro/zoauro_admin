@@ -27,6 +27,11 @@ vi.mock('../../lib/server-session', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../lib/server-session')>();
   return { ...real, getMe: async () => session.me, requestPath: async () => session.path };
 });
+// the top-bar search fetches through TanStack Query, which the root Providers supply; these layouts render without them
+vi.mock('../../features/search/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../features/search/api')>()),
+  useGlobalSearch: () => ({ data: undefined, isFetching: false, isError: false }),
+}));
 const { ProtectedArea } = await import('./ProtectedArea');
 
 const me = (role: 'SUPER_ADMIN' | 'ZONAL_ADMIN', zoneCount = 1): MeResponse => ({

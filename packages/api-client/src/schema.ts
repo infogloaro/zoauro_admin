@@ -633,6 +633,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Header search across orders, customers, restaurants, homemakers and delivery partners. Each group needs its module view permission and follows the zone scope (?zoneId= narrows); groups the caller cannot view are omitted. Phones masked (D26) */
+        get: operations["globalSearch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/security": {
         parameters: {
             query?: never;
@@ -3671,6 +3688,87 @@ export interface operations {
             };
         };
     };
+    globalSearch: {
+        parameters: {
+            query: {
+                q: string;
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Up to 5 results per group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        groups: {
+                            hasMore: boolean;
+                            items: {
+                                amount: number | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: uuid */
+                                id: string;
+                                status: string;
+                                subtitle: string | null;
+                                title: string;
+                                /** @enum {string} */
+                                type: "order" | "customer" | "restaurant" | "homemaker" | "deliveryPartner";
+                                /** Format: uuid */
+                                zoneId: string | null;
+                                zoneName: string | null;
+                            }[];
+                            /** @enum {string} */
+                            type: "order" | "customer" | "restaurant" | "homemaker" | "deliveryPartner";
+                        }[];
+                        q: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     getSecurityPolicy: {
         parameters: {
             query?: never;
@@ -3945,7 +4043,7 @@ export interface operations {
                             enabled: boolean;
                             paused: boolean;
                             /** @enum {string} */
-                            provider: "none" | "console";
+                            provider: "none" | "console" | "msg91";
                         };
                         superAdminWarning: boolean;
                     };

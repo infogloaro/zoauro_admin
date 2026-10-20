@@ -84,6 +84,8 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /auth/reauth',
         'POST /auth/reset-password',
         'POST /me/sessions/revoke-others',
+        // M18 Global Search (doc 09, D32)
+        'GET /search',
         // M02 zones (P11, doc 53 section 5)
         'GET /zones',
         'GET /zones/summary',

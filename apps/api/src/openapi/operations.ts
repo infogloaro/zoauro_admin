@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  searchQuerySchema,
+  searchResponseSchema,
   auditActorSearchQuerySchema,
   auditActorSearchResponseSchema,
   auditCatalogueSchema,
@@ -1070,6 +1072,23 @@ export const OPERATIONS: OperationDef[] = [
       description: 'Saved',
     },
     errors: ['NOT_FOUND'],
+  },
+  // ---- M18 Global Search (doc 09, D32, doc 34 SA-7.5) -------------------------------------------------------------------
+  {
+    operationId: 'globalSearch',
+    method: 'get',
+    path: '/search',
+    tags: ['search'],
+    summary:
+      'Header search across orders, customers, restaurants, homemakers and delivery partners. Each group needs its module view permission and follows the zone scope (?zoneId= narrows); groups the caller cannot view are omitted. Phones masked (D26)',
+    access: { kind: 'session' },
+    query: searchQuerySchema,
+    response: {
+      status: 200,
+      schema: searchResponseSchema,
+      description: 'Up to 5 results per group',
+    },
+    errors: ['VALIDATION_ERROR', 'ZONE_NOT_FOUND'],
   },
 ];
 

@@ -20,6 +20,7 @@ import {
   type AccessMailer,
 } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
+import { createSearchModule } from '../../../src/modules/search';
 import {
   createZonesModule,
   stubImpactSources,
@@ -258,6 +259,7 @@ export async function createAuthTestEnv() {
       createAuditModule({ prisma }).router,
       zones.router,
       accessControl.router,
+      createSearchModule({ prisma }).router,
     ];
     const extraRouters = [
       ...(extra.routers ?? []),

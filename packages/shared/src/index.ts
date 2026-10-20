@@ -10,3 +10,4 @@ export * from './access';
 export * from './permissions';
 export * from './errors';
 export * from './pagination';
+export * from './search';

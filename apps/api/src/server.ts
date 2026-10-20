@@ -13,6 +13,7 @@ import {
   createZoneTeamPort,
 } from './modules/access';
 import { createAuditModule } from './modules/audit';
+import { createSearchModule } from './modules/search';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
 import { createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
@@ -88,6 +89,7 @@ const app = createApp({
       createAuditModule({ prisma }).router,
       zones.router,
       accessControl.router,
+      createSearchModule({ prisma }).router,
     ],
   },
 });

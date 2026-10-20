@@ -3293,7 +3293,8 @@
                           "type": "string",
                           "enum": [
                             "none",
-                            "console"
+                            "console",
+                            "msg91"
                           ]
                         },
                         "enabled": {
@@ -12960,6 +12961,204 @@
         "x-audit": {
           "module": "access",
           "action": "access_profile.updated"
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "globalSearch",
+        "tags": [
+          "search"
+        ],
+        "summary": "Header search across orders, customers, restaurants, homemakers and delivery partners. Each group needs its module view permission and follows the zone scope (?zoneId= narrows); groups the caller cannot view are omitted. Phones masked (D26)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            },
+            "required": true,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Up to 5 results per group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "order",
+                              "customer",
+                              "restaurant",
+                              "homemaker",
+                              "deliveryPartner"
+                            ]
+                          },
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "order",
+                                    "customer",
+                                    "restaurant",
+                                    "homemaker",
+                                    "deliveryPartner"
+                                  ]
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "subtitle": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "zoneId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "uuid"
+                                },
+                                "zoneName": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "amount": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "createdAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "id",
+                                "title",
+                                "subtitle",
+                                "status",
+                                "zoneId",
+                                "zoneName",
+                                "amount",
+                                "createdAt"
+                              ]
+                            },
+                            "maxItems": 5
+                          },
+                          "hasMore": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "items",
+                          "hasMore"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "q",
+                    "groups"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
         }
       }
     }

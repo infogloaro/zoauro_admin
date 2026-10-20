@@ -48,7 +48,7 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // the run lists every route of the document, none skipped
     expect(report.coveredRoutes).toEqual(listSpecRoutes(spec));
     // 49 until P11 (auth, audit, zones) + 20 M03 access routes
-    expect(report.coveredRoutes).toHaveLength(69);
+    expect(report.coveredRoutes).toHaveLength(70); // 69 + GET /search (M18)
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,
