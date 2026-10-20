@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -69,6 +69,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M19',
       'M19-HIST',
       'M19-SEC',
+      'NEW-HOTEL',
       'R09',
       'R12',
       'R13',
@@ -107,12 +108,13 @@ describe('menu by role', () => {
       href: '/super-admin/settings/history',
     });
     expect(byId['NEW-HOTEL']).toMatchObject({
-      status: 'coming-soon',
-      href: '/coming-soon/hotel-booking',
+      status: 'live',
+      label: 'Hotels & Bookings',
+      href: '/super-admin/hotels',
     });
   });
 
-  it('Zonal Admin: never Zones, Audit, Access, Settings, Integrations or the new hotel module; modules only where viewable in some zone', () => {
+  it('Zonal Admin: never Zones, Audit, Access, Settings, Integrations, nor Hotels without a hotels grant; modules only where viewable in some zone', () => {
     const zones = [
       zone('A', ['orders:view', 'orders:edit', 'restaurants:view']),
       zone('BB', ['customers:view', 'payments:view']),

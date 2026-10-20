@@ -227,17 +227,14 @@ export const NAV_MODULES: readonly NavModule[] = [
   {
     id: 'NEW-HOTEL',
     slug: 'hotel-booking',
-    label: 'Hotel Room Booking',
+    label: 'Hotels & Bookings',
     group: 'services',
     icon: 'bed',
     description:
-      'Hotel room booking service (new module requested by the owner; scope still being designed).',
-    status: 'coming-soon',
-    blueprint: {
-      phase: 'Phase 1',
-      screens: ['Scope to be confirmed by the owner and the designers'],
-      rules: ['Not yet in the module list (doc 39); recorded as a new module request in doc 32'],
-    },
+      'Hotels, room bookings and table bookings (D91, D118, D127): verification, status, stays and tables.',
+    status: 'live',
+    superAdminHref: '/super-admin/hotels',
+    zonal: { href: '/zone/hotels', permission: 'hotels' },
   },
   {
     id: 'M08',
