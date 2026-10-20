@@ -8,12 +8,15 @@ export const OUTBOUND_EVENTS: Readonly<Record<string, readonly AppClientType[]>>
   'order.status_changed': ['CUSTOMER_APP', 'VENDOR_APP', 'PARTNER_APP'],
   'order.assigned': ['PARTNER_APP', 'VENDOR_APP', 'CUSTOMER_APP'],
   'order.reassigned': ['PARTNER_APP', 'CUSTOMER_APP'],
+  'order.offered': ['PARTNER_APP'], // D154
+  'order.offer_expired': ['PARTNER_APP'], // D154
   'order.cancelled': ['CUSTOMER_APP', 'VENDOR_APP', 'PARTNER_APP'],
   'payment.status_changed': ['CUSTOMER_APP'],
   'refund.updated': ['CUSTOMER_APP'],
   'vendor.status_changed': ['VENDOR_APP'],
   'vendor.updated': ['VENDOR_APP'],
   'menu_item.admin_changed': ['VENDOR_APP', 'CUSTOMER_APP'],
+  'menu_item.change_decided': ['VENDOR_APP'], // D125
   'partner.status_changed': ['PARTNER_APP'],
   'partner.force_offline': ['PARTNER_APP'],
   'partner.updated': ['PARTNER_APP'],

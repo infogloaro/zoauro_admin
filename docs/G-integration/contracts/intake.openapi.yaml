@@ -1017,6 +1017,7 @@ paths:
   /partners/{partnerId}/location:
     post:
       summary: Location batch
+      description: 'The Core keeps the newest point per partner in Redis (15 min) and on the partner row (last_lat, last_lng, last_location_at; no history), the row at most every 30 s per partner. Points older than 15 min or more than 60 s in the future are ignored; the call still answers 202. Used by the auto-assign engine (D154).'
       tags:
       - Partner app
       x-required-scope: partners:location
@@ -1052,6 +1053,7 @@ paths:
   /orders/{orderId}/partner-events:
     post:
       summary: Assignment response, pickup, delivery, COD
+      description: 'ACCEPT / REJECT answer an assignment, or an auto-assign offer when offerId is sent (D154). 409 OFFER_EXPIRED: the offer is no longer open.'
       tags:
       - Partner app
       x-required-scope: orders:partner
@@ -1735,6 +1737,10 @@ components:
         collectedPaise: *id004
         reasonCode:
           type: string
+        offerId:
+          type: string
+          format: uuid
+          description: 'D154: the auto-assign offer being answered (with ACCEPT or REJECT). ACCEPT on an offer that is expired, withdrawn or not this partner''s answers 409 OFFER_EXPIRED; REJECT offers the order to the next nearest partner at once.'
       required:
       - partnerId
       - event

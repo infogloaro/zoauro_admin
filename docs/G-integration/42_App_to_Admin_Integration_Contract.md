@@ -52,7 +52,7 @@ A request outside its scopes → `403 SCOPE_DENIED`. A vendor client acting on a
 - **PII minimisation:** send only the fields listed. Do not send passwords, OTPs, card data or full device identifiers.
 
 ## 4. Error codes (integration additions to doc 09)
-`SIGNATURE_INVALID 401`, `TIMESTAMP_SKEW 401`, `CLIENT_DISABLED 403`, `SCOPE_DENIED 403`, `ENTITY_MISMATCH 403`, `IDEMPOTENCY_CONFLICT 409`, `IDEMPOTENCY_IN_PROGRESS 409`, `INVALID_STATE_TRANSITION 409`, `NOT_SERVICEABLE 422` (address outside the vendor's zone or zone inactive), `VENDOR_UNAVAILABLE 422` (inactive, suspended, closed), `PRICE_MISMATCH 422`, `ITEM_UNAVAILABLE 422`, `CUSTOMER_BLOCKED 403`, `PARTNER_NOT_ELIGIBLE 422`, `UNKNOWN_ENTITY 404`, `VALIDATION_ERROR 422`, `RATE_LIMITED 429`.
+`SIGNATURE_INVALID 401`, `TIMESTAMP_SKEW 401`, `CLIENT_DISABLED 403`, `SCOPE_DENIED 403`, `ENTITY_MISMATCH 403`, `IDEMPOTENCY_CONFLICT 409`, `IDEMPOTENCY_IN_PROGRESS 409`, `INVALID_STATE_TRANSITION 409`, `NOT_SERVICEABLE 422` (address outside the vendor's zone or zone inactive), `VENDOR_UNAVAILABLE 422` (inactive, suspended, closed), `PRICE_MISMATCH 422`, `ITEM_UNAVAILABLE 422`, `CUSTOMER_BLOCKED 403`, `PARTNER_NOT_ELIGIBLE 422`, `OFFER_EXPIRED 409` (auto-assign offer no longer open, D154), `UNKNOWN_ENTITY 404`, `VALIDATION_ERROR 422`, `RATE_LIMITED 429`.
 
 ## 5. Endpoints
 ### 5.1 Common (all apps)

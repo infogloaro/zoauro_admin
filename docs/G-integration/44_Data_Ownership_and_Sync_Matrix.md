@@ -22,7 +22,7 @@ Legend: **C** creates, **U** updates, **R** reads, — none. App rows apply thro
 | Vendor hours / open flag | — | C U | — | U on behalf | U | Core |
 | Menu items | R (published via app's own catalogue sync or Core read) | C U D | — | U/disable if `menu:edit` | U | Core |
 | Partner profile | — | — | C U (own) | U if `delivery:edit`, verify/force offline | U all | Core |
-| Partner location | — | — | C (latest only) | R | R | Redis, 15 min |
+| Partner location | — | — | C (latest only) | R | R | Redis 15 min + latest point on the partner row, no history (D154) |
 | Order | C (create, cancel while PLACED) | U (accept/ready) | U (pickup/deliver) | U per permission (assign, cancel, accept on behalf) | U all | **Core** after creation |
 | Payment | start attempt | — | COD collected | R, refund within limit | R, approve refunds | Core + gateway |
 | Cash settlement | — | — | C (hand-over) | confirm if `settlements:edit` | confirm | Core |

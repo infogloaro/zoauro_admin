@@ -42,6 +42,8 @@ Body envelope:
 | `order.status_changed` | customer, vendor, partner | any state transition from any actor | update order screen and notify the user |
 | `order.assigned` | partner, vendor, customer | admin or system assigns a partner | partner: show assignment to accept/reject; customer: show partner |
 | `order.reassigned` | partner (old and new), customer | admin changes partner | old partner: clear order; new: show |
+| `order.offered` | partner (the one offered) | auto-assign offers the order to the nearest available partner (D154) | show the offer with a countdown to `expiresAt`; answer ACCEPT or REJECT with `offerId` |
+| `order.offer_expired` | partner | the offer timed out or was withdrawn (D154) | hide the offer |
 | `order.cancelled` | all three | cancel by admin/system/timeout, with `reasonCode`, `cancelledBy` | stop work on the order; show reason |
 | `payment.status_changed` | customer | gateway webhook or COD | update payment state |
 | `refund.updated` | customer | refund requested/approved/processed/failed | show status and amount |
