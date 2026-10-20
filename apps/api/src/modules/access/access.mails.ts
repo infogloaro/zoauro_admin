@@ -1,0 +1,62 @@
+import { escapeHtml, type MailMessage, type Mailer } from '../../lib/mailer';
+
+// Emails to a member about their account (doc 09 PUT access "email to member", TC-AC-13; D103). None carries a password
+// or a link that signs in.
+
+export interface AccessMailer {
+  /** zones added or removed, or what the member may do in a zone changed */
+  sendAccessChanged(m: {
+    to: string;
+    name: string;
+    added: string[];
+    removed: string[];
+    changed: string[];
+  }): Promise<void>;
+  /** a Super Admin set a new temporary password; it is never in the email (D103) */
+  sendPasswordResetByAdmin(m: { to: string; name: string }): Promise<void>;
+}
+
+export const noopAccessMailer: AccessMailer = {
+  sendAccessChanged: async () => undefined,
+  sendPasswordResetByAdmin: async () => undefined,
+};
+
+function message(to: string, subject: string, lines: string[]): MailMessage {
+  return {
+    to,
+    subject,
+    text: lines.join('\n'),
+    html: lines
+      .filter((l) => l !== '')
+      .map((l) => `<p>${escapeHtml(l)}</p>`)
+      .join('\n'),
+  };
+}
+
+const list = (names: string[]): string => names.join(', ');
+
+export function createAccessMailer(mailer: Mailer, opts: { appUrl: string }): AccessMailer {
+  const signIn = `${opts.appUrl.replace(/\/+$/, '')}/login`;
+  return {
+    sendAccessChanged: (m) =>
+      mailer.send(
+        message(m.to, 'Your ZOAURO Admin access changed', [
+          `Hello ${m.name},`,
+          'A Super Admin changed your access in ZOAURO Admin. It applies from your next action.',
+          ...(m.added.length > 0 ? [`Zones added: ${list(m.added)}`] : []),
+          ...(m.removed.length > 0 ? [`Zones removed: ${list(m.removed)}`] : []),
+          ...(m.changed.length > 0 ? [`Permissions or limits changed in: ${list(m.changed)}`] : []),
+          'If you think this is a mistake, ask your Super Admin.',
+        ]),
+      ),
+    sendPasswordResetByAdmin: (m) =>
+      mailer.send(
+        message(m.to, 'Your ZOAURO Admin password was reset', [
+          `Hello ${m.name},`,
+          'A Super Admin set a new temporary password for your account and signed out all your devices.',
+          'Ask your Super Admin for the temporary password; you will choose your own at the next sign-in.',
+          `Sign in at ${signIn}`,
+        ]),
+      ),
+  };
+}

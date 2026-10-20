@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler",
+    "strict": true, "noUncheckedIndexedAccess": true, "noImplicitOverride": true,
+    "noUnusedLocals": true, "noUnusedParameters": true,
+    "esModuleInterop": true, "skipLibCheck": true, "resolveJsonModule": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": { "@zoauro/shared/audit": ["packages/shared/src/audit/index.ts"] }
+  },
+  "include": ["packages", "apps"]
+}

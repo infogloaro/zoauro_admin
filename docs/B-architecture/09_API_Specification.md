@@ -15,7 +15,8 @@ Base path `/api/v1`, served by the Express API. JSON only. OpenAPI 3.1 generated
 ```json
 { "error": { "code": "VALIDATION_ERROR", "message": "Invalid input", "details": [{"field":"email","issue":"invalid"}], "requestId": "…" } }
 ```
-Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VALIDATION_ERROR 422, CONFLICT 409, RATE_LIMITED 429, INVALID_STATE_TRANSITION 409, REFUND_LIMIT_EXCEEDED 403, REAUTH_REQUIRED 401, INTERNAL 500.
+Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VALIDATION_ERROR 422, CONFLICT 409, RATE_LIMITED 429, INVALID_STATE_TRANSITION 409, REFUND_LIMIT_EXCEEDED 403, REAUTH_REQUIRED 401, INTERNAL 500. Also STALE_VERSION 409 (optimistic locking) and the zone codes of doc 53 §5 (ZONE_NAME_TAKEN, ZONE_CODE_TAKEN, PINCODE_OVERLAP, IMPACT_CHANGED, ZONE_HAS_HISTORY 409; RANGE_TOO_LARGE, CODE_IMMUTABLE, ZONE_NOT_ACTIVATABLE, REASON_REQUIRED 422); the full list is `ERROR_STATUS` in `packages/shared/src/errors.ts`.
+- **Error data (v1.2, additive, P11):** a few codes carry structured data in an optional `error.meta` object: `PINCODE_OVERLAP {conflicts:[{pincode, zoneId, zoneName}]}`, `ZONE_NOT_ACTIVATABLE {missing:[…]}`, `ZONE_HAS_HISTORY {counts}`, `STALE_VERSION {current}` (the newer record), `IMPACT_CHANGED {impact}`. `details[]` still carries the field-level hints for forms.
 
 ## Endpoint catalogue
 | Method | Path | Permission | Notes |
@@ -23,7 +24,13 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | POST | /auth/login | public | rate limited, lockout |
 | POST | /auth/logout | session | |
 | POST | /auth/forgot-password, /auth/reset-password | public | generic responses |
-| POST | /auth/2fa/setup, /auth/2fa/verify | session | |
+| GET | /auth/csrf | public | sets the CSRF cookie, returns token |
+| POST | /auth/mfa/challenge, /auth/mfa/verify, /auth/mfa/enrol/complete | pending cookie `zo_mfa` | second step of login (doc 52 §2.1, §8). `/auth/login` returns `OK`, `MFA_REQUIRED` or `ENROLMENT_REQUIRED` |
+| POST | /auth/change-password | session | also the forced first-login change |
+| GET/POST/PUT/DELETE | /me/mfa, /me/mfa/{email\|authenticator\|sms}/{start\|confirm}, /me/mfa/primary, /me/mfa/{type}, /me/mfa/backup-codes/regenerate | session or pending (enrol) | enrol, manage, remove (STRONG re-auth) |
+| GET/DELETE/POST | /me/sessions, /me/sessions/{id}, /me/sessions/revoke-others | session | |
+| GET/PUT | /settings/security, GET /settings/security/status, POST /settings/security/sms/resume | Super Admin; PUT needs STRONG re-auth | 2-step policy (doc 52 §5) |
+| POST | /members/{id}/mfa/reset | Super Admin + STRONG | `{reason}`; audited |
 | POST | /auth/reauth | session | recent re-auth for high-risk actions |
 | GET | **/me** | session | role, **zones[] each with granted permissions and limits for that zone** (Zonal Admin) or global flag (Super Admin), preferences |
 | PUT | **/me/zone-scope** | session | `{ zoneIds: [] }` saves preference; validated against assignment |
@@ -32,8 +39,11 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /dashboard/revenue-overview, /top-restaurants, /top-categories, /new-registrations | dashboard:view | Super Admin dashboard widgets (Figma) |
 | GET | /search?q= | session | global search (P1, D32); per-entity permission + scope |
 | GET/POST | /zones | zones:view/add | Super Admin |
-| GET/PATCH/DELETE | /zones/{id} | zones:* | delete = deactivate with impact check |
+| GET/PATCH/DELETE | /zones/{id} | zones:* | PATCH carries `version` (409 STALE_VERSION), `code` is 422 CODE_IMMUTABLE; DELETE (+ PASSWORD re-auth) soft-deletes a pristine zone that is not ACTIVE and releases its pincodes, else 409 ZONE_HAS_HISTORY / INVALID_STATE_TRANSITION (doc 53 §2.2) |
 | GET | /zones/{id}/impact | zones:view | counts of open orders, vendors, partners, admins before deactivate |
+| GET | /zones/summary, /zones/lookup?pincode= | zones:view | KPI counts; owning zone of a pincode (live overlap hint) |
+| PUT | /zones/{id}/pincodes (`?preview=true` dry run) | zones:edit | range / add / remove; overlap check under advisory lock; returns vendor mismatches |
+| POST | /zones/{id}/activate, /zones/{id}/deactivate | zones:status + re-auth | deactivate needs `reason`, `version`, `impactVersion`; no cascade writes (doc 53 §2.1) |
 | GET/POST | /zonal-admins | admins:* | Super Admin; create member account (name, email, phone, password, status); zones/access are set via `/access` below |
 | GET/PATCH/DELETE | /zonal-admins/{id} | admins:* | |
 | GET | **/zonal-admins/{id}/access** | access:view | member's assignments: `[{ zoneId, profileId, overrides[], limits }]` |
@@ -81,7 +91,13 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /reconciliation/runs, /reconciliation/runs/{id} | payments:view | |
 | GET/PUT | /settings/{group} | settings:view/edit | Super Admin |
 | GET/POST | /notifications | notifications:* | compose (Super Admin); GET also lists operational alerts for the caller |
-| GET | /audit-logs | audit:view | cursor paginated; entity filter for Activity tabs |
+| GET | /audit-logs | audit:view (Super Admin) or entity mode | Cursor list; filters actor, actorType, module, action, entityType, entityId, zoneId, outcome, sensitivity, q, from, to. Zonal Admin: entity mode only (entityType+entityId), else 403; ip/userAgent/requestId hidden (doc 50 §8) |
+| GET | /audit-logs/{id} | as above | detail with changes[] |
+| GET | /audit-logs/catalogue | audit:view | modules and action keys for filters |
+| POST | /audit-logs/exports | audit:export | Super Admin, re-auth, 3/hour, 100k rows cap, async CSV |
+| GET | /exports/{id} | requester | status and 24 h signed URL |
+| GET | /login-history | audit:view | Super Admin, cursor |
+| GET | /me/login-history | session | own last 50 |
 | GET/DELETE | /sessions, /sessions/{id} | self or Super Admin | |
 | POST | /webhooks/payments/{provider} | signature | public endpoint |
 | POST | /uploads/presign, /uploads/confirm | authenticated | content-type and size allow-list |

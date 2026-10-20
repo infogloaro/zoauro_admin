@@ -36,6 +36,23 @@ Internet ↔ Nginx (CloudFront/WAF/ALB added after pilot, doc 06 §5) ↔ web + 
 | T24 | Forged, tampered or replayed app events | Fake orders, state corruption | HMAC over method+path+body hash, 5-minute timestamp window, idempotency keys, state machine and `version` checks, inbound log | Integration |
 | T25 | Webhook URL used for SSRF (internal addresses) | Internal network access | HTTPS only, block private/loopback/link-local, no redirects, DNS re-check at send time, outbound allow-list option | Integration |
 | T26 | Compromised or buggy app client manipulates prices, other vendors' orders or floods | Fraud, data corruption | Server re-validates prices from menu; entity checks (`ENTITY_MISMATCH`); scopes; rate limits; locked fields never writable by apps | Integration |
+| T27 | Tampering with or deleting audit rows | Hidden misuse | App DB role INSERT/SELECT only, trigger, no API verbs, purge only by retention job after 3 years (doc 50) | M04 |
+| T28 | Secrets or personal data leaking into audit JSON | Data exposure | Redaction before insert, registry test against the schema, masked phone/email | M04 |
+| T29 | Audit flooding / storage abuse | Cost, noise | Denied rows rate limited, bulk actions one row, export caps, app event streams excluded (D59) | M04 |
+| T30 | OTP / TOTP guessing | Account takeover | Per-code attempt cap, 5 failures lock 30 min (D77), rate limits, 5-min expiry, timing-safe compare (doc 52; TC-AUTH-10…14) | M01 |
+| T31 | SMS pumping / OTP flooding | Cost, harassment | Destination never user-supplied, cooldown, hourly/daily caps, global SMS cap and circuit breaker, SMS off by default (TC-AUTH-17…20) | M01 |
+| T32 | SIM swap / mailbox takeover defeats OTP | Account takeover | Super Admin authenticator-only by default (D66), new-method emails, STRONG re-auth (TC-AUTH-26, 29) | M01 |
+| T33 | 2-step downgrade (attacker picks weakest method) | Bypass | Allowed methods per role evaluated server-side; unenrolled/disallowed method rejected (TC-AUTH-21) | M01 |
+| T34 | Enrolment hijack with a temporary password | Attacker owns factor | Mailbox proof before enrolment; gate order password → second step → change password (TC-AUTH-22) | M01 |
+| T35 | TOTP secret theft from DB or backup | Permanent compromise | AES-256-GCM, key id and rotation, never returned after enrolment, redacted from audit (TC-AUTH-30) | M01 |
+| T36 | TOTP code replay | Session theft | Last-used step guard, short window (TC-AUTH-11); real-time phishing relay is residual until passkeys | M01 |
+| T37 | Recovery abuse (social engineering) | Bypass | STRONG re-auth, reason, member email, HIGH audit, ≥ 2 Super Admins, audited CLI (TC-AUTH-31…34) | M01 |
+| T38 | Pending-login cookie theft / fixation | Skip step 1 | Opaque, Strict, 5 min, single use, new session id on success (TC-AUTH-9) | M01 |
+| T39 | Enumeration through the second step | Valid emails learned | Methods shown only after correct password; identical errors and timing (TC-AUTH-35) | M01 |
+| T40 | Pincode overlap / hijack between zones | Wrong team, misrouted orders | DB unique index, advisory-locked check, HIGH audit, mismatch report, Super Admin only (TC-ZONE-6…9) | M02 |
+| T41 | Accidental or malicious zone deactivation | Outage | Impact check, reason, acknowledgement, re-auth, HIGH audit, reversible without cascade (TC-ZONE-14…17) | M02 |
+| T42 | Zone resolver abuse / scraping | Info leak, load | Client scope, rate limit, closed zones shown as NONE, cache (TC-ZONE-20, 21) | M02 |
+| T43 | Stale zone cache accepts orders for a closed zone | Wrong serviceability | Version bump in commit path; intake re-checks the zone row (TC-ZONE-19) | M02 |
 | T18 | Admin account created by attacker | Takeover | Only Super Admin creates admins; email verification; audit | Super Admin |
 
 ## 4. Security requirements
@@ -44,7 +61,7 @@ Internet ↔ Nginx (CloudFront/WAF/ALB added after pilot, doc 06 §5) ↔ web + 
 - SEC-3 All inputs validated by Zod on server; output encoded.
 - SEC-4 Authorization on every API route and data access.
 - SEC-5 Encrypt at rest (RDS, S3, Redis in-transit/at-rest) and sensitive columns (MFA secret) at application level.
-- SEC-6 Audit log is append-only and not editable from the app.
+- SEC-6 Audit log is append-only and not editable from the app: enforced by database privileges (app role INSERT/SELECT only) and a trigger that blocks UPDATE, DELETE and TRUNCATE (doc 50 §3.2).
 - SEC-7 Least-privilege IAM; app task role limited to its bucket and secrets.
 - SEC-8 No real data in staging.
 - SEC-9 Security regression tests run in CI (doc 24).

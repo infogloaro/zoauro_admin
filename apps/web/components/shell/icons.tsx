@@ -1,0 +1,72 @@
+import {
+  Activity,
+  Banknote,
+  BedDouble,
+  Bell,
+  Bike,
+  BookOpen,
+  ChartColumn,
+  CreditCard,
+  Gift,
+  Headset,
+  House,
+  KeyRound,
+  LayoutDashboard,
+  Lock,
+  Map,
+  Plug,
+  ReceiptText,
+  ScrollText,
+  Search,
+  Settings,
+  ShieldCheck,
+  ShoppingCart,
+  Star,
+  Store,
+  TrendingUp,
+  UserCog,
+  Users,
+  UtensilsCrossed,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
+import type { NavIcon } from '../../lib/navigation';
+
+// The icon of each menu entry (lib/navigation NavIcon). Icons are decoration: the label is always shown or announced.
+
+export const NAV_ICONS: Record<NavIcon, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  activity: Activity,
+  store: Store,
+  utensils: UtensilsCrossed,
+  bike: Bike,
+  key: KeyRound,
+  home: House,
+  bed: BedDouble,
+  book: BookOpen,
+  map: Map,
+  chart: ChartColumn,
+  cart: ShoppingCart,
+  users: Users,
+  wallet: Wallet,
+  card: CreditCard,
+  refund: ReceiptText,
+  banknote: Banknote,
+  headset: Headset,
+  bell: Bell,
+  star: Star,
+  trend: TrendingUp,
+  gift: Gift,
+  shield: ShieldCheck,
+  'user-cog': UserCog,
+  settings: Settings,
+  lock: Lock,
+  logs: ScrollText,
+  plug: Plug,
+  search: Search,
+};
+
+export function NavIconGlyph({ icon, className }: { icon: NavIcon; className?: string }) {
+  const Icon = NAV_ICONS[icon];
+  return <Icon aria-hidden className={className} />;
+}

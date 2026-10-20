@@ -23,7 +23,7 @@
 
 ## 3. Launch checklist
 **T-14 days:** feature freeze; UAT; load test; pen test; confirm gateway production keys and webhook URL; SES production access; domain, DNS, TLS ready.
-**T-7:** data migration rehearsal (vendors, customers, partners, historic orders if any); seed zones and Zonal Admins; train admins (short guide); verify 2FA enrolment for Super Admins; check WAF rules.
+**T-7:** data migration rehearsal (vendors, customers, partners, historic orders if any); seed zones and Zonal Admins; train admins (short guide); verify 2FA enrolment for Super Admins; check WAF rules. Also: at least two Super Admins enrolled with an authenticator and backup codes stored; SMS stays off unless DLT registration is complete (doc 52).
 **T-7 (apps):** each app team has passed the contract suite in sandbox (doc 48); production clients created; webhook URLs registered and tested; reconciliation agreed; pilot-zone feature flag ready on every app side.
 **T-2:** production backup snapshot; verify restore; verify alarms by test triggers; freeze config.
 **T-1:** deploy release candidate to production behind admin-only access; smoke tests; go/no-go meeting.

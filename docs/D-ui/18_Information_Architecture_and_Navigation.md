@@ -7,7 +7,7 @@
 | Super Admin | `/super-admin/...` | Super Admin only |
 | Zonal Admin | `/zone/...` | Zonal Admin. Super Admin may use the same screens inside `/super-admin` with a zone filter |
 
-Role routing: Super Admin → `/super-admin/dashboard`; Zonal Admin → `/zone/dashboard`; Zonal Admin with no zones → `/zone/no-zones`. A Zonal Admin visiting `/super-admin/*` gets 404; unauthenticated users go to `/login?next=`.
+Role routing: Super Admin → `/super-admin/dashboard`; Zonal Admin → `/zone/dashboard`; Zonal Admin with no zones → `/zone/no-zones`. A Zonal Admin visiting `/super-admin/*` gets 404; unauthenticated users go to `/login?next=`. A Super Admin visiting `/zone/*` gets the 403 page (owner decision, P14): the same screens are reached inside `/super-admin` with a zone filter. The check runs in each area's layout on the server, before anything streams, so a signed-out visitor gets a real 307.
 The Figma login card has two tabs, **Super Admin** ("Full access to all zones") and **Zonal Admin** ("Access to assigned zone"). v1.2 keeps them (D46): the tab is a UI selector, the server validates it against the account's identity role. "Login with Google" is not in v1 (D42).
 
 ## 2. Super Admin sidebar (per Figma screenshots)

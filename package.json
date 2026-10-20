@@ -15,7 +15,14 @@
     "test": "pnpm -r test",
     "db:migrate": "pnpm --filter @zoauro/api db:migrate",
     "db:seed": "pnpm --filter @zoauro/api db:seed",
-    "prepare": "husky"
+    "prepare": "husky",
+    "infra:up": "docker compose -f docker-compose.dev.yml up -d && docker compose -f docker-compose.dev.yml up -d --wait postgres redis minio mailpit",
+    "infra:down": "docker compose -f docker-compose.dev.yml down",
+    "e2e:system-logs": "pnpm --filter @zoauro/api exec tsx ../../tests/e2e/system-logs/run.ts",
+    "e2e:auth": "pnpm --filter @zoauro/api exec tsx ../../tests/e2e/auth/run.ts",
+    "e2e:shell": "playwright test -c tests/e2e/shell/playwright.config.ts",
+    "openapi:generate": "pnpm --filter @zoauro/api openapi:generate",
+    "openapi:check": "pnpm --filter @zoauro/api openapi:check"
   },
   "lint-staged": {
     "*.{ts,tsx,mjs,js}": [
@@ -27,10 +34,12 @@
     ]
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@eslint/js": "^9.39.5",
     "@next/eslint-plugin-next": "^16.4.0",
+    "@playwright/test": "^1.64.0",
     "@types/node": "^26.6.5",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",

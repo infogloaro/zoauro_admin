@@ -30,6 +30,12 @@ Super Admin selects role → toggles V/A/E/D/S per module → Save → confirmat
 ## UC-09 Security settings
 Super Admin sets password policy, 2FA enforcement, session timeout, lockout; views login history and active sessions; revokes sessions.
 
+## UC-09b 2-step verification: enrol and sign in
+Pre: member has a temporary password. Steps: 1 login with password. 2 app asks to set up 2-step: confirm the email code first. 3 add authenticator (scan QR, enter code) and, where policy allows, email/SMS. 4 save 10 backup codes. 5 signed in. Later logins: password, then a code from the chosen method. Alternatives: wrong code 5 times locks 30 min; backup code works once.
+
+## UC-09c 2-step recovery
+Member lost the phone and codes: Super Admin opens the member > Reset 2-step verification (reason, password + code); all sessions end; member is emailed and sets up again with an email check. Super Admin locked out: another Super Admin resets; if none, ops runs the audited CLI (doc 52 §2.5).
+
 ## UC-11 Zonal Admin works across several zones
 Pre: admin assigned to zones A and B. Steps: 1 Login → `/zone/dashboard` with scope "All my zones (2)". 2 KPIs and lists show A+B with a Zone chip. 3 Admin switches the sidebar zone card to B → URL `?zone=B`, all data narrows. 4 Creates a homemaker: Zone field offers only A and B. 5 New order in A triggers a toast naming zone A. Alternates: Super Admin removes B → next request on B objects is 404, switcher drops B. Post: no data from zone C is ever visible.
 

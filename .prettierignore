@@ -5,3 +5,5 @@ coverage
 pnpm-lock.yaml
 docs
 index.html
+apps/api/openapi/openapi.json
+packages/api-client/src/schema.ts

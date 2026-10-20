@@ -28,7 +28,7 @@ Within 1 hour: tech lead and Super Admin owner informed. Within 24 hours: legal 
 ## 6. Playbooks
 | Scenario | Steps |
 |---|---|
-| Admin account compromised | Revoke sessions, lock account, reset password and 2FA, review audit log for actions, reverse harmful changes |
+| Admin account compromised | Revoke sessions, lock account, reset password and 2-step verification (Super Admin reset with STRONG re-auth, or the audited CLI; doc 52 §2.5), review audit log for actions, reverse harmful changes |
 | Cross-zone data exposure | Disable affected endpoint, identify records via audit, notify owners, patch, add regression test |
 | Payment fraud / suspicious refunds | Freeze refunds (setting), reconcile, contact gateway, review ledger |
 | Secrets leaked | Rotate secret, redeploy, search logs for misuse |

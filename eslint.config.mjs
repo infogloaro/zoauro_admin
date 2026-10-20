@@ -6,7 +6,9 @@ import nextPlugin from '@next/eslint-plugin-next';
 import prettier from 'eslint-config-prettier';
 
 const prismaRestriction = {
-  group: ['@prisma/client', '@prisma/client/*', 'prisma'],
+  // The packages only (@prisma/client, prisma, prisma/config ...). A glob such as 'prisma' also matched relative paths
+  // through a folder named prisma/ (../../prisma/seed-data), which is our own code, not the Prisma package.
+  regex: '^(@prisma/client|prisma)(/.*)?$',
   message: 'Only apps/api repositories may import Prisma (AGENTS.md).',
 };
 
@@ -65,7 +67,13 @@ export default tseslint.config(
   // API: Prisma only inside repository files.
   {
     files: ['apps/api/**/*.ts'],
-    ignores: ['apps/api/**/repository.ts', 'apps/api/**/*.repository.ts', 'apps/api/prisma/**'],
+    ignores: [
+      'apps/api/**/repository.ts',
+      'apps/api/**/*.repository.ts',
+      'apps/api/prisma/**',
+      'apps/api/prisma.config.ts', // Prisma CLI config, not application code
+      'apps/api/src/lib/db.ts', // Prisma client adapters; lib/audit stays Prisma-free
+    ],
     rules: { 'no-restricted-imports': ['error', { patterns: [prismaRestriction] }] },
   },
   // Shared: pure, no app or Prisma imports.
@@ -90,6 +98,11 @@ export default tseslint.config(
   {
     files: ['**/*.test.{ts,tsx}', 'tests/**'],
     rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
+  // Node scripts (plain .mjs) run outside the TypeScript projects.
+  {
+    files: ['**/scripts/**/*.mjs'],
+    languageOptions: { globals: { process: 'readonly', console: 'readonly', URL: 'readonly' } },
   },
   prettier,
 );

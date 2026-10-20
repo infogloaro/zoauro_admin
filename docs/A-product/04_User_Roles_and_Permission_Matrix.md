@@ -42,11 +42,13 @@ Key: V view, A add, E edit, D soft delete, S status change (approve, verify, sus
 | Commission rates | V A E | not grantable | — |
 | Zone Management | V A E D | not grantable | — |
 | Zonal Admins, Zone Teams, Access Profiles, Access control | V A E D | not grantable | — |
-| Offers, Notifications (compose), Analytics, Reviews, Support | V A E D | not grantable in v1 (D15) | — |
+| Offers, Analytics, Reviews | V A E D | not grantable in v1 (D15) | — |
+| Notifications (compose, send to own zones) | V A E D S | any action given in the profile (D94, owner 2026-10-14); promotions need Super Admin approval | — |
+| Support tickets (own zones) | V A E D | V E when granted (D93, owner 2026-10-14) | — |
 | Settings (all sections) | V E | not grantable | — |
 | Integrations (clients, webhooks, event monitor, retry/replay) | V E | not grantable (D57) | — |
 | Pending registrations inbox | derived from restaurants/homemakers/delivery view and status | per module permission | — |
-| Audit / system logs | V (all) | entity-level Activity tab for modules they can view | V (entity Activity) |
+| Audit / system logs | V E(export) all | entity Activity only, derived from the entity module's view permission; `audit:view` and `audit:export` not grantable | V (entity Activity) |
 
 PDF note: the designer PDF marks Delete "Restricted" for most modules and Customers Add "—". D2 gives Zonal Admins full control and v1.2 lets Super Admin tighten any of it per member, so the seed profile follows D2 and the restrictions are one click away.
 
