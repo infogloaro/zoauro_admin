@@ -1037,6 +1037,17 @@ model Order {
   paymentStatus       PaymentStatus     @default(PENDING) @map("payment_status")
   paymentExpiresAt    DateTime?         @map("payment_expires_at") @db.Timestamptz
   addressSnapshotJson Json              @map("address_snapshot_json")
+  // D150/D167 pre-orders: null scheduled_for = order now; dispatch_at = scheduled_for minus prep and travel buffer
+  // (set at placement and on reschedule; CHECK dispatch_at <= scheduled_for: SQL); released_at = the dispatch job
+  // released it to the vendor and partner apps (hidden until then)
+  scheduledFor        DateTime?         @map("scheduled_for") @db.Timestamptz
+  dispatchAt          DateTime?         @map("dispatch_at") @db.Timestamptz
+  releasedAt          DateTime?         @map("released_at") @db.Timestamptz
+  rescheduleCount     Int               @default(0) @map("reschedule_count")
+  // delivery point (plain columns until PostGIS, D164; both or neither: SQL); address_snapshot_json unchanged
+  deliveryAddress     String?           @map("delivery_address")
+  deliveryLat         Decimal?          @map("delivery_lat") @db.Decimal(9, 6)
+  deliveryLng         Decimal?          @map("delivery_lng") @db.Decimal(9, 6)
   placedAt            DateTime          @map("placed_at") @db.Timestamptz
   acceptedAt          DateTime?         @map("accepted_at") @db.Timestamptz
   readyAt             DateTime?         @map("ready_at") @db.Timestamptz
