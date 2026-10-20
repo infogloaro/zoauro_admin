@@ -151,6 +151,9 @@ export const AUDIT_ACTIONS = {
   'customer.blocked': a('customers', 'Blocked customer', H),
   'customer.unblocked': a('customers', 'Unblocked customer', H),
   'customer.contact_revealed': a('customers', 'Revealed contact details', H),
+  // D169 reward points
+  'customer.points_adjusted': a('customers', 'Adjusted reward points', H),
+  'customer.points_converted': a('customers', 'Converted reward points to wallet credit', H),
   // delivery partners
   'partner.created': a('delivery', 'Created delivery partner'),
   'partner.updated': a('delivery', 'Updated delivery partner'),

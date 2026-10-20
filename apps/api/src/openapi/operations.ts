@@ -127,6 +127,7 @@ import {
 } from '@zoauro/shared';
 import type { AuditRouteMeta } from '../lib/audit';
 import { CUSTOMER_OPERATIONS } from './operations.customers';
+import { REWARD_OPERATIONS } from './operations.rewards';
 import { HOTEL_OPERATIONS } from './operations.hotels';
 import { MENU_OPERATIONS } from './operations.menu';
 import { PARTNER_OPERATIONS } from './operations.partners';
@@ -1451,6 +1452,8 @@ export const OPERATIONS: OperationDef[] = [
   ...SEARCH_OPERATIONS,
   // M09 customers (operations.customers.ts)
   ...CUSTOMER_OPERATIONS,
+  // D169 reward points in the customer tab (operations.rewards.ts)
+  ...REWARD_OPERATIONS,
 ];
 
 /**

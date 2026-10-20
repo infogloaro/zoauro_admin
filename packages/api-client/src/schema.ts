@@ -501,6 +501,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/customers/{id}/rewards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A customer's reward points: balance, wallet balance, points expiring in 30 days, the zone's loyalty rules (null = off) and the ledger, newest first */
+        get: operations["getCustomerRewards"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/rewards/adjust": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant (points > 0) or deduct (points < 0) with a reason. A grant expires after the zone’s expiry days; a deduction spends the oldest points first */
+        post: operations["adjustCustomerRewards"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/rewards/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn points into wallet credit at the zone’s point value, when the zone allows it and the minimum is reached */
+        post: operations["convertCustomerRewards"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/customers/{id}/unblock": {
         parameters: {
             query?: never;
@@ -5659,6 +5710,325 @@ export interface operations {
             };
             /** @description Too many requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getCustomerRewards: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rewards */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        balance: number;
+                        entries: {
+                            actor: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            balanceAfter: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            expiresAt: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string | null;
+                            points: number;
+                            reason: string | null;
+                            /** @enum {string} */
+                            type: "ORDER_EARN" | "ORDER_REVERSAL" | "MANUAL_GRANT" | "MANUAL_DEDUCT" | "CHECKOUT_REDEEM" | "WALLET_CONVERT" | "EXPIRY";
+                        }[];
+                        expiringSoon: number;
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                        rules: {
+                            earnRatePercent: number;
+                            maxRedeemPercentPerOrder: number;
+                            minRedeemPoints: number;
+                            monthlyEarnCapPoints: number | null;
+                            pointsExpiryDays: number;
+                            pointValuePaise: number;
+                            walletConversionEnabled: boolean;
+                        } | null;
+                        walletBalancePaise: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    adjustCustomerRewards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    points: number;
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Adjusted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        balance: number;
+                        entries: {
+                            actor: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            balanceAfter: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            expiresAt: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string | null;
+                            points: number;
+                            reason: string | null;
+                            /** @enum {string} */
+                            type: "ORDER_EARN" | "ORDER_REVERSAL" | "MANUAL_GRANT" | "MANUAL_DEDUCT" | "CHECKOUT_REDEEM" | "WALLET_CONVERT" | "EXPIRY";
+                        }[];
+                        expiringSoon: number;
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                        rules: {
+                            earnRatePercent: number;
+                            maxRedeemPercentPerOrder: number;
+                            minRedeemPoints: number;
+                            monthlyEarnCapPoints: number | null;
+                            pointsExpiryDays: number;
+                            pointValuePaise: number;
+                            walletConversionEnabled: boolean;
+                        } | null;
+                        walletBalancePaise: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    convertCustomerRewards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    points: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Converted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        balance: number;
+                        entries: {
+                            actor: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            balanceAfter: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            expiresAt: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string | null;
+                            points: number;
+                            reason: string | null;
+                            /** @enum {string} */
+                            type: "ORDER_EARN" | "ORDER_REVERSAL" | "MANUAL_GRANT" | "MANUAL_DEDUCT" | "CHECKOUT_REDEEM" | "WALLET_CONVERT" | "EXPIRY";
+                        }[];
+                        expiringSoon: number;
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                        rules: {
+                            earnRatePercent: number;
+                            maxRedeemPercentPerOrder: number;
+                            minRedeemPoints: number;
+                            monthlyEarnCapPoints: number | null;
+                            pointsExpiryDays: number;
+                            pointValuePaise: number;
+                            walletConversionEnabled: boolean;
+                        } | null;
+                        walletBalancePaise: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

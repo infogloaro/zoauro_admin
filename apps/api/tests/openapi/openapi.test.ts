@@ -211,6 +211,10 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /customers/{id}/block',
         'POST /customers/{id}/unblock',
         'GET /customers/{id}/reveal',
+        // D169 reward points
+        'GET /customers/{id}/rewards',
+        'POST /customers/{id}/rewards/adjust',
+        'POST /customers/{id}/rewards/convert',
         // M11 orders (doc 09; ported from magaraj's dev_cb)
         'GET /orders',
         'GET /orders/{id}',

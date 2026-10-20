@@ -19,6 +19,7 @@ import { createMenuModule } from './modules/menu';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
 import { createCustomersModule } from './modules/customers';
+import { createRewardsModule } from './modules/rewards';
 import { createUploadsModule } from './modules/uploads';
 import { createPartnersModule } from './modules/delivery-partners';
 import { createNotificationQueue, createNotificationsModule } from './modules/notifications';
@@ -216,6 +217,12 @@ const app = createApp({
         prisma,
         appOrigin: new URL(env.APP_URL).origin,
         limiter: new RedisRateLimiter(redis),
+      }).router,
+      // D169 reward points (the zone's loyalty values)
+      createRewardsModule({
+        prisma,
+        appOrigin: new URL(env.APP_URL).origin,
+        rules: (zoneId) => settings.reader.loyalty(zoneId),
       }).router,
       partners.router,
       notifications.router,

@@ -50133,6 +50133,837 @@
           "zone": "none"
         }
       }
+    },
+    "/customers/{id}/rewards": {
+      "get": {
+        "operationId": "getCustomerRewards",
+        "tags": [
+          "customers"
+        ],
+        "summary": "A customer's reward points: balance, wallet balance, points expiring in 30 days, the zone's loyalty rules (null = off) and the ledger, newest first",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rewards",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "balance": {
+                      "type": "integer"
+                    },
+                    "walletBalancePaise": {
+                      "type": "integer"
+                    },
+                    "expiringSoon": {
+                      "type": "integer"
+                    },
+                    "rules": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "earnRatePercent": {
+                          "type": "number"
+                        },
+                        "pointsExpiryDays": {
+                          "type": "integer"
+                        },
+                        "pointValuePaise": {
+                          "type": "integer"
+                        },
+                        "minRedeemPoints": {
+                          "type": "integer"
+                        },
+                        "maxRedeemPercentPerOrder": {
+                          "type": "integer"
+                        },
+                        "monthlyEarnCapPoints": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "walletConversionEnabled": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "earnRatePercent",
+                        "pointsExpiryDays",
+                        "pointValuePaise",
+                        "minRedeemPoints",
+                        "maxRedeemPercentPerOrder",
+                        "monthlyEarnCapPoints",
+                        "walletConversionEnabled"
+                      ]
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "ORDER_EARN",
+                              "ORDER_REVERSAL",
+                              "MANUAL_GRANT",
+                              "MANUAL_DEDUCT",
+                              "CHECKOUT_REDEEM",
+                              "WALLET_CONVERT",
+                              "EXPIRY"
+                            ]
+                          },
+                          "points": {
+                            "type": "integer"
+                          },
+                          "balanceAfter": {
+                            "type": "integer"
+                          },
+                          "orderNo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "expiresAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "actor": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "points",
+                          "balanceAfter",
+                          "orderNo",
+                          "reason",
+                          "expiresAt",
+                          "actor",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "balance",
+                    "walletBalancePaise",
+                    "expiringSoon",
+                    "rules",
+                    "entries",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "customers:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/customers/{id}/rewards/adjust": {
+      "post": {
+        "operationId": "adjustCustomerRewards",
+        "tags": [
+          "customers"
+        ],
+        "summary": "Grant (points > 0) or deduct (points < 0) with a reason. A grant expires after the zone’s expiry days; a deduction spends the oldest points first",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "points": {
+                    "type": "integer",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "points",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Adjusted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "balance": {
+                      "type": "integer"
+                    },
+                    "walletBalancePaise": {
+                      "type": "integer"
+                    },
+                    "expiringSoon": {
+                      "type": "integer"
+                    },
+                    "rules": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "earnRatePercent": {
+                          "type": "number"
+                        },
+                        "pointsExpiryDays": {
+                          "type": "integer"
+                        },
+                        "pointValuePaise": {
+                          "type": "integer"
+                        },
+                        "minRedeemPoints": {
+                          "type": "integer"
+                        },
+                        "maxRedeemPercentPerOrder": {
+                          "type": "integer"
+                        },
+                        "monthlyEarnCapPoints": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "walletConversionEnabled": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "earnRatePercent",
+                        "pointsExpiryDays",
+                        "pointValuePaise",
+                        "minRedeemPoints",
+                        "maxRedeemPercentPerOrder",
+                        "monthlyEarnCapPoints",
+                        "walletConversionEnabled"
+                      ]
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "ORDER_EARN",
+                              "ORDER_REVERSAL",
+                              "MANUAL_GRANT",
+                              "MANUAL_DEDUCT",
+                              "CHECKOUT_REDEEM",
+                              "WALLET_CONVERT",
+                              "EXPIRY"
+                            ]
+                          },
+                          "points": {
+                            "type": "integer"
+                          },
+                          "balanceAfter": {
+                            "type": "integer"
+                          },
+                          "orderNo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "expiresAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "actor": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "points",
+                          "balanceAfter",
+                          "orderNo",
+                          "reason",
+                          "expiresAt",
+                          "actor",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "balance",
+                    "walletBalancePaise",
+                    "expiringSoon",
+                    "rules",
+                    "entries",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "loyalty:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "customers",
+          "action": "customer.points_adjusted"
+        }
+      }
+    },
+    "/customers/{id}/rewards/convert": {
+      "post": {
+        "operationId": "convertCustomerRewards",
+        "tags": [
+          "customers"
+        ],
+        "summary": "Turn points into wallet credit at the zone’s point value, when the zone allows it and the minimum is reached",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "points": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000000
+                  }
+                },
+                "required": [
+                  "points"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Converted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "balance": {
+                      "type": "integer"
+                    },
+                    "walletBalancePaise": {
+                      "type": "integer"
+                    },
+                    "expiringSoon": {
+                      "type": "integer"
+                    },
+                    "rules": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "earnRatePercent": {
+                          "type": "number"
+                        },
+                        "pointsExpiryDays": {
+                          "type": "integer"
+                        },
+                        "pointValuePaise": {
+                          "type": "integer"
+                        },
+                        "minRedeemPoints": {
+                          "type": "integer"
+                        },
+                        "maxRedeemPercentPerOrder": {
+                          "type": "integer"
+                        },
+                        "monthlyEarnCapPoints": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "walletConversionEnabled": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "earnRatePercent",
+                        "pointsExpiryDays",
+                        "pointValuePaise",
+                        "minRedeemPoints",
+                        "maxRedeemPercentPerOrder",
+                        "monthlyEarnCapPoints",
+                        "walletConversionEnabled"
+                      ]
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "ORDER_EARN",
+                              "ORDER_REVERSAL",
+                              "MANUAL_GRANT",
+                              "MANUAL_DEDUCT",
+                              "CHECKOUT_REDEEM",
+                              "WALLET_CONVERT",
+                              "EXPIRY"
+                            ]
+                          },
+                          "points": {
+                            "type": "integer"
+                          },
+                          "balanceAfter": {
+                            "type": "integer"
+                          },
+                          "orderNo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "expiresAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "actor": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "points",
+                          "balanceAfter",
+                          "orderNo",
+                          "reason",
+                          "expiresAt",
+                          "actor",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "balance",
+                    "walletBalancePaise",
+                    "expiringSoon",
+                    "rules",
+                    "entries",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "loyalty:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "customers",
+          "action": "customer.points_converted"
+        }
+      }
     }
   },
   "webhooks": {}

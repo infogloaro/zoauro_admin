@@ -91,6 +91,10 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         blockCustomer: { ownObject: true },
         unblockCustomer: { ownObject: true },
         revealCustomerContact: { ownObject: true },
+        // D169: the placeholder customer (zone A); the fixture profiles hold no loyalty grants
+        getCustomerRewards: { ownObject: true },
+        adjustCustomerRewards: { ownObject: true },
+        convertCustomerRewards: { ownObject: true },
         getRestaurant: { ownObject: true },
         updateRestaurant: { ownObject: true },
         deleteRestaurant: { ownObject: true },
@@ -189,7 +193,7 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 16 hotels, room bookings and dining reservations (D118)
     // + 4 Super Admins (D148)
     // + 1 pre-order reschedule (D167)
-    expect(report.coveredRoutes).toHaveLength(189);
+    expect(report.coveredRoutes).toHaveLength(192);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

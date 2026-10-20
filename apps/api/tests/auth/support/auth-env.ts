@@ -26,6 +26,7 @@ import { createMenuModule } from '../../../src/modules/menu';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
 import { createCustomersModule } from '../../../src/modules/customers';
+import { createRewardsModule } from '../../../src/modules/rewards';
 import { createUploadsModule } from '../../../src/modules/uploads';
 import { createPartnersModule } from '../../../src/modules/delivery-partners';
 import { createNotificationsModule } from '../../../src/modules/notifications';
@@ -373,6 +374,12 @@ export async function createAuthTestEnv() {
         prisma,
         appOrigin: APP_ORIGIN,
         limiter: new RedisRateLimiter(appRedis),
+        clock: clock.now,
+      }).router,
+      createRewardsModule({
+        prisma,
+        appOrigin: APP_ORIGIN,
+        rules: (zoneId) => settings.reader.loyalty(zoneId),
         clock: clock.now,
       }).router,
       partners.router,
