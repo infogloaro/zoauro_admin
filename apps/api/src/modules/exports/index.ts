@@ -4,6 +4,7 @@ import type { OrdersService } from '../orders';
 import { ExportsDatabase } from './exports.repository';
 import { createExportsRoutes } from './exports.routes';
 import { ExportsService, type ContextBuilder } from './exports.service';
+import { listExportSources, type ListServices } from './sources/lists.source';
 import { ordersExportSource } from './sources/orders.source';
 
 // Export jobs (doc 09 GET /orders/export, GET /exports/{id}; D129). The API builds it with an enqueue function; the
@@ -16,10 +17,13 @@ export {
   type ExportQueue,
 } from './exports.jobs';
 export { ExportsService, MAX_ACTIVE_EXPORTS } from './exports.service';
+export type { ListServices } from './sources/lists.source';
 
 type ExportsDeps = {
   prisma: ConstructorParameters<typeof ExportsDatabase>[0];
   orders: Pick<OrdersService, 'list'>;
+  /** D149: the other lists' services (each optional until its module is wired) */
+  lists?: ListServices;
   files: ExportFileStore;
   enqueue: (exportId: string) => Promise<void>;
   contexts?: ContextBuilder;
@@ -29,9 +33,12 @@ type ExportsDeps = {
 
 /** The service alone: the worker runs jobs and never serves routes. */
 export function createExportsService(deps: ExportsDeps): ExportsService {
-  const sources = new Map<ExportModule, ExportSource>([
-    ['orders', ordersExportSource(deps.orders)],
-  ]);
+  const sources = new Map<ExportModule, ExportSource>(
+    [ordersExportSource(deps.orders), ...listExportSources(deps.lists ?? {})].map((s) => [
+      s.module,
+      s,
+    ]),
+  );
   return new ExportsService({
     db: new ExportsDatabase(deps.prisma),
     sources,

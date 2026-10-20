@@ -72,3 +72,39 @@ export function rawQueryOf(query: Record<string, unknown>): RawQuery {
   }
   return out;
 }
+
+/** The page size every source reads with (the list maximum, doc 09). */
+export const EXPORT_PAGE_SIZE = 100;
+
+/**
+ * A source for any page-based list service (`{ data, meta: { total } }`, doc 09 pagination): the query is validated with
+ * the list's own schema, counted with one row, then read page by page with the list maximum. The list service applies
+ * its zone scope and masking, so the export holds exactly what the list would show.
+ */
+export function pagedListSource<Q extends { page: number; pageSize: number }, R>(def: {
+  module: ExportSource['module'];
+  viewKey: ExportSource['viewKey'];
+  audit: ExportSource['audit'];
+  parse(raw: RawQuery): Q;
+  list(ctx: AuthContext, q: Q): Promise<{ data: readonly R[]; meta: { total: number } }>;
+  columns(lookups: ExportLookups): readonly CsvColumn<R>[];
+  filename(at: Date): string;
+}): ExportSource {
+  return defineExportSource<Q, R>({
+    module: def.module,
+    viewKey: def.viewKey,
+    audit: def.audit,
+    parse: def.parse,
+    count: async (ctx, q) => (await def.list(ctx, { ...q, page: 1, pageSize: 1 })).meta.total,
+    page: async (ctx, q, page) =>
+      (await def.list(ctx, { ...q, page, pageSize: EXPORT_PAGE_SIZE })).data,
+    columns: def.columns,
+    filename: def.filename,
+  });
+}
+
+/** `<name>-<yyyy-mm-dd>.csv` */
+export const datedFilename =
+  (name: string) =>
+  (at: Date): string =>
+    `${name}-${at.toISOString().slice(0, 10)}.csv`;

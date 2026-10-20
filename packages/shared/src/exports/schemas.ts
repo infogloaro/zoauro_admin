@@ -11,8 +11,27 @@ export type ExportStatus = (typeof EXPORT_STATUSES)[number];
 export const EXPORT_FAILURE_REASONS = ['SCOPE_CHANGED', 'TOO_MANY_ROWS', 'ERROR'] as const;
 export type ExportFailureReason = (typeof EXPORT_FAILURE_REASONS)[number];
 
-/** Modules that can be exported through this job type (doc 09). */
-export const EXPORT_MODULES = ['orders'] as const;
+/**
+ * Lists that can be exported through this job type (doc 09, D149: every list and report). Names are permission modules:
+ * an export needs <module>:view, and for a Zonal Admin the zone's export switch (D149 adds <module>:export).
+ */
+export const EXPORT_MODULES = [
+  'orders',
+  'restaurants',
+  'homemakers',
+  'menu',
+  'delivery',
+  'customers',
+  'payments',
+  'refunds',
+  'payouts',
+  'notifications',
+  'support',
+  'hotels',
+  'bookings',
+  'dining',
+  'audit',
+] as const;
 export type ExportModule = (typeof EXPORT_MODULES)[number];
 
 /** The most rows one export may hold (doc 09 audit exports: 100k; the same cap for every export). */
