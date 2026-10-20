@@ -24,7 +24,7 @@ import type {
   ZoneServiceKind,
 } from '@zoauro/shared';
 import { maskEmail, maskPhone, record, uuidv7 } from '../../lib/audit';
-import { assertCanWrite, type AuthContext } from '../../lib/authz';
+import { assertCanWrite, can, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
 import type { RateLimiter } from '../../lib/rate-limiter';
 import type { ObjectStorage } from '../../lib/storage';
@@ -141,7 +141,9 @@ export class VendorsService {
     input: CreateInput<M>,
   ): Promise<Detail> {
     assertCanWrite(ctx, key(module, 'add'), input.zoneId);
-    if (input.commissionPct !== undefined && !ctx.isSuperAdmin) throw forbidden();
+    // D155: Super Admin, or a Zonal Admin given commission:edit in this zone while the Control Panel allows it
+    if (input.commissionPct !== undefined && !can(ctx, 'commission:edit', input.zoneId))
+      throw forbidden();
     if (!(await this.deps.db.repo.zoneRef(input.zoneId))) throw notFound();
     await this.deps.services.assertServiceEnabled(input.zoneId, SERVICE_OF[module]);
     const id = uuidv7();
@@ -167,7 +169,11 @@ export class VendorsService {
     input: UpdateInput<M>,
   ): Promise<Detail> {
     const before = await this.writable(ctx, module, id, 'edit');
-    if (input.commissionPct !== undefined && !ctx.isSuperAdmin) throw forbidden();
+    if (
+      input.commissionPct !== undefined &&
+      !(ctx.isSuperAdmin || (before.zoneId !== null && can(ctx, 'commission:edit', before.zoneId)))
+    )
+      throw forbidden();
     const w = writeOf(module, input);
     const v = await this.deps.db.transaction(async (tx) => {
       await tx.repo.lock(module, id);

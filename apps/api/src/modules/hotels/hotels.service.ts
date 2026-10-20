@@ -11,7 +11,7 @@ import type {
   ZoneServiceKind,
 } from '@zoauro/shared';
 import { maskEmail, maskPhone, record, uuidv7 } from '../../lib/audit';
-import { assertCanWrite, type AuthContext } from '../../lib/authz';
+import { assertCanWrite, can, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
 import {
   assertStatusTransition,
@@ -74,7 +74,9 @@ export class HotelsService {
 
   async create(ctx: AuthContext, input: HotelCreateInput): Promise<HotelDetail> {
     assertCanWrite(ctx, 'hotels:add', input.zoneId);
-    if (input.commissionPct !== undefined && !ctx.isSuperAdmin) throw forbidden();
+    // D155: Super Admin, or a Zonal Admin given commission:edit in this zone while the Control Panel allows it
+    if (input.commissionPct !== undefined && !can(ctx, 'commission:edit', input.zoneId))
+      throw forbidden();
     if (!(await this.deps.db.repo.zoneRef(input.zoneId))) throw notFound();
     await this.deps.services.assertServiceEnabled(input.zoneId, 'HOTEL_BOOKING');
     const id = uuidv7();
@@ -89,7 +91,11 @@ export class HotelsService {
 
   async update(ctx: AuthContext, id: string, input: HotelUpdateInput): Promise<HotelDetail> {
     const before = await this.writable(ctx, id, 'hotels:edit');
-    if (input.commissionPct !== undefined && !ctx.isSuperAdmin) throw forbidden();
+    if (
+      input.commissionPct !== undefined &&
+      !(ctx.isSuperAdmin || (before.zoneId !== null && can(ctx, 'commission:edit', before.zoneId)))
+    )
+      throw forbidden();
     const h = await this.deps.db.transaction(async (tx) => {
       await tx.repo.lockHotel(id);
       await tx.repo.updateHotel(id, writeOf(input), ctx.userId);
