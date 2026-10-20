@@ -30,6 +30,10 @@ export interface AccessMailer {
     what: string;
     reason: string;
   }): Promise<void>;
+  /** D148: to a new Super Admin; no password (D103): the creator gives the temporary one */
+  sendSuperAdminCreated?(m: { to: string; name: string }): Promise<void>;
+  /** D148: to every other active Super Admin */
+  sendSuperAdminAdded?(m: { to: string; name: string; added: string }): Promise<void>;
 }
 
 export const noopAccessMailer: AccessMailer = {
@@ -89,6 +93,22 @@ export function createAccessMailer(mailer: Mailer, opts: { appUrl: string }): Ac
           `Hello ${m.name},`,
           `Your request for ${m.what} in ${m.zone} was ${m.approved ? 'approved. It applies from your next action' : 'rejected'}.`,
           `Reason: ${m.reason}`,
+        ]),
+      ),
+    sendSuperAdminCreated: (m) =>
+      mailer.send(
+        message(m.to, 'You are a ZOAURO Admin Super Admin', [
+          `Hello ${m.name},`,
+          'A Super Admin created a Super Admin account for you in ZOAURO Admin.',
+          'Ask that Super Admin for the temporary password; you will choose your own and set up 2-step verification at the first sign-in.',
+          `Sign in at ${signIn}`,
+        ]),
+      ),
+    sendSuperAdminAdded: (m) =>
+      mailer.send(
+        message(m.to, 'A new Super Admin was added in ZOAURO Admin', [
+          `Hello ${m.name},`,
+          `${m.added} was made a Super Admin. If you did not expect this, check Settings > Super Admins and the audit log at once.`,
         ]),
       ),
   };

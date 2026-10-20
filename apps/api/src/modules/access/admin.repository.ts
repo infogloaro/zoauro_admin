@@ -307,6 +307,19 @@ export interface TeamMemberRecord {
   assignment: AssignmentRecord;
 }
 
+const superAdminSelect = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  status: true,
+  mfaEnabled: true,
+  mustChangePassword: true,
+  lastLoginAt: true,
+  createdAt: true,
+} satisfies Prisma.UserSelect;
+export type SuperAdminRecord = Prisma.UserGetPayload<{ select: typeof superAdminSelect }>;
+
 const json = (v: unknown): Prisma.InputJsonValue | typeof Prisma.DbNull =>
   v === undefined || v === null ? Prisma.DbNull : (v as Prisma.InputJsonValue);
 
@@ -394,6 +407,48 @@ export class AccessAdminRepository {
       select: { id: true },
     });
     return row !== null;
+  }
+
+  // ---- Super Admins (D148) ------------------------------------------------------------------------------------------
+
+  /** Serialises every Super Admin status change and delete: the "last active Super Admin" check cannot race. */
+  async lockSuperAdmins(ctx: AuthContext): Promise<void> {
+    this.superAdminOnly(ctx);
+    await this.db.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('super-admins'))`;
+  }
+
+  async listSuperAdmins(ctx: AuthContext): Promise<SuperAdminRecord[]> {
+    this.superAdminOnly(ctx);
+    return this.db.user.findMany({
+      where: { deletedAt: null, role: { name: 'SUPER_ADMIN' } },
+      select: superAdminSelect,
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  async findSuperAdmin(ctx: AuthContext, id: string): Promise<SuperAdminRecord | null> {
+    this.superAdminOnly(ctx);
+    return this.db.user.findFirst({
+      where: { id, deletedAt: null, role: { name: 'SUPER_ADMIN' } },
+      select: superAdminSelect,
+    });
+  }
+
+  async countActiveSuperAdmins(ctx: AuthContext): Promise<number> {
+    this.superAdminOnly(ctx);
+    return this.db.user.count({
+      where: { deletedAt: null, status: 'ACTIVE', role: { name: 'SUPER_ADMIN' } },
+    });
+  }
+
+  async superRoleId(ctx: AuthContext): Promise<string> {
+    this.superAdminOnly(ctx);
+    const role = await this.db.role.findUnique({
+      where: { name: 'SUPER_ADMIN' },
+      select: { id: true },
+    });
+    if (!role) throw new AppError('INTERNAL', 'The SUPER_ADMIN role is missing: run db:seed');
+    return role.id;
   }
 
   async zonalRoleId(ctx: AuthContext): Promise<string> {
