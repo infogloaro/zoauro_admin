@@ -111,12 +111,12 @@ All built pages call the real API; none use sample data.
 ## 6. Decisions needed
 | Item | Proposal | Status |
 |---|---|---|
-| Cloud kitchen vendor type | A cloud kitchen is a home cook: it is a **Home Food** vendor (homemaker record, Home Food screens, Home Food document list). No new vendor type, no `CLOUD_KITCHEN` value. Delivery-only commercial kitchens, if any, join as restaurants | **Decided by the owner 2026-10-18** (D-number to be assigned in doc 03) |
+| Cloud kitchen vendor type | A cloud kitchen is a home cook: it is a **Home Food** vendor (homemaker record, Home Food screens, Home Food document list). No new vendor type, no `CLOUD_KITCHEN` value. Delivery-only commercial kitchens (no home cook) join as restaurants | **Decided by the owner 2026-10-18: D168** |
 | More info required stage | Add a stage the reviewer can set with a message; the vendor app shows it and resubmits | **Needs decision** |
 | Guided Add Zonal Admin flow | Replace the dialog plus separate access page with the five steps in §3.1; ask for the password on create | **Proposal** |
 | Pending-onboarding tile and badges | Count on both dashboards and on menu entries | **Proposal** |
 
-Status after the owner's answers of 2026-10-18 (§8): D18 is closed for the build by D147 (build intake and outbound now, test with simulators). D113 is replaced by D145 (dynamic document catalogue with defaults). The owner then decided that a cloud kitchen is a Home Food vendor (no new type), so "restaurant / cloud kitchen" in D154 means the restaurant and Home Food sides. The "More info required" stage is still not decided. D47 (missing Figma frames) stays open.
+Status after the owner's answers of 2026-10-18 (§8): D18 is closed for the build by D147 (build intake and outbound now, test with simulators). D113 is replaced by D145 (dynamic document catalogue with defaults). The owner then decided that a cloud kitchen is a Home Food vendor (no new type, D168), so "restaurant / cloud kitchen" in D154 means the restaurant and Home Food sides. The "More info required" stage is still not decided. D47 (missing Figma frames) stays open.
 
 ## 7. Progress snapshot
 From the module tracker `ZOAURO_Module_Build-members.xlsx`, 2026-10-17 evening: overall 45% (28 rows; 5 done, 4 in review, 12 in progress, 7 not started); core modules 94%.
