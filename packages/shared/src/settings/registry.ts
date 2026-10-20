@@ -271,6 +271,14 @@ export const zoneDeliveryChargeCapSchema = z
   .object({ capPaise: z.number().int().min(0).max(MAX_DELIVERY_CHARGE_PAISE) })
   .strict();
 
+/** D174: how long a record claim lasts without activity, and how long a takeover request waits for the claimer. */
+export const claimTimingSchema = z
+  .object({
+    ttlMinutes: z.number().int().min(5).max(240),
+    takeoverTimeoutMinutes: z.number().int().min(1).max(60),
+  })
+  .strict();
+
 /** D155: commission:edit can be given to a Zonal Admin per member and zone only while this is on. */
 export const commissionEditGrantableSchema = z.object({ enabled: z.boolean() }).strict();
 
@@ -651,6 +659,20 @@ export const SETTINGS: readonly SettingDef[] = [
     editable: true,
     appsRead: false,
     effect: { state: 'ENFORCED' },
+  },
+  {
+    key: 'claims.timing',
+    group: 'access',
+    label: 'Record claims',
+    description:
+      'How long an admin keeps an onboarding record claimed without activity, and how long a takeover request waits for the claimer before it expires (nothing moves on expiry).',
+    schema: claimTimingSchema,
+    default: { ttlMinutes: 30, takeoverTimeoutMinutes: 10 },
+    zoneOverride: false,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: pending('Record claims'),
   },
   {
     key: 'sessions.remember',
