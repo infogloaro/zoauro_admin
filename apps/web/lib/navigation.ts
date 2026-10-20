@@ -307,13 +307,9 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'users',
     description:
       'Profiles, addresses and orders; block a customer; masked contact details with an audited reveal.',
-    status: 'coming-soon',
-    zonal: { permission: 'customers' },
-    blueprint: {
-      phase: 'Phase 1',
-      screens: ['Customer list', 'Customer detail: profile, addresses, orders, tickets, refunds'],
-      rules: ['Phone and email are masked; revealing them is an audited action'],
-    },
+    status: 'live',
+    superAdminHref: '/super-admin/customers',
+    zonal: { href: '/zone/customers', permission: 'customers' },
   },
 
   // ---- Delivery -----------------------------------------------------------------------------------------------------
