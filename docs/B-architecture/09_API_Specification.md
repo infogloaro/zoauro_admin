@@ -45,6 +45,8 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | PUT | /zones/{id}/pincodes (`?preview=true` dry run) | zones:edit | range / add / remove; overlap check under advisory lock; returns vendor mismatches |
 | POST | /zones/{id}/activate, /zones/{id}/deactivate | zones:status + re-auth | deactivate needs `reason`, `version`, `impactVersion`; no cascade writes (doc 53 §2.1) |
 | GET/POST | /zonal-admins | admins:* | Super Admin; create member account (name, email, phone, password, status); zones/access are set via `/access` below |
+| GET/POST | /super-admins | admins:view / admins:add | D148: list (isSelf, meta.activeCount) and create with a temporary password (changed at first sign-in, never emailed, D103), STRONG re-auth, `reason` recorded; the new and every other active Super Admin are emailed |
+| PATCH/DELETE | /super-admins/{id}/status, /super-admins/{id} | admins:edit / admins:delete | D148: suspend/reactivate or soft delete another Super Admin (sessions end), STRONG, `reason`; oneself 409 `SELF`, the last active Super Admin 409 `LAST_SUPER_ADMIN` |
 | GET/PATCH/DELETE | /zonal-admins/{id} | admins:* | |
 | GET | **/zonal-admins/{id}/access** | access:view | member's assignments: `[{ zoneId, profileId, overrides[], limits }]` |
 | PUT | **/zonal-admins/{id}/access** | access:edit | replace the member's assignments; diff → `access_changes` + audit; invalidates cache; emits `scope.changed`; email to member; re-auth |
@@ -106,6 +108,7 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | POST | /payouts/{id}/mark-paid | payouts:edit | Super Admin, re-auth |
 | GET | /reconciliation/runs, /reconciliation/runs/{id} | payments:view | |
 | GET/PUT | /settings/{group} | settings:view/edit | Super Admin |
+| GET, PUT/DELETE | /settings/loyalty?zoneId=, /zones/{id}/settings/loyalty[/{key}] | loyalty:view / loyalty:edit | D169: a Zonal Admin reads and sets the zone value of `loyalty.values` in zones where they hold the permission (404 outside the scope, 403 without the action); the platform value and every other group stay Super Admin only |
 | GET/POST | /notifications | notifications:* | compose (Super Admin); GET also lists operational alerts for the caller |
 | GET | /audit-logs | audit:view (Super Admin) or entity mode | Cursor list; filters actor, actorType, module, action, entityType, entityId, zoneId, outcome, sensitivity, q, from, to. Zonal Admin: entity mode only (entityType+entityId), else 403; ip/userAgent/requestId hidden (doc 50 §8) |
 | GET | /audit-logs/{id} | as above | detail with changes[] |
