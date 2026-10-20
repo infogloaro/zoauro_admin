@@ -43,6 +43,9 @@ Key: V view, A add, E edit, D soft delete, S status change (approve, verify, sus
 | Zone Management | V A E D | not grantable | — |
 | Zonal Admins, Zone Teams, Access Profiles, Access control | V A E D | not grantable | — |
 | Offers, Analytics, Reviews | V A E D | not grantable in v1 (D15) | — |
+| Hotels (D118, D144) | V A E D S | V A E D S (commission field never editable) | — |
+| Room bookings (D118) | V A S | V A S | — |
+| Dining reservations (D118) | V A S | V A S | — |
 | Notifications (compose, send to own zones) | V A E D S | any action given in the profile (D94, owner 2026-10-14); promotions need Super Admin approval | — |
 | Support tickets (own zones) | V A E D | V E when granted (D93, owner 2026-10-14) | — |
 | Settings (all sections) | V E | not grantable | — |

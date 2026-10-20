@@ -73,6 +73,15 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | POST | /menu-items/change-requests/{id}/approve, /reject | menu:status | `{version}` (+ `reason` to reject); approve applies only name, description, price, category, dietary, image (D127); 409 STALE_VERSION / INVALID_STATE_TRANSITION; emits `menu_item.change_decided` (D125) |
 | GET/POST | /categories | menu:view / menu:add | global (`zoneId: null`, Super Admin only) plus zone categories in scope; names unique per zone ignoring case (409) |
 | PATCH/DELETE | /categories/{id} | menu:edit / menu:delete | DELETE soft; 409 CATEGORY_IN_USE while live items use it |
+| GET/POST | /hotels | hotels:view / hotels:add | D118. List filters status, verification, area, q (name, owner, area); tab counts; rooms occupied tonight; phone/email masked (D26). POST needs `zoneId`, Hotel Booking on in the zone (D92: 409 ZONE_SERVICE_DISABLED); commission Super Admin only |
+| GET/PATCH/DELETE | /hotels/{id} | view / edit / delete | vendor lifecycle; `commissionPct` Super Admin only (`hotel.commission_changed`); DELETE soft, an active hotel is deactivated first |
+| POST | /hotels/{id}/status, /hotels/{id}/verification | hotels:status | activate (only once verified), deactivate, suspend; verify / reject (note required) |
+| GET/POST | /hotels/{id}/bookings | bookings:view / bookings:add | an active hotel; the hotel row is locked and the stay `[checkIn, checkOut)` must fit `total_rooms` on every night (409 NO_ROOMS_AVAILABLE, D127); payment status informational |
+| GET | /hotels/bookings, /hotels/bookings/{bookingId} | bookings:view | all bookings in scope; customer phone masked |
+| POST | /hotels/bookings/{bookingId}/status | bookings:status | `{status, version, note?}`: PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT, cancel before check-in; 409 STALE_VERSION; a cancel never refunds (D127) |
+| GET/POST | /hotels/dining | dining:view / dining:add | exactly one venue (`hotelId` or `restaurantId`); the zone is the venue's (404 outside the caller's zones); Hotel Booking on (D92) |
+| GET | /hotels/dining/{diningId} | dining:view | |
+| POST | /hotels/dining/{diningId}/status | dining:status | PENDING → CONFIRMED → COMPLETED / NO_SHOW, cancel before completion; `version` |
 | GET | /orders | orders:view | filters, search, scope |
 | GET | /orders/{id} | orders:view | items, timeline, payment panel |
 | POST | /orders/{id}/transition | orders:status | `{ to, note }` |
