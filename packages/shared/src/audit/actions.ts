@@ -174,6 +174,8 @@ export const AUDIT_ACTIONS = {
   'order.partner_assigned': a('orders', 'Assigned delivery partner'),
   'order.partner_reassigned': a('orders', 'Reassigned delivery partner'),
   'order.status_changed': a('orders', 'Changed order status'),
+  // D167 pre-orders
+  'order.rescheduled': a('orders', 'Rescheduled pre-order'),
   'order.marked_delayed': a('orders', 'Marked order delayed'),
   'order.exported': a('orders', 'Exported orders', H),
   // support desk (D139-D141)
@@ -237,6 +239,7 @@ export const AUDIT_ACTIONS = {
   'job.order_auto_cancelled': a('system', 'Order auto-cancelled'),
   'job.payment_expired': a('system', 'Payment expired'),
   'job.payout_run': a('system', 'Payout run'),
+  'job.preorder_released': a('system', 'Pre-order released for dispatch'),
 } as const satisfies Record<string, AuditActionDef>;
 
 export type AuditActionKey = keyof typeof AUDIT_ACTIONS;

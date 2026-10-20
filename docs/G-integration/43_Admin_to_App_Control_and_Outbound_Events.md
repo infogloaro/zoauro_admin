@@ -45,6 +45,8 @@ Body envelope:
 | `order.offered` | partner (the one offered) | auto-assign offers the order to the nearest available partner (D154) | show the offer with a countdown to `expiresAt`; answer ACCEPT or REJECT with `offerId` |
 | `order.offer_expired` | partner | the offer timed out or was withdrawn (D154) | hide the offer |
 | `order.cancelled` | all three | cancel by admin/system/timeout, with `reasonCode`, `cancelledBy` | stop work on the order; show reason |
+| `order.released` | vendor, partner | a pre-order (D150, D167) reached its dispatch time (`scheduledFor` − preparation − travel buffer); `{scheduledFor, dispatchAt, deliveryLocation?}` | vendor: show and start preparing; partner search starts |
+| `order.rescheduled` | customer | an admin moved a pre-order before its cut-off; `{scheduledFor, dispatchAt, rescheduleCount}` (D167) | show the new time |
 | `payment.status_changed` | customer | gateway webhook or COD | update payment state |
 | `refund.updated` | customer | refund requested/approved/processed/failed | show status and amount |
 | `vendor.status_changed` | vendor | verified, rejected (+note), activated, deactivated, suspended | rejected/suspended: block going online and taking orders; show the note |

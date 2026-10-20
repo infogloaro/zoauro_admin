@@ -11,6 +11,8 @@
     {"type": "order.offered", "to": ["PARTNER_APP"], "data": {"offerId": "uuid", "expiresAt": "iso8601", "distanceM": "int", "pickupZoneId": "uuid"}},
     {"type": "order.offer_expired", "to": ["PARTNER_APP"], "data": {"offerId": "uuid", "reason": "TIMEOUT|WITHDRAWN"}},
     {"type": "order.cancelled", "to": ["CUSTOMER_APP","VENDOR_APP","PARTNER_APP"], "data": {"reasonCode": "string", "cancelledBy": "CUSTOMER|VENDOR|ADMIN|SYSTEM", "refundExpected": "bool"}},
+    {"type": "order.released", "to": ["VENDOR_APP","PARTNER_APP"], "data": {"scheduledFor": "iso datetime", "dispatchAt": "iso datetime", "deliveryLocation": "{lat, lng, address}? (D167)"}},
+    {"type": "order.rescheduled", "to": ["CUSTOMER_APP"], "data": {"scheduledFor": "iso datetime", "dispatchAt": "iso datetime", "rescheduleCount": "int"}},
     {"type": "payment.status_changed", "to": ["CUSTOMER_APP"], "data": {"orderId": "externalId", "paymentStatus": "PENDING|PAID|FAILED|PARTIALLY_REFUNDED|REFUNDED", "amountPaise": "int"}},
     {"type": "refund.updated", "to": ["CUSTOMER_APP"], "data": {"orderId": "externalId", "refundId": "uuid", "status": "REQUESTED|PENDING_APPROVAL|APPROVED|PROCESSED|REJECTED|FAILED", "amountPaise": "int", "target": "ORIGINAL|WALLET|MANUAL"}},
     {"type": "vendor.status_changed", "to": ["VENDOR_APP"], "data": {"verificationStatus": "PENDING|VERIFIED|REJECTED", "status": "PENDING|ACTIVE|INACTIVE|SUSPENDED", "note": "string?"}},
