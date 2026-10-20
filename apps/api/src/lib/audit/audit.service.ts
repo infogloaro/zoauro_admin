@@ -80,7 +80,19 @@ function requireActor(): {
   return { actor: ctx.actor, ctx };
 }
 
-function validate(e: AuditEntry): { zoneId: string | null } {
+/**
+ * An app sign-up whose address matched no zone (doc 45 section 1.2, IH-2): the record exists with no zone until the Super
+ * Admin assigns one, so its audit row has none either and only Super Admin sees it. Allowed for these types only, only
+ * for an app or system actor, and only when null is passed explicitly (a forgotten zone still fails).
+ */
+const UNZONED_SIGNUP_ENTITY_TYPES: ReadonlySet<string> = new Set([
+  'restaurant',
+  'homemaker',
+  'partner',
+]);
+const UNZONED_SIGNUP_ACTORS: ReadonlySet<AuditActor['type']> = new Set(['APP_CLIENT', 'SYSTEM']);
+
+function validate(e: AuditEntry, actorType: AuditActor['type']): { zoneId: string | null } {
   if (!isAuditActionKey(e.action))
     throw new AuditError(
       'UNKNOWN_ACTION',
@@ -94,7 +106,11 @@ function validate(e: AuditEntry): { zoneId: string | null } {
     );
   if (!e.entity.type) throw new AuditError('BAD_ENTITY', 'entity.type is required');
   const zone = e.entity.zoneId;
-  if (ZONE_REQUIRED_ENTITY_TYPES.has(e.entity.type) && typeof zone !== 'string') {
+  const unzonedSignup =
+    zone === null &&
+    UNZONED_SIGNUP_ENTITY_TYPES.has(e.entity.type) &&
+    UNZONED_SIGNUP_ACTORS.has(actorType);
+  if (ZONE_REQUIRED_ENTITY_TYPES.has(e.entity.type) && typeof zone !== 'string' && !unzonedSignup) {
     throw new AuditError(
       'ZONE_REQUIRED',
       `entity type "${e.entity.type}" is zone-owned: pass entity.zoneId (a uuid)`,
@@ -110,8 +126,8 @@ function validate(e: AuditEntry): { zoneId: string | null } {
 }
 
 function toRow(e: AuditEntry, outcome: 'SUCCESS' | 'DENIED'): AuditRow | null {
-  const { zoneId } = validate(e);
   const { actor, ctx } = requireActor();
+  const { zoneId } = validate(e, actor.type);
   const def = AUDIT_ACTIONS[e.action];
 
   let beforeJson: unknown;

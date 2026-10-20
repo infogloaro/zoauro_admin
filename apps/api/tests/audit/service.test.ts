@@ -299,6 +299,44 @@ describe('programmer-error guards (these must throw, never be swallowed)', () =>
       ),
     ).rejects.toMatchObject({ code: 'ZONE_REQUIRED' });
   });
+  it('an app sign-up with no zone yet (IH-2): explicit null allowed for the app or the system, never for a member', async () => {
+    const app: AuditActor = { type: 'APP_CLIENT', id: uuidv7(), name: 'Vendor app', role: null };
+    const asApp = <T>(fn: () => Promise<T>) => runWithAuditContext({ actor: app }, fn);
+    const created = {
+      restaurant: { module: 'restaurants', action: 'restaurant.created' },
+      homemaker: { module: 'homemakers', action: 'homemaker.created' },
+      partner: { module: 'delivery', action: 'partner.created' },
+    } as const;
+    const signup = (type: keyof typeof created, zoneId?: string | null): AuditEntry => ({
+      ...created[type],
+      entity: { type, id: uuidv7(), ...(zoneId === undefined ? {} : { zoneId }) },
+      after: { name: 'x' },
+    });
+    for (const type of ['restaurant', 'homemaker', 'partner'] as const) {
+      await expect(asApp(() => record(tx, signup(type, null)))).resolves.toBeUndefined();
+      await expect(
+        runAsSystem('import', () => record(tx, signup(type, null))),
+      ).resolves.toBeUndefined();
+      // forgotten (undefined) still fails, for the app too
+      await expect(asApp(() => record(tx, signup(type)))).rejects.toMatchObject({
+        code: 'ZONE_REQUIRED',
+      });
+      await expect(asKarthik(() => record(tx, signup(type, null)))).rejects.toMatchObject({
+        code: 'ZONE_REQUIRED',
+      });
+    }
+    // other zone-owned types stay strict for the app
+    await expect(
+      asApp(() =>
+        record(tx, {
+          module: 'orders',
+          action: 'order.cancelled_by_admin',
+          entity: { type: 'order', id: uuidv7(), zoneId: null },
+          after: { a: 1 },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: 'ZONE_REQUIRED' });
+  });
   it('customer must pass zoneId explicitly (uuid or null)', async () => {
     const e: AuditEntry = {
       module: 'customers',
