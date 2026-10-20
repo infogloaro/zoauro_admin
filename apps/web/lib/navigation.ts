@@ -732,12 +732,10 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'search',
     description:
       'One search box across orders, vendors, partners and customers, limited to what you may see.',
-    status: 'coming-soon',
-    blueprint: {
-      phase: 'Phase 1',
-      screens: ['Search across records from the top bar'],
-      rules: ['Results use the same zone scope as every list'],
-    },
+    // Live in the top bar (components/shell/PageSearch.tsx), not a page of its own: kept in the catalogue (doc 39)
+    // but left out of every sidebar, so nobody lands on a Coming Soon page for a feature that already works.
+    status: 'live',
+    superAdmin: false,
   },
 
   // ---- My Account -----------------------------------------------------------------------------------------------------

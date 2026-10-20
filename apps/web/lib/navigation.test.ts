@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Zonal Admins, Access Profiles, Access History, Security Settings, Audit & Logs and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Zonal Admins, Access Profiles, Access History, Security Settings, Audit & Logs, Account security and Global Search (top bar)', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -59,6 +59,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M04',
       'M04-ACT',
       'M16',
+      'M18',
       'M19-SEC',
     ]);
   });
@@ -75,9 +76,10 @@ describe('module catalogue (doc 39 + roadmap)', () => {
 });
 
 describe('menu by role', () => {
-  it('Super Admin: every module; live ones link to their page, the rest to /coming-soon/<slug>', () => {
+  it('Super Admin: every module except header-only ones (M18 search); live ones link to their page, the rest to /coming-soon/<slug>', () => {
     const menu = menuFor('SUPER_ADMIN', []);
-    expect(menu).toHaveLength(NAV_MODULES.length);
+    expect(menu).toHaveLength(NAV_MODULES.filter((m) => m.superAdmin !== false).length);
+    expect(menu.map((m) => m.id)).not.toContain('M18');
     const byId = Object.fromEntries(menu.map((m) => [m.id, m]));
     expect(byId['M16']).toMatchObject({ status: 'live', href: '/super-admin/dashboard' });
     expect(byId['M04-ACT']).toMatchObject({ status: 'live', href: '/super-admin/activity' });
