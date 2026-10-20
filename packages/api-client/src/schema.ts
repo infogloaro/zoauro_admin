@@ -2024,7 +2024,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The settings of one group; with ?zoneId= the effective values in that zone (source ZONE / PLATFORM / DEFAULT). Group security is answered by GET /settings/security */
+        /** The settings of one group; with ?zoneId= the effective values in that zone (source ZONE / PLATFORM / DEFAULT). Group security is answered by GET /settings/security. D169: group loyalty is also open to a Zonal Admin with loyalty:view in the zone named by ?zoneId= (its delegated key only; other zones 404) */
         get: operations["getSettingsGroup"];
         /** Save platform values with a reason (re-auth PASSWORD; STRONG for refund limits and the SMS provider, D112). Stale version 409 */
         put: operations["putSettings"];
@@ -2136,6 +2136,58 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/super-admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every live Super Admin (isSelf marks the caller); meta.activeCount */
+        get: operations["listSuperAdmins"];
+        put?: never;
+        /** Create a Super Admin with a temporary password (changed at the first sign-in, never emailed, D103); the new and every other active Super Admin are emailed. Email in use 409 */
+        post: operations["createSuperAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/super-admins/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Soft-delete another Super Admin; every session ends. Oneself 409 SELF; the last active Super Admin 409 LAST_SUPER_ADMIN */
+        delete: operations["deleteSuperAdmin"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/super-admins/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Suspend (every session ends) or reactivate another Super Admin. Oneself 409 SELF; the last active Super Admin 409 LAST_SUPER_ADMIN */
+        patch: operations["setSuperAdminStatus"];
         trace?: never;
     };
     "/uploads/confirm": {
@@ -2409,7 +2461,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Zone overrides of zone-overridable settings (422 NO_ZONE_OVERRIDE otherwise), with a reason; re-auth as for saving */
+        /** Zone overrides of zone-overridable settings (422 NO_ZONE_OVERRIDE otherwise), with a reason; re-auth as for saving. D169: loyalty.values also by a Zonal Admin with loyalty:edit in that zone (404 outside the scope, 403 without the action) */
         put: operations["putZoneSettings"];
         post?: never;
         delete?: never;
@@ -6430,8 +6482,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -6442,8 +6495,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -6576,8 +6628,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -6588,8 +6641,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -6791,8 +6843,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -6803,8 +6856,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -6925,8 +6977,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                    docType: string;
                     fileKey: string;
                 };
             };
@@ -6945,8 +6996,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -6957,8 +7009,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7171,8 +7222,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7183,8 +7235,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7325,8 +7376,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7337,8 +7389,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7479,8 +7530,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7491,8 +7543,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7703,8 +7754,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7715,8 +7767,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -7857,8 +7908,9 @@ export interface operations {
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         cashInHand: number;
                         checklist: {
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -7869,8 +7921,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "PAN" | "BANK_DETAILS" | "DRIVING_LICENCE" | "VEHICLE_RC" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8145,8 +8196,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8157,8 +8209,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8291,8 +8342,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8303,8 +8355,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8521,8 +8572,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8533,8 +8585,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8656,8 +8707,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                    docType: string;
                     fileKey: string;
                 };
             };
@@ -8675,8 +8725,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8687,8 +8738,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -8892,8 +8942,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -8904,8 +8955,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -9046,8 +9096,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -9058,8 +9109,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -9261,8 +9311,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -9273,8 +9324,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -9415,8 +9465,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -9427,8 +9478,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -14780,6 +14830,7 @@ export interface operations {
                 paymentStatus?: ("PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED")[];
                 q?: string;
                 restaurantId?: string;
+                scheduled?: boolean;
                 sort?: string;
                 status?: ("PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED")[];
                 to?: string;
@@ -14812,6 +14863,18 @@ export interface operations {
                             /** @enum {string} */
                             paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
                             placedAt: string;
+                            preorder: {
+                                deliveryAddress: string | null;
+                                deliveryLat: number | null;
+                                deliveryLng: number | null;
+                                /** Format: date-time */
+                                dispatchAt: string;
+                                /** Format: date-time */
+                                releasedAt: string | null;
+                                rescheduleCount: number;
+                                /** Format: date-time */
+                                scheduledFor: string;
+                            } | null;
                             /** @enum {string} */
                             status: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
                             total: number;
@@ -14938,6 +15001,18 @@ export interface operations {
                         /** @enum {string} */
                         paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
                         placedAt: string;
+                        preorder: {
+                            deliveryAddress: string | null;
+                            deliveryLat: number | null;
+                            deliveryLng: number | null;
+                            /** Format: date-time */
+                            dispatchAt: string;
+                            /** Format: date-time */
+                            releasedAt: string | null;
+                            rescheduleCount: number;
+                            /** Format: date-time */
+                            scheduledFor: string;
+                        } | null;
                         readyAt: string | null;
                         /** @enum {string} */
                         status: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
@@ -15423,8 +15498,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -15435,8 +15511,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -15569,8 +15644,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -15581,8 +15657,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -15799,8 +15874,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -15811,8 +15887,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -15934,8 +16009,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                    docType: string;
                     fileKey: string;
                 };
             };
@@ -15953,8 +16027,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -15965,8 +16040,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -16170,8 +16244,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -16182,8 +16257,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -16324,8 +16398,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -16336,8 +16411,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -16539,8 +16613,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -16551,8 +16626,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -16693,8 +16767,9 @@ export interface operations {
                         /** @enum {string} */
                         assignment: "ASSIGNED" | "UNASSIGNED";
                         checklist: {
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
+                            label: string;
+                            mandatory: boolean;
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
@@ -16705,8 +16780,7 @@ export interface operations {
                         documents: {
                             /** Format: date-time */
                             createdAt: string;
-                            /** @enum {string} */
-                            docType: "FSSAI" | "GST" | "PAN" | "BANK_DETAILS" | "ID_PROOF" | "OTHER";
+                            docType: string;
                             /** Format: uuid */
                             id: string;
                             rejectionNote: string | null;
@@ -17854,6 +17928,324 @@ export interface operations {
             };
             /** @description Not found (also used for objects in zones the caller cannot see) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listSuperAdmins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Super Admins */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            email: string;
+                            /** Format: uuid */
+                            id: string;
+                            isSelf: boolean;
+                            /** Format: date-time */
+                            lastLoginAt: string | null;
+                            mfaEnabled: boolean;
+                            mustChangePassword: boolean;
+                            name: string;
+                            phone: string | null;
+                            /** @enum {string} */
+                            status: "ACTIVE" | "SUSPENDED";
+                        }[];
+                        meta: {
+                            activeCount: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createSuperAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                    name: string;
+                    phone?: string;
+                    reason: string;
+                    temporaryPassword: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string;
+                        /** Format: uuid */
+                        id: string;
+                        isSelf: boolean;
+                        /** Format: date-time */
+                        lastLoginAt: string | null;
+                        mfaEnabled: boolean;
+                        mustChangePassword: boolean;
+                        name: string;
+                        phone: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "SUSPENDED";
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteSuperAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    setSuperAdminStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    /** @enum {string} */
+                    status: "ACTIVE" | "SUSPENDED";
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string;
+                        /** Format: uuid */
+                        id: string;
+                        isSelf: boolean;
+                        /** Format: date-time */
+                        lastLoginAt: string | null;
+                        mfaEnabled: boolean;
+                        mustChangePassword: boolean;
+                        name: string;
+                        phone: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "SUSPENDED";
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

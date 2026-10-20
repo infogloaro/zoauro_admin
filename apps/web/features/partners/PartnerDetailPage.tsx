@@ -34,6 +34,7 @@ import { fileProblem, useUploadFile } from '../vendors/api';
 import { useInvalidatePartners, usePartnerDetail } from './api';
 import {
   PARTNER_DOC_LABEL,
+  partnerDocLabel,
   PARTNER_STATUS_LABEL,
   PARTNER_STATUS_TONE,
   PARTNER_VERIFICATION_LABEL,
@@ -448,7 +449,7 @@ function PartnerDocuments({
             {p.checklist.map((c) => (
               <li key={c.docType}>
                 <Badge tone={CHECK_TONE[c.state]} dot>
-                  {PARTNER_DOC_LABEL[c.docType]}: {CHECK_LABEL[c.state]}
+                  {c.label}: {CHECK_LABEL[c.state]}
                 </Badge>
               </li>
             ))}
@@ -464,7 +465,7 @@ function PartnerDocuments({
                 className="flex flex-wrap items-center gap-3 py-2.5 first:pt-0 last:pb-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{PARTNER_DOC_LABEL[d.docType]}</p>
+                  <p className="text-sm font-semibold">{partnerDocLabel(d.docType)}</p>
                   <p className="text-xs text-muted">
                     Uploaded {relativeTime(d.createdAt)}
                     {d.verifiedBy ? ` · checked by ${d.verifiedBy.name}` : ''}
@@ -478,7 +479,7 @@ function PartnerDocuments({
                   variant="secondary"
                   size="sm"
                   onClick={() => void view(d.id)}
-                  aria-label={`View the ${PARTNER_DOC_LABEL[d.docType]}`}
+                  aria-label={`View the ${partnerDocLabel(d.docType)}`}
                 >
                   <ExternalLink aria-hidden className="size-4" /> View
                 </Button>
@@ -490,7 +491,7 @@ function PartnerDocuments({
                         onAction({
                           kind: 'doc',
                           docId: d.id,
-                          docLabel: PARTNER_DOC_LABEL[d.docType],
+                          docLabel: partnerDocLabel(d.docType),
                           decision: 'VERIFIED',
                         })
                       }
@@ -504,7 +505,7 @@ function PartnerDocuments({
                         onAction({
                           kind: 'doc',
                           docId: d.id,
-                          docLabel: PARTNER_DOC_LABEL[d.docType],
+                          docLabel: partnerDocLabel(d.docType),
                           decision: 'REJECTED',
                         })
                       }

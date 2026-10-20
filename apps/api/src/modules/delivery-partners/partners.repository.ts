@@ -1,10 +1,5 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
-import type {
-  PartnerDocumentType,
-  PartnerListQuery,
-  PartnerStatus,
-  VerificationStatus,
-} from '@zoauro/shared';
+import type { PartnerListQuery, PartnerStatus, VerificationStatus } from '@zoauro/shared';
 import type { AuditTx } from '../../lib/audit';
 import { BaseRepository, type AuthContext, type ScopedDelegate } from '../../lib/authz';
 import { auditTx } from '../../lib/db';
@@ -59,7 +54,7 @@ const docSelect = {
 export type PartnerDocumentRecord = Omit<
   Prisma.VendorDocumentGetPayload<{ select: typeof docSelect }>,
   'docType'
-> & { docType: PartnerDocumentType };
+> & { docType: string };
 
 export interface OutboxRow {
   id: string;
@@ -286,7 +281,7 @@ export class PartnersRepository extends BaseRepository<Where, PartnerRecord> {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       select: docSelect,
     });
-    return rows.map((r) => ({ ...r, docType: r.docType as PartnerDocumentType }));
+    return rows.map((r) => ({ ...r, docType: r.docType }));
   }
 
   async document(partnerId: string, docId: string): Promise<PartnerDocumentRecord | null> {
@@ -294,13 +289,13 @@ export class PartnersRepository extends BaseRepository<Where, PartnerRecord> {
       where: { id: docId, vendorType: PARTNER_DOC_OWNER, vendorId: partnerId, deletedAt: null },
       select: docSelect,
     });
-    return r ? { ...r, docType: r.docType as PartnerDocumentType } : null;
+    return r ? { ...r, docType: r.docType } : null;
   }
 
   async insertDocument(row: {
     id: string;
     partnerId: string;
-    docType: PartnerDocumentType;
+    docType: string;
     fileKey: string;
     createdBy: string;
   }): Promise<void> {

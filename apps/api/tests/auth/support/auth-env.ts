@@ -265,15 +265,22 @@ export async function createAuthTestEnv() {
       clock: clock.now,
     });
     const refundCaps = (zoneIds: readonly string[]) => settings.reader.refundCaps(zoneIds);
+    // D155: the Control Panel switch that opens commission:edit to a member's override
+    const grantSwitches = async () => ({
+      commissionEdit: await settings.reader.commissionEditGrantable(),
+    });
     const access = createAccessService({
       prisma,
       redis: appRedis,
       refundCaps,
+      grantSwitches,
       ...(extra.accessCacheTtlSec === undefined ? {} : { cacheTtlSec: extra.accessCacheTtlSec }),
     });
     const ok = async (): Promise<void> => undefined;
     // the real module routers, as server.ts mounts them
     const zones = createZonesModule({
+      // D165: the Super Admin's delivery charge cap
+      deliveryChargeCap: () => settings.reader.deliveryChargeCapPaise(),
       prisma: extra.zones?.prisma ?? prisma,
       redis: appRedis,
       appOrigin: APP_ORIGIN,
@@ -295,6 +302,7 @@ export async function createAuthTestEnv() {
       mailer: accessMailer,
       clock: clock.now,
       refundCaps,
+      grantSwitches,
     });
     // as server.ts: vendors and uploads ask each other (who owns a key; is a key uploaded)
     const uploadsGate: { service?: ReturnType<typeof createUploadsModule>['service'] } = {};

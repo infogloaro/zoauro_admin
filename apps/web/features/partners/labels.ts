@@ -4,6 +4,7 @@ import type {
   PartnerStatus,
   VerificationStatus,
 } from '@zoauro/shared';
+import { BUILT_IN_DOCUMENT_LABELS } from '@zoauro/shared';
 import type { BadgeTone } from '../../components/ui/badge';
 import { DOCUMENT_LABEL } from '../platform-settings/fields';
 
@@ -40,6 +41,12 @@ export const PARTNER_DOC_LABEL: Record<PartnerDocumentType, string> = {
   ...(DOCUMENT_LABEL as Record<Exclude<PartnerDocumentType, 'OTHER'>, string>),
   OTHER: 'Other document',
 };
+
+/** D145: any catalogue code; a type the Super Admin added is shown by its code until the screen reads the catalogue. */
+export const partnerDocLabel = (code: string): string =>
+  (PARTNER_DOC_LABEL as Readonly<Record<string, string>>)[code] ??
+  BUILT_IN_DOCUMENT_LABELS[code] ??
+  code;
 
 /** List tabs (approved list item 1): each maps to one filter and one count from meta.counts. */
 export const PARTNER_TABS = [

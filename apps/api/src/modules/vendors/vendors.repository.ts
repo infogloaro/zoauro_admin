@@ -2,7 +2,6 @@ import { Prisma, type PrismaClient } from '@prisma/client';
 import type {
   PermissionKey,
   RestaurantKind,
-  VendorDocumentType,
   VendorListQuery,
   VendorModule,
   VendorStatus,
@@ -205,7 +204,7 @@ export interface VendorWrite {
 
 export interface VendorDocumentRecord {
   id: string;
-  docType: VendorDocumentType;
+  docType: string;
   fileKey: string;
   verified: boolean;
   rejectionNote: string | null;
@@ -539,7 +538,7 @@ export class VendorsRepository {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       select: docSelect,
     });
-    return rows.map((r) => ({ ...r, docType: r.docType as VendorDocumentType }));
+    return rows.map((r) => ({ ...r, docType: r.docType }));
   }
 
   async document(
@@ -551,7 +550,7 @@ export class VendorsRepository {
       where: { id: docId, vendorType: VENDOR_TYPE_OF[module], vendorId, deletedAt: null },
       select: docSelect,
     });
-    return r ? { ...r, docType: r.docType as VendorDocumentType } : null;
+    return r ? { ...r, docType: r.docType } : null;
   }
 
   async insertDocument(
@@ -559,7 +558,7 @@ export class VendorsRepository {
     row: {
       id: string;
       vendorId: string;
-      docType: VendorDocumentType;
+      docType: string;
       fileKey: string;
       createdBy: string;
     },

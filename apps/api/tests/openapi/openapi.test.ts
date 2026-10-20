@@ -118,6 +118,11 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /access-requests/{id}/reject',
         'PUT /me/zone-scope',
         // M03 Access Control (doc 09, D102–D108)
+        // D148 Super Admins
+        'GET /super-admins',
+        'POST /super-admins',
+        'PATCH /super-admins/{id}/status',
+        'DELETE /super-admins/{id}',
         'POST /zones/{id}/team/{userId}',
         'DELETE /zones/{id}/team/{userId}',
         'GET /zonal-admins',

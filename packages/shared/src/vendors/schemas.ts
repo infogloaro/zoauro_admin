@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, sortSchema } from '../pagination';
 import { normaliseIndianMobile } from '../phone';
-import { ONBOARDING_DOCUMENT_TYPES } from '../settings/registry';
+import { documentCodeSchema, ONBOARDING_DOCUMENT_TYPES } from '../settings/registry';
 
 // Restaurants (M06) and Home Food (M07) request schemas (doc 08, doc 09, doc 10 section 4, doc 22, D22, D120), shared
 // with the vendor forms and the OpenAPI document. Ported from Chittra Priya's branch, rebuilt on the core conventions.
@@ -218,7 +218,7 @@ export type VendorMoveZoneInput = z.infer<typeof vendorMoveZoneSchema>;
 /** POST /{module}/{id}/documents (doc 09): attach a confirmed upload (`/uploads/confirm`). */
 export const vendorDocumentAttachSchema = z
   .object({
-    docType: z.enum(VENDOR_DOCUMENT_TYPES),
+    docType: documentCodeSchema,
     fileKey: text(1, 512),
   })
   .strict();

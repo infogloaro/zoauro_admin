@@ -13,7 +13,6 @@ import type {
   VendorCounts,
   VendorDocument,
   VendorDocumentAttachInput,
-  VendorDocumentType,
   VendorDocumentUrl,
   VendorDocumentVerifyInput,
   VendorListQuery,
@@ -23,6 +22,7 @@ import type {
   VendorVerificationInput,
   ZoneServiceKind,
 } from '@zoauro/shared';
+import { OTHER_DOCUMENT_CODE } from '@zoauro/shared';
 import { maskEmail, maskPhone, record, uuidv7 } from '../../lib/audit';
 import { assertCanWrite, can, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
@@ -72,11 +72,11 @@ export interface VendorsDeps {
   uploads: { assertUploaded(ctx: AuthContext, fileKey: string): Promise<unknown> };
   /** the zones module (D92): 409 ZONE_SERVICE_DISABLED when the service is off, 404 for a missing zone */
   services: { assertServiceEnabled(zoneId: string, service: ZoneServiceKind): Promise<void> };
-  /** settings `onboarding.documents` for a zone (D97); HOME_FOOD null = not configured (D113) */
+  /** D145: the party's document catalogue (settings `onboarding.documents`); null = not configured */
   checklist: {
-    onboardingDocuments(
-      zoneId: string,
-    ): Promise<{ RESTAURANT: string[]; HOME_FOOD: string[] | null }>;
+    onboardingCatalogue(
+      party: 'RESTAURANT' | 'HOMEMAKER',
+    ): Promise<{ code: string; label: string; mandatory: boolean }[] | null>;
   };
   limiter: RateLimiter;
   clock: () => Date;
@@ -338,6 +338,7 @@ export class VendorsService {
       throw new AppError('VALIDATION_ERROR', 'The file was uploaded for another vendor', [
         { field: 'fileKey', issue: 'other_entity' },
       ]);
+    await this.assertDocumentType(module, input.docType);
     await this.deps.uploads.assertUploaded(ctx, input.fileKey);
     await this.deps.db.transaction(async (tx) => {
       const docId = uuidv7();
@@ -471,23 +472,40 @@ export class VendorsService {
       : ({ ...base, experienceYears: v.experienceYears, hasPhoto: v.hasImage } as HomemakerDetail);
   }
 
-  /** D97 checklist: each required type and the state of its newest document; null when not configured (D113). */
+  /** D145 checklist: the party catalogue in its order, each type with its newest document's state; null = not configured. */
   private async checklistFor(
     v: VendorRecord & { zoneId: string | null },
     docs: VendorDocumentRecord[],
   ): Promise<Detail['checklist']> {
     if (v.zoneId === null) return null;
-    const lists = await this.deps.checklist.onboardingDocuments(v.zoneId);
-    const required = v.module === 'restaurants' ? lists.RESTAURANT : lists.HOME_FOOD;
-    if (required === null) return null;
-    return required
-      .filter((t): t is VendorDocumentType => t !== 'DRIVING_LICENCE' && t !== 'VEHICLE_RC')
-      .map((docType) => {
-        const newest = docs.find((d) => d.docType === docType); // documents() is newest first
-        return { docType, state: newest ? reviewOf(newest) : 'MISSING' };
-      });
+    const catalogue = await this.deps.checklist.onboardingCatalogue(partyOf(v.module));
+    if (catalogue === null) return null;
+    return catalogue.map((d) => {
+      const newest = docs.find((x) => x.docType === d.code); // documents() is newest first
+      return {
+        docType: d.code,
+        label: d.label,
+        mandatory: d.mandatory,
+        state: newest ? reviewOf(newest) : 'MISSING',
+      };
+    });
+  }
+
+  /** D145: a document is one of the party's catalogue types, or OTHER. */
+  private async assertDocumentType(module: VendorModule, docType: string): Promise<void> {
+    if (docType === OTHER_DOCUMENT_CODE) return;
+    const catalogue = await this.deps.checklist.onboardingCatalogue(partyOf(module));
+    if (!catalogue?.some((d) => d.code === docType))
+      throw new AppError(
+        'VALIDATION_ERROR',
+        'This document type is not in the onboarding catalogue',
+        [{ field: 'docType', issue: 'UNKNOWN_DOCUMENT_TYPE' }],
+      );
   }
 }
+
+const partyOf = (module: VendorModule): 'RESTAURANT' | 'HOMEMAKER' =>
+  module === 'restaurants' ? 'RESTAURANT' : 'HOMEMAKER';
 
 // ---- mapping ------------------------------------------------------------------------------------------------------
 

@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { pageMetaSchema } from '../pagination';
+import { documentCodeSchema } from '../settings/registry';
 import {
   OPENING_DAYS,
   RECORD_SOURCES,
   RESTAURANT_KINDS,
-  VENDOR_DOCUMENT_TYPES,
   VENDOR_STATUSES,
   VERIFICATION_STATUSES,
   ZONE_ASSIGNMENT_STATUSES,
@@ -94,7 +94,7 @@ export type DocumentReviewStatus = (typeof DOCUMENT_REVIEW_STATUSES)[number];
 /** A vendor_documents row; the file itself is only reachable through GET .../documents/{docId}/url (audited). */
 export const vendorDocumentSchema = z.object({
   id: z.uuid(),
-  docType: z.enum(VENDOR_DOCUMENT_TYPES),
+  docType: documentCodeSchema,
   /** derived: verified -> VERIFIED, a rejection note -> REJECTED, otherwise PENDING */
   status: z.enum(DOCUMENT_REVIEW_STATUSES),
   rejectionNote: z.string().nullable(),
@@ -105,11 +105,13 @@ export const vendorDocumentSchema = z.object({
 export type VendorDocument = z.infer<typeof vendorDocumentSchema>;
 
 /**
- * D97 checklist from settings `onboarding.documents` for the vendor's zone: each required type and the state of the
- * newest document of that type. null when the list is not configured (D113: Home Food).
+ * D145 checklist: the party catalogue of settings `onboarding.documents` (RESTAURANT or HOMEMAKER) in its order, each
+ * type with the state of the newest document of that type. null when the party is not configured.
  */
 export const vendorChecklistItemSchema = z.object({
-  docType: z.enum(VENDOR_DOCUMENT_TYPES),
+  docType: documentCodeSchema,
+  label: z.string(),
+  mandatory: z.boolean(),
   state: z.enum(['MISSING', ...DOCUMENT_REVIEW_STATUSES]),
 });
 export const vendorChecklistSchema = z.array(vendorChecklistItemSchema).nullable();

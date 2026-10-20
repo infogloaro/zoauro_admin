@@ -37,6 +37,7 @@ import { useZoneOptions } from '../platform-settings/api';
 import { fileProblem, useInvalidateVendors, useUploadFile, useVendorDetail } from './api';
 import {
   VENDOR_DOC_LABEL,
+  vendorDocLabel,
   VENDOR_META,
   VENDOR_STATUS_LABEL,
   VENDOR_STATUS_TONE,
@@ -475,7 +476,7 @@ function DocumentsCard({
             {v.checklist.map((c) => (
               <li key={c.docType}>
                 <Badge tone={CHECK_TONE[c.state]} dot>
-                  {VENDOR_DOC_LABEL[c.docType]}: {CHECK_LABEL[c.state]}
+                  {c.label}: {CHECK_LABEL[c.state]}
                 </Badge>
               </li>
             ))}
@@ -492,7 +493,7 @@ function DocumentsCard({
                 className="flex flex-wrap items-center gap-3 py-2.5 first:pt-0 last:pb-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{VENDOR_DOC_LABEL[d.docType]}</p>
+                  <p className="text-sm font-semibold">{vendorDocLabel(d.docType)}</p>
                   <p className="text-xs text-muted">
                     Uploaded {relativeTime(d.createdAt)}
                     {d.verifiedBy ? ` · checked by ${d.verifiedBy.name}` : ''}
@@ -506,7 +507,7 @@ function DocumentsCard({
                   variant="secondary"
                   size="sm"
                   onClick={() => void view(d.id)}
-                  aria-label={`View the ${VENDOR_DOC_LABEL[d.docType]}`}
+                  aria-label={`View the ${vendorDocLabel(d.docType)}`}
                 >
                   <ExternalLink aria-hidden className="size-4" /> View
                 </Button>
@@ -518,7 +519,7 @@ function DocumentsCard({
                         onAction({
                           kind: 'doc',
                           docId: d.id,
-                          docLabel: VENDOR_DOC_LABEL[d.docType],
+                          docLabel: vendorDocLabel(d.docType),
                           decision: 'VERIFIED',
                         })
                       }
@@ -532,7 +533,7 @@ function DocumentsCard({
                         onAction({
                           kind: 'doc',
                           docId: d.id,
-                          docLabel: VENDOR_DOC_LABEL[d.docType],
+                          docLabel: vendorDocLabel(d.docType),
                           decision: 'REJECTED',
                         })
                       }

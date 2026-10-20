@@ -256,15 +256,26 @@ describe('documents through uploads (D97, D120, doc 13 T9)', () => {
     });
 
     const before = (await c.get(`/restaurants/${id}`)).body;
+    // D145: the RESTAURANT catalogue in its order, with labels and the mandatory flag
     expect(before.checklist).toEqual([
-      { docType: 'FSSAI', state: 'MISSING' },
-      { docType: 'GST', state: 'MISSING' },
-      { docType: 'PAN', state: 'MISSING' },
-      { docType: 'BANK_DETAILS', state: 'MISSING' },
+      { docType: 'FSSAI', label: 'FSSAI licence', mandatory: true, state: 'MISSING' },
+      { docType: 'GST', label: 'GST certificate', mandatory: true, state: 'MISSING' },
+      { docType: 'PAN', label: 'PAN card', mandatory: true, state: 'MISSING' },
+      { docType: 'BANK_DETAILS', label: 'Bank details', mandatory: true, state: 'MISSING' },
     ]);
+    // a type outside the catalogue is refused (OTHER stays allowed)
+    const unknown = await c.post(`/restaurants/${id}/documents`, {
+      docType: 'DRIVING_LICENCE',
+      fileKey,
+    });
+    expect(unknown.status).toBe(422);
+    expect(unknown.body.error.details[0]).toEqual({
+      field: 'docType',
+      issue: 'UNKNOWN_DOCUMENT_TYPE',
+    });
     const attached = await c.post(`/restaurants/${id}/documents`, { docType: 'FSSAI', fileKey });
     expect(attached.status, JSON.stringify(attached.body)).toBe(201);
-    expect(attached.body.checklist[0]).toEqual({ docType: 'FSSAI', state: 'PENDING' });
+    expect(attached.body.checklist[0]).toMatchObject({ docType: 'FSSAI', state: 'PENDING' });
     const docId = attached.body.documents[0].id as string;
 
     const link = await c.get(`/restaurants/${id}/documents/${docId}/url`);
@@ -287,7 +298,7 @@ describe('documents through uploads (D97, D120, doc 13 T9)', () => {
       status: 'REJECTED',
       rejectionNote: 'Licence expired',
     });
-    expect(rejected.body.checklist[0]).toEqual({ docType: 'FSSAI', state: 'REJECTED' });
+    expect(rejected.body.checklist[0]).toMatchObject({ docType: 'FSSAI', state: 'REJECTED' });
     const twice = await c.post(`/restaurants/${id}/documents/${docId}/verify`, {
       decision: 'VERIFIED',
     });
@@ -364,9 +375,20 @@ describe('documents through uploads (D97, D120, doc 13 T9)', () => {
     expect(wrong.body.error.details[0].issue).toBe('other_entity');
   });
 
-  it('D113: the Home Food checklist is not configured', async () => {
+  it('D145: the homemaker checklist follows the HOMEMAKER catalogue (mandatory and optional)', async () => {
     const id = await newHomemaker(zoneA);
-    expect((await client(sa, app).get(`/homemakers/${id}`)).body.checklist).toBeNull();
+    const list = (await client(sa, app).get(`/homemakers/${id}`)).body.checklist as {
+      docType: string;
+      mandatory: boolean;
+    }[];
+    expect(list.map((c) => [c.docType, c.mandatory])).toEqual([
+      ['FSSAI_REGISTRATION', true],
+      ['ID_PROOF', true],
+      ['ADDRESS_PROOF', true],
+      ['BANK_DETAILS', true],
+      ['PAN', false],
+      ['KITCHEN_PHOTOS', false],
+    ]);
   });
 });
 

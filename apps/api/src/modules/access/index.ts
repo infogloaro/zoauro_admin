@@ -10,6 +10,8 @@ import { createAccessAdminRoutes } from './access-admin.routes';
 import { AccessAdminService } from './access-admin.service';
 import { noopAccessMailer, type AccessMailer } from './access.mails';
 import { AccessAdminDatabase } from './admin.repository';
+import { registerSuperAdminsRoutes } from './super-admins.routes';
+import { SuperAdminsService } from './super-admins.service';
 
 export { createAccessMailer, noopAccessMailer, type AccessMailer } from './access.mails';
 export { ADMIN_ZONES_CHANGED, memberScopeEvent } from './access.events';
@@ -76,8 +78,9 @@ export function createAccessModule(deps: {
   /** D155: the same switches the access service reads */
   grantSwitches?: () => Promise<GrantSwitches>;
 }): { router: Router; service: AccessAdminService } {
+  const db = new AccessAdminDatabase(deps.prisma);
   const service = new AccessAdminService({
-    db: new AccessAdminDatabase(deps.prisma),
+    db,
     access: deps.access,
     evictSessions: deps.evictSessions,
     mailer: deps.mailer ?? noopAccessMailer,
@@ -85,11 +88,18 @@ export function createAccessModule(deps: {
     ...(deps.refundCaps ? { refundCaps: deps.refundCaps } : {}),
     ...(deps.grantSwitches ? { grantSwitches: deps.grantSwitches } : {}),
   });
-  return {
-    router: createAccessAdminRoutes(createAccessAdminController(service), {
-      appOrigin: deps.appOrigin,
-      requireReauth: deps.requireReauth,
+  const routeOpts = { appOrigin: deps.appOrigin, requireReauth: deps.requireReauth };
+  const router = createAccessAdminRoutes(createAccessAdminController(service), routeOpts);
+  // D148: Super Admins, on the same router (the route list and the authorization matrix read its stack)
+  registerSuperAdminsRoutes(
+    router,
+    new SuperAdminsService({
+      db,
+      evictSessions: deps.evictSessions,
+      mailer: deps.mailer ?? noopAccessMailer,
+      clock: deps.clock ?? (() => new Date()),
     }),
-    service,
-  };
+    routeOpts,
+  );
+  return { router, service };
 }

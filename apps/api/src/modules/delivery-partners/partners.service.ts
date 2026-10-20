@@ -4,7 +4,6 @@ import type {
   PartnerDetail,
   PartnerDocument,
   PartnerDocumentAttachInput,
-  PartnerDocumentType,
   PartnerDocumentVerifyInput,
   PartnerForceOfflineInput,
   PartnerListItem,
@@ -15,7 +14,7 @@ import type {
   PartnerUpdateInput,
   PartnerVerificationInput,
 } from '@zoauro/shared';
-import { PARTNER_DOCUMENT_TYPES } from '@zoauro/shared';
+import { OTHER_DOCUMENT_CODE } from '@zoauro/shared';
 import { maskEmail, maskPhone, record, uuidv7 } from '../../lib/audit';
 import { assertCanWrite, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
@@ -71,8 +70,11 @@ function reviewOf(d: PartnerDocumentRecord): 'PENDING' | 'VERIFIED' | 'REJECTED'
   return d.verified ? 'VERIFIED' : d.rejectionNote ? 'REJECTED' : 'PENDING';
 }
 
+/** D145: the DELIVERY_PARTNER document catalogue (settings onboarding.documents); null = not configured. */
 export interface PartnerChecklistSource {
-  onboardingDocuments(zoneId: string): Promise<{ DELIVERY_PARTNER: readonly string[] }>;
+  onboardingCatalogue(
+    party: 'DELIVERY_PARTNER',
+  ): Promise<{ code: string; label: string; mandatory: boolean }[] | null>;
 }
 
 export interface PartnerUploadsGate {
@@ -363,6 +365,16 @@ export class PartnersService {
       throw new AppError('VALIDATION_ERROR', 'The file was uploaded for another record', [
         { field: 'fileKey', issue: 'other_entity' },
       ]);
+    if (input.docType !== OTHER_DOCUMENT_CODE) {
+      // D145: one of the catalogue's types, or OTHER
+      const catalogue = await this.deps.checklist.onboardingCatalogue('DELIVERY_PARTNER');
+      if (!catalogue?.some((d) => d.code === input.docType))
+        throw new AppError(
+          'VALIDATION_ERROR',
+          'This document type is not in the onboarding catalogue',
+          [{ field: 'docType', issue: 'UNKNOWN_DOCUMENT_TYPE' }],
+        );
+    }
     await this.deps.uploads.assertUploaded(ctx, input.fileKey);
     await this.deps.db.transaction(async (tx) => {
       const docId = uuidv7();
@@ -524,7 +536,9 @@ export class PartnersService {
       this.capsOf([p]),
       this.deps.db.repo.documents(p.id),
       this.deps.db.repo.openOrders(p.id),
-      p.zoneId ? this.deps.checklist.onboardingDocuments(p.zoneId) : Promise.resolve(null),
+      p.zoneId
+        ? this.deps.checklist.onboardingCatalogue('DELIVERY_PARTNER')
+        : Promise.resolve(null),
     ]);
     const documents: PartnerDocument[] = docs.map((d) => ({
       id: d.id,
@@ -536,12 +550,15 @@ export class PartnersService {
       updatedAt: d.updatedAt.toISOString(),
     }));
     const checklist = required
-      ? required.DELIVERY_PARTNER.filter((t): t is PartnerDocumentType =>
-          (PARTNER_DOCUMENT_TYPES as readonly string[]).includes(t),
-        ).map((docType) => {
+      ? required.map((t) => {
           // documents are newest first: the first of a type is its current state
-          const newest = documents.find((d) => d.docType === docType);
-          return { docType, state: newest ? newest.status : ('MISSING' as const) };
+          const newest = documents.find((d) => d.docType === t.code);
+          return {
+            docType: t.code,
+            label: t.label,
+            mandatory: t.mandatory,
+            state: newest ? newest.status : ('MISSING' as const),
+          };
         })
       : null;
     return {

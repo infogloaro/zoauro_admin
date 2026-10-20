@@ -80,10 +80,16 @@ const settings = createSettingsModule({
   smsReady: () => env.SMS_PROVIDER !== 'none',
 });
 const refundCaps = (zoneIds: readonly string[]) => settings.reader.refundCaps(zoneIds);
+// D155: the Control Panel switch that opens commission:edit to a member's override
+const grantSwitches = async () => ({
+  commissionEdit: await settings.reader.commissionEditGrantable(),
+});
 
-const access = createAccessService({ prisma, redis, refundCaps });
+const access = createAccessService({ prisma, redis, refundCaps, grantSwitches });
 
 const zones = createZonesModule({
+  // D165: the Super Admin's delivery charge cap
+  deliveryChargeCap: () => settings.reader.deliveryChargeCapPaise(),
   prisma,
   redis,
   appOrigin: new URL(env.APP_URL).origin,
@@ -100,6 +106,7 @@ const accessControl = createAccessModule({
   evictSessions: auth.evictSessions,
   mailer: createAccessMailer(mailer, { appUrl: env.APP_URL }),
   refundCaps,
+  grantSwitches,
 });
 
 // M06/M07 vendors and SA-2.1 uploads (D117-D123): private documents in S3 (MinIO locally). Uploads asks the vendors

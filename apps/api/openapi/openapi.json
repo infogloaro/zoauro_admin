@@ -8918,7 +8918,7 @@
         "tags": [
           "settings"
         ],
-        "summary": "The settings of one group; with ?zoneId= the effective values in that zone (source ZONE / PLATFORM / DEFAULT). Group security is answered by GET /settings/security",
+        "summary": "The settings of one group; with ?zoneId= the effective values in that zone (source ZONE / PLATFORM / DEFAULT). Group security is answered by GET /settings/security. D169: group loyalty is also open to a Zonal Admin with loyalty:view in the zone named by ?zoneId= (its delegated key only; other zones 404)",
         "security": [
           {
             "sessionCookie": []
@@ -10050,7 +10050,7 @@
         "tags": [
           "settings"
         ],
-        "summary": "Zone overrides of zone-overridable settings (422 NO_ZONE_OVERRIDE otherwise), with a reason; re-auth as for saving",
+        "summary": "Zone overrides of zone-overridable settings (422 NO_ZONE_OVERRIDE otherwise), with a reason; re-auth as for saving. D169: loyalty.values also by a Zonal Admin with loyalty:edit in that zone (404 outside the scope, 403 without the action)",
         "security": [
           {
             "sessionCookie": [],
@@ -14120,6 +14120,626 @@
         "x-audit": {
           "module": "admins",
           "action": "member.created"
+        }
+      }
+    },
+    "/super-admins": {
+      "get": {
+        "operationId": "listSuperAdmins",
+        "tags": [
+          "access"
+        ],
+        "summary": "Every live Super Admin (isSelf marks the caller); meta.activeCount",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Super Admins",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "phone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "ACTIVE",
+                              "SUSPENDED"
+                            ]
+                          },
+                          "mfaEnabled": {
+                            "type": "boolean"
+                          },
+                          "mustChangePassword": {
+                            "type": "boolean"
+                          },
+                          "lastLoginAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "isSelf": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "email",
+                          "phone",
+                          "status",
+                          "mfaEnabled",
+                          "mustChangePassword",
+                          "lastLoginAt",
+                          "createdAt",
+                          "isSelf"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "activeCount": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "activeCount"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "admins:view",
+          "zone": "none"
+        }
+      },
+      "post": {
+        "operationId": "createSuperAdmin",
+        "tags": [
+          "access"
+        ],
+        "summary": "Create a Super Admin with a temporary password (changed at the first sign-in, never emailed, D103); the new and every other active Super Admin are emailed. Email in use 409",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "temporaryPassword": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 128
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "temporaryPassword",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "mfaEnabled": {
+                      "type": "boolean"
+                    },
+                    "mustChangePassword": {
+                      "type": "boolean"
+                    },
+                    "lastLoginAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "isSelf": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "phone",
+                    "status",
+                    "mfaEnabled",
+                    "mustChangePassword",
+                    "lastLoginAt",
+                    "createdAt",
+                    "isSelf"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "admins:add",
+          "zone": "none",
+          "reauth": "STRONG"
+        },
+        "x-audit": {
+          "module": "admins",
+          "action": "member.created"
+        }
+      }
+    },
+    "/super-admins/{id}/status": {
+      "patch": {
+        "operationId": "setSuperAdminStatus",
+        "tags": [
+          "access"
+        ],
+        "summary": "Suspend (every session ends) or reactivate another Super Admin. Oneself 409 SELF; the last active Super Admin 409 LAST_SUPER_ADMIN",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVE",
+                      "SUSPENDED"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "status",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "mfaEnabled": {
+                      "type": "boolean"
+                    },
+                    "mustChangePassword": {
+                      "type": "boolean"
+                    },
+                    "lastLoginAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "isSelf": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "phone",
+                    "status",
+                    "mfaEnabled",
+                    "mustChangePassword",
+                    "lastLoginAt",
+                    "createdAt",
+                    "isSelf"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "admins:edit",
+          "zone": "none",
+          "reauth": "STRONG"
+        },
+        "x-audit": {
+          "module": "admins",
+          "action": "member.suspended"
+        }
+      }
+    },
+    "/super-admins/{id}": {
+      "delete": {
+        "operationId": "deleteSuperAdmin",
+        "tags": [
+          "access"
+        ],
+        "summary": "Soft-delete another Super Admin; every session ends. Oneself 409 SELF; the last active Super Admin 409 LAST_SUPER_ADMIN",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "admins:delete",
+          "zone": "none",
+          "reauth": "STRONG"
+        },
+        "x-audit": {
+          "module": "admins",
+          "action": "member.deleted"
         }
       }
     },
@@ -18419,6 +19039,14 @@
             "required": false,
             "name": "deliveryPartnerId",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "required": false,
+            "name": "scheduled",
+            "in": "query"
           }
         ],
         "responses": {
@@ -18515,6 +19143,60 @@
                           },
                           "version": {
                             "type": "integer"
+                          },
+                          "preorder": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "scheduledFor": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "dispatchAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "releasedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "rescheduleCount": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "deliveryAddress": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "deliveryLat": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "deliveryLng": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "scheduledFor",
+                              "dispatchAt",
+                              "releasedAt",
+                              "rescheduleCount",
+                              "deliveryAddress",
+                              "deliveryLat",
+                              "deliveryLng"
+                            ]
                           }
                         },
                         "required": [
@@ -18533,7 +19215,8 @@
                           "paymentStatus",
                           "deliveryPartnerId",
                           "placedAt",
-                          "version"
+                          "version",
+                          "preorder"
                         ]
                       }
                     },
@@ -18725,6 +19408,60 @@
                     },
                     "version": {
                       "type": "integer"
+                    },
+                    "preorder": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "dispatchAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "releasedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "rescheduleCount": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "deliveryAddress": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "deliveryLat": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "deliveryLng": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "scheduledFor",
+                        "dispatchAt",
+                        "releasedAt",
+                        "rescheduleCount",
+                        "deliveryAddress",
+                        "deliveryLat",
+                        "deliveryLng"
+                      ]
                     },
                     "subtotal": {
                       "type": "integer"
@@ -18973,6 +19710,7 @@
                     "deliveryPartnerId",
                     "placedAt",
                     "version",
+                    "preorder",
                     "subtotal",
                     "tax",
                     "deliveryCharge",
@@ -20319,14 +21057,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -20391,14 +21122,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -20412,6 +21142,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -20790,14 +21522,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -20862,14 +21587,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -20883,6 +21607,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -21390,14 +22116,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -21462,14 +22181,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -21483,6 +22201,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -21980,14 +22700,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -22052,14 +22765,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -22073,6 +22785,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -22480,14 +23194,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -22552,14 +23259,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -22573,6 +23279,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -22978,14 +23686,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -23050,14 +23751,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -23071,6 +23771,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -23323,14 +24025,7 @@
                 "properties": {
                   "docType": {
                     "type": "string",
-                    "enum": [
-                      "FSSAI",
-                      "GST",
-                      "PAN",
-                      "BANK_DETAILS",
-                      "ID_PROOF",
-                      "OTHER"
-                    ]
+                    "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                   },
                   "fileKey": {
                     "type": "string",
@@ -23589,14 +24284,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -23661,14 +24349,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -23682,6 +24369,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -24201,14 +24890,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -24273,14 +24955,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -24294,6 +24975,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -25180,14 +25863,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -25252,14 +25928,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -25273,6 +25948,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -25651,14 +26328,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -25723,14 +26393,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -25744,6 +26413,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -26254,14 +26925,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -26326,14 +26990,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -26347,6 +27010,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -26844,14 +27509,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -26916,14 +27574,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -26937,6 +27594,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -27344,14 +28003,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -27416,14 +28068,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -27437,6 +28088,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -27842,14 +28495,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -27914,14 +28560,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -27935,6 +28580,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -28188,14 +28835,7 @@
                 "properties": {
                   "docType": {
                     "type": "string",
-                    "enum": [
-                      "FSSAI",
-                      "GST",
-                      "PAN",
-                      "BANK_DETAILS",
-                      "ID_PROOF",
-                      "OTHER"
-                    ]
+                    "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                   },
                   "fileKey": {
                     "type": "string",
@@ -28453,14 +29093,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -28525,14 +29158,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -28546,6 +29178,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -29065,14 +29699,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -29137,14 +29764,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "FSSAI",
-                              "GST",
-                              "PAN",
-                              "BANK_DETAILS",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -29158,6 +29784,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -30226,14 +30854,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -30298,14 +30919,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -30319,6 +30939,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -30671,14 +31293,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -30743,14 +31358,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -30764,6 +31378,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -31159,14 +31775,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -31231,14 +31840,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -31252,6 +31860,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -31723,14 +32333,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -31795,14 +32398,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -31816,6 +32418,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -32197,14 +32801,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -32269,14 +32866,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -32290,6 +32886,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -32669,14 +33267,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -32741,14 +33332,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -32762,6 +33352,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -33141,14 +33733,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -33213,14 +33798,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -33234,6 +33818,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -33514,14 +34100,7 @@
                 "properties": {
                   "docType": {
                     "type": "string",
-                    "enum": [
-                      "PAN",
-                      "BANK_DETAILS",
-                      "DRIVING_LICENCE",
-                      "VEHICLE_RC",
-                      "ID_PROOF",
-                      "OTHER"
-                    ]
+                    "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                   },
                   "fileKey": {
                     "type": "string",
@@ -33736,14 +34315,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -33808,14 +34380,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -33829,6 +34400,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }
@@ -34332,14 +34905,7 @@
                           },
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
                           },
                           "status": {
                             "type": "string",
@@ -34404,14 +34970,13 @@
                         "properties": {
                           "docType": {
                             "type": "string",
-                            "enum": [
-                              "PAN",
-                              "BANK_DETAILS",
-                              "DRIVING_LICENCE",
-                              "VEHICLE_RC",
-                              "ID_PROOF",
-                              "OTHER"
-                            ]
+                            "pattern": "^[A-Z][A-Z0-9_]{1,39}$"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "mandatory": {
+                            "type": "boolean"
                           },
                           "state": {
                             "type": "string",
@@ -34425,6 +34990,8 @@
                         },
                         "required": [
                           "docType",
+                          "label",
+                          "mandatory",
                           "state"
                         ]
                       }

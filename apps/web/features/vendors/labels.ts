@@ -6,6 +6,7 @@ import type {
   VendorStatus,
   VerificationStatus,
 } from '@zoauro/shared';
+import { BUILT_IN_DOCUMENT_LABELS } from '@zoauro/shared';
 import type { BadgeTone } from '../../components/ui/badge';
 import { DOCUMENT_LABEL } from '../platform-settings/fields';
 
@@ -68,6 +69,12 @@ export const VENDOR_DOC_LABEL: Record<VendorDocumentType, string> = {
   ...(DOCUMENT_LABEL as Record<Exclude<VendorDocumentType, 'OTHER'>, string>),
   OTHER: 'Other document',
 };
+
+/** D145: any catalogue code; a type the Super Admin added is shown by its code until the screen reads the catalogue. */
+export const vendorDocLabel = (code: string): string =>
+  (VENDOR_DOC_LABEL as Readonly<Record<string, string>>)[code] ??
+  BUILT_IN_DOCUMENT_LABELS[code] ??
+  code;
 
 export const DAY_LABEL: Record<OpeningDay['day'], string> = {
   MON: 'Monday',

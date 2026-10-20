@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, pageMetaSchema, sortSchema } from '../pagination';
-import { ONBOARDING_DOCUMENT_TYPES } from '../settings/registry';
+import { documentCodeSchema, ONBOARDING_DOCUMENT_TYPES } from '../settings/registry';
 import {
   DOCUMENT_REVIEW_STATUSES,
   vendorUserRefSchema,
@@ -127,7 +127,7 @@ export type PartnerMoveZoneInput = z.infer<typeof partnerMoveZoneSchema>;
 
 /** POST /delivery-partners/{id}/documents (D131): attach a confirmed upload. */
 export const partnerDocumentAttachSchema = z
-  .object({ docType: z.enum(PARTNER_DOCUMENT_TYPES), fileKey: text(1, 512) })
+  .object({ docType: documentCodeSchema, fileKey: text(1, 512) })
   .strict();
 export type PartnerDocumentAttachInput = z.infer<typeof partnerDocumentAttachSchema>;
 
@@ -228,7 +228,7 @@ export type PartnerListResponse = z.infer<typeof partnerListResponseSchema>;
 
 export const partnerDocumentSchema = z.object({
   id: z.uuid(),
-  docType: z.enum(PARTNER_DOCUMENT_TYPES),
+  docType: documentCodeSchema,
   status: z.enum(DOCUMENT_REVIEW_STATUSES),
   rejectionNote: z.string().nullable(),
   verifiedBy: vendorUserRefSchema.nullable(),
@@ -237,11 +237,13 @@ export const partnerDocumentSchema = z.object({
 });
 export type PartnerDocument = z.infer<typeof partnerDocumentSchema>;
 
-/** D97 checklist for the partner's zone (settings onboarding.documents.DELIVERY_PARTNER). */
+/** D145 checklist: the DELIVERY_PARTNER catalogue (settings onboarding.documents) in its order, each with its state. */
 export const partnerChecklistSchema = z
   .array(
     z.object({
-      docType: z.enum(PARTNER_DOCUMENT_TYPES),
+      docType: documentCodeSchema,
+      label: z.string(),
+      mandatory: z.boolean(),
       state: z.enum(['MISSING', ...DOCUMENT_REVIEW_STATUSES]),
     }),
   )

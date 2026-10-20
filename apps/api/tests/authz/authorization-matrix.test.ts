@@ -153,6 +153,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         setRoomBookingStatus: { ownObject: true },
         getDiningReservation: { ownObject: true },
         setDiningReservationStatus: { ownObject: true },
+        // D167: the placeholder order is not a pre-order, so the reschedule of it is 404 for whoever passes the guard
+        rescheduleOrder: { ownObject: true },
         // M17 notifications: one per zone A, B, C (C is nobody's); a list row names its zones. Object routes use the
         // zone A one (placeholder id): an actor without notifications:view there gets 404 (scope: tests/notifications/)
         listNotifications: {
@@ -185,7 +187,9 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 15 menu items, bulk, change requests and categories (SA-2.4)
     // + 7 dashboard tiles (M16) + 1 global search (M18)
     // + 16 hotels, room bookings and dining reservations (D118)
-    expect(report.coveredRoutes).toHaveLength(184);
+    // + 4 Super Admins (D148)
+    // + 1 pre-order reschedule (D167)
+    expect(report.coveredRoutes).toHaveLength(189);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,
