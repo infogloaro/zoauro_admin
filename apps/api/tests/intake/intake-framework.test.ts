@@ -4,7 +4,10 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app';
 import { createSecretBox } from '../../src/modules/auth/mfa/secret-box';
+import { runAsSystem } from '../../src/lib/audit';
 import { createIntakeModule } from '../../src/modules/intake';
+import { createApiClient as createClientAsCli } from '../../src/modules/intake/clients.service';
+import { IntakeDatabase } from '../../src/modules/intake/intake.repository';
 import { uuidv7 } from '../audit/support/db';
 import { createAuthTestEnv, TEST_ENCRYPTION_KEY, type AuthTestEnv } from '../auth/support/auth-env';
 import { addSecret, createApiClient, inboundRows, send, type TestApiClient } from './support';
@@ -220,6 +223,49 @@ describe('scopes (doc 42 section 2)', () => {
     const r = await send(app, env, customer, 'GET', '/zones/resolve?lat=500');
     expect(r.status).toBe(422);
     expect(r.body.error.code).toBe('VALIDATION_ERROR');
+  });
+});
+
+describe('client:create (IH-1 CLI path)', () => {
+  it('creates a client whose printed key id and secret sign a /ping; the secret is stored sealed and audited without it', async () => {
+    const created = await runAsSystem('client-create-test', () =>
+      createClientAsCli(
+        {
+          db: new IntakeDatabase(env.prisma),
+          secretBox: createSecretBox({ current: TEST_ENCRYPTION_KEY }),
+          createdBy: null,
+        },
+        { name: 'Vendor app sandbox', type: 'VENDOR_APP', environment: 'SANDBOX' },
+      ),
+    );
+    const c: TestApiClient = {
+      id: created.id,
+      keyId: created.keyId,
+      secret: created.secret,
+      secretId: '',
+      type: 'VENDOR_APP',
+    };
+    const r = await send(app, env, c, 'GET', '/ping');
+    expect(r.status).toBe(200);
+    expect(r.body.data.client).toBe('Vendor app sandbox');
+
+    const stored = await env.db.owner.query(
+      `SELECT secret_encrypted FROM api_client_secrets WHERE client_id = $1`,
+      [created.id],
+    );
+    expect(stored.rows).toHaveLength(1);
+    expect(stored.rows[0].secret_encrypted).not.toContain(created.secret);
+    const audit = await env.db.owner.query(
+      `SELECT actor_type, action, after_json::text AS after FROM audit_logs WHERE entity_id = $1`,
+      [created.id],
+    );
+    expect(audit.rows).toHaveLength(1);
+    expect(audit.rows[0]).toMatchObject({
+      actor_type: 'SYSTEM',
+      action: 'integration_client.created',
+    });
+    expect(audit.rows[0].after).toContain(created.keyId);
+    expect(audit.rows[0].after).not.toContain(created.secret);
   });
 });
 

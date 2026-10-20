@@ -1,5 +1,12 @@
-import type { ApiClientType, ApiEnvironment, InboundResult, Prisma } from '@prisma/client';
-import { uuidv7 } from '../../lib/audit';
+import type {
+  ApiClientType,
+  ApiEnvironment,
+  InboundResult,
+  Prisma,
+  PrismaClient,
+} from '@prisma/client';
+import { uuidv7, type AuditTx } from '../../lib/audit';
+import { auditTx } from '../../lib/db';
 
 // Integration API persistence (doc 42, doc 45 section 3). The caller is an API client, not a staff member, so these
 // methods take the authenticated client instead of an AuthContext; nothing here is zone-scoped admin data.
@@ -68,6 +75,38 @@ export class IntakeRepository {
     return c;
   }
 
+  /** A new API client with its first sealed secret (IH-1 `client:create`; the Hub UI later, doc 45). */
+  async createClient(i: {
+    id: string;
+    name: string;
+    type: ApiClientType;
+    environment: ApiEnvironment;
+    keyId: string;
+    scopes: readonly string[];
+    ipAllowlist: readonly string[];
+    rateLimitPerMin: number;
+    secretId: string;
+    secretEncrypted: string;
+    createdBy: string | null;
+  }): Promise<void> {
+    await this.db.apiClient.create({
+      data: {
+        id: i.id,
+        name: i.name,
+        type: i.type,
+        environment: i.environment,
+        keyId: i.keyId,
+        scopes: [...i.scopes],
+        ipAllowlist: [...i.ipAllowlist],
+        rateLimitPerMin: i.rateLimitPerMin,
+        createdBy: i.createdBy,
+      },
+    });
+    await this.db.apiClientSecret.create({
+      data: { id: i.secretId, clientId: i.id, secretEncrypted: i.secretEncrypted },
+    });
+  }
+
   async logInbound(row: InboundLogRow): Promise<void> {
     await this.db.integrationInboundLog.create({
       data: {
@@ -99,5 +138,25 @@ export class IntakeRepository {
       },
       data: { lastUsedAt: row.receivedAt },
     });
+  }
+}
+
+export interface IntakeTx {
+  repo: IntakeRepository;
+  audit: AuditTx;
+}
+
+export class IntakeDatabase {
+  readonly repo: IntakeRepository;
+
+  constructor(private readonly prisma: PrismaClient) {
+    this.repo = new IntakeRepository(prisma);
+  }
+
+  transaction<T>(fn: (tx: IntakeTx) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(
+      (tx) => fn({ repo: new IntakeRepository(tx), audit: auditTx(tx) }),
+      { maxWait: 5_000, timeout: 10_000 },
+    );
   }
 }
