@@ -60,7 +60,7 @@ Panel column: **SA** Super Admin, **ZA** Zonal Admin (when granted). Figma colum
 | M18 | Global Search | all | scoped by permission | Header search box | box seen | P1 |
 | M19 | Settings and Security | 9 tabs; 2FA policy, sessions, login history | — | General, Business, Payment & Commission, Orders, User Management (D43), Security, Notifications, Integrations, Logs | Security, User Mgmt seen; rest gap | P1 |
 | M21 | **Integration Hub and App Data Feed** *(new v2.0)* | clients, webhooks, event monitor, kill switch, unzoned registrations | pending-registrations inbox, order/entity "source" labels | Receives data from the customer, vendor and partner apps, sends admin decisions back, shows health | **gap** (Settings > Integrations tab exists, content missing) | P0 |
-| M20 | Extras: Analytics, Offers & Coupons, Reviews & Ratings, Support | full | not in v1 | Drawn in Figma, not in the launch goal | seen | P2 |
+| M20 | Extras: Analytics, Offers & Coupons, Reviews & Ratings (Support moved to its own desk module, D93, D139–D141) | full | not in v1 | Drawn in Figma, not in the launch goal | seen | P2 |
 
 ## 3. Workflows
 Actors: **SA** Super Admin, **ZM** Zonal Admin member, **System**. Each step names the module.

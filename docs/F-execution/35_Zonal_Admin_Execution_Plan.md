@@ -2,7 +2,7 @@
 
 Scope: everything under `/zone`: one login that checks, monitors and operates restaurants, homemakers, delivery partners, customers, orders and payments across **all assigned zones** (doc 36). Prerequisites: Foundation gates F1, F2 and the matching SA phase gate (doc 33 "build once, expose twice").
 Zonal Admin sidebar (Figma): Dashboard, Orders, Restaurants, Homemakers, Delivery Partners, Customers, plus Payments (D36).
-Out of scope for this panel: zone/admin/role management, settings, offers, analytics, reviews, support, zone reports/performance/complaints.
+Out of scope for this panel: zone/admin/role management, settings, offers, analytics, reviews, zone reports/performance/complaints. Support tickets ARE in scope for a Zonal Admin's own zones when granted (support:view / support:edit, D93; desk D139–D141).
 
 ## Phase ZA-1 — Zone-scoped access shell (≈ 1.5 weeks) — starts after SA-1.7 (stub resolver acceptable earlier)
 Goal: a Zonal Admin with 1 or many zones logs in, sees only their scope, and can switch it.

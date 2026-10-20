@@ -83,7 +83,7 @@ Revenue, Commission, Refunds, Payouts, Avg Order Value, Revenue Overview widgets
 **Gate SA-7:** 2FA enforced → un-enrolled user forced to enrol; settings changes audited and effective ≤ 60 s.
 
 ## Phase SA-8 — Extras (≈ 4 weeks, P2, after pilot launch if time is tight)
-Analytics (tabs from Figma), Offers & Coupons, Reviews & Ratings moderation, Support tickets. Each is a separate M–L module with its own gate; none blocks launch. Re-confirm scope first: these four are in the Figma sidebar but not in the pilot goal.
+Analytics (tabs from Figma), Offers & Coupons, Reviews & Ratings moderation. Support tickets left this group: the support desk is in scope (D93, D139–D141: zone queues, SLA, escalation). Each is a separate M–L module with its own gate; none blocks launch. Re-confirm scope first: these four are in the Figma sidebar but not in the pilot goal.
 
 ## Phase SA-9 — Hardening and launch (≈ 3 weeks; shared with ZA-7)
 Load test (k6), accessibility audit (axe), ZAP baseline + pen test, monitoring dashboards and alarms, backup restore drill, data import rehearsal, UAT, release checklist (doc 31), pilot zone go-live.

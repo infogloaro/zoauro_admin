@@ -48,7 +48,7 @@ Estimate basis: task sizes of docs 33–35 (S 0.2, M 0.5, L 1 dev-week) plus the
 | **S11** W23–24 | **Real-app integration UAT** (doc 48): app teams run the contract suite on sandbox, E2E-1…8 with real apps; fixes | same | same |
 | ▶ **Gate 6** | All three real apps pass the contract suite and E2E-1…8 on staging | | |
 | **S12** W25–26 | Pilot launch with one multi-zone member and a two-member team; hyper-care; handoff docs | same | same |
-| After pilot | SA-8 extras (Analytics, Offers, Reviews, Support) split across the three developers | | |
+| After pilot | SA-8 extras (Analytics, Offers, Reviews) split across the three developers; the support desk is built (D93, D139–D141) | | |
 
 Integration note (v2.0): app teams need sandbox credentials from the end of S2 (created by the `client:create` CLI; the Hub UI arrives in S7) and a stable contract from the workshop in week 0. Dev 1 is tight in S5 and S8; if integration slips, IH-7 fault injection and IH-9 move to S9–S10. Buffer note: Dev 2's Sprint 7–9 are the fullest. If Dev 2 slips, ZA-5.2 dashboards move to Dev 1 in S9 (Dev 1 has slack after S8).
 
@@ -79,7 +79,7 @@ Every module follows the same build order: **(1) contract** (shared Zod + OpenAP
 | **M18 Search** | Dev 1 / Dev 3 | S7 | Per-entity permission + scope | TC-MZ-15 |
 | **M19 Settings and Security** | Dev 1 / Dev 2 | S6–S7 | 9 tabs, 2FA enforcement, session rules, lock duration, risky-field confirmation | Changes audited, effective ≤ 60 s; 2FA enrolment forced |
 | **M21 Integration Hub and App Data Feed** | Framework and intake Dev 3, outbound and Hub UI Dev 1, registration/menu/people inbound Dev 2 / buddy: Dev 3↔Dev 1 | S2 framework, S3 intake and registration, S5 outbound and people inbound, S7 Hub UI, S8 simulators, S11 real apps | HMAC auth, inbound log, idempotency, zone resolver, order intake with price validation, webhooks with retries, pull feed, Hub screens, simulators | TC-INT-1…26 pass; real apps pass contract suite; vendor registration visible in the right zone in under 5 s |
-| **M20 Extras (P2)** | split | after pilot | Analytics, Offers, Reviews, Support | Not on the launch path |
+| **M20 Extras (P2)** | split | after pilot | Analytics, Offers, Reviews (Support: own desk module, D93, D139–D141) | Not on the launch path |
 
 ## 5. Dependencies that can stall a developer, and the workaround
 | Waiting on | Who waits | Workaround |
