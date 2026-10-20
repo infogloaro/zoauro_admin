@@ -1,6 +1,7 @@
 import type { RequestHandler, Router } from 'express';
 import type { Redis } from 'ioredis';
 import type { ReauthLevel } from '../../lib/auth/session-store';
+import type { GrantSwitches } from '@zoauro/shared';
 import { AccessService, type RefundCapsReader } from '../../lib/authz';
 import type { ZoneTeamPort } from '../zones';
 import { AccessRepository } from './access.repository';
@@ -24,12 +25,15 @@ export function createAccessService(deps: {
   cacheTtlSec?: number;
   /** D110: zone refund caps (settings refunds.limits) that every Zonal Admin's limits are clamped to */
   refundCaps?: RefundCapsReader;
+  /** D155: Control Panel switches (settings access.commissionEditGrantable); absent = all off */
+  grantSwitches?: () => Promise<GrantSwitches>;
 }): AccessService {
   return new AccessService({
     source: new AccessRepository(deps.prisma),
     redis: deps.redis,
     ...(deps.cacheTtlSec === undefined ? {} : { cacheTtlSec: deps.cacheTtlSec }),
     ...(deps.refundCaps ? { refundCaps: deps.refundCaps } : {}),
+    ...(deps.grantSwitches ? { grantSwitches: deps.grantSwitches } : {}),
   });
 }
 
@@ -69,6 +73,8 @@ export function createAccessModule(deps: {
   clock?: () => Date;
   /** D110: zone refund caps (the settings module's reader) */
   refundCaps?: RefundCapsReader;
+  /** D155: the same switches the access service reads */
+  grantSwitches?: () => Promise<GrantSwitches>;
 }): { router: Router; service: AccessAdminService } {
   const service = new AccessAdminService({
     db: new AccessAdminDatabase(deps.prisma),
@@ -77,6 +83,7 @@ export function createAccessModule(deps: {
     mailer: deps.mailer ?? noopAccessMailer,
     clock: deps.clock ?? (() => new Date()),
     ...(deps.refundCaps ? { refundCaps: deps.refundCaps } : {}),
+    ...(deps.grantSwitches ? { grantSwitches: deps.grantSwitches } : {}),
   });
   return {
     router: createAccessAdminRoutes(createAccessAdminController(service), {

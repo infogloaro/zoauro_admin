@@ -40,6 +40,8 @@ export function createZonesModule(deps: {
   cache?: ZonesCacheVersion;
   resolveCache?: ResolveCache;
   clock?: () => Date;
+  /** D165: settings zones.deliveryChargeCapPaise (the settings reader); absent = the Rs 1,000 ceiling */
+  deliveryChargeCap?: () => Promise<number>;
 }): { router: Router; service: ZonesService; resolver: ZoneResolver } {
   const db = new ZonesDatabase(deps.prisma);
   const service = new ZonesService({
@@ -47,6 +49,7 @@ export function createZonesModule(deps: {
     impact: new ImpactService(deps.impactSources ?? stubImpactSources()),
     cache: deps.cache ?? redisZonesCacheVersion(deps.redis),
     clock: deps.clock ?? (() => new Date()),
+    ...(deps.deliveryChargeCap ? { deliveryChargeCap: deps.deliveryChargeCap } : {}),
   });
   return {
     router: createZonesRoutes(createZonesController(service), {
