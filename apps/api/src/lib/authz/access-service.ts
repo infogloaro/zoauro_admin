@@ -1,5 +1,10 @@
 import type { Redis } from 'ioredis';
-import type { PermissionKey, Role } from '@zoauro/shared';
+import {
+  NO_GRANT_SWITCHES,
+  type GrantSwitches,
+  type PermissionKey,
+  type Role,
+} from '@zoauro/shared';
 import { AppError } from '../errors';
 import { resolveAccess, type AccessAssignment, type ResolvedAccess } from './resolver';
 import type { AuthContext, ZoneLimits } from './types';
@@ -25,6 +30,8 @@ const CACHE_VERSION = 1;
 
 interface CacheEntry {
   v: number;
+  /** the D155 switches the entry was resolved with: a switch change recomputes at once */
+  sw?: GrantSwitches;
   access: ResolvedAccess;
 }
 
@@ -39,6 +46,8 @@ export class AccessService {
       cacheTtlSec?: number;
       /** D110: a member's effective refund limits never exceed the zone caps (absent: no caps, tests) */
       refundCaps?: RefundCapsReader;
+      /** D155: Control Panel switches (absent: all off); unreadable switches fail closed (off) */
+      grantSwitches?: () => Promise<GrantSwitches>;
     },
   ) {
     this.ttlSec = Math.min(
@@ -51,11 +60,22 @@ export class AccessService {
 
   /** Resolved access for a Zonal Admin: Redis read-through, falling back to PostgreSQL if Redis is unavailable. */
   async resolve(userId: string): Promise<ResolvedAccess> {
-    const cached = await this.readCache(userId);
+    const switches = await this.switches();
+    const cached = await this.readCache(userId, switches);
     if (cached) return cached;
-    const access = resolveAccess(await this.deps.source.loadAssignments(userId));
-    await this.writeCache(userId, access);
+    const access = resolveAccess(await this.deps.source.loadAssignments(userId), switches);
+    await this.writeCache(userId, access, switches);
     return access;
+  }
+
+  /** D155 */
+  async switches(): Promise<GrantSwitches> {
+    if (!this.deps.grantSwitches) return NO_GRANT_SWITCHES;
+    try {
+      return await this.deps.grantSwitches();
+    } catch {
+      return NO_GRANT_SWITCHES;
+    }
   }
 
   /**
@@ -139,20 +159,25 @@ export class AccessService {
 
   // ---- cache -----------------------------------------------------------------------------------------------------
 
-  private async readCache(userId: string): Promise<ResolvedAccess | null> {
+  private async readCache(userId: string, sw: GrantSwitches): Promise<ResolvedAccess | null> {
     try {
       const raw = await this.deps.redis.get(this.key(userId));
       if (!raw) return null;
       const entry = JSON.parse(raw) as Partial<CacheEntry>;
-      return entry.v === CACHE_VERSION && entry.access ? entry.access : null;
+      const sameSwitches = (entry.sw?.commissionEdit ?? false) === sw.commissionEdit;
+      return entry.v === CACHE_VERSION && entry.access && sameSwitches ? entry.access : null;
     } catch {
       return null; // unreadable or Redis down: recompute from PostgreSQL
     }
   }
 
-  private async writeCache(userId: string, access: ResolvedAccess): Promise<void> {
+  private async writeCache(
+    userId: string,
+    access: ResolvedAccess,
+    sw: GrantSwitches,
+  ): Promise<void> {
     try {
-      const entry: CacheEntry = { v: CACHE_VERSION, access };
+      const entry: CacheEntry = { v: CACHE_VERSION, sw, access };
       await this.deps.redis.set(this.key(userId), JSON.stringify(entry), 'EX', this.ttlSec);
     } catch {
       /* cache only */

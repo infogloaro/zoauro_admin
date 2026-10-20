@@ -106,6 +106,34 @@ export function isGrantable(module: PermissionModule, action: PermissionAction):
   return GRANTABLE_ACTIONS[module].includes(action);
 }
 
+/**
+ * D155: platform switches (Control Panel settings) that open an otherwise never-grantable action to a Zonal Admin, per
+ * member and zone, through an access override only (never through a profile). Off by default.
+ */
+export interface GrantSwitches {
+  /** settings `access.commissionEditGrantable` */
+  commissionEdit: boolean;
+}
+export const NO_GRANT_SWITCHES: GrantSwitches = { commissionEdit: false };
+/** The actions D155 can open, with the switch that opens each. */
+export const SWITCHED_GRANTS: readonly {
+  module: PermissionModule;
+  action: PermissionAction;
+  switch: keyof GrantSwitches;
+}[] = [{ module: 'commission', action: 'edit', switch: 'commissionEdit' }];
+
+/** Can a member's GRANT override give this action? Everything grantable, plus what an on switch opens (D155). */
+export function isOverrideGrantable(
+  module: PermissionModule,
+  action: PermissionAction,
+  switches: GrantSwitches = NO_GRANT_SWITCHES,
+): boolean {
+  if (isGrantable(module, action)) return true;
+  return SWITCHED_GRANTS.some(
+    (g) => g.module === module && g.action === action && switches[g.switch],
+  );
+}
+
 /** Module has at least one action that can ever reach a Zonal Admin. */
 export const isModuleGrantable = (module: PermissionModule): boolean =>
   GRANTABLE_ACTIONS[module].length > 0;
