@@ -560,12 +560,12 @@ export async function createAuthTestEnv() {
     );
     for (const [module, actions] of Object.entries(permissions)) {
       await db.owner.query(
-        `INSERT INTO profile_permissions (profile_id, module, can_view, can_add, can_edit, can_delete, can_status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        `INSERT INTO profile_permissions (profile_id, module, can_view, can_add, can_edit, can_delete, can_status, can_export)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           id,
           module,
-          ...['view', 'add', 'edit', 'delete', 'status'].map((a) => actions.includes(a)),
+          ...['view', 'add', 'edit', 'delete', 'status', 'export'].map((a) => actions.includes(a)),
         ],
       );
     }

@@ -40,6 +40,7 @@ function assignment(
         canEdit: actions.includes('edit'),
         canDelete: actions.includes('delete'),
         canStatus: actions.includes('status'),
+        canExport: actions.includes('export'),
       })),
     },
     overrides,

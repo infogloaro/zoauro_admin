@@ -4,8 +4,11 @@
 // Doc 04 gives the module list as a prose table; the module key names below follow the audit module keys (doc 50) and the
 // keys already used in docs 09 and 44 (`menu:edit`, `delivery:edit`, `settlements:edit`, `access:edit`).
 
-/** The five actions stored in profile_permissions (can_view .. can_status) and in assignment_overrides. */
-export const PERMISSION_ACTIONS = ['view', 'add', 'edit', 'delete', 'status'] as const;
+/**
+ * The actions stored in profile_permissions (can_view .. can_export) and in assignment_overrides. `export` (D149): the
+ * module's list may be exported in that zone; the zone switch (limits canExport) must be on as well.
+ */
+export const PERMISSION_ACTIONS = ['view', 'add', 'edit', 'delete', 'status', 'export'] as const;
 export type PermissionAction = (typeof PERMISSION_ACTIONS)[number];
 
 export const PERMISSION_MODULES = [
@@ -60,10 +63,10 @@ export const GRANTABLE_ACTIONS: Readonly<Record<PermissionModule, readonly Permi
   menu: ALL_ACTIONS,
   delivery: ALL_ACTIONS,
   customers: ALL_ACTIONS,
-  payments: ['view'],
-  refunds: ['view', 'add'], // doc 04: "V, create within limits" (create is read as add; see handoff)
-  settlements: ['view', 'add', 'edit'],
-  payouts: ['view'],
+  payments: ['view', 'export'],
+  refunds: ['view', 'add', 'export'], // doc 04: "V, create within limits" (create is read as add; see handoff)
+  settlements: ['view', 'add', 'edit', 'export'],
+  payouts: ['view', 'export'],
   commission: NONE,
   zones: NONE,
   admins: NONE,
@@ -74,15 +77,15 @@ export const GRANTABLE_ACTIONS: Readonly<Record<PermissionModule, readonly Permi
   notifications: ALL_ACTIONS,
   analytics: NONE,
   reviews: NONE,
-  support: ['view', 'edit'], // D93 (owner, 2026-10-14): Zonal Admins handle their zones' tickets when granted
+  support: ['view', 'edit', 'export'], // D93 (owner, 2026-10-14): Zonal Admins handle their zones' tickets when granted
   settings: NONE,
   integrations: NONE,
   audit: NONE,
   // D118 (owner, 2026-10-17): hotels like a vendor module (commission stays Super Admin only, field rule); bookings and
   // dining reservations are created and moved along their state machine, never edited or deleted
   hotels: ALL_ACTIONS,
-  bookings: ['view', 'add', 'status'],
-  dining: ['view', 'add', 'status'],
+  bookings: ['view', 'add', 'status', 'export'],
+  dining: ['view', 'add', 'status', 'export'],
   // D169 (owner, 2026-10-20): a Zonal Admin may see and set their zones' reward-point values when granted
   loyalty: ['view', 'edit'],
 };

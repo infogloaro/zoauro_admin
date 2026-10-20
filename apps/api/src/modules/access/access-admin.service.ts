@@ -819,7 +819,7 @@ export class AccessAdminService {
           ? undefined
           : profile.permissions.find((p) => p.module === module);
         const column = `can${action[0]?.toUpperCase() ?? ''}${action.slice(1)}` as
-          'canView' | 'canAdd' | 'canEdit' | 'canDelete' | 'canStatus';
+          'canView' | 'canAdd' | 'canEdit' | 'canDelete' | 'canStatus' | 'canExport';
         const override = assignment.overrides.find(
           (o) => o.module === module && o.action === action,
         );

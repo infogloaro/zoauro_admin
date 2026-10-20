@@ -77,6 +77,7 @@ export async function runSeed(
           canEdit: actions?.includes('edit') ?? false,
           canDelete: actions?.includes('delete') ?? false,
           canStatus: actions?.includes('status') ?? false,
+          canExport: actions?.includes('export') ?? false,
         })),
       });
     });

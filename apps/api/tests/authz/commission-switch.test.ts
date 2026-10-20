@@ -29,6 +29,7 @@ const assignment = (
         canEdit: true,
         canDelete: false,
         canStatus: false,
+        canExport: false,
       },
       ...(profileCommission
         ? [
@@ -39,6 +40,7 @@ const assignment = (
               canEdit: true,
               canDelete: false,
               canStatus: false,
+              canExport: false,
             },
           ]
         : []),

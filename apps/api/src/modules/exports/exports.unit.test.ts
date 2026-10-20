@@ -24,7 +24,9 @@ function zonal(
     role: 'ZONAL_ADMIN',
     isSuperAdmin: false,
     assignedZoneIds: zones,
-    permissionsByZone: new Map(zones.map((z) => [z, new Set<PermissionKey>(['orders:view'])])),
+    permissionsByZone: new Map(
+      zones.map((z) => [z, new Set<PermissionKey>(['orders:view', 'orders:export'])]),
+    ),
     limitsByZone: new Map(
       zones.map((z) => [z, { perRefund: 0, dailyRefund: 0, canReveal: false, canExport }]),
     ),

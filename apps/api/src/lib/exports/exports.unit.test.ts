@@ -79,15 +79,15 @@ describe('exportScope (doc 36, D129)', () => {
 
   it('Zonal: the zones it may view, each with canExport', () => {
     const ctx = zonal({
-      [A]: { keys: ['orders:view'], canExport: true },
-      [B]: { keys: ['orders:view'], canExport: true },
+      [A]: { keys: ['orders:view', 'orders:export'], canExport: true },
+      [B]: { keys: ['orders:view', 'orders:export'], canExport: true },
     });
     expect(exportScope(ctx, 'orders:view')).toEqual({ kind: 'ZONES', zoneIds: [A, B].sort() });
   });
 
   it('Zonal: a viewable zone without canExport refuses the whole export; asking for the other zone works', () => {
     const zones = {
-      [A]: { keys: ['orders:view'] as PermissionKey[], canExport: true },
+      [A]: { keys: ['orders:view', 'orders:export'] as PermissionKey[], canExport: true },
       [B]: { keys: ['orders:view'] as PermissionKey[], canExport: false },
     };
     expect(forbidden(() => exportScope(zonal(zones), 'orders:view'))).toBe(true);
@@ -96,10 +96,26 @@ describe('exportScope (doc 36, D129)', () => {
 
   it('Zonal: a zone without the view permission is not exported (canExport alone is not enough)', () => {
     const ctx = zonal({
-      [A]: { keys: ['orders:view'], canExport: true },
+      [A]: { keys: ['orders:view', 'orders:export'], canExport: true },
       [B]: { keys: ['restaurants:view'], canExport: true },
     });
     expect(exportScope(ctx, 'orders:view')).toEqual({ kind: 'ZONES', zoneIds: [A] });
+  });
+
+  it('Zonal (D149): the zone switch without <module>:export, or the key without the switch, is 403', () => {
+    expect(
+      forbidden(() =>
+        exportScope(zonal({ [A]: { keys: ['orders:view'], canExport: true } }), 'orders:view'),
+      ),
+    ).toBe(true);
+    expect(
+      forbidden(() =>
+        exportScope(
+          zonal({ [A]: { keys: ['orders:view', 'orders:export'], canExport: false } }),
+          'orders:view',
+        ),
+      ),
+    ).toBe(true);
   });
 
   it('Zonal with no viewable zone: 403', () => {

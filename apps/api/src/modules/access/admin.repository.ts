@@ -32,6 +32,7 @@ const OVERRIDE_ACTION: Record<PermissionAction, OverrideAction> = {
   edit: 'EDIT',
   delete: 'DELETE',
   status: 'STATUS',
+  export: 'EXPORT', // D149
 };
 const PERMISSION_ACTION: Record<OverrideAction, PermissionAction> = {
   VIEW: 'view',
@@ -39,16 +40,18 @@ const PERMISSION_ACTION: Record<OverrideAction, PermissionAction> = {
   EDIT: 'edit',
   DELETE: 'delete',
   STATUS: 'status',
+  EXPORT: 'export', // D149
 };
 const FLAG_COLUMN: Record<
   PermissionAction,
-  'canView' | 'canAdd' | 'canEdit' | 'canDelete' | 'canStatus'
+  'canView' | 'canAdd' | 'canEdit' | 'canDelete' | 'canStatus' | 'canExport'
 > = {
   view: 'canView',
   add: 'canAdd',
   edit: 'canEdit',
   delete: 'canDelete',
   status: 'canStatus',
+  export: 'canExport',
 };
 
 /** `%`, `_` and `\` are literal in the search text. */
@@ -152,6 +155,7 @@ const assignmentSelect = {
           canEdit: true,
           canDelete: true,
           canStatus: true,
+          canExport: true,
         },
       },
     },
@@ -240,6 +244,7 @@ const profileSelect = {
       canEdit: true,
       canDelete: true,
       canStatus: true,
+      canExport: true,
     },
   },
 } as const satisfies Prisma.AccessProfileSelect;
@@ -908,6 +913,7 @@ export class AccessAdminRepository {
         canEdit: p.actions.includes('edit'),
         canDelete: p.actions.includes('delete'),
         canStatus: p.actions.includes('status'),
+        canExport: p.actions.includes('export'),
       }));
     if (rows.length > 0) await this.db.profilePermission.createMany({ data: rows });
   }

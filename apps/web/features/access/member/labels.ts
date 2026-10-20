@@ -19,6 +19,7 @@ export const ACTION_LABEL: Record<PermissionAction, string> = {
   edit: 'Edit',
   delete: 'Delete',
   status: 'Status',
+  export: 'Export',
 };
 
 export const MEMBER_STATUS_TONE: Record<'ACTIVE' | 'SUSPENDED', BadgeTone> = {

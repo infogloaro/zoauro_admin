@@ -55,6 +55,7 @@ export const ACTION_LABEL: Record<PermissionAction, string> = {
   edit: 'Edit',
   delete: 'Delete',
   status: 'Status',
+  export: 'Export',
 };
 
 export const NEVER_GRANTABLE = 'Never grantable to a Zonal Admin';

@@ -16,7 +16,7 @@ import type { ZoneLimits } from './types';
 // with something outside GRANTABLE_ACTIONS (zones, access, settings, commission ... are never grantable), except an
 // action a platform switch opens to a member's GRANT override (D155: commission edit), never through a profile.
 
-export type OverrideAction = 'VIEW' | 'ADD' | 'EDIT' | 'DELETE' | 'STATUS';
+export type OverrideAction = 'VIEW' | 'ADD' | 'EDIT' | 'DELETE' | 'STATUS' | 'EXPORT';
 
 const ACTION_BY_OVERRIDE: Record<OverrideAction, PermissionAction> = {
   VIEW: 'view',
@@ -24,6 +24,7 @@ const ACTION_BY_OVERRIDE: Record<OverrideAction, PermissionAction> = {
   EDIT: 'edit',
   DELETE: 'delete',
   STATUS: 'status',
+  EXPORT: 'export', // D149
 };
 
 /**
@@ -40,6 +41,8 @@ export interface ProfilePermissionRow {
   canEdit: boolean;
   canDelete: boolean;
   canStatus: boolean;
+  /** D149 */
+  canExport: boolean;
 }
 
 export interface AccessAssignment {
@@ -76,6 +79,7 @@ const FLAG_COLUMNS: readonly (readonly [keyof ProfilePermissionRow, PermissionAc
   ['canEdit', 'edit'],
   ['canDelete', 'delete'],
   ['canStatus', 'status'],
+  ['canExport', 'export'],
 ];
 
 function resolveOne(

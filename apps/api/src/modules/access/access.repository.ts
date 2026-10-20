@@ -33,6 +33,7 @@ export class AccessRepository implements AccessDataSource {
                 canEdit: true,
                 canDelete: true,
                 canStatus: true,
+                canExport: true,
               },
             },
           },

@@ -2720,7 +2720,7 @@ export interface operations {
                     name: string;
                     /** @default [] */
                     permissions?: {
-                        actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                        actions: ("view" | "add" | "edit" | "delete" | "status" | "export")[];
                         /** @enum {string} */
                         module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                     }[];
@@ -2749,7 +2749,7 @@ export interface operations {
                         membersCount: number;
                         name: string;
                         permissions: {
-                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            actions: ("view" | "add" | "edit" | "delete" | "status" | "export")[];
                             /** @enum {string} */
                             module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                         }[];
@@ -2837,7 +2837,7 @@ export interface operations {
                         membersCount: number;
                         name: string;
                         permissions: {
-                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            actions: ("view" | "add" | "edit" | "delete" | "status" | "export")[];
                             /** @enum {string} */
                             module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                         }[];
@@ -2988,7 +2988,7 @@ export interface operations {
                         membersCount: number;
                         name: string;
                         permissions: {
-                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            actions: ("view" | "add" | "edit" | "delete" | "status" | "export")[];
                             /** @enum {string} */
                             module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                         }[];
@@ -3069,7 +3069,7 @@ export interface operations {
                             perRefund: number | null;
                         };
                         permissions: {
-                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            actions: ("view" | "add" | "edit" | "delete" | "status" | "export")[];
                             /** @enum {string} */
                             module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                         }[];
@@ -3135,7 +3135,7 @@ export interface operations {
                         perRefund: number | null;
                     };
                     permissions: {
-                        actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                        actions: ("view" | "add" | "edit" | "delete" | "status" | "export")[];
                         /** @enum {string} */
                         module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                     }[];
@@ -3157,7 +3157,7 @@ export interface operations {
                             perRefund: number | null;
                         };
                         permissions: {
-                            actions: ("view" | "add" | "edit" | "delete" | "status")[];
+                            actions: ("view" | "add" | "edit" | "delete" | "status" | "export")[];
                             /** @enum {string} */
                             module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                         }[];
@@ -3228,7 +3228,7 @@ export interface operations {
                     "application/json": {
                         data: {
                             /** @enum {string|null} */
-                            action: "view" | "add" | "edit" | "delete" | "status" | null;
+                            action: "view" | "add" | "edit" | "delete" | "status" | "export" | null;
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
@@ -3327,7 +3327,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string|null} */
-                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        action: "view" | "add" | "edit" | "delete" | "status" | "export" | null;
                         /** Format: date-time */
                         createdAt: string;
                         /** Format: date-time */
@@ -3429,7 +3429,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string|null} */
-                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        action: "view" | "add" | "edit" | "delete" | "status" | "export" | null;
                         /** Format: date-time */
                         createdAt: string;
                         /** Format: date-time */
@@ -3538,7 +3538,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string|null} */
-                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        action: "view" | "add" | "edit" | "delete" | "status" | "export" | null;
                         /** Format: date-time */
                         createdAt: string;
                         /** Format: date-time */
@@ -11339,7 +11339,7 @@ export interface operations {
                                     perRefund: number;
                                 };
                                 name: string;
-                                permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status")[];
+                                permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "dashboard:export" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "orders:export" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "restaurants:export" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "homemakers:export" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "menu:export" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "delivery:export" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "customers:export" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "payments:export" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "refunds:export" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "settlements:export" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "payouts:export" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "commission:export" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "zones:export" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "admins:export" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "access:export" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "offers:export" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "notifications:export" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "analytics:export" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "reviews:export" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "support:export" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "settings:export" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "integrations:export" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "audit:export" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "hotels:export" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "bookings:export" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "dining:export" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status" | "loyalty:export")[];
                                 services?: {
                                     HOME_FOOD: boolean;
                                     HOTEL_BOOKING: boolean;
@@ -11392,7 +11392,7 @@ export interface operations {
                     "application/json": {
                         data: {
                             /** @enum {string|null} */
-                            action: "view" | "add" | "edit" | "delete" | "status" | null;
+                            action: "view" | "add" | "edit" | "delete" | "status" | "export" | null;
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
@@ -11429,7 +11429,7 @@ export interface operations {
                         requestable: {
                             permissions: {
                                 /** @enum {string} */
-                                action: "view" | "add" | "edit" | "delete" | "status";
+                                action: "view" | "add" | "edit" | "delete" | "status" | "export";
                                 /** @enum {string} */
                                 module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                             }[];
@@ -11482,7 +11482,7 @@ export interface operations {
                     zoneId: string;
                 } | {
                     /** @enum {string} */
-                    action: "view" | "add" | "edit" | "delete" | "status";
+                    action: "view" | "add" | "edit" | "delete" | "status" | "export";
                     /** @enum {string} */
                     kind: "PERMISSION";
                     /** @enum {string} */
@@ -11502,7 +11502,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string|null} */
-                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        action: "view" | "add" | "edit" | "delete" | "status" | "export" | null;
                         /** Format: date-time */
                         createdAt: string;
                         /** Format: date-time */
@@ -11604,7 +11604,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string|null} */
-                        action: "view" | "add" | "edit" | "delete" | "status" | null;
+                        action: "view" | "add" | "edit" | "delete" | "status" | "export" | null;
                         /** Format: date-time */
                         createdAt: string;
                         /** Format: date-time */
@@ -18505,13 +18505,13 @@ export interface operations {
                             note: string | null;
                             overrides: {
                                 /** @enum {string} */
-                                action: "view" | "add" | "edit" | "delete" | "status";
+                                action: "view" | "add" | "edit" | "delete" | "status" | "export";
                                 /** @enum {string} */
                                 effect: "GRANT" | "DENY";
                                 /** @enum {string} */
                                 module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                             }[];
-                            permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status")[];
+                            permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "dashboard:export" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "orders:export" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "restaurants:export" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "homemakers:export" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "menu:export" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "delivery:export" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "customers:export" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "payments:export" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "refunds:export" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "settlements:export" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "payouts:export" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "commission:export" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "zones:export" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "admins:export" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "access:export" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "offers:export" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "notifications:export" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "analytics:export" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "reviews:export" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "support:export" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "settings:export" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "integrations:export" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "audit:export" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "hotels:export" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "bookings:export" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "dining:export" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status" | "loyalty:export")[];
                             profile: {
                                 /** Format: uuid */
                                 id: string;
@@ -18602,7 +18602,7 @@ export interface operations {
                         /** @default [] */
                         overrides?: {
                             /** @enum {string} */
-                            action: "view" | "add" | "edit" | "delete" | "status";
+                            action: "view" | "add" | "edit" | "delete" | "status" | "export";
                             /** @enum {string} */
                             effect: "GRANT" | "DENY";
                             /** @enum {string} */
@@ -18650,13 +18650,13 @@ export interface operations {
                             note: string | null;
                             overrides: {
                                 /** @enum {string} */
-                                action: "view" | "add" | "edit" | "delete" | "status";
+                                action: "view" | "add" | "edit" | "delete" | "status" | "export";
                                 /** @enum {string} */
                                 effect: "GRANT" | "DENY";
                                 /** @enum {string} */
                                 module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                             }[];
-                            permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status")[];
+                            permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "dashboard:export" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "orders:export" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "restaurants:export" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "homemakers:export" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "menu:export" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "delivery:export" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "customers:export" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "payments:export" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "refunds:export" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "settlements:export" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "payouts:export" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "commission:export" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "zones:export" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "admins:export" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "access:export" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "offers:export" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "notifications:export" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "analytics:export" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "reviews:export" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "support:export" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "settings:export" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "integrations:export" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "audit:export" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "hotels:export" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "bookings:export" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "dining:export" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status" | "loyalty:export")[];
                             profile: {
                                 /** Format: uuid */
                                 id: string;
@@ -18754,7 +18754,7 @@ export interface operations {
                         };
                         matrix: {
                             /** @enum {string} */
-                            action: "view" | "add" | "edit" | "delete" | "status";
+                            action: "view" | "add" | "edit" | "delete" | "status" | "export";
                             effective: boolean;
                             fromProfile: boolean;
                             grantable: boolean;
@@ -18765,7 +18765,7 @@ export interface operations {
                         }[];
                         /** Format: uuid */
                         memberId: string;
-                        permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status")[];
+                        permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "dashboard:export" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "orders:export" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "restaurants:export" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "homemakers:export" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "menu:export" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "delivery:export" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "customers:export" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "payments:export" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "refunds:export" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "settlements:export" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "payouts:export" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "commission:export" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "zones:export" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "admins:export" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "access:export" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "offers:export" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "notifications:export" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "analytics:export" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "reviews:export" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "support:export" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "settings:export" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "integrations:export" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "audit:export" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "hotels:export" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "bookings:export" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "dining:export" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status" | "loyalty:export")[];
                         visibleModules: ("dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty")[];
                         /** Format: uuid */
                         zoneId: string;
@@ -20394,13 +20394,13 @@ export interface operations {
                         note: string | null;
                         overrides: {
                             /** @enum {string} */
-                            action: "view" | "add" | "edit" | "delete" | "status";
+                            action: "view" | "add" | "edit" | "delete" | "status" | "export";
                             /** @enum {string} */
                             effect: "GRANT" | "DENY";
                             /** @enum {string} */
                             module: "dashboard" | "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "settlements" | "payouts" | "commission" | "zones" | "admins" | "access" | "offers" | "notifications" | "analytics" | "reviews" | "support" | "settings" | "integrations" | "audit" | "hotels" | "bookings" | "dining" | "loyalty";
                         }[];
-                        permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status")[];
+                        permissions: ("dashboard:view" | "dashboard:add" | "dashboard:edit" | "dashboard:delete" | "dashboard:status" | "dashboard:export" | "orders:view" | "orders:add" | "orders:edit" | "orders:delete" | "orders:status" | "orders:export" | "restaurants:view" | "restaurants:add" | "restaurants:edit" | "restaurants:delete" | "restaurants:status" | "restaurants:export" | "homemakers:view" | "homemakers:add" | "homemakers:edit" | "homemakers:delete" | "homemakers:status" | "homemakers:export" | "menu:view" | "menu:add" | "menu:edit" | "menu:delete" | "menu:status" | "menu:export" | "delivery:view" | "delivery:add" | "delivery:edit" | "delivery:delete" | "delivery:status" | "delivery:export" | "customers:view" | "customers:add" | "customers:edit" | "customers:delete" | "customers:status" | "customers:export" | "payments:view" | "payments:add" | "payments:edit" | "payments:delete" | "payments:status" | "payments:export" | "refunds:view" | "refunds:add" | "refunds:edit" | "refunds:delete" | "refunds:status" | "refunds:export" | "settlements:view" | "settlements:add" | "settlements:edit" | "settlements:delete" | "settlements:status" | "settlements:export" | "payouts:view" | "payouts:add" | "payouts:edit" | "payouts:delete" | "payouts:status" | "payouts:export" | "commission:view" | "commission:add" | "commission:edit" | "commission:delete" | "commission:status" | "commission:export" | "zones:view" | "zones:add" | "zones:edit" | "zones:delete" | "zones:status" | "zones:export" | "admins:view" | "admins:add" | "admins:edit" | "admins:delete" | "admins:status" | "admins:export" | "access:view" | "access:add" | "access:edit" | "access:delete" | "access:status" | "access:export" | "offers:view" | "offers:add" | "offers:edit" | "offers:delete" | "offers:status" | "offers:export" | "notifications:view" | "notifications:add" | "notifications:edit" | "notifications:delete" | "notifications:status" | "notifications:export" | "analytics:view" | "analytics:add" | "analytics:edit" | "analytics:delete" | "analytics:status" | "analytics:export" | "reviews:view" | "reviews:add" | "reviews:edit" | "reviews:delete" | "reviews:status" | "reviews:export" | "support:view" | "support:add" | "support:edit" | "support:delete" | "support:status" | "support:export" | "settings:view" | "settings:add" | "settings:edit" | "settings:delete" | "settings:status" | "settings:export" | "integrations:view" | "integrations:add" | "integrations:edit" | "integrations:delete" | "integrations:status" | "integrations:export" | "audit:view" | "audit:add" | "audit:edit" | "audit:delete" | "audit:status" | "audit:export" | "hotels:view" | "hotels:add" | "hotels:edit" | "hotels:delete" | "hotels:status" | "hotels:export" | "bookings:view" | "bookings:add" | "bookings:edit" | "bookings:delete" | "bookings:status" | "bookings:export" | "dining:view" | "dining:add" | "dining:edit" | "dining:delete" | "dining:status" | "dining:export" | "loyalty:view" | "loyalty:add" | "loyalty:edit" | "loyalty:delete" | "loyalty:status" | "loyalty:export")[];
                         profile: {
                             /** Format: uuid */
                             id: string;
