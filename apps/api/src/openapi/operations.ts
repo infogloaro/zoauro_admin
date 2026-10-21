@@ -127,6 +127,7 @@ import {
 } from '@zoauro/shared';
 import type { AuditRouteMeta } from '../lib/audit';
 import { CLAIM_OPERATIONS } from './operations.claims';
+import { CONTROL_AREA_OPERATIONS } from './operations.control-areas';
 import { CUSTOMER_OPERATIONS } from './operations.customers';
 import { EXPORT_OPERATIONS } from './operations.exports';
 import { REWARD_OPERATIONS } from './operations.rewards';
@@ -1449,6 +1450,8 @@ export const OPERATIONS: OperationDef[] = [
   ...VENDOR_OPERATIONS,
   // D174 record claims (operations.claims.ts)
   ...CLAIM_OPERATIONS,
+  // D178 Control Panel areas and primaries (operations.control-areas.ts)
+  ...CONTROL_AREA_OPERATIONS,
   ...PARTNER_OPERATIONS,
   // SA-2.4 menu items, categories, bulk and R09 change requests (operations.menu.ts)
   ...MENU_OPERATIONS,

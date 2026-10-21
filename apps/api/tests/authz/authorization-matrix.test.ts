@@ -254,7 +254,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 9 record claims (D174)
     // + 11 list exports and GET /exports/{id} (D129, D149) + 6 support desk (D139-D141)
     // + 2 payments and 8 refunds (D159, D180, D187)
-    expect(report.coveredRoutes).toHaveLength(229);
+    // + 4 Control Panel area routes (D178)
+    expect(report.coveredRoutes).toHaveLength(233);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

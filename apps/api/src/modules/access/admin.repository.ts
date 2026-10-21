@@ -11,7 +11,7 @@ import type {
   ZonalAdminListQuery,
 } from '@zoauro/shared';
 import { cursorFetchSize, isPermissionModule, PERMISSION_ACTIONS } from '@zoauro/shared';
-import type { AuditTx } from '../../lib/audit';
+import { uuidv7, type AuditTx } from '../../lib/audit';
 import {
   isOverrideAction,
   type AccessAssignment,
@@ -322,6 +322,9 @@ const superAdminSelect = {
   mustChangePassword: true,
   lastLoginAt: true,
   createdAt: true,
+  // D178: primaries hold every Control Panel area; the others only their active grants
+  isPrimary: true,
+  controlGrantsHeld: { where: { revokedAt: null }, select: { key: true } },
 } satisfies Prisma.UserSelect;
 export type SuperAdminRecord = Prisma.UserGetPayload<{ select: typeof superAdminSelect }>;
 
@@ -444,6 +447,58 @@ export class AccessAdminRepository {
     return this.db.user.count({
       where: { deletedAt: null, status: 'ACTIVE', role: { name: 'SUPER_ADMIN' } },
     });
+  }
+
+  /** D178: the last active primary can never be removed or demoted */
+  async countActivePrimaries(ctx: AuthContext): Promise<number> {
+    this.superAdminOnly(ctx);
+    return this.db.user.count({
+      where: { deletedAt: null, status: 'ACTIVE', isPrimary: true, role: { name: 'SUPER_ADMIN' } },
+    });
+  }
+
+  async setPrimary(ctx: AuthContext, id: string, primary: boolean): Promise<void> {
+    this.superAdminOnly(ctx);
+    await this.db.user.update({
+      where: { id },
+      data: { isPrimary: primary, updatedBy: ctx.userId },
+    });
+  }
+
+  /** D178: the grantee's active areas become exactly `keys`; returns what was added and removed. */
+  async replaceGrants(
+    ctx: AuthContext,
+    granteeId: string,
+    keys: readonly string[],
+    reason: string,
+    now: Date,
+  ): Promise<{ added: string[]; removed: string[] }> {
+    this.superAdminOnly(ctx);
+    const current = (
+      await this.db.controlGrant.findMany({
+        where: { granteeId, revokedAt: null },
+        select: { key: true },
+      })
+    ).map((g) => g.key);
+    const added = keys.filter((k) => !current.includes(k));
+    const removed = current.filter((k) => !keys.includes(k));
+    if (removed.length > 0)
+      await this.db.controlGrant.updateMany({
+        where: { granteeId, revokedAt: null, key: { in: removed } },
+        data: { revokedAt: now, revokedBy: ctx.userId, revokeReason: reason },
+      });
+    if (added.length > 0)
+      await this.db.controlGrant.createMany({
+        data: added.map((key) => ({
+          id: uuidv7(),
+          granteeId,
+          key,
+          reason,
+          grantedBy: ctx.userId,
+          grantedAt: now,
+        })),
+      });
+    return { added, removed };
   }
 
   async superRoleId(ctx: AuthContext): Promise<string> {

@@ -40,6 +40,8 @@ export function createZonesModule(deps: {
   cache?: ZonesCacheVersion;
   resolveCache?: ResolveCache;
   clock?: () => Date;
+  /** D178: the Control Panel area guard (the access module's ControlAreasService) */
+  requireArea?: (area: (req: Parameters<RequestHandler>[0]) => string | null) => RequestHandler;
   /** D165: settings zones.deliveryChargeCapPaise (the settings reader); absent = the Rs 1,000 ceiling */
   deliveryChargeCap?: () => Promise<number>;
 }): { router: Router; service: ZonesService; resolver: ZoneResolver } {
@@ -55,6 +57,7 @@ export function createZonesModule(deps: {
     router: createZonesRoutes(createZonesController(service), {
       appOrigin: deps.appOrigin,
       requireReauth: deps.requireReauth,
+      ...(deps.requireArea ? { requireArea: deps.requireArea } : {}),
     }),
     service,
     resolver: new ZoneResolver({

@@ -115,6 +115,7 @@ export async function runSeed(
           roleId: role.id,
           status: 'ACTIVE',
           mustChangePassword: true, // doc 08: "password from secret store, forced change"
+          isPrimary: true, // D178: the first Super Admin is the primary (holds every Control Panel area)
         },
       });
       summary.superAdmin = 'created';

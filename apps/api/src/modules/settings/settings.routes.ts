@@ -17,9 +17,24 @@ type Controller = ReturnType<typeof createSettingsController>;
  */
 export function createSettingsRoutes(
   c: Controller,
-  opts: { appOrigin: string; requireReauth: (level: ReauthLevel) => RequestHandler },
+  opts: {
+    appOrigin: string;
+    requireReauth: (level: ReauthLevel) => RequestHandler;
+    /** D178: the Control Panel area guard (absent: no area check, tests) */
+    requireArea?: (area: (req: Parameters<RequestHandler>[0]) => string | null) => RequestHandler;
+  },
 ): Router {
   const router = Router();
+  // D178: a non-primary Super Admin needs `settings.<group>` for a group's routes and any settings area for the lists
+  if (opts.requireArea)
+    router.use(
+      opts.requireArea((req) => {
+        const m = /^(?:\/zones\/[^/]+)?\/settings(?:\/([^/]+))?/.exec(req.path);
+        if (!m) return null;
+        const group = m[1];
+        return !group || group === 'history' ? 'settings.*' : `settings.${group}`;
+      }),
+    );
   const password = opts.requireReauth('PASSWORD');
   const strong = opts.requireReauth('STRONG');
   /** the keys a write touches: body.values for PUT, the path key for DELETE */

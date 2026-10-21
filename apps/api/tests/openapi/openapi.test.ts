@@ -123,6 +123,11 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /super-admins',
         'PATCH /super-admins/{id}/status',
         'DELETE /super-admins/{id}',
+        // D178 Control Panel areas and primaries
+        'GET /me/control-areas',
+        'GET /super-admins/areas',
+        'PUT /super-admins/{id}/areas',
+        'POST /super-admins/{id}/primary',
         // D174 record claims
         'GET /claims',
         'GET /claims/mine',

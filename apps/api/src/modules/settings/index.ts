@@ -17,6 +17,8 @@ export function createSettingsModule(deps: {
   requireReauth: (level: ReauthLevel) => RequestHandler;
   /** an SMS provider is configured in the environment (D99: SMS cannot be switched on without one) */
   smsReady: () => boolean;
+  /** D178: the Control Panel area guard (the access module's ControlAreasService) */
+  requireArea?: (area: (req: Parameters<RequestHandler>[0]) => string | null) => RequestHandler;
   clock?: () => Date;
 }): { router: Router; service: SettingsService; reader: SettingsReader } {
   const db = new SettingsDatabase(deps.prisma);
@@ -32,6 +34,7 @@ export function createSettingsModule(deps: {
     router: createSettingsRoutes(createSettingsController(service), {
       appOrigin: deps.appOrigin,
       requireReauth: deps.requireReauth,
+      ...(deps.requireArea ? { requireArea: deps.requireArea } : {}),
     }),
     service,
     reader,

@@ -73,6 +73,8 @@ export function createAuthModule(deps: {
   smsSettings?: { provider: SmsProviderName; dltTemplateIdOtp?: string | undefined };
   /** D142: every session eviction, so the realtime server can disconnect those sockets (server.ts wires it) */
   onSessionsEvicted?: (tokenHashes: string[]) => void;
+  /** D178: a Super Admin's Control Panel areas for GET /me (the access module) */
+  controlAreas?: (userId: string) => Promise<{ isPrimary: boolean; areas: string[] } | null>;
 }): AuthModule {
   const config = deps.config ?? DEFAULT_AUTH_CONFIG;
   const clock = deps.clock ?? (() => new Date());
@@ -131,6 +133,7 @@ export function createAuthModule(deps: {
     config,
     clock,
     mfa: { pending, policy, secretBox, hasher, otp, sms, breaker },
+    ...(deps.controlAreas ? { controlAreas: deps.controlAreas } : {}),
   });
   const enrolment = new EnrolmentService({
     db,

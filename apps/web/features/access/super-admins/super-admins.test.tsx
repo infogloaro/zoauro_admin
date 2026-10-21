@@ -27,6 +27,8 @@ const row = (over: Partial<SuperAdmin>): SuperAdmin => ({
   lastLoginAt: '2026-10-20T08:00:00.000Z',
   createdAt: '2026-10-01T08:00:00.000Z',
   isSelf: false,
+  isPrimary: false,
+  areas: [],
   ...over,
 });
 

@@ -3810,6 +3810,27 @@
                         "required",
                         "enrolmentNeeded"
                       ]
+                    },
+                    "controlAreas": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "isPrimary": {
+                          "type": "boolean"
+                        },
+                        "areas": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "isPrimary",
+                        "areas"
+                      ]
                     }
                   },
                   "required": [
@@ -14191,6 +14212,15 @@
                           },
                           "isSelf": {
                             "type": "boolean"
+                          },
+                          "isPrimary": {
+                            "type": "boolean"
+                          },
+                          "areas": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           }
                         },
                         "required": [
@@ -14203,7 +14233,9 @@
                           "mustChangePassword",
                           "lastLoginAt",
                           "createdAt",
-                          "isSelf"
+                          "isSelf",
+                          "isPrimary",
+                          "areas"
                         ]
                       }
                     },
@@ -14300,6 +14332,13 @@
                     "minLength": 12,
                     "maxLength": 128
                   },
+                  "areas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
                   "reason": {
                     "type": "string",
                     "minLength": 5,
@@ -14367,6 +14406,15 @@
                     },
                     "isSelf": {
                       "type": "boolean"
+                    },
+                    "isPrimary": {
+                      "type": "boolean"
+                    },
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   },
                   "required": [
@@ -14379,7 +14427,9 @@
                     "mustChangePassword",
                     "lastLoginAt",
                     "createdAt",
-                    "isSelf"
+                    "isSelf",
+                    "isPrimary",
+                    "areas"
                   ]
                 }
               }
@@ -14551,6 +14601,15 @@
                     },
                     "isSelf": {
                       "type": "boolean"
+                    },
+                    "isPrimary": {
+                      "type": "boolean"
+                    },
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   },
                   "required": [
@@ -14563,7 +14622,9 @@
                     "mustChangePassword",
                     "lastLoginAt",
                     "createdAt",
-                    "isSelf"
+                    "isSelf",
+                    "isPrimary",
+                    "areas"
                   ]
                 }
               }
@@ -31812,6 +31873,545 @@
         "x-audit": {
           "module": "access",
           "action": "claim.overridden"
+        }
+      }
+    },
+    "/me/control-areas": {
+      "get": {
+        "operationId": "myControlAreas",
+        "tags": [
+          "access"
+        ],
+        "summary": "The caller’s Control Panel areas: {isPrimary, areas[]} for a Super Admin (every key for a primary), null for a Zonal Admin",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "My areas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "controlAreas": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "isPrimary": {
+                          "type": "boolean"
+                        },
+                        "areas": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "isPrimary",
+                        "areas"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "controlAreas"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
+        }
+      }
+    },
+    "/super-admins/areas": {
+      "get": {
+        "operationId": "listControlAreas",
+        "tags": [
+          "access"
+        ],
+        "summary": "The Control Panel areas a primary can grant, in display order (zones, access, exports, audit, settings.<group>)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Areas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "description"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "admins:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/super-admins/{id}/areas": {
+      "put": {
+        "operationId": "putSuperAdminAreas",
+        "tags": [
+          "access"
+        ],
+        "summary": "Primary only (STRONG): the complete set of a non-primary Super Admin’s areas, with a reason; audited; the member and the actor are emailed. A primary holds every area (422 PRIMARY_HOLDS_ALL)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "areas": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 16
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "areas",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "mfaEnabled": {
+                      "type": "boolean"
+                    },
+                    "mustChangePassword": {
+                      "type": "boolean"
+                    },
+                    "lastLoginAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "isSelf": {
+                      "type": "boolean"
+                    },
+                    "isPrimary": {
+                      "type": "boolean"
+                    },
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "phone",
+                    "status",
+                    "mfaEnabled",
+                    "mustChangePassword",
+                    "lastLoginAt",
+                    "createdAt",
+                    "isSelf",
+                    "isPrimary",
+                    "areas"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "admins:edit",
+          "zone": "none",
+          "reauth": "STRONG"
+        },
+        "x-audit": {
+          "module": "admins",
+          "action": "member.updated"
+        }
+      }
+    },
+    "/super-admins/{id}/primary": {
+      "post": {
+        "operationId": "setSuperAdminPrimary",
+        "tags": [
+          "access"
+        ],
+        "summary": "Primary only (STRONG): promote or demote a Super Admin, with a reason; the last active primary cannot be demoted (409 LAST_PRIMARY)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "primary": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "primary",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "mfaEnabled": {
+                      "type": "boolean"
+                    },
+                    "mustChangePassword": {
+                      "type": "boolean"
+                    },
+                    "lastLoginAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "isSelf": {
+                      "type": "boolean"
+                    },
+                    "isPrimary": {
+                      "type": "boolean"
+                    },
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "phone",
+                    "status",
+                    "mfaEnabled",
+                    "mustChangePassword",
+                    "lastLoginAt",
+                    "createdAt",
+                    "isSelf",
+                    "isPrimary",
+                    "areas"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "admins:edit",
+          "zone": "none",
+          "reauth": "STRONG"
+        },
+        "x-audit": {
+          "module": "admins",
+          "action": "member.updated"
         }
       }
     },

@@ -9,6 +9,7 @@ import { authContextMiddleware } from './lib/authz';
 import {
   createAccessMailer,
   createAccessModule,
+  createControlAreas,
   createAccessService,
   createZoneTeamPort,
 } from './modules/access';
@@ -69,6 +70,7 @@ if (!env.SMTP_URL)
 const realtimeGate: { sessionsEvicted?: (tokenHashes: string[]) => void } = {};
 
 const auth = createAuthModule({
+  controlAreas: (userId) => controlAreas.of(userId), // D178: GET /me
   prisma,
   redis,
   audit,
@@ -85,7 +87,10 @@ const auth = createAuthModule({
 });
 
 // Platform settings (doc 59, D109): built first, because its reader gives the access context the zone refund caps (D110)
+// D178: the Control Panel areas of non-primary Super Admins (settings, zones and access routes)
+const controlAreas = createControlAreas(prisma);
 const settings = createSettingsModule({
+  requireArea: (area) => controlAreas.require(area), // D178
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   requireReauth: auth.requireReauth,
@@ -100,6 +105,7 @@ const grantSwitches = async () => ({
 const access = createAccessService({ prisma, redis, refundCaps, grantSwitches });
 
 const zones = createZonesModule({
+  requireArea: (area) => controlAreas.require(area), // D178
   // D165: the Super Admin's delivery charge cap
   deliveryChargeCap: () => settings.reader.deliveryChargeCapPaise(),
   prisma,
@@ -111,6 +117,7 @@ const zones = createZonesModule({
 });
 
 const accessControl = createAccessModule({
+  areas: controlAreas, // D178
   prisma,
   access,
   appOrigin: new URL(env.APP_URL).origin,

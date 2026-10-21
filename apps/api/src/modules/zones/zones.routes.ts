@@ -16,9 +16,26 @@ type Controller = ReturnType<typeof createZonesController>;
  */
 export function createZonesRoutes(
   c: Controller,
-  opts: { appOrigin: string; requireReauth: (level: ReauthLevel) => RequestHandler },
+  opts: {
+    appOrigin: string;
+    requireReauth: (level: ReauthLevel) => RequestHandler;
+    /** D178: the Control Panel area guard (absent: no area check, tests) */
+    requireArea?: (area: (req: Parameters<RequestHandler>[0]) => string | null) => RequestHandler;
+  },
 ): Router {
   const router = Router();
+  // D178: zone writes need the `zones` area; a zone's team belongs to `access`, its settings to `settings.<group>`
+  // (both guarded by their own routers); reads stay open to every Super Admin (pickers in other areas)
+  if (opts.requireArea)
+    router.use(
+      opts.requireArea((req) =>
+        req.method === 'GET' ||
+        !req.path.startsWith('/zones') ||
+        /^\/zones\/[^/]+\/(settings|team)(\/|$)/.test(req.path)
+          ? null
+          : 'zones',
+      ),
+    );
   const write = (action: 'add' | 'edit' | 'status' | 'delete') => [
     originCheck(opts.appOrigin),
     requirePermission('zones', action),

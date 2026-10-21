@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { emailSchema, newPasswordSchema } from '../auth';
+import { controlAreaKeySchema } from './control-areas';
 import { MEMBER_NAME_MAX, MEMBER_STATUSES, memberPhoneSchema } from './schemas';
 
-// Super Admins (D148, refines D75; account rules of D102/D103): a Super Admin creates further Super Admins from the
-// Control Panel with a temporary password (changed at the first sign-in, never emailed), STRONG re-authentication,
-// audited; suspend and delete never touch oneself nor the last active Super Admin. admins:* is never grantable.
+// Super Admins (D148, D178; account rules of D102/D103). Only a PRIMARY Super Admin creates, removes, scopes and
+// promotes Super Admins (403 PRIMARY_ONLY otherwise), with STRONG re-authentication and a reason; the new account has a
+// temporary password (changed at the first sign-in, never emailed). Never oneself; never the last active Super Admin
+// nor the last primary (409 LAST_SUPER_ADMIN / LAST_PRIMARY). admins:* is never grantable to a Zonal Admin.
 
 const iso = z.iso.datetime();
 const reason = z.string().trim().min(5).max(500);
@@ -23,6 +25,10 @@ export const superAdminSchema = z.object({
   createdAt: iso,
   /** the caller: cannot be suspended or deleted from here */
   isSelf: z.boolean(),
+  /** D178: a primary holds every Control Panel area and manages Super Admins */
+  isPrimary: z.boolean(),
+  /** D178: the Control Panel areas held (every key for a primary) */
+  areas: z.array(z.string()),
 });
 export type SuperAdmin = z.infer<typeof superAdminSchema>;
 
@@ -40,6 +46,11 @@ export const createSuperAdminSchema = z
     email: emailSchema,
     phone: memberPhoneSchema.optional(),
     temporaryPassword: newPasswordSchema,
+    /** D178: the Control Panel areas the new (non-primary) Super Admin runs */
+    areas: z
+      .array(controlAreaKeySchema)
+      .refine((l) => new Set(l).size === l.length, 'must not repeat an area')
+      .default([]),
     reason,
   })
   .strict();
@@ -56,4 +67,9 @@ export const deleteSuperAdminSchema = z.object({ reason }).strict();
 export type DeleteSuperAdminInput = z.infer<typeof deleteSuperAdminSchema>;
 
 /** 409 details: the change would leave no active Super Admin, or targets the caller. */
-export const SUPER_ADMIN_ISSUES = ['LAST_SUPER_ADMIN', 'SELF'] as const;
+export const SUPER_ADMIN_ISSUES = [
+  'LAST_SUPER_ADMIN',
+  'LAST_PRIMARY',
+  'PRIMARY_ONLY',
+  'SELF',
+] as const;

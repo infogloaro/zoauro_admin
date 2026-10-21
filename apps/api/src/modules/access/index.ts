@@ -11,6 +11,7 @@ import { AccessAdminService } from './access-admin.service';
 import { noopAccessMailer, type AccessMailer } from './access.mails';
 import { AccessAdminDatabase } from './admin.repository';
 import { ClaimsPrismaDatabase } from './claims.repository';
+import { createControlAreas, type ControlAreasService } from './control-areas';
 import { registerClaimsRoutes } from './claims.routes';
 import { ClaimsService, type ClaimEvent } from './claims.service';
 import { registerSuperAdminsRoutes } from './super-admins.routes';
@@ -18,6 +19,7 @@ import { SuperAdminsService } from './super-admins.service';
 
 export { createAccessMailer, noopAccessMailer, type AccessMailer } from './access.mails';
 export { ADMIN_ZONES_CHANGED, memberScopeEvent } from './access.events';
+export { createControlAreas, ControlAreasService } from './control-areas';
 
 /**
  * Access context for every request (doc 14 section 4). The Access Control module calls invalidateUsers on it after
@@ -84,6 +86,8 @@ export function createAccessModule(deps: {
   claimTiming?: () => Promise<{ ttlMinutes: number; takeoverTimeoutMinutes: number }>;
   /** D174: realtime / notifications for takeover and override events (optional) */
   onClaimEvent?: (e: ClaimEvent) => void;
+  /** D178: the Control Panel areas (server.ts shares one with the settings and zones modules) */
+  areas?: ControlAreasService;
 }): { router: Router; service: AccessAdminService; claims: ClaimsService } {
   const db = new AccessAdminDatabase(deps.prisma);
   const service = new AccessAdminService({
@@ -95,8 +99,12 @@ export function createAccessModule(deps: {
     ...(deps.refundCaps ? { refundCaps: deps.refundCaps } : {}),
     ...(deps.grantSwitches ? { grantSwitches: deps.grantSwitches } : {}),
   });
+  const areas = deps.areas ?? createControlAreas(deps.prisma);
   const routeOpts = { appOrigin: deps.appOrigin, requireReauth: deps.requireReauth };
-  const router = createAccessAdminRoutes(createAccessAdminController(service), routeOpts);
+  const router = createAccessAdminRoutes(createAccessAdminController(service), {
+    ...routeOpts,
+    requireArea: (area) => areas.require(area),
+  });
   // D148: Super Admins, on the same router (the route list and the authorization matrix read its stack)
   registerSuperAdminsRoutes(
     router,
@@ -105,8 +113,9 @@ export function createAccessModule(deps: {
       evictSessions: deps.evictSessions,
       mailer: deps.mailer ?? noopAccessMailer,
       clock: deps.clock ?? (() => new Date()),
+      onAreasChanged: (userId) => areas.clear(userId),
     }),
-    routeOpts,
+    { ...routeOpts, areas },
   );
   // D174: record claims; `claims.assertNotClaimedByOther` is for the record modules' write services
   const claims = new ClaimsService({

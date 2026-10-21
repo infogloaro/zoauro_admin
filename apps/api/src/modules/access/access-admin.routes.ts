@@ -21,9 +21,25 @@ type Controller = ReturnType<typeof createAccessAdminController>;
  */
 export function createAccessAdminRoutes(
   c: Controller,
-  opts: { appOrigin: string; requireReauth: (level: ReauthLevel) => RequestHandler },
+  opts: {
+    appOrigin: string;
+    requireReauth: (level: ReauthLevel) => RequestHandler;
+    /** D178: the Control Panel area guard (absent: no area check, tests) */
+    requireArea?: (area: (req: Parameters<RequestHandler>[0]) => string | null) => RequestHandler;
+  },
 ): Router {
   const router = Router();
+  // D178: the Zonal Admin access screens are the `access` area (a member's own requests and zone scope are not)
+  if (opts.requireArea)
+    router.use(
+      opts.requireArea((req) =>
+        /^\/(zonal-admins|access-profiles|access-changes|access-requests)(\/|$)|^\/zones\/[^/]+\/team(\/|$)/.test(
+          req.path,
+        )
+          ? 'access'
+          : null,
+      ),
+    );
   const write = (module: 'admins' | 'access', action: PermissionAction) => [
     originCheck(opts.appOrigin),
     requirePermission(module, action),

@@ -97,6 +97,8 @@ export interface MeResult {
   /** D116 zone switcher preference: [] or one zone */
   zoneScope: string[];
   mfa: { enabled: boolean; required: boolean; enrolmentNeeded: boolean };
+  /** D178: a Super Admin's Control Panel areas; null for a Zonal Admin */
+  controlAreas: { isPrimary: boolean; areas: string[] } | null;
 }
 
 /** A zone assignment without limits of its own: nothing may be refunded, revealed or exported without approval. */
@@ -154,6 +156,8 @@ export class AuthService {
         sms: SmsProvider;
         breaker: SmsCircuitBreaker;
       };
+      /** D178: the access module's Control Panel areas of a Super Admin (GET /me) */
+      controlAreas?: (userId: string) => Promise<{ isPrimary: boolean; areas: string[] } | null>;
     },
   ) {}
 
@@ -741,6 +745,12 @@ export class AuthService {
         : { global: false, zones: await this.meZones(ctx) },
       zoneScope: await this.zoneScope(ctx),
       mfa: await this.mfaState(user),
+      controlAreas:
+        ctx.isSuperAdmin && this.deps.controlAreas
+          ? await this.deps.controlAreas(user.id)
+          : ctx.isSuperAdmin
+            ? { isPrimary: false, areas: [] } // fail closed when not wired
+            : null,
     };
   }
 

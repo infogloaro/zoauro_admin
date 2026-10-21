@@ -1534,6 +1534,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/control-areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller’s Control Panel areas: {isPrimary, areas[]} for a Super Admin (every key for a primary), null for a Zonal Admin */
+        get: operations["myControlAreas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/login-history": {
         parameters: {
             query?: never;
@@ -2735,6 +2752,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/super-admins/{id}/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Primary only (STRONG): the complete set of a non-primary Super Admin’s areas, with a reason; audited; the member and the actor are emailed. A primary holds every area (422 PRIMARY_HOLDS_ALL) */
+        put: operations["putSuperAdminAreas"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/super-admins/{id}/primary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Primary only (STRONG): promote or demote a Super Admin, with a reason; the last active primary cannot be demoted (409 LAST_PRIMARY) */
+        post: operations["setSuperAdminPrimary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/super-admins/{id}/status": {
         parameters: {
             query?: never;
@@ -2750,6 +2801,23 @@ export interface paths {
         head?: never;
         /** Suspend (every session ends) or reactivate another Super Admin. Oneself 409 SELF; the last active Super Admin 409 LAST_SUPER_ADMIN */
         patch: operations["setSuperAdminStatus"];
+        trace?: never;
+    };
+    "/super-admins/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Control Panel areas a primary can grant, in display order (zones, access, exports, audit, settings.<group>) */
+        get: operations["listControlAreas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/support/tickets": {
@@ -13751,6 +13819,10 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        controlAreas?: {
+                            areas: string[];
+                            isPrimary: boolean;
+                        } | null;
                         csrfToken: string;
                         mfa: {
                             enabled: boolean;
@@ -14113,6 +14185,49 @@ export interface operations {
             };
             /** @description Invalid input */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    myControlAreas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description My areas */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        controlAreas: {
+                            areas: string[];
+                            isPrimary: boolean;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The first-login password change is still pending */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -22262,11 +22377,13 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: {
+                            areas: string[];
                             /** Format: date-time */
                             createdAt: string;
                             email: string;
                             /** Format: uuid */
                             id: string;
+                            isPrimary: boolean;
                             isSelf: boolean;
                             /** Format: date-time */
                             lastLoginAt: string | null;
@@ -22322,6 +22439,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @default [] */
+                    areas?: string[];
                     email: string;
                     name: string;
                     phone?: string;
@@ -22338,11 +22457,13 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        areas: string[];
                         /** Format: date-time */
                         createdAt: string;
                         email: string;
                         /** Format: uuid */
                         id: string;
+                        isPrimary: boolean;
                         isSelf: boolean;
                         /** Format: date-time */
                         lastLoginAt: string | null;
@@ -22473,7 +22594,7 @@ export interface operations {
             };
         };
     };
-    setSuperAdminStatus: {
+    putSuperAdminAreas: {
         parameters: {
             query?: never;
             header?: never;
@@ -22485,9 +22606,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    areas: string[];
                     reason: string;
-                    /** @enum {string} */
-                    status: "ACTIVE" | "SUSPENDED";
                 };
             };
         };
@@ -22499,11 +22619,95 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        areas: string[];
                         /** Format: date-time */
                         createdAt: string;
                         email: string;
                         /** Format: uuid */
                         id: string;
+                        isPrimary: boolean;
+                        isSelf: boolean;
+                        /** Format: date-time */
+                        lastLoginAt: string | null;
+                        mfaEnabled: boolean;
+                        mustChangePassword: boolean;
+                        name: string;
+                        phone: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "SUSPENDED";
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    setSuperAdminPrimary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    primary: boolean;
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        areas: string[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string;
+                        /** Format: uuid */
+                        id: string;
+                        isPrimary: boolean;
                         isSelf: boolean;
                         /** Format: date-time */
                         lastLoginAt: string | null;
@@ -22554,6 +22758,151 @@ export interface operations {
             };
             /** @description Invalid input */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    setSuperAdminStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    /** @enum {string} */
+                    status: "ACTIVE" | "SUSPENDED";
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        areas: string[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        email: string;
+                        /** Format: uuid */
+                        id: string;
+                        isPrimary: boolean;
+                        isSelf: boolean;
+                        /** Format: date-time */
+                        lastLoginAt: string | null;
+                        mfaEnabled: boolean;
+                        mustChangePassword: boolean;
+                        name: string;
+                        phone: string | null;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "SUSPENDED";
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listControlAreas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Areas */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            description: string;
+                            key: string;
+                            label: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

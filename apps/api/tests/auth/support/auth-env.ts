@@ -16,6 +16,7 @@ import { RedisRateLimiter } from '../../../src/lib/rate-limiter';
 import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
 import {
   createAccessModule,
+  createControlAreas,
   createAccessService,
   createZoneTeamPort,
   type AccessMailer,
@@ -263,6 +264,7 @@ export async function createAuthTestEnv() {
       ...(extra.onDeniedFailure ? { onDeniedFailure: extra.onDeniedFailure } : {}),
     });
     const auth = createAuthModule({
+      controlAreas: (userId) => controlAreas.of(userId), // D178: GET /me
       prisma,
       redis: appRedis,
       audit,
@@ -277,7 +279,10 @@ export async function createAuthTestEnv() {
       clock: clock.now,
     });
     // as server.ts: settings first, its reader feeds the zone refund caps (D110) to the access context and editor
+    // D178: the Control Panel areas of non-primary Super Admins (settings, zones and access routes)
+    const controlAreas = createControlAreas(prisma);
     const settings = createSettingsModule({
+      requireArea: (area) => controlAreas.require(area), // D178
       prisma,
       appOrigin: APP_ORIGIN,
       requireReauth: auth.requireReauth,
@@ -299,6 +304,7 @@ export async function createAuthTestEnv() {
     const ok = async (): Promise<void> => undefined;
     // the real module routers, as server.ts mounts them
     const zones = createZonesModule({
+      requireArea: (area) => controlAreas.require(area), // D178
       // D165: the Super Admin's delivery charge cap
       deliveryChargeCap: () => settings.reader.deliveryChargeCapPaise(),
       prisma: extra.zones?.prisma ?? prisma,
@@ -314,6 +320,7 @@ export async function createAuthTestEnv() {
       ...(extra.zones?.cache ? { cache: extra.zones.cache } : {}),
     });
     const accessControl = createAccessModule({
+      areas: controlAreas, // D178
       prisma,
       access,
       appOrigin: APP_ORIGIN,
@@ -556,6 +563,8 @@ export async function createAuthTestEnv() {
       /** default true: a confirmed authenticator (as after enrolment), so sign-in takes a real second step */
       mfa?: boolean;
       emailPrefix?: string;
+      /** D178: a Super Admin is primary unless false (holds every Control Panel area) */
+      primary?: boolean;
     } = {},
   ): Promise<TestUser> {
     counter += 1;
@@ -563,8 +572,8 @@ export async function createAuthTestEnv() {
     const email = `${opts.emailPrefix ?? 'user'}${counter}-${randomBytes(3).toString('hex')}@example.test`;
     const name = `Test ${role} ${counter}`;
     await db.owner.query(
-      `INSERT INTO users (id, name, email, password_hash, role_id, status, mfa_enabled, must_change_password, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())`,
+      `INSERT INTO users (id, name, email, password_hash, role_id, status, mfa_enabled, must_change_password, is_primary, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())`,
       [
         id,
         name,
@@ -574,6 +583,7 @@ export async function createAuthTestEnv() {
         opts.status ?? 'ACTIVE',
         opts.mfa ?? true,
         opts.mustChangePassword ?? false,
+        role === 'SUPER_ADMIN' && opts.primary !== false,
       ],
     );
     if (opts.mfa === false) return { id, email, name, role };

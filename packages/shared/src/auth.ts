@@ -131,6 +131,15 @@ export const meResponseSchema = z.object({
     required: z.boolean(),
     enrolmentNeeded: z.boolean(),
   }),
+  /**
+   * D178: a Super Admin's Control Panel areas ({isPrimary, areas}; a primary holds every area), null for a Zonal Admin.
+   * The screens hide what is not granted; the server refuses it anyway (403 AREA_NOT_GRANTED / PRIMARY_ONLY).
+   * Optional in the type (additive); always sent by the API.
+   */
+  controlAreas: z
+    .object({ isPrimary: z.boolean(), areas: z.array(z.string()) })
+    .nullable()
+    .optional(),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
 
