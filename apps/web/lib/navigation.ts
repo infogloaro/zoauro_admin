@@ -455,20 +455,18 @@ export const NAV_MODULES: readonly NavModule[] = [
   {
     id: 'M20-OFF',
     slug: 'offers-loyalty',
-    label: 'Offers & Loyalty',
+    // reward points already work (D169: each customer's page, values in Platform Settings > Reward points); only
+    // offers and coupons are still to come, so the entry no longer reads as if loyalty were unbuilt
+    label: 'Offers & Coupons',
     group: 'engagement',
     icon: 'gift',
-    description: 'Coupons, loyalty points and rewards (Phase 2 roadmap only).',
+    description:
+      'Offers and coupons (Phase 2 roadmap). Reward points are live: on each customer’s page, with their values in Platform Settings.',
     status: 'coming-soon',
     blueprint: {
       phase: 'Phase 2',
       roadmap: ['R22', 'R23'],
-      screens: [
-        'Loyalty profile in customer detail',
-        'Coupon builder',
-        'Earning and redemption rules',
-        'Campaign analytics',
-      ],
+      screens: ['Coupon builder', 'Offer review and approval', 'Campaign analytics'],
       rules: [
         'A points ledger, never an editable balance',
         'Nothing of Phase 2 is shown as working functionality in Phase 1',
