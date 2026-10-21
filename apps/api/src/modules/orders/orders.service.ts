@@ -214,11 +214,18 @@ export class OrdersService {
        * transaction, idempotent per order; nothing when loyalty is off, D101). A failure never undoes the delivery.
        */
       onDelivered?: (orderId: string) => Promise<unknown>;
+      /** D179 section 3: ids of the caller's delayed open orders (GET /orders?delayed=true) */
+      delayedIds?: (ctx: AuthContext) => Promise<string[]>;
     },
   ) {}
 
   async list(ctx: AuthContext, q: OrderListQuery): Promise<OrderListResponse> {
-    const { rows, total } = await this.deps.db.repo.list(ctx, q);
+    const ids = q.delayed && this.deps.delayedIds ? await this.deps.delayedIds(ctx) : null;
+    const { rows, total } = await this.deps.db.repo.list(
+      ctx,
+      q,
+      ids === null ? undefined : { id: { in: ids } },
+    );
     return buildPage(rows.map(toListItem), total, q);
   }
 

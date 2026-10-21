@@ -175,6 +175,10 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         setDiningReservationStatus: { ownObject: true },
         // D167: the placeholder order is not a pre-order, so the reschedule of it is 404 for whoever passes the guard
         rescheduleOrder: { ownObject: true },
+        // D179 section 3: the overview names the zones it covers ('ALL' for a Super Admin without ?zoneId)
+        getOrderOverview: {
+          listedZones: (body) => (body as { zones: string[] | 'ALL' }).zones,
+        },
         // D170 onboarding queue: one PENDING restaurant per zone A, B, C (fixtures); the actions use the zone A
         // placeholder records (scope and rules per actor: tests/onboarding/onboarding-api.test.ts)
         listOnboarding: { listedZones: vendorZones },
@@ -265,7 +269,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 2 payments and 8 refunds (D159, D180, D187)
     // + 4 Control Panel area routes (D178)
     // + 7 onboarding queue (D170)
-    expect(report.coveredRoutes).toHaveLength(240);
+    // + 1 order overview (D179)
+    expect(report.coveredRoutes).toHaveLength(241);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

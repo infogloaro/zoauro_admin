@@ -92,6 +92,11 @@ export const orderListQuerySchema = z
       (v) => (v === 'true' ? true : v === 'false' ? false : v),
       z.boolean().optional(),
     ),
+    /** D179 section 3: true = open orders past their orders.sla threshold (Order overview drill-down) */
+    delayed: z.preprocess(
+      (v) => (v === 'true' ? true : v === 'false' ? false : v),
+      z.boolean().optional(),
+    ),
   })
   .refine((v) => !v.from || !v.to || v.from <= v.to, {
     message: 'from must be before to',

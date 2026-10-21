@@ -2321,6 +2321,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/orders/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Order overview (D179 section 3) for the zones the caller views (?zoneId repeatable): open and delayed orders per status (orders.sla), READY unassigned past the threshold, pre-orders due within 2 h; over the range: cancellations (rate, top reasons), average accept/prepare/deliver minutes, payment mix; GMV/AOV only with payments:view (D182 O2). Drill-down: GET /orders?delayed=true */
+        get: operations["getOrderOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/payments": {
         parameters: {
             query?: never;
@@ -18139,6 +18156,7 @@ export interface operations {
         parameters: {
             query?: {
                 customerId?: string;
+                delayed?: boolean;
                 deliveryPartnerId?: string;
                 from?: string;
                 homemakerId?: string;
@@ -18999,6 +19017,123 @@ export interface operations {
             };
             /** @description Too many requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getOrderOverview: {
+        parameters: {
+            query?: {
+                range?: "24h" | "7d" | "30d";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The overview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        avgMinutes: {
+                            accept: number | null;
+                            deliver: number | null;
+                            prepare: number | null;
+                        };
+                        cancellations: {
+                            count: number;
+                            rate: number | null;
+                            topReasons: {
+                                count: number;
+                                reason: string;
+                            }[];
+                        };
+                        delayed: {
+                            ACCEPTED: number;
+                            ASSIGNED: number;
+                            OUT_FOR_DELIVERY: number;
+                            PLACED: number;
+                            PREPARING: number;
+                            READY: number;
+                        };
+                        delayedTotal: number;
+                        money: {
+                            aov: number | null;
+                            delivered: number;
+                            gmv: number;
+                        } | null;
+                        open: {
+                            ACCEPTED: number;
+                            ASSIGNED: number;
+                            OUT_FOR_DELIVERY: number;
+                            PLACED: number;
+                            PREPARING: number;
+                            READY: number;
+                        };
+                        paymentMix: {
+                            COD: number;
+                            ONLINE: number;
+                            WALLET: number;
+                        };
+                        preordersDueSoon: number;
+                        range: {
+                            /** Format: date-time */
+                            from: string;
+                            /** @enum {string} */
+                            key: "24h" | "7d" | "30d";
+                            /** Format: date-time */
+                            to: string;
+                        };
+                        readyUnassigned: number;
+                        sla: {
+                            acceptMinutes: number;
+                            assignedToPickupMinutes: number;
+                            outForDeliveryMinutes: number;
+                            prepareMinutes: number;
+                            readyToAssignMinutes: number;
+                        };
+                        zones: "ALL" | string[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

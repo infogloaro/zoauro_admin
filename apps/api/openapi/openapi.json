@@ -19109,6 +19109,14 @@
             "required": false,
             "name": "scheduled",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "required": false,
+            "name": "delayed",
+            "in": "query"
           }
         ],
         "responses": {
@@ -46237,6 +46245,387 @@
         "x-audit": {
           "module": "hotels",
           "action": "room_booking.created"
+        }
+      }
+    },
+    "/orders/overview": {
+      "get": {
+        "operationId": "getOrderOverview",
+        "tags": [
+          "orders"
+        ],
+        "summary": "Order overview (D179 section 3) for the zones the caller views (?zoneId repeatable): open and delayed orders per status (orders.sla), READY unassigned past the threshold, pre-orders due within 2 h; over the range: cancellations (rate, top reasons), average accept/prepare/deliver minutes, payment mix; GMV/AOV only with payments:view (D182 O2). Drill-down: GET /orders?delayed=true",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "24h",
+                "7d",
+                "30d"
+              ],
+              "default": "24h"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zones": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "ALL"
+                          ]
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      ]
+                    },
+                    "range": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "enum": [
+                            "24h",
+                            "7d",
+                            "30d"
+                          ]
+                        },
+                        "from": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "to": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "from",
+                        "to"
+                      ]
+                    },
+                    "sla": {
+                      "type": "object",
+                      "properties": {
+                        "acceptMinutes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "prepareMinutes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "readyToAssignMinutes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "assignedToPickupMinutes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "outForDeliveryMinutes": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "acceptMinutes",
+                        "prepareMinutes",
+                        "readyToAssignMinutes",
+                        "assignedToPickupMinutes",
+                        "outForDeliveryMinutes"
+                      ]
+                    },
+                    "open": {
+                      "type": "object",
+                      "properties": {
+                        "PLACED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "ACCEPTED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "PREPARING": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "READY": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "ASSIGNED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "OUT_FOR_DELIVERY": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "PLACED",
+                        "ACCEPTED",
+                        "PREPARING",
+                        "READY",
+                        "ASSIGNED",
+                        "OUT_FOR_DELIVERY"
+                      ]
+                    },
+                    "delayed": {
+                      "type": "object",
+                      "properties": {
+                        "PLACED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "ACCEPTED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "PREPARING": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "READY": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "ASSIGNED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "OUT_FOR_DELIVERY": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "PLACED",
+                        "ACCEPTED",
+                        "PREPARING",
+                        "READY",
+                        "ASSIGNED",
+                        "OUT_FOR_DELIVERY"
+                      ]
+                    },
+                    "delayedTotal": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "readyUnassigned": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "preordersDueSoon": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "cancellations": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "rate": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "topReasons": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "reason": {
+                                "type": "string"
+                              },
+                              "count": {
+                                "type": "integer",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "reason",
+                              "count"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "rate",
+                        "topReasons"
+                      ]
+                    },
+                    "avgMinutes": {
+                      "type": "object",
+                      "properties": {
+                        "accept": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "prepare": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "deliver": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "accept",
+                        "prepare",
+                        "deliver"
+                      ]
+                    },
+                    "paymentMix": {
+                      "type": "object",
+                      "properties": {
+                        "COD": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "ONLINE": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "WALLET": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "COD",
+                        "ONLINE",
+                        "WALLET"
+                      ]
+                    },
+                    "money": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "gmv": {
+                          "type": "integer"
+                        },
+                        "aov": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "delivered": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "gmv",
+                        "aov",
+                        "delivered"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "zones",
+                    "range",
+                    "sla",
+                    "open",
+                    "delayed",
+                    "delayedTotal",
+                    "readyUnassigned",
+                    "preordersDueSoon",
+                    "cancellations",
+                    "avgMinutes",
+                    "paymentMix",
+                    "money"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "orders:view",
+          "zone": "query"
         }
       }
     },

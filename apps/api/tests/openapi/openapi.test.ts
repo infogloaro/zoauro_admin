@@ -237,6 +237,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /orders/{id}/cancel',
         'POST /orders/{id}/assign',
         'POST /orders/{id}/reschedule',
+        'GET /orders/overview',
         // D170 onboarding queue
         'GET /onboarding',
         'POST /restaurants/{id}/onboarding/review',

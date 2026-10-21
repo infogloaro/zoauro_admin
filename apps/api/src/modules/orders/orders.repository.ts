@@ -165,8 +165,11 @@ export class OrdersRepository extends BaseRepository<Prisma.OrderWhereInput, Ord
   async list(
     ctx: AuthContext,
     q: OrderListQuery,
+    /** an extra condition from the service (GET /orders?delayed=true: the delayed ids) */
+    extra?: Prisma.OrderWhereInput,
   ): Promise<{ rows: OrderListRow[]; total: number }> {
-    const where = this.scope(ctx, this.viewPermission, listWhere(q));
+    const base = listWhere(q);
+    const where = this.scope(ctx, this.viewPermission, extra ? { AND: [base, extra] } : base);
     if (where === null) return { rows: [], total: 0 };
     const direction = q.sort.direction;
     const field = SORT_COLUMN[q.sort.field as keyof typeof SORT_COLUMN];

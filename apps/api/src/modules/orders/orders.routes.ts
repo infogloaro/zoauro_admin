@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import { auditMeta } from '../../lib/audit';
 import { originCheck, requireCsrf, requireJsonBody } from '../../lib/auth/middleware';
 import { requirePermission } from '../../lib/authz';
@@ -12,7 +12,10 @@ type Controller = ReturnType<typeof createOrdersController>;
  * somewhere (here) and on the order's own zone (the service: 404 outside view scope, 403 without the action). Mutations:
  * Origin check, session CSRF, JSON body, `If-Match: <version>`.
  */
-export function createOrdersRoutes(c: Controller, opts: { appOrigin: string }): Router {
+export function createOrdersRoutes(
+  c: Controller,
+  opts: { appOrigin: string; overview?: RequestHandler },
+): Router {
   const router = Router();
   const write = (action: 'edit' | 'status') => [
     originCheck(opts.appOrigin),
@@ -22,6 +25,9 @@ export function createOrdersRoutes(c: Controller, opts: { appOrigin: string }): 
   ];
 
   router.get('/orders', requirePermission('orders', 'view'), c.list);
+  // D179 section 3: before /orders/:id
+  if (opts.overview)
+    router.get('/orders/overview', requirePermission('orders', 'view'), opts.overview);
   router.get('/orders/:id', requirePermission('orders', 'view'), c.detail);
   router.post(
     '/orders/:id/transition',
