@@ -530,3 +530,51 @@ describe('scope: SuperAdmin, Admin(A), Admin(A+B read-only B), Admin(none)', () 
     expect((await client(adminNone, app).get('/payments')).body.data).toEqual([]);
   });
 });
+
+describe('refund options (the Request-refund dialog)', () => {
+  it('the zone’s reasons and targets, the refundable balance and the caller’s own limits; scoped like the order', async () => {
+    const { orderId } = await paidOrder(zoneA, 90_000, { method: 'COD' });
+    const first = await ask(adminA, orderId, {
+      amountPaise: 20_000,
+      reasonCode: 'GOODWILL',
+      target: 'WALLET',
+    });
+    expect(first.body.status).toBe('PROCESSED');
+    const r = await client(adminA, app).get(`/orders/${orderId}/refund-options`);
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    expect(r.body).toMatchObject({
+      orderId,
+      zoneId: zoneA,
+      paymentMethod: 'COD',
+      targets: ['WALLET', 'UPI'],
+      paidPaise: 90_000,
+      refundedPaise: 20_000,
+      maxRefundablePaise: 70_000,
+      memberLimits: {
+        perRefundPaise: 50_000,
+        dailyLimitPaise: 80_000,
+        // today: ₹300 (the first wallet refund) + ₹200 here
+        dailyRemainingPaise: 30_000,
+        secondApproverAbovePaise: 1_000_000,
+      },
+    });
+    expect(r.body.reasons).toContainEqual({
+      code: 'MISSING_ITEM',
+      label: 'Missing item',
+      bearer: 'VENDOR',
+    });
+    const asSuperAdmin = await client(sa2, app).get(`/orders/${orderId}/refund-options`);
+    expect(asSuperAdmin.body.memberLimits).toMatchObject({
+      perRefundPaise: 1_000_00,
+      dailyLimitPaise: 5_000_00,
+    });
+
+    const b = await paidOrder(zoneB, 30_000);
+    const opts = (s: Signed) => client(s, app).get(`/orders/${b.orderId}/refund-options`);
+    expect((await opts(sa1)).status).toBe(200);
+    expect((await opts(adminA)).status).toBe(404);
+    expect((await opts(adminAB)).status).toBe(403);
+    expect((await opts(adminNone)).status).toBe(403);
+    expect((await opts(sa1)).body.targets).toEqual(['SOURCE', 'WALLET']);
+  });
+});

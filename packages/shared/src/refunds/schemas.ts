@@ -194,6 +194,33 @@ export const refundDetailSchema = refundRowSchema.extend({
 });
 export type RefundDetail = z.infer<typeof refundDetailSchema>;
 
+/**
+ * GET /orders/{id}/refund-options: what the Request-refund dialog may offer for this order (Zonal Admins cannot read
+ * settings): the zone's reasons with who bears them, the targets allowed for the payment method, the refundable balance
+ * and the caller's own limits in the order's zone (above them the refund waits for a Super Admin, D187).
+ */
+export const refundOptionsSchema = z.object({
+  orderId: z.uuid(),
+  zoneId: z.uuid(),
+  paymentMethod: z.enum(['ONLINE', 'COD', 'WALLET']),
+  reasons: z.array(
+    z.object({ code: z.string(), label: z.string(), bearer: z.enum(REFUND_FAULTS) }),
+  ),
+  targets: z.array(z.enum(REFUND_TARGET_CHOICES)),
+  paidPaise: z.number().int(),
+  /** requested, waiting, approved and processed refunds of the order */
+  refundedPaise: z.number().int(),
+  maxRefundablePaise: z.number().int(),
+  memberLimits: z.object({
+    perRefundPaise: z.number().int(),
+    dailyLimitPaise: z.number().int(),
+    dailyRemainingPaise: z.number().int(),
+    /** above this a second, different Super Admin approves too (D95) */
+    secondApproverAbovePaise: z.number().int(),
+  }),
+});
+export type RefundOptions = z.infer<typeof refundOptionsSchema>;
+
 /** Pure: the vendor's share of a vendor-fault refund (D180), rounded to the paisa. */
 export function vendorShareOf(amountPaise: number, fault: RefundFault, sharePct: number): number {
   if (fault !== 'VENDOR') return 0;

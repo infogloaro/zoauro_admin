@@ -56802,6 +56802,187 @@
         }
       }
     },
+    "/orders/{id}/refund-options": {
+      "get": {
+        "operationId": "getRefundOptions",
+        "tags": [
+          "refunds"
+        ],
+        "summary": "What the Request-refund dialog may offer on this order: the zone’s reasons with who bears them, the targets for its payment method, the refundable balance and the caller’s own limits there (above them the refund waits for a Super Admin, D187). 404 outside the caller’s zones",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The options",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zoneId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "paymentMethod": {
+                      "type": "string",
+                      "enum": [
+                        "ONLINE",
+                        "COD",
+                        "WALLET"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "bearer": {
+                            "type": "string",
+                            "enum": [
+                              "VENDOR",
+                              "PLATFORM",
+                              "CUSTOMER"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "label",
+                          "bearer"
+                        ]
+                      }
+                    },
+                    "targets": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE",
+                          "WALLET",
+                          "UPI"
+                        ]
+                      }
+                    },
+                    "paidPaise": {
+                      "type": "integer"
+                    },
+                    "refundedPaise": {
+                      "type": "integer"
+                    },
+                    "maxRefundablePaise": {
+                      "type": "integer"
+                    },
+                    "memberLimits": {
+                      "type": "object",
+                      "properties": {
+                        "perRefundPaise": {
+                          "type": "integer"
+                        },
+                        "dailyLimitPaise": {
+                          "type": "integer"
+                        },
+                        "dailyRemainingPaise": {
+                          "type": "integer"
+                        },
+                        "secondApproverAbovePaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "perRefundPaise",
+                        "dailyLimitPaise",
+                        "dailyRemainingPaise",
+                        "secondApproverAbovePaise"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "orderId",
+                    "zoneId",
+                    "paymentMethod",
+                    "reasons",
+                    "targets",
+                    "paidPaise",
+                    "refundedPaise",
+                    "maxRefundablePaise",
+                    "memberLimits"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "refunds:add",
+          "zone": "none"
+        }
+      }
+    },
     "/refunds": {
       "get": {
         "operationId": "listRefunds",

@@ -250,6 +250,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'GET /payments',
         'GET /payments/{id}',
         'POST /orders/{id}/refunds',
+        'GET /orders/{id}/refund-options',
         'GET /refunds',
         'GET /refunds/{id}',
         'POST /refunds/{id}/decide',

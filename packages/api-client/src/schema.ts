@@ -2253,6 +2253,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/orders/{id}/refund-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the Request-refund dialog may offer on this order: the zone’s reasons with who bears them, the targets for its payment method, the refundable balance and the caller’s own limits there (above them the refund waits for a Super Admin, D187). 404 outside the caller’s zones */
+        get: operations["getRefundOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/orders/{id}/refunds": {
         parameters: {
             query?: never;
@@ -18573,6 +18590,87 @@ export interface operations {
                 };
             };
             /** @description A reason is required; Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getRefundOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The options */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        maxRefundablePaise: number;
+                        memberLimits: {
+                            dailyLimitPaise: number;
+                            dailyRemainingPaise: number;
+                            perRefundPaise: number;
+                            secondApproverAbovePaise: number;
+                        };
+                        /** Format: uuid */
+                        orderId: string;
+                        paidPaise: number;
+                        /** @enum {string} */
+                        paymentMethod: "ONLINE" | "COD" | "WALLET";
+                        reasons: {
+                            /** @enum {string} */
+                            bearer: "VENDOR" | "PLATFORM" | "CUSTOMER";
+                            code: string;
+                            label: string;
+                        }[];
+                        refundedPaise: number;
+                        targets: ("SOURCE" | "WALLET" | "UPI")[];
+                        /** Format: uuid */
+                        zoneId: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
             422: {
                 headers: {
                     [name: string]: unknown;

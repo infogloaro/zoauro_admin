@@ -7,6 +7,7 @@ import {
   type RefundDetail,
   type RefundListQuery,
   type RefundListResponse,
+  type RefundOptions,
   type RefundRecordPaymentInput,
   type RefundRejectInput,
   type RefundRow,
@@ -102,6 +103,50 @@ export class RefundsService {
     const r = await this.deps.db.repo.find(scopeOf(ctx), id);
     if (!r) throw notFound();
     return this.toDetail(r);
+  }
+
+  /** GET /orders/{id}/refund-options: what the caller may offer on this order (D187; Zonal Admins cannot read settings). */
+  async options(ctx: AuthContext, orderId: string): Promise<RefundOptions> {
+    const order = await this.deps.db.repo.order(orderId);
+    if (!order) throw notFound();
+    assertCanWrite(ctx, 'refunds:add', order.zoneId);
+    const [rules, caps, refunded] = await Promise.all([
+      this.deps.rules(order.zoneId),
+      this.deps.caps(order.zoneId),
+      this.deps.db.repo.activeSum(order.id),
+    ]);
+    const day = istDay(this.deps.clock());
+    let perRefund = caps.perRefundPaise;
+    let daily = caps.perDayPaise;
+    let used = 0;
+    if (ctx.isSuperAdmin) {
+      used = await this.deps.db.repo.superAdminUsedToday(
+        ctx.userId,
+        new Date(day.getTime() - IST_MS),
+      );
+    } else {
+      const limits = ctx.limitsByZone.get(order.zoneId);
+      perRefund = limits?.perRefund ?? 0;
+      daily = limits?.dailyRefund ?? 0;
+      const assignment = await this.deps.db.repo.assignmentId(ctx.userId, order.zoneId);
+      if (assignment) used = await this.deps.db.repo.usedToday(assignment, day);
+    }
+    return {
+      orderId: order.id,
+      zoneId: order.zoneId,
+      paymentMethod: order.paymentMethod,
+      reasons: rules.reasons.map((r) => ({ code: r.code, label: r.label, bearer: r.bearer })),
+      targets: [...rules.targets[order.paymentMethod]],
+      paidPaise: order.paidPaise,
+      refundedPaise: refunded,
+      maxRefundablePaise: Math.max(0, order.paidPaise - refunded),
+      memberLimits: {
+        perRefundPaise: perRefund,
+        dailyLimitPaise: daily,
+        dailyRemainingPaise: Math.max(0, daily - used),
+        secondApproverAbovePaise: caps.secondApproverAbovePaise,
+      },
+    };
   }
 
   // ---- writes --------------------------------------------------------------------------------------------------------

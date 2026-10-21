@@ -11,6 +11,7 @@ import {
   refundIdParamsSchema,
   refundListQuerySchema,
   refundListResponseSchema,
+  refundOptionsSchema,
   refundRecordPaymentSchema,
   refundRejectSchema,
 } from '@zoauro/shared';
@@ -56,6 +57,18 @@ export const REFUND_OPERATIONS: OperationDef[] = [
     idempotent: true,
     response: { status: 201, schema: refundDetailSchema, description: 'Requested' },
     errors: ['NOT_FOUND', 'CONFLICT'],
+  },
+  {
+    operationId: 'getRefundOptions',
+    method: 'get',
+    path: '/orders/{id}/refund-options',
+    tags: ['refunds'],
+    summary:
+      'What the Request-refund dialog may offer on this order: the zone’s reasons with who bears them, the targets for its payment method, the refundable balance and the caller’s own limits there (above them the refund waits for a Super Admin, D187). 404 outside the caller’s zones',
+    access: { kind: 'permission', permission: 'refunds:add', zone: 'none' },
+    params: orderIdParamsSchema,
+    response: { status: 200, schema: refundOptionsSchema, description: 'The options' },
+    errors: ['NOT_FOUND'],
   },
   {
     operationId: 'listRefunds',

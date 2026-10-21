@@ -58,6 +58,16 @@ export function createRefundsRoutes(
         );
     },
   );
+  // the Request-refund dialog: the zone's reasons and targets, the refundable balance, the caller's own limits
+  router.get(
+    '/orders/:id/refund-options',
+    requirePermission('refunds', 'add'),
+    async (req, res) => {
+      res.json(
+        await service.options(authContextOf(res), parseBody(orderIdParamsSchema, req.params).id),
+      );
+    },
+  );
   router.get('/refunds', requirePermission('refunds', 'view'), async (req, res) => {
     res.json(await service.list(authContextOf(res), parseBody(refundListQuerySchema, req.query)));
   });
