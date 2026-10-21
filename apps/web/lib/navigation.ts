@@ -228,6 +228,18 @@ export const NAV_MODULES: readonly NavModule[] = [
     zonal: { href: '/zone/hotels', permission: 'hotels' },
   },
   {
+    id: 'NEW-PLANS',
+    slug: 'vendor-plans',
+    label: 'Vendor Plans',
+    group: 'services',
+    icon: 'gift',
+    description:
+      'The plans ZOAURO sells to restaurants, Home Food and hotels (price, cycle, trial, features, zones) and the vendors on each (D188).',
+    status: 'live',
+    superAdminHref: '/super-admin/vendor-plans',
+    zonal: { href: '/zone/vendor-plans', permission: 'plans' },
+  },
+  {
     id: 'M08',
     slug: 'menu-items',
     label: 'Menus & Food Items',

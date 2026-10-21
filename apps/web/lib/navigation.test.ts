@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Customers, Support Tickets, Global Search, Payments, Refunds, Vendor Onboarding, Order overview and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Vendor Plans, Customers, Support Tickets, Global Search, Payments, Refunds, Vendor Onboarding, Order overview and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -77,6 +77,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M19-SEC',
       'M20-SUP',
       'NEW-HOTEL',
+      'NEW-PLANS',
       'R01',
       'R09',
       'R12',
@@ -120,6 +121,22 @@ describe('menu by role', () => {
       label: 'Hotels & Bookings',
       href: '/super-admin/hotels',
     });
+    expect(byId['NEW-PLANS']).toMatchObject({
+      status: 'live',
+      label: 'Vendor Plans',
+      href: '/super-admin/vendor-plans',
+    });
+  });
+
+  it('Vendor Plans (D188): a Zonal Admin sees it only with plans:view in some zone', () => {
+    expect(menuFor('ZONAL_ADMIN', [zone('A', ['orders:view'])]).map((m) => m.id)).not.toContain(
+      'NEW-PLANS',
+    );
+    expect(
+      menuFor('ZONAL_ADMIN', [zone('A', ['orders:view']), zone('B', ['plans:view'])]).find(
+        (m) => m.id === 'NEW-PLANS',
+      ),
+    ).toMatchObject({ status: 'live', href: '/zone/vendor-plans' });
   });
 
   it('Zonal Admin: never Zones, Audit, Access, Settings, Integrations, nor Hotels without a hotels grant; modules only where viewable in some zone', () => {
@@ -154,6 +171,7 @@ describe('menu by role', () => {
       'M08',
       'M13',
       'NEW-HOTEL',
+      'NEW-PLANS',
       'R11',
     ])
       expect(ids).not.toContain(hidden);
