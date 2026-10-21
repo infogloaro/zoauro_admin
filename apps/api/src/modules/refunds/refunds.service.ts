@@ -147,6 +147,7 @@ export class RefundsService {
         photoKeys: [],
         requestedBy: ctx.userId,
         decideBy: null,
+        decidedAt: within ? this.deps.clock() : null,
         idempotencyKey: `admin:${ctx.userId}:${idempotencyKey}`,
       });
       if (input.ticketId && !(await tx.repo.linkTicket(input.ticketId, orderId, id)))
@@ -204,6 +205,7 @@ export class RefundsService {
         photoKeys: input.photoKeys ?? [],
         requestedBy: null,
         decideBy: auto ? null : new Date(now.getTime() + rules.decisionTimeLimitMinutes * 60_000),
+        decidedAt: auto ? now : null,
         idempotencyKey: `app:${input.idempotencyKey}`,
       });
       const created = await this.reload(tx, id);

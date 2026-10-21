@@ -170,6 +170,8 @@ export class RefundsRepository {
     photoKeys: string[];
     requestedBy: string | null;
     decideBy: Date | null;
+    /** set when approved at once (within the requester's limits, or auto-approved): D152 deducts in that cycle */
+    decidedAt: Date | null;
     idempotencyKey: string;
   }): Promise<void> {
     await this.db.refund.create({ data: row });
