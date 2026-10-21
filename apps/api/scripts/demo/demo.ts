@@ -110,6 +110,18 @@ function writeDemoEnv(): void {
     lines.push(`${k}=${v}`);
   }
   for (const [k, v] of Object.entries(overrides)) lines.push(`${k}=${v}`);
+  // DEMO_OTP_REDIRECT (the presenters' inboxes for the demo logins' sign-in codes) is typed into .env.demo by hand and
+  // never stored anywhere else: keep it across regenerations, with DEMO_MODE=true and the copies sent through the real
+  // SMTP account of .env (all other demo mail stays in Mailpit).
+  const previous = existsSync(path.join(API_ROOT, '.env.demo'))
+    ? readEnvFile(path.join(API_ROOT, '.env.demo'))
+    : new Map<string, string>();
+  const redirect = previous.get('DEMO_OTP_REDIRECT');
+  if (redirect) {
+    const realSmtp = previous.get('DEMO_OTP_SMTP_URL') ?? env.get('SMTP_URL');
+    lines.push('DEMO_MODE=true', `DEMO_OTP_REDIRECT=${redirect}`);
+    if (realSmtp) lines.push(`DEMO_OTP_SMTP_URL=${realSmtp}`);
+  }
   writeFileSync(path.join(API_ROOT, '.env.demo'), `${lines.join('\n')}\n`);
   console.log(
     `wrote apps/api/.env.demo: ${describe(new URL(overrides.DATABASE_URL ?? ''))}, Redis DB 1, bucket ${DEMO_BUCKET}, mail to Mailpit, API :${DEMO_API_PORT}, web ${DEMO_WEB}`,

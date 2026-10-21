@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseOtpRedirect } from './demo-otp-redirect';
 
 // Validated once at boot (doc 12). Names and meanings are the doc 12 table; do not add variables here without adding them there.
 
@@ -91,6 +92,25 @@ function buildSchema(entry: EntryPoint) {
       ONLINE_PAYMENT_EXPIRY_MIN: z.coerce.number().int().positive().default(15),
       SENTRY_DSN: z.string().min(1).optional(),
       LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+      // DEMO ONLY (lib/demo-otp-redirect.ts): copies of the demo logins' one-time codes to real inboxes. Refused in
+      // production; the redirect needs DEMO_MODE=true and its own SMTP URL. The addresses live only in .env.demo.
+      DEMO_MODE: z
+        .enum(['true', 'false'])
+        .default('false')
+        .transform((v) => v === 'true'),
+      DEMO_OTP_REDIRECT: z
+        .string()
+        .min(1)
+        .transform((v, ctx) => {
+          try {
+            return parseOtpRedirect(v);
+          } catch (e) {
+            ctx.addIssue({ code: 'custom', message: e instanceof Error ? e.message : 'invalid' });
+            return z.NEVER;
+          }
+        })
+        .optional(),
+      DEMO_OTP_SMTP_URL: z.string().min(1).optional(),
       // Seed only.
       INITIAL_SUPERADMIN_EMAIL: z.string().min(1).optional(),
       INITIAL_SUPERADMIN_PASSWORD: z.string().min(1).optional(),
@@ -123,7 +143,33 @@ function buildSchema(entry: EntryPoint) {
             });
         }
       }
+      if (env.DEMO_OTP_REDIRECT !== undefined) {
+        if (!env.DEMO_MODE)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['DEMO_OTP_REDIRECT'],
+            message: 'is a demo-only setting: it needs DEMO_MODE=true',
+          });
+        if (env.DEMO_OTP_SMTP_URL === undefined)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['DEMO_OTP_SMTP_URL'],
+            message: 'is required with DEMO_OTP_REDIRECT',
+          });
+      }
       if (env.NODE_ENV !== 'production') return;
+      if (
+        env.DEMO_MODE ||
+        env.DEMO_OTP_REDIRECT !== undefined ||
+        env.DEMO_OTP_SMTP_URL !== undefined
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['DEMO_MODE'],
+          message:
+            'demo settings (DEMO_MODE, DEMO_OTP_REDIRECT, DEMO_OTP_SMTP_URL) are refused in production',
+        });
+      }
       if (env.SMS_PROVIDER === 'console') {
         ctx.addIssue({
           code: 'custom',

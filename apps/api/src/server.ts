@@ -37,6 +37,7 @@ import { createSecretBox } from './modules/auth/mfa/secret-box';
 import { createIntakeModule } from './modules/intake';
 import { createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
+import { demoCopyFrom, withDemoOtpRedirect } from './lib/demo-otp-redirect';
 import { createS3ExportFileStore } from './lib/exports';
 import { startApiRealtime } from './lib/realtime';
 import { createExportQueue, createExportsModule } from './modules/exports';
@@ -70,6 +71,28 @@ const mailer = env.SMTP_URL
 if (!env.SMTP_URL)
   console.warn('SMTP_URL is not set: auth emails (reset links, notices) are not sent');
 
+// DEMO ONLY (owner, 2026-10-21; lib/demo-otp-redirect.ts): the demo logins' one-time codes are also copied to the
+// presenters' inboxes through DEMO_OTP_SMTP_URL. The env schema refuses it in production and without DEMO_MODE=true.
+const demoOtpFrom = env.DEMO_OTP_SMTP_URL ? demoCopyFrom(env.DEMO_OTP_SMTP_URL) : undefined;
+const authMailer =
+  env.DEMO_MODE && env.DEMO_OTP_REDIRECT && env.DEMO_OTP_SMTP_URL
+    ? withDemoOtpRedirect(
+        createAuthMailer(mailer, { appUrl: env.APP_URL }),
+        createAuthMailer(
+          createSmtpMailer({
+            smtpUrl: env.DEMO_OTP_SMTP_URL,
+            ...(demoOtpFrom ? { from: demoOtpFrom } : {}),
+          }),
+          { appUrl: env.APP_URL },
+        ),
+        env.DEMO_OTP_REDIRECT,
+      )
+    : createAuthMailer(mailer, { appUrl: env.APP_URL });
+if (env.DEMO_MODE && env.DEMO_OTP_REDIRECT)
+  console.warn(
+    `DEMO MODE: sign-in codes of ${env.DEMO_OTP_REDIRECT.size} demo logins are also sent to the presenters' inboxes`,
+  );
+
 // D142: session evictions disconnect that session's sockets; the realtime server starts with the HTTP server below
 const realtimeGate: { sessionsEvicted?: (tokenHashes: string[]) => void } = {};
 
@@ -78,7 +101,7 @@ const auth = createAuthModule({
   prisma,
   redis,
   audit,
-  mailer: createAuthMailer(mailer, { appUrl: env.APP_URL }),
+  mailer: authMailer,
   encryptionKey: env.ENCRYPTION_KEY,
   ...(env.ENCRYPTION_KEY_PREVIOUS ? { encryptionKeyPrevious: env.ENCRYPTION_KEY_PREVIOUS } : {}),
   otpHmacKey: env.OTP_HMAC_KEY,
