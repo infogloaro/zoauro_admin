@@ -305,6 +305,8 @@ export async function createAuthTestEnv() {
       clock: clock.now,
       refundCaps,
       grantSwitches,
+      // D174: settings claims.timing
+      claimTiming: () => settings.reader.claimTiming(),
     });
     // as server.ts: vendors and uploads ask each other (who owns a key; is a key uploaded)
     const uploadsGate: { service?: ReturnType<typeof createUploadsModule>['service'] } = {};

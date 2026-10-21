@@ -126,6 +126,7 @@ import {
   type PermissionKey,
 } from '@zoauro/shared';
 import type { AuditRouteMeta } from '../lib/audit';
+import { CLAIM_OPERATIONS } from './operations.claims';
 import { CUSTOMER_OPERATIONS } from './operations.customers';
 import { REWARD_OPERATIONS } from './operations.rewards';
 import { HOTEL_OPERATIONS } from './operations.hotels';
@@ -1443,6 +1444,8 @@ export const OPERATIONS: OperationDef[] = [
   },
   // M06/M07 vendors and SA-2.1 uploads (operations.vendors.ts)
   ...VENDOR_OPERATIONS,
+  // D174 record claims (operations.claims.ts)
+  ...CLAIM_OPERATIONS,
   ...PARTNER_OPERATIONS,
   // SA-2.4 menu items, categories, bulk and R09 change requests (operations.menu.ts)
   ...MENU_OPERATIONS,

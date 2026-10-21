@@ -10,6 +10,9 @@ import { createAccessAdminRoutes } from './access-admin.routes';
 import { AccessAdminService } from './access-admin.service';
 import { noopAccessMailer, type AccessMailer } from './access.mails';
 import { AccessAdminDatabase } from './admin.repository';
+import { ClaimsPrismaDatabase } from './claims.repository';
+import { registerClaimsRoutes } from './claims.routes';
+import { ClaimsService, type ClaimEvent } from './claims.service';
 import { registerSuperAdminsRoutes } from './super-admins.routes';
 import { SuperAdminsService } from './super-admins.service';
 
@@ -77,7 +80,11 @@ export function createAccessModule(deps: {
   refundCaps?: RefundCapsReader;
   /** D155: the same switches the access service reads */
   grantSwitches?: () => Promise<GrantSwitches>;
-}): { router: Router; service: AccessAdminService } {
+  /** D174: settings claims.timing (absent: 30 min claims, 10 min takeover requests) */
+  claimTiming?: () => Promise<{ ttlMinutes: number; takeoverTimeoutMinutes: number }>;
+  /** D174: realtime / notifications for takeover and override events (optional) */
+  onClaimEvent?: (e: ClaimEvent) => void;
+}): { router: Router; service: AccessAdminService; claims: ClaimsService } {
   const db = new AccessAdminDatabase(deps.prisma);
   const service = new AccessAdminService({
     db,
@@ -101,5 +108,13 @@ export function createAccessModule(deps: {
     }),
     routeOpts,
   );
-  return { router, service };
+  // D174: record claims; `claims.assertNotClaimedByOther` is for the record modules' write services
+  const claims = new ClaimsService({
+    db: new ClaimsPrismaDatabase(deps.prisma),
+    clock: deps.clock ?? (() => new Date()),
+    timing: deps.claimTiming ?? (async () => ({ ttlMinutes: 30, takeoverTimeoutMinutes: 10 })),
+    ...(deps.onClaimEvent ? { onEvent: deps.onClaimEvent } : {}),
+  });
+  registerClaimsRoutes(router, claims, routeOpts);
+  return { router, service, claims };
 }

@@ -81,6 +81,13 @@ export const AUDIT_ACTIONS = {
   'access.request_cancelled': a('access', 'Cancelled access request'),
   'access.request_approved': a('access', 'Approved access request', H),
   'access.request_rejected': a('access', 'Rejected access request'),
+  // D174 record claims
+  'claim.created': a('access', 'Claimed a record'),
+  'claim.released': a('access', 'Released a record claim'),
+  'claim.takeover_requested': a('access', 'Asked to take over a record'),
+  'claim.takeover_approved': a('access', 'Handed over a record'),
+  'claim.takeover_rejected': a('access', 'Refused a record takeover'),
+  'claim.overridden': a('access', 'Overrode a record claim', H),
   'access_profile.created': a('access', 'Created access profile', H),
   'access_profile.updated': a('access', 'Updated access profile', H),
   'access_profile.deleted': a('access', 'Deleted access profile', H),

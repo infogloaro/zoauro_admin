@@ -431,6 +431,143 @@ export interface paths {
         patch: operations["updateCategory"];
         trace?: never;
     };
+    "/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Open claims of records (entityType + entityId, repeatable up to 100) the caller may view; records out of scope are left out */
+        get: operations["lookupClaims"];
+        put?: never;
+        /** Claim a record (needs <module>:edit in its zone): 201 new, 200 when it is already yours (extended). Someone else’s live claim: 409 RECORD_CLAIMED with meta {claimId, claimedBy, expiresAt} */
+        post: operations["createClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/claims/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** The claimer releases the record (a pending takeover request is cancelled) */
+        delete: operations["releaseClaim"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/claims/{id}/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The claimer’s activity: the claim runs another TTL (settings claims.timing) */
+        post: operations["extendClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/claims/{id}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Super Admin: force-release a claim with a reason (PASSWORD re-auth, audited); claim (default true) takes it for the Super Admin */
+        post: operations["overrideClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/claims/{id}/takeover-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the claimer to hand the record over (needs <module>:edit in its zone). One pending request per claim; it expires after claims.timing.takeoverTimeoutMinutes and moves nothing */
+        post: operations["requestClaimTakeover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/claims/{id}/takeover-requests/{requestId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The claimer hands the record over to the requester */
+        post: operations["approveClaimTakeover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/claims/{id}/takeover-requests/{requestId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The claimer keeps the record */
+        post: operations["rejectClaimTakeover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/claims/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller’s open claims ("My reviews") */
+        get: operations["myClaims"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/customers": {
         parameters: {
             query?: never;
@@ -2631,7 +2768,7 @@ export interface components {
         ErrorBody: {
             error: {
                 /** @enum {string} */
-                code: "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "ZONE_NOT_FOUND" | "VALIDATION_ERROR" | "CONFLICT" | "RATE_LIMITED" | "INVALID_STATE_TRANSITION" | "REFUND_LIMIT_EXCEEDED" | "REAUTH_REQUIRED" | "PASSWORD_CHANGE_REQUIRED" | "SMS_NOT_AVAILABLE" | "PHONE_MISSING" | "LAST_METHOD_REQUIRED" | "STALE_VERSION" | "ZONE_NAME_TAKEN" | "ZONE_CODE_TAKEN" | "PINCODE_OVERLAP" | "RANGE_TOO_LARGE" | "CODE_IMMUTABLE" | "ZONE_NOT_ACTIVATABLE" | "IMPACT_CHANGED" | "REASON_REQUIRED" | "ZONE_HAS_HISTORY" | "ZONE_SERVICE_DISABLED" | "SIGNATURE_INVALID" | "TIMESTAMP_SKEW" | "CLIENT_DISABLED" | "SCOPE_DENIED" | "ENTITY_MISMATCH" | "CUSTOMER_BLOCKED" | "UNKNOWN_ENTITY" | "IDEMPOTENCY_CONFLICT" | "IDEMPOTENCY_IN_PROGRESS" | "DUPLICATE_ORDER" | "OFFER_EXPIRED" | "NOT_SERVICEABLE" | "VENDOR_UNAVAILABLE" | "PRICE_MISMATCH" | "ITEM_UNAVAILABLE" | "PARTNER_NOT_ELIGIBLE" | "CATEGORY_IN_USE" | "NO_ROOMS_AVAILABLE" | "SERVICE_UNAVAILABLE" | "INTERNAL";
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "ZONE_NOT_FOUND" | "VALIDATION_ERROR" | "CONFLICT" | "RATE_LIMITED" | "INVALID_STATE_TRANSITION" | "REFUND_LIMIT_EXCEEDED" | "REAUTH_REQUIRED" | "PASSWORD_CHANGE_REQUIRED" | "SMS_NOT_AVAILABLE" | "PHONE_MISSING" | "LAST_METHOD_REQUIRED" | "STALE_VERSION" | "ZONE_NAME_TAKEN" | "ZONE_CODE_TAKEN" | "PINCODE_OVERLAP" | "RANGE_TOO_LARGE" | "CODE_IMMUTABLE" | "ZONE_NOT_ACTIVATABLE" | "IMPACT_CHANGED" | "REASON_REQUIRED" | "ZONE_HAS_HISTORY" | "ZONE_SERVICE_DISABLED" | "SIGNATURE_INVALID" | "TIMESTAMP_SKEW" | "CLIENT_DISABLED" | "SCOPE_DENIED" | "ENTITY_MISMATCH" | "CUSTOMER_BLOCKED" | "UNKNOWN_ENTITY" | "IDEMPOTENCY_CONFLICT" | "IDEMPOTENCY_IN_PROGRESS" | "DUPLICATE_ORDER" | "OFFER_EXPIRED" | "NOT_SERVICEABLE" | "VENDOR_UNAVAILABLE" | "PRICE_MISMATCH" | "ITEM_UNAVAILABLE" | "PARTNER_NOT_ELIGIBLE" | "CATEGORY_IN_USE" | "NO_ROOMS_AVAILABLE" | "RECORD_CLAIMED" | "SERVICE_UNAVAILABLE" | "INTERNAL";
                 details?: {
                     field: string;
                     issue: string;
@@ -5054,6 +5191,783 @@ export interface operations {
             };
             /** @description Invalid input */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    lookupClaims: {
+        parameters: {
+            query: {
+                entityId: string[];
+                entityType: "HOTEL" | "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Open claims */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            claimedAt: string;
+                            claimedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** Format: uuid */
+                            entityId: string;
+                            /** @enum {string} */
+                            entityType: "HOTEL" | "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            isMine: boolean;
+                            pendingTakeover: {
+                                /** Format: date-time */
+                                expiresAt: string;
+                                /** Format: uuid */
+                                id: string;
+                                reason: string;
+                                requestedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                };
+                            } | null;
+                            /** Format: uuid */
+                            zoneId: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    entityId: string;
+                    /** @enum {string} */
+                    entityType: "HOTEL" | "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                };
+            };
+        };
+        responses: {
+            /** @description Claimed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        claimedAt: string;
+                        claimedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        entityId: string;
+                        /** @enum {string} */
+                        entityType: "HOTEL" | "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        /** Format: date-time */
+                        expiresAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        isMine: boolean;
+                        pendingTakeover: {
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            reason: string;
+                            requestedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        } | null;
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Another admin is working on this record (D174); meta names the claimer and the expiry */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    releaseClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Released */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    extendClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Extended */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        claimedAt: string;
+                        claimedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        entityId: string;
+                        /** @enum {string} */
+                        entityType: "HOTEL" | "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        /** Format: date-time */
+                        expiresAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        isMine: boolean;
+                        pendingTakeover: {
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            reason: string;
+                            requestedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        } | null;
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    overrideClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default true */
+                    claim?: boolean;
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Overridden */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        claimedAt: string;
+                        claimedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        entityId: string;
+                        /** @enum {string} */
+                        entityType: "HOTEL" | "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        /** Format: date-time */
+                        expiresAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        isMine: boolean;
+                        pendingTakeover: {
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            reason: string;
+                            requestedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        } | null;
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    } | null;
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    requestClaimTakeover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Requested */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        claimId: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        reason: string;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** @enum {string} */
+                        status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "CANCELLED";
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    approveClaimTakeover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requester’s claim */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        claimedAt: string;
+                        claimedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        entityId: string;
+                        /** @enum {string} */
+                        entityType: "HOTEL" | "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        /** Format: date-time */
+                        expiresAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        isMine: boolean;
+                        pendingTakeover: {
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            reason: string;
+                            requestedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        } | null;
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    } | null;
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rejectClaimTakeover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The claim, still the caller’s */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        claimedAt: string;
+                        claimedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        entityId: string;
+                        /** @enum {string} */
+                        entityType: "HOTEL" | "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        /** Format: date-time */
+                        expiresAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        isMine: boolean;
+                        pendingTakeover: {
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            reason: string;
+                            requestedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        } | null;
+                        /** Format: uuid */
+                        zoneId: string | null;
+                    } | null;
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin); The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    myClaims: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description My claims */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            claimedAt: string;
+                            claimedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** Format: uuid */
+                            entityId: string;
+                            /** @enum {string} */
+                            entityType: "HOTEL" | "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            isMine: boolean;
+                            pendingTakeover: {
+                                /** Format: date-time */
+                                expiresAt: string;
+                                /** Format: uuid */
+                                id: string;
+                                reason: string;
+                                requestedBy: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                };
+                            } | null;
+                            /** Format: uuid */
+                            zoneId: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The first-login password change is still pending */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -109,6 +109,8 @@ const accessControl = createAccessModule({
   mailer: createAccessMailer(mailer, { appUrl: env.APP_URL }),
   refundCaps,
   grantSwitches,
+  // D174: settings claims.timing
+  claimTiming: () => settings.reader.claimTiming(),
 });
 
 // M06/M07 vendors and SA-2.1 uploads (D117-D123): private documents in S3 (MinIO locally). Uploads asks the vendors

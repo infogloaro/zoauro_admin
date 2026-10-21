@@ -65,6 +65,13 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         revokeOtherSessions: { invalidatesSessions: true },
         // the caller's own access requests: the placeholder request is never theirs (tests/access/requests.test.ts)
         cancelAccessRequest: { ownObject: true },
+        // D174: the placeholder claim is never the caller's (claimer-only routes answer 404; tests/access/claims.test.ts)
+        extendClaim: { ownObject: true },
+        releaseClaim: { ownObject: true },
+        requestClaimTakeover: { ownObject: true },
+        approveClaimTakeover: { ownObject: true },
+        rejectClaimTakeover: { ownObject: true },
+        overrideClaim: { ownObject: true },
         // one fixture order per zone A, B, C (C is nobody's): all three = everything; any leak to a Zonal Admin shows C
         listOrders: {
           listedZones: (body) => {
@@ -193,7 +200,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 16 hotels, room bookings and dining reservations (D118)
     // + 4 Super Admins (D148)
     // + 1 pre-order reschedule (D167)
-    expect(report.coveredRoutes).toHaveLength(192);
+    // + 9 record claims (D174)
+    expect(report.coveredRoutes).toHaveLength(201);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,
