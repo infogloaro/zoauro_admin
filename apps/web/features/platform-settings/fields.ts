@@ -214,6 +214,17 @@ export const KEY_SPECS: Record<string, KeySpec> = {
       },
     ],
   },
+  // D173 (50bf799): at or above this much cash in hand a partner takes no new cash-on-delivery orders until settled
+  'delivery.codLimitPaise': {
+    fields: [
+      {
+        path: 'limitPaise',
+        label: 'Cash a partner may hold',
+        kind: 'money',
+        hint: 'At or above it: no new cash-on-delivery orders until the cash is handed in',
+      },
+    ],
+  },
   'sms.provider': {
     fields: [
       { path: 'provider', label: 'Provider', kind: 'select', options: SMS_PROVIDER_CHOICES },

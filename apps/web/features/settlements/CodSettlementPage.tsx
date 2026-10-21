@@ -20,6 +20,7 @@ import { dayRange } from '../orders/labels';
 import { useZoneOptions } from '../platform-settings/api';
 import { useCashSettlements, useCodBalances } from './api';
 import { COD_VIEWS, codViewFromParam, varianceText, varianceTone } from './labels';
+import { RecordHandInDialog } from './RecordHandInDialog';
 import type { SettlementPageProps } from './settlement-page-props';
 
 // COD cash settlement (D173, 6a5f9b9; read only): each delivery partner's cash in hand from cash-on-delivery orders
@@ -40,7 +41,7 @@ const dateTime = (iso: string) =>
     timeZone: 'Asia/Kolkata',
   });
 
-export function CodSettlementPage({ role, myZones }: SettlementPageProps) {
+export function CodSettlementPage({ role, myZones, canRecord }: SettlementPageProps) {
   const url = useUrlState();
   const superAdmin = role === 'SUPER_ADMIN';
   const allZones = useZoneOptions(superAdmin);
@@ -104,7 +105,7 @@ export function CodSettlementPage({ role, myZones }: SettlementPageProps) {
         ))}
       </div>
       {waiting ? null : view === 'cash' ? (
-        <CashInHand zoneId={zone?.id} showZone={showZone} />
+        <CashInHand zoneId={zone?.id} showZone={showZone} canRecord={canRecord} />
       ) : (
         <History zoneId={zone?.id} showZone={showZone} />
       )}
@@ -112,7 +113,17 @@ export function CodSettlementPage({ role, myZones }: SettlementPageProps) {
   );
 }
 
-function CashInHand({ zoneId, showZone }: { zoneId?: string; showZone: boolean }) {
+function CashInHand({
+  zoneId,
+  showZone,
+  canRecord,
+}: {
+  zoneId?: string;
+  showZone: boolean;
+  /** settlements:add somewhere: a Record hand-in button per partner holding cash */
+  canRecord: boolean;
+}) {
+  const [recording, setRecording] = useState<Balance | null>(null);
   const url = useUrlState();
   const q = url.params.get('q') ?? '';
   const withCash = url.params.get('cash') === '1';
@@ -161,9 +172,25 @@ function CashInHand({ zoneId, showZone }: { zoneId?: string; showZone: boolean }
       id: 'cash',
       header: 'Cash in hand',
       cell: (r) => (
-        <span className={cn('font-semibold tabular-nums', r.cashInHandPaise > 0 && 'text-warning')}>
-          {formatPaise(r.cashInHandPaise)}
-        </span>
+        <div>
+          <span
+            className={cn(
+              'font-semibold tabular-nums',
+              r.overLimit ? 'text-danger' : r.cashInHandPaise > 0 && 'text-warning',
+            )}
+          >
+            {formatPaise(r.cashInHandPaise)}
+          </span>
+          {r.overLimit ? (
+            <p className="mt-0.5">
+              <Badge tone="danger">
+                Over the {formatPaise(r.codLimitPaise)} limit: no COD orders
+              </Badge>
+            </p>
+          ) : (
+            <p className="text-xs text-muted">Limit {formatPaise(r.codLimitPaise)}</p>
+          )}
+        </div>
       ),
     },
     {
@@ -188,6 +215,25 @@ function CashInHand({ zoneId, showZone }: { zoneId?: string; showZone: boolean }
           <span className="text-sm text-muted">Never settled</span>
         ),
     },
+    ...(canRecord
+      ? [
+          {
+            id: 'record',
+            header: '',
+            cell: (r: Balance) =>
+              r.cashInHandPaise > 0 ? (
+                <Button
+                  size="sm"
+                  variant={r.overLimit ? 'primary' : 'secondary'}
+                  aria-label={`Record ${r.partner.name}'s hand-in`}
+                  onClick={() => setRecording(r)}
+                >
+                  Record hand-in
+                </Button>
+              ) : null,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -286,6 +332,13 @@ function CashInHand({ zoneId, showZone }: { zoneId?: string; showZone: boolean }
           />
         ) : null}
       </Card>
+      {recording ? (
+        <RecordHandInDialog
+          partner={recording.partner}
+          cashInHandPaise={recording.cashInHandPaise}
+          onClose={() => setRecording(null)}
+        />
+      ) : null}
     </>
   );
 }

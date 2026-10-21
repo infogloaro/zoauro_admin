@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '@zoauro/api-client';
+import { ToastProvider } from '../../components/ui/toast';
 import { ApiClientProvider } from '../../lib/api-client';
 import { CodSettlementPage } from './CodSettlementPage';
 import { codViewFromParam, payoutTone, periodText, statusText, varianceText } from './labels';
@@ -34,15 +35,18 @@ const zone = { id: '0192f1d2-0000-7000-8000-00000000000a', name: 'Anna Nagar', c
 const asZonalAdmin = {
   role: 'ZONAL_ADMIN' as const,
   myZones: [{ id: zone.id, name: zone.name, code: zone.code, colorHex: '#123456' }],
+  canRecord: false,
 };
 const meta = { page: 1, pageSize: 25, total: 1 };
 
-function mount(ui: ReactNode, get: ReturnType<typeof vi.fn>) {
+function mount(ui: ReactNode, get: ReturnType<typeof vi.fn>, post = vi.fn()) {
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <ApiClientProvider client={{ get } as unknown as ApiClient}>{ui}</ApiClientProvider>
+      <ApiClientProvider client={{ get, post } as unknown as ApiClient}>
+        <ToastProvider>{ui}</ToastProvider>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 }
@@ -73,6 +77,8 @@ describe('COD cash settlement', () => {
           partner: { id: PARTNER, name: 'Ravi Kumar', status: 'ACTIVE', isOnline: true },
           zone,
           cashInHandPaise: 125_000,
+          codLimitPaise: 500_000,
+          overLimit: false,
           lastSettlement: {
             settledAt: '2026-10-20T10:00:00.000Z',
             handedInPaise: 90_000,
@@ -91,6 +97,58 @@ describe('COD cash settlement', () => {
       expect(get).toHaveBeenLastCalledWith('/cash-settlements/balances', {
         query: { page: 1, pageSize: 25, sort: '-cashInHand', withCash: 'true' },
         signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('over the COD limit is flagged; a hand-in sends what was seen and needs a note when it differs', async () => {
+    const user = userEvent.setup();
+    const get = vi.fn(async () => ({
+      data: [
+        {
+          partner: { id: PARTNER, name: 'Ravi Kumar', status: 'ACTIVE', isOnline: true },
+          zone,
+          cashInHandPaise: 600_000,
+          codLimitPaise: 500_000,
+          overLimit: true,
+          lastSettlement: null,
+        },
+      ],
+      meta: { ...meta, counts: { partners: 1, withCash: 1, cashInHandPaise: 600_000 } },
+    }));
+    const post = vi.fn(async () => ({
+      id: '0192f1d2-6666-7000-8000-000000000002',
+      zone,
+      partner: { id: PARTNER, name: 'Ravi Kumar' },
+      expectedPaise: 600_000,
+      handedInPaise: 550_000,
+      variancePaise: -50_000,
+      settledBy: { id: '0192f1d2-1111-7000-8000-000000000001', name: 'Karthik' },
+      settledAt: '2026-10-21T10:00:00.000Z',
+      note: 'Rest tomorrow',
+      cashInHandAfterPaise: 50_000,
+    }));
+    mount(<CodSettlementPage {...asZonalAdmin} canRecord />, get, post);
+    expect(await screen.findByText('Over the ₹5,000.00 limit: no COD orders')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: "Record Ravi Kumar's hand-in" }));
+    const dialog = await screen.findByRole('dialog');
+    const amount = within(dialog).getByLabelText('Handed in (₹)');
+    await user.clear(amount);
+    await user.type(amount, '5500');
+    await user.click(within(dialog).getByRole('button', { name: 'Record hand-in' }));
+    // a difference without a note is refused here
+    expect(within(dialog).getByText(/Say why the cash handed in differs/)).toBeTruthy();
+    expect(post).not.toHaveBeenCalled();
+    await user.type(within(dialog).getByLabelText('Why it differs'), 'Rest tomorrow');
+    await user.click(within(dialog).getByRole('button', { name: 'Record hand-in' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/cash-settlements', {
+        body: {
+          deliveryPartnerId: PARTNER,
+          expectedPaise: 600_000,
+          handedInPaise: 550_000,
+          note: 'Rest tomorrow',
+        },
       }),
     );
   });
