@@ -137,11 +137,18 @@ enum PaymentSubMethod {
 }
 
 enum RefundStatus {
+  REQUESTED
   PENDING_APPROVAL
   APPROVED
   PROCESSED
   FAILED
   REJECTED
+}
+
+enum RefundFault {
+  VENDOR
+  PLATFORM
+  CUSTOMER
 }
 
 enum RefundTarget {
@@ -329,6 +336,7 @@ model User {
   controlGrantsHeld             ControlGrant[]          @relation("ControlGrantGrantee")
   controlGrantsGiven            ControlGrant[]          @relation("ControlGrantGrantedBy")
   controlGrantsRevoked          ControlGrant[]          @relation("ControlGrantRevokedBy")
+  refundsSecondApproved         Refund[]                @relation("RefundSecondApprovedBy")
 
   @@index([roleId])
   @@map("users")
@@ -672,6 +680,7 @@ model Zone {
   walletTransactions WalletTransaction[]
   assignmentOffers   OrderAssignmentOffer[]
   recordClaims       RecordClaim[]
+  refunds            Refund[]
 
   @@index([status])
   @@map("zones")
@@ -732,9 +741,14 @@ model Restaurant {
   lng                  Decimal?             @db.Decimal(9, 6)
   cuisineTags          String[]             @map("cuisine_tags")
   commissionPct        Decimal              @default(0) @map("commission_pct") @db.Decimal(5, 2)
+  // D180/D187: share of a vendor-fault refund deducted from the payout; the Super Admin sets it per vendor
+  refundFaultSharePct  Decimal              @default(100) @map("refund_fault_share_pct") @db.Decimal(5, 2)
   status               VendorStatus         @default(PENDING)
   verificationStatus   VerificationStatus   @default(PENDING) @map("verification_status")
   verificationNote     String?              @map("verification_note")
+  // D170: the onboarding queue stage and when it was entered (age warnings at 24 h / 48 h)
+  onboardingStage      OnboardingStage      @default(SUBMITTED) @map("onboarding_stage")
+  onboardingStageAt    DateTime             @default(now()) @map("onboarding_stage_at") @db.Timestamptz
   verifiedAt           DateTime?            @map("verified_at") @db.Timestamptz
   verifiedBy           String?              @map("verified_by") @db.Uuid
   openingHoursJson     Json?                @map("opening_hours_json")
@@ -763,6 +777,7 @@ model Restaurant {
   @@index([zoneId, createdAt(sort: Desc)])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "restaurants_name_trgm_idx")
   @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "restaurants_phone_trgm_idx")
+  @@index([zoneId, onboardingStage, onboardingStageAt])
   @@map("restaurants")
 }
 
@@ -783,9 +798,14 @@ model Homemaker {
   isAvailable          Boolean              @default(true) @map("is_available")
   dailyCapacity        Int                  @default(1) @map("daily_capacity") // CHECK >= 1 in constraints migration
   commissionPct        Decimal              @default(0) @map("commission_pct") @db.Decimal(5, 2)
+  // D180/D187: share of a vendor-fault refund deducted from the payout; the Super Admin sets it per vendor
+  refundFaultSharePct  Decimal              @default(100) @map("refund_fault_share_pct") @db.Decimal(5, 2)
   status               VendorStatus         @default(PENDING)
   verificationStatus   VerificationStatus   @default(PENDING) @map("verification_status")
   verificationNote     String?              @map("verification_note")
+  // D170: the onboarding queue stage and when it was entered (age warnings at 24 h / 48 h)
+  onboardingStage      OnboardingStage      @default(SUBMITTED) @map("onboarding_stage")
+  onboardingStageAt    DateTime             @default(now()) @map("onboarding_stage_at") @db.Timestamptz
   verifiedAt           DateTime?            @map("verified_at") @db.Timestamptz
   verifiedBy           String?              @map("verified_by") @db.Uuid
   openingHoursJson     Json?                @map("opening_hours_json")
@@ -811,6 +831,7 @@ model Homemaker {
   @@index([zoneId, createdAt(sort: Desc)])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "homemakers_name_trgm_idx")
   @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "homemakers_phone_trgm_idx")
+  @@index([zoneId, onboardingStage, onboardingStageAt])
   @@map("homemakers")
 }
 
@@ -1157,7 +1178,7 @@ model Refund {
   reasonCode       String       @map("reason_code")
   reasonNote       String?      @map("reason_note")
   status           RefundStatus @default(PENDING_APPROVAL)
-  requestedBy      String       @map("requested_by") @db.Uuid
+  requestedBy      String?      @map("requested_by") @db.Uuid
   requestedAt      DateTime     @default(now()) @map("requested_at") @db.Timestamptz
   approvedBy       String?      @map("approved_by") @db.Uuid
   decidedAt        DateTime?    @map("decided_at") @db.Timestamptz
@@ -1165,18 +1186,37 @@ model Refund {
   providerRefundId String?      @map("provider_refund_id")
   idempotencyKey   String       @unique @map("idempotency_key")
   target           RefundTarget
+  // D180 refund flow
+  zoneId           String       @map("zone_id") @db.Uuid // the order's zone (scope, D25; backfilled in SQL)
+  source           RecordSource @default(ADMIN) // APP = the customer reported it from the order
+  itemsJson        Json?        @map("items_json") // reported items [{orderItemId, quantity}]
+  photoKeys        String[]     @default([]) @map("photo_keys") // upload keys of the customer's photos
+  fault            RefundFault? // set when decided; VENDOR moves the vendor share to the payout (D152)
+  vendorSharePct   Decimal?     @map("vendor_share_pct") @db.Decimal(5, 2) // the vendor's fault share at decision
+  vendorSharePaise Int          @default(0) @map("vendor_share_paise") // deducted from the vendor's payout
+  autoApproved     Boolean      @default(false) @map("auto_approved") // trusted customer under the limit (D187)
+  decideBy         DateTime?    @map("decide_by") @db.Timestamptz // the zone agent's time limit (D180)
+  secondApprovedBy String?      @map("second_approved_by") @db.Uuid // above the second-approver amount (D95)
+  secondApprovedAt DateTime?    @map("second_approved_at") @db.Timestamptz
+  manualReference  String?      @map("manual_reference") // COD to UPI: the UTR finance recorded (D187)
+  processedAt      DateTime?    @map("processed_at") @db.Timestamptz
+  failureReason    String?      @map("failure_reason")
+  version          Int          @default(1)
   createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 
   order          Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
   payment        Payment?        @relation(fields: [paymentId], references: [id], onDelete: Restrict)
-  requester      User            @relation("RefundRequestedBy", fields: [requestedBy], references: [id], onDelete: Restrict)
+  requester      User?           @relation("RefundRequestedBy", fields: [requestedBy], references: [id], onDelete: Restrict)
   approver       User?           @relation("RefundApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict)
+  secondApprover User?           @relation("RefundSecondApprovedBy", fields: [secondApprovedBy], references: [id], onDelete: Restrict)
+  zone           Zone            @relation(fields: [zoneId], references: [id], onDelete: Restrict)
   supportTickets SupportTicket[]
 
   @@index([orderId])
   @@index([paymentId])
   @@index([status, requestedAt(sort: Desc)])
+  @@index([zoneId, status, requestedAt(sort: Desc)])
   @@map("refunds")
 }
 
@@ -1713,6 +1753,9 @@ model Hotel {
   status             VendorStatus       @default(PENDING)
   verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
   verificationNote   String?            @map("verification_note")
+  // D170: the onboarding queue stage and when it was entered (age warnings at 24 h / 48 h)
+  onboardingStage    OnboardingStage    @default(SUBMITTED) @map("onboarding_stage")
+  onboardingStageAt  DateTime           @default(now()) @map("onboarding_stage_at") @db.Timestamptz
   verifiedAt         DateTime?          @map("verified_at") @db.Timestamptz
   verifiedBy         String?            @map("verified_by") @db.Uuid
   createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz
@@ -1729,6 +1772,7 @@ model Hotel {
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "hotels_name_trgm_idx")
+  @@index([zoneId, onboardingStage, onboardingStageAt])
   @@map("hotels")
 }
 
@@ -2134,4 +2178,12 @@ model ControlGrant {
   revoker User? @relation("ControlGrantRevokedBy", fields: [revokedBy], references: [id], onDelete: Restrict)
 
   @@map("control_grants")
+}
+
+/// D170: the vendor onboarding queue stage, shared by restaurants, homemakers and hotels.
+enum OnboardingStage {
+  SUBMITTED
+  UNDER_REVIEW
+  MORE_INFO_REQUIRED
+  DECIDED
 }
