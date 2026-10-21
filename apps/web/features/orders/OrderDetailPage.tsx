@@ -1,7 +1,7 @@
 'use client';
 
 import { PREORDER_ISSUES, type OrderStatus } from '@zoauro/shared';
-import { Ban, Bike, CalendarClock, Undo2 } from 'lucide-react';
+import { Ban, Bike, CalendarClock, RotateCcw, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Badge } from '../../components/ui/badge';
@@ -17,6 +17,7 @@ import { isApiError, TRY_AGAIN } from '../auth/errors';
 import { CardSkeleton, DetailError } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useInvalidateOrders, useOrderDetail } from './api';
+import { RequestRefundDialog } from '../refunds/RefundDialogs';
 import { AssignPartnerDialog } from './AssignPartnerDialog';
 import {
   ORDER_STATUS_LABEL,
@@ -51,7 +52,7 @@ export function OrderDetailPage({
   id: string;
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   /** orders:status (moves, cancel) somewhere; the API decides per zone */
-  can: { status: boolean; assign: boolean };
+  can: { status: boolean; assign: boolean; refund?: boolean };
 }) {
   const client = useApiClient();
   const detail = useOrderDetail(id);
@@ -62,6 +63,7 @@ export function OrderDetailPage({
   const [cancelling, setCancelling] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
+  const [refunding, setRefunding] = useState(false);
   const listPath = role === 'SUPER_ADMIN' ? '/super-admin/orders' : '/zone/orders';
 
   if (detail.isError)
@@ -328,10 +330,35 @@ export function OrderDetailPage({
                   ))}
                 </ul>
               ) : null}
+              {can.refund &&
+              (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_REFUNDED') ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => setRefunding(true)}
+                >
+                  <RotateCcw aria-hidden className="size-4" /> Request a refund
+                </Button>
+              ) : null}
             </CardBody>
           </Card>
         </div>
       </div>
+
+      {refunding ? (
+        <RequestRefundDialog
+          order={{
+            id: o.id,
+            orderNo: o.orderNo,
+            zoneId: o.zoneId,
+            paymentMethod: o.paymentMethod,
+            totalPaise: o.total,
+          }}
+          superAdmin={role === 'SUPER_ADMIN'}
+          onClose={() => setRefunding(false)}
+        />
+      ) : null}
 
       <Card aria-labelledby="order-timeline">
         <CardHeader

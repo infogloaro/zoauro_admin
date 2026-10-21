@@ -7,13 +7,13 @@ import type { ScopeZone } from '../../lib/zone-scope';
 export interface OrderPageProps {
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   myZones: ScopeZone[];
-  /** orders:status (moves, cancel) and orders:edit (assign a partner) somewhere */
-  can: { status: boolean; assign: boolean };
+  /** orders:status (moves, cancel), orders:edit (assign a partner, reschedule) and refunds:add somewhere */
+  can: { status: boolean; assign: boolean; refund?: boolean };
 }
 
 export function orderPageProps(me: MeResponse): OrderPageProps {
   if (me.permissions.global)
-    return { role: 'SUPER_ADMIN', myZones: [], can: { status: true, assign: true } };
+    return { role: 'SUPER_ADMIN', myZones: [], can: { status: true, assign: true, refund: true } };
   const zones = me.permissions.zones;
   return {
     role: 'ZONAL_ADMIN',
@@ -23,6 +23,7 @@ export function orderPageProps(me: MeResponse): OrderPageProps {
     can: {
       status: zones.some((z) => z.permissions.includes('orders:status')),
       assign: zones.some((z) => z.permissions.includes('orders:edit')),
+      refund: zones.some((z) => z.permissions.includes('refunds:add')),
     },
   };
 }
