@@ -1,6 +1,6 @@
 # 60 — Admin Workflow Map and Change Requests
 
-Version 1.1, 2026-10-18 (§8 adds the owner decisions D143–D166). Owner: docs lane. Visual version with flowcharts and per-screen wireframes: [`60_Admin_Workflow_Map.html`](60_Admin_Workflow_Map.html) (open in a browser; diagrams load from the internet).
+Version 1.2, 2026-10-20 (§8 adds the owner decisions D143–D166; §10 adds the new modules of D179 with the defaults the owner accepted, D182). Owner: docs lane. Visual version with flowcharts and per-screen wireframes: [`60_Admin_Workflow_Map.html`](60_Admin_Workflow_Map.html) (open in a browser; diagrams load from the internet).
 
 This document records the change requests the owner raised on 2026-10-17, the end-to-end workflows they affect, and a check of the admin pages built so far against docs 18, 20, 21, 37 and 45. Items marked **Proposal** or **Needs decision** are not decided. Nothing here overrides doc 03; each proposal needs a D-number there before code changes.
 
@@ -112,11 +112,11 @@ All built pages call the real API; none use sample data.
 | Item | Proposal | Status |
 |---|---|---|
 | Cloud kitchen vendor type | A cloud kitchen is a home cook: it is a **Home Food** vendor (homemaker record, Home Food screens, Home Food document list). No new vendor type, no `CLOUD_KITCHEN` value. Delivery-only commercial kitchens (no home cook) join as restaurants | **Decided by the owner 2026-10-18: D168** |
-| More info required stage | Add a stage the reviewer can set with a message; the vendor app shows it and resubmits | **Needs decision** |
-| Guided Add Zonal Admin flow | Replace the dialog plus separate access page with the five steps in §3.1; ask for the password on create | **Proposal** |
-| Pending-onboarding tile and badges | Count on both dashboards and on menu entries | **Proposal** |
+| More info required stage | Add a stage the reviewer can set with a message; the vendor app shows it and resubmits | **Decided 2026-10-20: D170** (shows "Waiting for vendor" until resubmitted) |
+| Guided Add Zonal Admin flow | Replace the dialog plus separate access page with the five steps in §3.1; ask for the password on create | **Decided 2026-10-20: D171** (password asked at save; member page with tabs; "same access in all my zones" on by default) |
+| Pending-onboarding tile and badges | Count on both dashboards and on menu entries | **Decided 2026-10-20: D172** |
 
-Status after the owner's answers of 2026-10-18 (§8): D18 is closed for the build by D147 (build intake and outbound now, test with simulators). D113 is replaced by D145 (dynamic document catalogue with defaults). The owner then decided that a cloud kitchen is a Home Food vendor (no new type, D168), so "restaurant / cloud kitchen" in D154 means the restaurant and Home Food sides. The "More info required" stage is still not decided. D47 (missing Figma frames) stays open.
+Status after the owner's answers of 2026-10-18 (§8): D18 is closed for the build by D147 (build intake and outbound now, test with simulators). D113 is replaced by D145 (dynamic document catalogue with defaults). The owner then decided that a cloud kitchen is a Home Food vendor (no new type, D168), so "restaurant / cloud kitchen" in D154 means the restaurant and Home Food sides. On 2026-10-20 the owner decided the remaining rows (D170–D172). D47 (missing Figma frames) stays open.
 
 ## 7. Progress snapshot
 From the module tracker `ZOAURO_Module_Build-members.xlsx`, 2026-10-17 evening: overall 45% (28 rows; 5 done, 4 in review, 12 in progress, 7 not started); core modules 94%.
@@ -177,3 +177,85 @@ D8 (vendor bears vendor-fault refunds, D153), D11 (R-ORD-3 windows, D156), D14/D
 
 ## 9. Competitor patterns used
 Summarised in the HTML map, section 09: joining-request queues per vendor type (StackFood, 6amMart), FSSAI checks per outlet (Zomato), food-safety onboarding and audits for home cooks (Shef), mandatory reason codes (Deliveroo, DoorDash), SLA timers on live orders (Deliveroo, Uber Eats). Items not in the spec are listed there as proposals.
+
+## 10. New modules: accepted defaults (D182)
+D179 brought five new modules into scope. The coordinator drafted their design and 26 questions with proposed defaults; on 2026-10-20 the owner accepted every default (D182). Every value below is a Control Panel setting the Super Admin can change later. Docs 04, 08, 09, 10 and 43, `intake.openapi.yaml`, `events.catalog.json` and the simulators are updated before any code.
+
+**Rules for all five modules:** route → controller → service → repository with `AuthContext`; outside the view scope 404, missing action 403; origin check, permission and CSRF on every write; `version` on writes (409 `STALE_VERSION`); row, audit entry and outbox event in one transaction; soft delete; money in paise; Zod schemas in `packages/shared/src/<module>/`; new settings groups `ads`, `plans`, `subscriptions`, `offers`, `hotels`; new permission modules; one migration per module; an authz matrix row for every route; a TC-INT simulator test for every intake handler. Prisma already has `OfferStatus` (auto-assign, D154), so the offers module uses `PromotionStatus`.
+
+**Build order:** Order overview → Hotel onboarding → Offers → Advertising & Commission → Vendor plans → Meal plans, about 65 developer-days.
+
+### 10.1 Advertising & Commission
+Permission `ads`; about 14 developer-days.
+- **Tables:** `ad_slots` (zone; page HOME / RESTAURANTS / HOME_FOOD / HOTELS; placement BANNER / TOP_LISTING / FEATURED; position; capacity; pricing FLAT_PER_DAY or COMMISSION; price per day or commission %; minimum and maximum days; terms; status ACTIVE / PAUSED / RETIRED). `ad_terms` (zone, or platform when empty; insert-only versions). `ad_requests` (exactly one of restaurant, homemaker or hotel; page; placement; requested start and days; creative; status; quote and decision fields; intake source). `ad_campaigns` (slot, request, vendor, start and end, status, price, commission, terms, billing status). Orders gain `ad_campaign_id`, `ad_commission_pct`, `ad_commission_paise`.
+- **Request:** SUBMITTED → QUOTED (re-quote allowed) → ACCEPTED (vendor accepts the terms through the app, which schedules the campaign); or REJECTED, WITHDRAWN, EXPIRED.
+- **Campaign:** SCHEDULED → LIVE → ENDED (60-second sweep); LIVE ↔ PAUSED; CANCELLED. Capacity is checked under a slot lock; an overlap above capacity returns 409 `SLOT_FULL`.
+- **API:** `/ads/slots` (create, edit, status), `/ads/terms`, `/ads/requests` (quote, reject), `/ads/campaigns` (pause, resume, cancel), `/ads/availability`, `/ads/dashboard`, export. Slots exist only where the zone service is on (D92).
+- **Setting `ads.rules`:** quote valid 72 h, minimum lead 24 h, booking up to 60 days ahead, campaign at most 30 days, at most 3 live campaigns per vendor, quote band 0%, commission at most 10%, banners need a creative.
+- **Apps:** vendor intake `ads:write` (slots, ad requests, accept, withdraw); customer `GET /ads/placements`; events `ad_request.updated`, `ad_campaign.status_changed`.
+
+### 10.2 Hotel onboarding and profile-edit queue
+About 8 developer-days.
+- Hotels gain `onboarding_stage` (SUBMITTED / UNDER_REVIEW / MORE_INFO_REQUIRED / DECIDED, shared with the D170 vendor queue), submitted time, more-info note, source; zone may be empty with `zone_assignment_status` (D53).
+- `hotel_change_requests` follows the food item request pattern (R09): one pending request, newer ones supersede, the live value stays until approved.
+- Documents through `vendor_documents` with type HOTEL and `onboarding.documents.HOTEL`; claim/lock through the generic D174 `record_claims`.
+- **API:** `GET /hotels/onboarding`, `POST /hotels/{id}/onboarding/review` and `/more-info`, `/hotels/change-requests` (approve or reject with password).
+- **Settings:** `hotels.profileApprovalFields`; `onboarding.ageWarnings` 24 h / 48 h.
+- **Apps:** vendor intake `hotels:register` / `write` (register, edit, documents, resubmit); events `hotel.status_changed`, `hotel.change_decided`.
+
+### 10.3 Order overview
+About 5 developer-days, no new table.
+- `GET /orders/overview` for a range and zones: open orders per status, delayed orders per status, READY orders unassigned past the threshold, pre-orders due within 2 hours, cancellations (count, rate, top reasons), average accept / prepare / deliver minutes, COD vs online, GMV and average order value (empty without `payments:view`). `GET /orders?delayed=true`.
+- Live through Socket.IO, with a 30-second poll as fallback.
+- **Setting `orders.sla`:** accept 5 min, prepare 30, ready to assigned 10, assigned to pickup 15, out for delivery 40.
+
+### 10.4 ZOAURO-to-vendor plans
+Permission `plans`; the catalogue is edited by the Super Admin only; about 9 developer-days.
+- **Tables:** `vendor_plans` (code, price, cycle MONTHLY / QUARTERLY / YEARLY, trial days, vendor types, zones, status DRAFT / ACTIVE / RETIRED), `vendor_plan_features` (from a features catalogue), `vendor_plan_subscriptions` (TRIAL / ACTIVE / PAST_DUE / CANCELLED / EXPIRED, a snapshot of the plan, billing by payout deduction or online), `vendor_plan_invoices` (ledger entry when paid). Daily renewal job.
+- **Setting `plans.billing`:** grace 7 days, GST 18%, deducted from payouts by default, renewal reminder 3 days before.
+- **Apps:** vendor intake for plans; event `vendor_plan.changed`.
+
+### 10.5 Vendor-to-customer meal plans
+Permission `subscriptions`; about 16 developer-days; **blocked until payments (M12) exist**.
+- **Tables:** `meal_plans` (vendor, weekly or monthly, slots, days, menu, price; changes approved like R09), `meal_subscriptions` (customer, plan snapshot, address; PENDING_PAYMENT / ACTIVE / PAUSED / CANCELLED / COMPLETED / EXPIRED; skips and pauses), `meal_deliveries` (date, slot; SCHEDULED / SKIPPED / ORDERED / DELIVERED / FAILED / CANCELLED; each becomes a paid D167 pre-order). Payments gain an optional `meal_subscription_id`.
+- **Settings:** `mealPlans.rules`: skip until 12 h before, at most 4 skips per cycle, pause until 24 h before, at most 7 pause days per cycle, a skip credits the wallet, a cancel credits the unused share to the wallet, deliveries generated 2 days ahead. `mealPlans.slotTimes`: 08:00, 13:00, 20:00.
+- **Apps:** customer and vendor intake; events `meal_plan.*`, `meal_subscription.status_changed`, `meal_delivery.updated`.
+
+### 10.6 Offers review and management
+Permission `offers`; about 13 developer-days.
+- **Tables:** `offers` (scope PLATFORM / ZONE / VENDOR, zones, vendor, optional code, type PERCENT / FLAT / FREE_DELIVERY, limits, validity, eligibility, funded by PLATFORM / VENDOR / SHARED, budget, status, approval fields), replacing the unused `coupons` table (kept, not dropped); `offer_redemptions` (APPLIED / REVERSED).
+- **Statuses:** DRAFT → PENDING_APPROVAL → SCHEDULED → ACTIVE → EXPIRED; also REJECTED, PAUSED, CANCELLED. The approver is never the requester. Vendor offers are approved by the zone's admin with `offers:status`; Zonal Admin platform or zone offers by the Super Admin; a Super Admin's own offer goes straight to SCHEDULED.
+- **Redemption:** the customer app sends the offer with the order; it is checked under a row lock (422 `OFFER_INVALID` when not valid) and reversed if the order is cancelled before delivery.
+- **Setting `offers.rules`:** at most 50% off, at most ₹500 flat, valid at most 90 days, at most 5 uses per customer, no stacking, use returned on cancel, approval age warning after 24 h.
+
+### 10.7 The 26 questions and the accepted answers (D182)
+| # | Question | Accepted answer |
+|---|---|---|
+| A1 | Pages that carry ads | Home, Restaurants, Home Food, Hotels, where the service is on |
+| A2 | How vendors pay for ads | Deducted from the next payout; online payment later |
+| A3 | Orders the ranking commission applies to | All orders of the vendor while the campaign is live |
+| A4 | Who sets the commission % | Super Admin, or a Zonal Admin with the commission-edit switch (D155); flat prices by `ads:edit` |
+| A5 | Billing on pause or cancel | Unused days are not billed; the end date stays fixed |
+| A6 | Creatives | Banners need an uploaded image, reviewed with the quote |
+| H1 | How hotels register | Through the vendor app (intake) |
+| H2 | Hotel documents | GST, PAN, trade licence, bank details mandatory; FSSAI optional |
+| H3 | Hotel outside every zone | Needs a zone, Super Admin only (D53) |
+| H4 | Hotel fields that need approval | All, from an editable list |
+| O1 | Delay thresholds | 5 / 30 / 10 / 15 / 40 minutes |
+| O2 | Money tiles on the overview | Only with `payments:view` |
+| P1 | Plan features | Meal plans, monthly ad credit, free top-listing days, priority support, analytics |
+| P2 | Is a plan mandatory? | No |
+| P3 | Plan billing | 18% GST, deducted from payouts |
+| P4 | Do plans lower commission? | No |
+| M1 | Meal-plan payment | Prepaid per cycle, online or wallet; no COD |
+| M2 | Each delivery | A paid pre-order (D167) at its share of the cycle, normal commission |
+| M3 | Refunds | Skip → wallet; pause extends the plan; cancel → unused share to the wallet |
+| M4 | Approval of plans and changes | Yes, like food item requests (R09) |
+| M5 | Auto-renew | Off by default; the customer opts in |
+| F1 | Offers grantable to Zonal Admins (reverses D15) | Yes: view, add, edit, status, export; their offers still need Super Admin approval (D94) |
+| F2 | Who funds the discount | Vendor offers by the vendor, platform offers by the platform, shared only by the Super Admin |
+| F3 | Stacking | One offer per order; reward points (D169) may be used alongside |
+| F4 | When a used offer is returned | On cancel before delivery only |
+| F5 | Old coupons table | Replaced by offers; kept, not dropped |
+
+The H2 answer gives the hotel onboarding document list the tracker had listed as missing.
