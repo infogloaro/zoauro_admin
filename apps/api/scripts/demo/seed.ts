@@ -15,6 +15,7 @@ import { seedSettings } from './settings';
 import { seedHotels, seedNotifications, seedSupport } from './extras';
 import { seedRefunds } from './refunds';
 import { seedOnboarding } from './onboarding';
+import { seedMoney, seedPlans } from './finance';
 import { createSecretBox } from '../../src/modules/auth/mfa/secret-box';
 
 // `pnpm --filter @zoauro/api demo:data` (env from .env.demo): sample data for the demo, through the RUNNING demo API
@@ -195,6 +196,19 @@ async function main(): Promise<void> {
       { sa, zonal: people.clients.karthik },
       people.zoneId['CBE'] ?? '',
       appClients['CUSTOMER_APP'] ?? '',
+      log,
+    );
+    console.log('13 vendor plans: BASIC, GROWTH (trial), PRO, subscriptions');
+    await seedPlans(db, sa, vendors, log);
+    console.log('14 money: COD collections and hand-overs, payouts to vendors and partners');
+    await seedMoney(
+      db,
+      {
+        [people.zoneId['CBE'] ?? '']: people.userId.karthik,
+        [people.zoneId['CBN'] ?? '']: people.userId.karthik,
+        [people.zoneId['TUP'] ?? '']: people.userId.suresh,
+      },
+      people.userId.primary,
       log,
     );
   } finally {
