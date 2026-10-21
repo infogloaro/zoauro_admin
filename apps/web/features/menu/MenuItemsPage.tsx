@@ -62,7 +62,8 @@ export function MenuItemsPage({
 }: {
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   myZones?: ScopeZone[];
-  can: { add: boolean; edit: boolean };
+  /** delete: menu:delete somewhere (the API checks the item's zone) */
+  can: { add: boolean; edit: boolean; delete?: boolean };
   /** menu:export where the zone's export switch is on (lib/export-access) */
   canExport?: boolean;
 }) {
@@ -97,6 +98,7 @@ export function MenuItemsPage({
   const [selected, setSelected] = useState<string[]>([]);
   const [editing, setEditing] = useState<Row | 'new' | null>(null);
   const [bulk, setBulk] = useState(false);
+  const [deleting, setDeleting] = useState<Row | null>(null);
 
   const filters: MenuFilters = {
     page,
@@ -365,6 +367,11 @@ export function MenuItemsPage({
                   <th scope="col" className="px-3 py-2 font-medium">
                     Status
                   </th>
+                  {can.delete ? (
+                    <th scope="col" className="px-3 py-2">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -419,6 +426,18 @@ export function MenuItemsPage({
                         {AVAILABILITY_LABEL[r.availability]}
                       </Badge>
                     </td>
+                    {can.delete ? (
+                      <td className="px-3 py-2 text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          aria-label={`Delete ${r.name}`}
+                          onClick={() => setDeleting(r)}
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
@@ -438,6 +457,13 @@ export function MenuItemsPage({
       {editing ? (
         <EditLoader id={editing === 'new' ? null : editing.id} onClose={() => setEditing(null)} />
       ) : null}
+      {deleting ? (
+        <DeleteItemDialog
+          item={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => setSelected((s) => s.filter((x) => x !== deleting.id))}
+        />
+      ) : null}
       {bulk ? (
         <BulkDialog
           ids={selected}
@@ -450,6 +476,62 @@ export function MenuItemsPage({
         />
       ) : null}
     </div>
+  );
+}
+
+/** Removes an item from the menu (a soft delete, audited); the API refuses one it cannot remove (422) and says why. */
+function DeleteItemDialog({
+  item,
+  onClose,
+  onDeleted,
+}: {
+  item: { id: string; name: string; vendor: { name: string } };
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const client = useApiClient();
+  const invalidate = useInvalidateMenu();
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const [alert, setAlert] = useState<string | null>(null);
+
+  const run = async () => {
+    setAlert(null);
+    setBusy(true);
+    try {
+      await client.delete('/menu-items/{id}', { params: { id: item.id } });
+      toast({ title: `${item.name} removed from the menu` });
+      onDeleted();
+      await invalidate();
+      onClose();
+    } catch (err) {
+      setAlert(isApiError(err) ? err.message || TRY_AGAIN : TRY_AGAIN);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
+      <DialogContent className="max-w-md">
+        <div>
+          <DialogTitle>Delete {item.name}?</DialogTitle>
+          <DialogDescription>
+            It leaves {item.vendor.name}&apos;s menu and customers can no longer order it. Past
+            orders keep it.
+          </DialogDescription>
+        </div>
+        {alert ? <FormAlert>{alert}</FormAlert> : null}
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
+            Keep it
+          </Button>
+          <Button variant="danger" onClick={() => void run()} disabled={busy}>
+            Delete item
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -17,7 +17,7 @@ export default async function Page() {
     <MenuItemsPage
       role={p.role}
       myZones={p.myZones}
-      can={{ add: p.can.add, edit: p.can.edit }}
+      can={p.can}
       canExport={canExportList(me, 'menu')}
     />
   );

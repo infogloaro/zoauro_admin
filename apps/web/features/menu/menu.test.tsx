@@ -4,7 +4,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ApiClient } from '@zoauro/api-client';
+import { ApiError, type ApiClient } from '@zoauro/api-client';
 import { ToastProvider } from '../../components/ui/toast';
 import { ApiClientProvider } from '../../lib/api-client';
 import { FoodItemRequestsPage } from './FoodItemRequestsPage';
@@ -146,6 +146,44 @@ describe('Menu items', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Apply to 1' }));
     await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
     expect(post.mock.calls[1]?.[0]).toBe('/menu-items/bulk');
+  });
+
+  it('delete asks first, then removes the item; a refusal is explained; no button without menu:delete', async () => {
+    const user = userEvent.setup();
+    const A = '0192f1d2-0000-7000-8000-0000000000a1';
+    const get = vi.fn(async (path: string) => {
+      if (path === '/zones') return { data: [], meta: {} };
+      if (path === '/categories') return { data: [], meta: {} };
+      return { data: [item(A, 'Paneer tikka')], meta: { page: 1, pageSize: 25, total: 1 } };
+    });
+    const del = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiError(422, 'VALIDATION_ERROR', 'The item is in an open order; try again later.'),
+      )
+      .mockResolvedValueOnce(undefined);
+    render(<MenuItemsPage role={SUPER} can={{ add: true, edit: true, delete: true }} />, {
+      wrapper: wrap({ get, delete: del } as unknown as ApiClient),
+    });
+    await user.click(await screen.findByRole('button', { name: 'Delete Paneer tikka' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(del).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole('button', { name: 'Delete item' }));
+    expect(
+      await within(dialog).findByText('The item is in an open order; try again later.'),
+    ).toBeTruthy();
+    await user.click(within(dialog).getByRole('button', { name: 'Delete item' }));
+    await waitFor(() =>
+      expect(del).toHaveBeenLastCalledWith('/menu-items/{id}', { params: { id: A } }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    cleanup();
+
+    render(<MenuItemsPage role={SUPER} can={{ add: true, edit: true }} />, {
+      wrapper: wrap({ get } as unknown as ApiClient),
+    });
+    expect(await screen.findByText('Paneer tikka')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Delete Paneer tikka' })).toBeNull();
   });
 });
 
