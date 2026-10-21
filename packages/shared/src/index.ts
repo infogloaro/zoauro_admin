@@ -27,3 +27,4 @@ export * from './intake';
 export * from './rewards';
 export * from './refunds';
 export * from './onboarding';
+export * from './settlements';

@@ -227,6 +227,10 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         retryRefund: { ownObject: true },
         // the placeholder order is in zone A: whoever holds refunds:add there gets its options
         getRefundOptions: { ownObject: true },
+        // D173/D152: one settlement, one partner and one payout per zone A, B, C; a row names its zone
+        listCashSettlements: { listedZones: vendorZones },
+        listCodBalances: { listedZones: vendorZones },
+        listPayouts: { listedZones: vendorZones },
         // D129/D149 exports: a job names the zones it exports (null = every zone); jobs run inline in the test env.
         // Fixture profiles hold no <module>:export, so Zonal Admins get 403 (positive cases: tests/exports/)
         ...Object.fromEntries(
@@ -273,7 +277,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 7 onboarding queue (D170)
     // + 1 order overview (D179)
     // + 1 refund options (the Request-refund dialog)
-    expect(report.coveredRoutes).toHaveLength(242);
+    // + 2 COD settlement and 1 payouts (D152, D173)
+    expect(report.coveredRoutes).toHaveLength(245);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

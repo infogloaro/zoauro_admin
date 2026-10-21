@@ -258,6 +258,10 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /refunds/{id}/reject',
         'POST /refunds/{id}/record-payment',
         'POST /refunds/{id}/retry',
+        // D173 COD settlement and D152 payouts (read only)
+        'GET /cash-settlements',
+        'GET /cash-settlements/balances',
+        'GET /payouts',
         // M10 delivery partners + R12 (doc 09, D130–D133)
         'GET /delivery-partners',
         'POST /delivery-partners',

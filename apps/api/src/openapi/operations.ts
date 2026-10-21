@@ -132,6 +132,7 @@ import { CUSTOMER_OPERATIONS } from './operations.customers';
 import { EXPORT_OPERATIONS } from './operations.exports';
 import { REWARD_OPERATIONS } from './operations.rewards';
 import { REFUND_OPERATIONS } from './operations.refunds';
+import { SETTLEMENT_OPERATIONS } from './operations.settlements';
 import { HOTEL_OPERATIONS } from './operations.hotels';
 import { PREORDER_OPERATIONS } from './operations.preorders';
 import { MENU_OPERATIONS } from './operations.menu';
@@ -1471,6 +1472,8 @@ export const OPERATIONS: OperationDef[] = [
   ...REWARD_OPERATIONS,
   // D159 payments and D180/D187 refunds (operations.refunds.ts)
   ...REFUND_OPERATIONS,
+  // D173 COD settlement and D152 payouts, read only (operations.settlements.ts)
+  ...SETTLEMENT_OPERATIONS,
   // export jobs for every list (D129, D149; operations.exports.ts) and the support desk (D139-D141)
   ...EXPORT_OPERATIONS,
   ...SUPPORT_OPERATIONS,

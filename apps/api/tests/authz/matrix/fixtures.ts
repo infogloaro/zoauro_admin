@@ -314,6 +314,25 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     );
   }
 
+  // D173 COD settlement and D152 payouts: per zone A, B, C a settlement of that zone's partner (made above) and a payout
+  // of that zone's restaurant, so the lists show which zones an actor reached
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = `0192f1d2-0000-7000-8000-00000000a1${i}0`;
+    const own = i === 0 ? PLACEHOLDER_ID : null;
+    await env.db.owner.query(
+      `INSERT INTO cash_settlements (id, delivery_partner_id, zone_id, expected_amount, handed_in_amount, variance,
+         settled_by, settled_at)
+       VALUES ($1, $2, $3, 1000, 900, -100, $4, now())`,
+      [id, own ?? `0192f1d2-0000-7000-8000-00000000d0${i}0`, zones[z], PLACEHOLDER_ID],
+    );
+    await env.db.owner.query(
+      `INSERT INTO payouts (id, payee_type, payee_id, zone_id, period_from, period_to, gross, commission, net, status,
+         updated_at)
+       VALUES ($1, 'RESTAURANT', $2, $3, '2026-10-12', '2026-10-18', 1000, 100, 900, 'PENDING', now())`,
+      [id, own ?? `0192f1d2-0000-7000-8000-00000000f0${i}0`, zones[z]],
+    );
+  }
+
   // D170 onboarding queue: the fixture vendors above are VERIFIED (DECIDED), so one PENDING restaurant per zone A, B, C
   // keeps the open queue showing which zones an actor reached
   for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {

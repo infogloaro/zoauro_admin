@@ -33,6 +33,7 @@ import { createCustomersModule } from '../../../src/modules/customers';
 import { createRewardsModule } from '../../../src/modules/rewards';
 import { createRefundsModule } from '../../../src/modules/refunds';
 import { createPaymentsModule } from '../../../src/modules/payments';
+import { createSettlementsModule } from '../../../src/modules/settlements';
 import { createUploadsModule } from '../../../src/modules/uploads';
 import { createPartnersModule } from '../../../src/modules/delivery-partners';
 import { createNotificationsModule } from '../../../src/modules/notifications';
@@ -487,6 +488,10 @@ export async function createAuthTestEnv() {
       rewards.router,
       refunds.router,
       createPaymentsModule({ prisma }).router,
+      createSettlementsModule({
+        prisma,
+        cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
+      }).router,
       partners.router,
       notifications.router,
       createDashboardModule({ prisma, redis: extra.dashboardCache ?? null, clock: clock.now })

@@ -98,13 +98,16 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | PATCH | /delivery-partners/{id} | delivery:edit | |
 | POST | /delivery-partners/{id}/verification | delivery:status | |
 | POST | /delivery-partners/{id}/force-offline | delivery:status | |
-| GET/POST | /cash-settlements | settlements:* | COD settlement per partner |
-| GET | /payments, /payments/{id} | payments:view | |
-| POST | /orders/{id}/refunds | refunds:create | idempotent; limits read from the member's assignment for the order's zone (per refund, per day) |
-| GET | /refunds?status=PENDING_APPROVAL | refunds:view | |
-| POST | /refunds/{id}/approve, /reject | refunds:approve | Super Admin; requester ≠ approver |
-| POST | /refunds/{id}/retry | refunds:create | same idempotency key |
-| GET | /payouts | payouts:view | `?payeeType=RESTAURANT|HOMEMAKER|DELIVERY_PARTNER` (Figma tabs) |
+| GET/POST | /cash-settlements | settlements:* | COD settlement per partner. GET (built): the history, expected / handed in / variance, `?deliveryPartnerId`, `?varianceOnly`, totals. POST (record a hand-in) not built yet |
+| GET | /cash-settlements/balances | settlements:view | D173: each delivery partner's cash in hand with the last settlement, `?withCash`; added 2026-10-21 (doc 32) |
+| GET | /payments, /payments/{id} | payments:view | D159 filters (method, status incl. REFUND_PROCESSING (D160), zone, vendor, dates); detail lists the refunds |
+| POST | /orders/{id}/refunds | refunds:add | idempotent; within the requester's own limits (the member's per refund and per day for the order's zone, IST day; a Super Admin's are the zone caps) approved at once, else PENDING_APPROVAL (D187) |
+| GET | /refunds?status=PENDING_APPROVAL, /refunds/{id} | refunds:view | also `?awaitingSecondApproval=true` (D95) and `?status=REQUESTED` (customer reports, D180) |
+| POST | /refunds/{id}/decide | refunds:add | D180: the zone agent decides a customer's report (approve full/part or reject, with the fault) |
+| POST | /refunds/{id}/approve, /reject | refunds:edit | Super Admin only (refunds:edit is never grantable; the doc's `refunds:approve`), PASSWORD; requester ≠ approver; a second, different Super Admin above the second-approver amount (D95, D187) |
+| POST | /refunds/{id}/record-payment | refunds:edit | D187: COD to UPI paid by hand; the UTR makes it PROCESSED |
+| POST | /refunds/{id}/retry | refunds:add | FAILED → APPROVED, paid again |
+| GET | /payouts | payouts:view | `?payeeType=RESTAURANT|HOMEMAKER|DELIVERY_PARTNER` (Figma tabs); each row shows the vendor-fault refunds decided in its period (D152); `meta.cycles` = each zone's payout cycle |
 | POST | /payouts/{id}/mark-paid | payouts:edit | Super Admin, re-auth |
 | GET | /reconciliation/runs, /reconciliation/runs/{id} | payments:view | |
 | GET/PUT | /settings/{group} | settings:view/edit | Super Admin |

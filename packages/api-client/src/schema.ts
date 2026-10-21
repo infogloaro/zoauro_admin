@@ -395,6 +395,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cash-settlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** COD settlement history: per partner the amount expected, handed in and the variance (?varianceOnly=true), who settled it and when; totals for the filters */
+        get: operations["listCashSettlements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cash-settlements/balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Each delivery partner’s COD cash in hand (what the next settlement expects) with the last settlement (D173); ?withCash=true for partners holding cash */
+        get: operations["listCodBalances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/categories": {
         parameters: {
             query?: never;
@@ -2381,6 +2415,23 @@ export interface paths {
         };
         /** One payment with its refunds. 404 outside the caller’s zones */
         get: operations["getPayment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payouts per payee and cycle (?payeeType for the Figma tabs): gross, commission, net, the vendor-fault refunds decided in the period (D152), status; totals and each zone’s payout cycle */
+        get: operations["listPayouts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5531,6 +5582,206 @@ export interface operations {
             };
             /** @description Not allowed (missing permission, bad CSRF token or Origin) */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listCashSettlements: {
+        parameters: {
+            query?: {
+                deliveryPartnerId?: string;
+                from?: string;
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                to?: string;
+                varianceOnly?: "true" | "false";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            expectedPaise: number;
+                            handedInPaise: number;
+                            /** Format: uuid */
+                            id: string;
+                            note: string | null;
+                            partner: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            /** Format: date-time */
+                            settledAt: string;
+                            settledBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            variancePaise: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            counts: {
+                                expectedPaise: number;
+                                handedInPaise: number;
+                                total: number;
+                                variancePaise: number;
+                                withVariance: number;
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listCodBalances: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                withCash?: "true" | "false";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            cashInHandPaise: number;
+                            lastSettlement: {
+                                handedInPaise: number;
+                                /** Format: date-time */
+                                settledAt: string;
+                                variancePaise: number;
+                            } | null;
+                            partner: {
+                                /** Format: uuid */
+                                id: string;
+                                isOnline: boolean;
+                                name: string;
+                                status: string;
+                            };
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            counts: {
+                                cashInHandPaise: number;
+                                partners: number;
+                                withCash: number;
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19450,6 +19701,127 @@ export interface operations {
                 };
             };
             /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listPayouts: {
+        parameters: {
+            query?: {
+                from?: string;
+                page?: number;
+                pageSize?: number;
+                payeeId?: string;
+                payeeType?: "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                sort?: string;
+                status?: string;
+                to?: string;
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            commissionPaise: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            grossPaise: number;
+                            /** Format: uuid */
+                            id: string;
+                            netPaise: number;
+                            /** Format: date-time */
+                            paidAt: string | null;
+                            paidBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            payee: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                type: "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                            };
+                            /** Format: date */
+                            periodFrom: string;
+                            /** Format: date */
+                            periodTo: string;
+                            status: string;
+                            vendorRefundsPaise: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            counts: {
+                                byStatus: {
+                                    [key: string]: number;
+                                };
+                                commissionPaise: number;
+                                grossPaise: number;
+                                netPaise: number;
+                                total: number;
+                            };
+                            cycles: {
+                                days: number;
+                                /** Format: uuid */
+                                zoneId: string;
+                            }[];
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
             404: {
                 headers: {
                     [name: string]: unknown;

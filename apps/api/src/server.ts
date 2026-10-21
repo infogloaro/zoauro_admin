@@ -41,6 +41,7 @@ import { startApiRealtime } from './lib/realtime';
 import { createExportQueue, createExportsModule } from './modules/exports';
 import { createSupportModule } from './modules/support';
 import { createPaymentsModule } from './modules/payments';
+import { createSettlementsModule } from './modules/settlements';
 import { createRefundsModule } from './modules/refunds';
 
 const env = loadEnvOrExit('api');
@@ -316,6 +317,11 @@ const app = createApp({
       refunds.router,
       // D159 payments, read only until the gateway (D6)
       createPaymentsModule({ prisma }).router,
+      // D173 COD settlement and D152 payouts, read only (the cycle from settings payouts.cycleDays)
+      createSettlementsModule({
+        prisma,
+        cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
+      }).router,
       partners.router,
       notifications.router,
       // M16: tiles cached 30 s in Redis by scope hash; M18: 60 searches a minute per member
