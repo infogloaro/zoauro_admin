@@ -64,13 +64,30 @@ describe('searchOptions', () => {
       '/zone/delivery-partners?q=ravi',
     );
   });
+  it('customers come right after orders and "see all" opens the customer list', () => {
+    const customer = {
+      id: '0192f1d2-6666-7000-8000-000000000001',
+      title: 'Lakshmi',
+      subtitle: '98•••••210',
+      zone: null,
+      href: '/zone/customers/0192f1d2-6666-7000-8000-000000000001',
+    };
+    const opts = searchOptions([], { ...groups, customers: [customer] }, 'ZONAL_ADMIN', 'lak');
+    expect(opts.map((o) => o.key).slice(0, 4)).toEqual([
+      `orders:${order.id}`,
+      'orders:all',
+      `customers:${customer.id}`,
+      'customers:all',
+    ]);
+    expect(opts[3]?.href).toBe('/zone/customers?q=lak');
+  });
   it('no groups (term too short, or not loaded yet) leaves the pages alone', () => {
     expect(searchOptions([], undefined, 'ZONAL_ADMIN', 'r')).toEqual([]);
   });
 });
 
 describe('PageSearch', () => {
-  it('one character searches pages only; two ask the API for the four record groups', async () => {
+  it('one character searches pages only; two ask the API for the five record groups', async () => {
     const user = userEvent.setup();
     const get = vi.fn(async () => ({ q: 'ra', groups }));
     mount(get, true);
@@ -82,7 +99,7 @@ describe('PageSearch', () => {
     await user.type(box, 'a');
     await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
     expect(get).toHaveBeenCalledWith('/search', {
-      query: { q: 'ra', types: 'orders,restaurants,homemakers,partners' },
+      query: { q: 'ra', types: 'orders,customers,restaurants,homemakers,partners' },
       signal: expect.any(AbortSignal),
     });
     const list = await screen.findByRole('listbox', { name: 'Search results' });

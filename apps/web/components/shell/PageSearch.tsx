@@ -11,8 +11,8 @@ import type { MenuItem, ShellRole } from '../../lib/navigation';
 import { NavIconGlyph } from './icons';
 
 // Top-bar search (Ctrl+K or / focuses it): the menu's pages first, then records from Global Search (M18, D143) once
-// the term has 2 characters: orders, restaurants, home food and delivery partners, at most five each, scope-filtered and
-// masked by the API, with a "see all" link to the list filtered by the term. Customers join when their pages are built.
+// the term has 2 characters: orders, customers, restaurants, home food and delivery partners, at most five each,
+// scope-filtered and masked by the API, with a "see all" link to the list filtered by the term.
 // ARIA combobox with a listbox; arrow keys move, Enter opens, Escape closes.
 
 export function matchPages(items: readonly MenuItem[], query: string): MenuItem[] {
@@ -28,11 +28,12 @@ export function matchPages(items: readonly MenuItem[], query: string): MenuItem[
     .slice(0, 8);
 }
 
-type RecordGroup = 'orders' | 'restaurants' | 'homemakers' | 'partners';
+type RecordGroup = 'orders' | 'customers' | 'restaurants' | 'homemakers' | 'partners';
 
 /** The record groups the header shows, in order, with the list each "see all" opens. */
 export const RECORD_GROUPS: readonly { key: RecordGroup; label: string; list: string }[] = [
   { key: 'orders', label: 'Orders', list: 'orders' },
+  { key: 'customers', label: 'Customers', list: 'customers' },
   { key: 'restaurants', label: 'Restaurants', list: 'restaurants' },
   { key: 'homemakers', label: 'Home Food', list: 'homemakers' },
   { key: 'partners', label: 'Delivery Partners', list: 'delivery-partners' },
