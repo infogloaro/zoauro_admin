@@ -129,7 +129,24 @@ try {
         done();
       });
     });
-  const queue = PACKAGES.filter((pkg) => existsSync(join(snap, pkg, 'tsconfig.json')));
+  // Only the packages the commit can affect: shared feeds everything, api-client
+  // feeds web, tests/e2e is part of the api project, root config affects all.
+  const affected = new Set();
+  for (const file of changed) {
+    if (file.startsWith('packages/shared/')) PACKAGES.forEach((pkg) => affected.add(pkg));
+    else if (file.startsWith('packages/api-client/'))
+      ['packages/api-client', 'apps/web'].forEach((p) => affected.add(p));
+    else if (file.startsWith('apps/api/') || file.startsWith('tests/e2e/'))
+      affected.add('apps/api');
+    else if (file.startsWith('apps/web/')) affected.add('apps/web');
+    else if (!file.includes('/') && /\.(json|ya?ml|mjs|cjs|js|ts)$/.test(file))
+      PACKAGES.forEach((pkg) => affected.add(pkg));
+  }
+  const queue = PACKAGES.filter(
+    (pkg) => affected.has(pkg) && existsSync(join(snap, pkg, 'tsconfig.json')),
+  );
+  if (queue.length === 0)
+    console.log('typecheck (commit snapshot): no TypeScript package affected');
   await Promise.all(
     [0, 1].map(async () => {
       for (let pkg = queue.shift(); pkg; pkg = queue.shift()) await check(pkg);
