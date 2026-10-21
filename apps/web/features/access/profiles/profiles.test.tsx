@@ -92,7 +92,8 @@ describe('profile rules', () => {
 
   it('the row toggle grants only what a Zonal Admin may hold; non-grantable actions are dropped', () => {
     const m = toggleRow(toMatrix([]), 'refunds', true);
-    expect(toPermissions(m)).toEqual([{ module: 'refunds', actions: ['view', 'add'] }]);
+    // every grantable action of the row, export included since D149 (87d2bc6)
+    expect(toPermissions(m)).toEqual([{ module: 'refunds', actions: ['view', 'add', 'export'] }]);
     expect(toPermissions(toMatrix([{ module: 'commission', actions: ['edit'] }]))).toEqual([]);
   });
 });
@@ -176,7 +177,8 @@ describe('permission matrix editor', () => {
         body: {
           permissions: [
             { module: 'orders', actions: ['view', 'edit'] },
-            { module: 'settlements', actions: ['view', 'add', 'edit'] },
+            // "all" is every grantable action, export included since D149 (87d2bc6)
+            { module: 'settlements', actions: ['view', 'add', 'edit', 'export'] },
           ],
           defaults: {
             perRefund: 150_050,
