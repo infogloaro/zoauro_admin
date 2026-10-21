@@ -93,6 +93,23 @@ describe('Control Panel areas (D178)', () => {
     expect((await client(p, app).get('/settings/refunds')).status).toBe(200);
   });
 
+  it('exports, audit and Settings > Security need their areas; a record’s activity stays open', async () => {
+    for (const path of [
+      '/settings/security',
+      '/audit-logs',
+      '/login-history',
+      '/restaurants/export',
+    ]) {
+      const r = await client(o, app).get(path);
+      expect(r.status, path).toBe(403);
+      expect(r.body.error.details[0].issue, path).toBe('AREA_NOT_GRANTED');
+    }
+    const activity = await client(o, app).get(`/audit-logs?entityType=user&entityId=${other.id}`);
+    expect(activity.status).not.toBe(403);
+    expect((await client(p, app).get('/settings/security')).status).toBe(200);
+    expect((await client(p, app).get('/audit-logs')).status).toBe(200);
+  });
+
   it('the catalogue lists zones, access, exports, audit and one area per settings group', async () => {
     const r = await client(o, app).get('/super-admins/areas');
     expect(r.status).toBe(200);

@@ -1,4 +1,4 @@
-import type { RequestHandler } from 'express';
+import { Router, type RequestHandler } from 'express';
 import { CONTROL_AREA_KEYS, type ControlAreas } from '@zoauro/shared';
 import { getAuth } from '../../lib/auth/middleware';
 import { AppError } from '../../lib/errors';
@@ -82,4 +82,34 @@ export function createControlAreas(
   now: () => number = Date.now,
 ) {
   return new ControlAreasService({ repo: new ControlAreasRepository(prisma), now });
+}
+
+/**
+ * D178 for routers owned by other modules (exports, audit, Settings > Security): one router of guards mounted before
+ * them. A Super Admin needs `exports` for a list export or an export download, `audit` for the audit log and sign-in
+ * history (the entity activity of a record, GET /audit-logs?entityType=&entityId=, stays open like for Zonal Admins),
+ * and `settings.security` for the 2-step policy screen. It serves no route of its own.
+ */
+export function createControlAreaGuard(areas: ControlAreasService): Router {
+  const router = Router();
+  router.use(
+    areas.require((req) => {
+      const p = req.path;
+      if (p === '/settings/security' || p.startsWith('/settings/security/'))
+        return 'settings.security';
+      if (p === '/login-history') return 'audit';
+      if (p === '/audit-logs' || p.startsWith('/audit-logs/')) {
+        const q = req.query;
+        const entityMode =
+          req.method === 'GET' &&
+          p === '/audit-logs' &&
+          q['entityType'] !== undefined &&
+          q['entityId'] !== undefined;
+        return entityMode ? null : 'audit';
+      }
+      if (p.endsWith('/export') || p === '/exports' || p.startsWith('/exports/')) return 'exports';
+      return null;
+    }),
+  );
+  return router;
 }

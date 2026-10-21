@@ -9,6 +9,7 @@ import { authContextMiddleware } from './lib/authz';
 import {
   createAccessMailer,
   createAccessModule,
+  createControlAreaGuard,
   createControlAreas,
   createAccessService,
   createZoneTeamPort,
@@ -296,6 +297,8 @@ const app = createApp({
     sessionMiddleware: auth.sessionMiddleware,
     authContextMiddleware: authContextMiddleware(access),
     routers: [
+      // D178: exports, audit and Settings > Security need their Control Panel area (non-primary Super Admins)
+      createControlAreaGuard(controlAreas),
       auth.router,
       exportsModule.router,
       createAuditModule({ prisma }).router,

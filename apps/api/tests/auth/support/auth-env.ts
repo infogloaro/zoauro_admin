@@ -16,6 +16,7 @@ import { RedisRateLimiter } from '../../../src/lib/rate-limiter';
 import { auditTransaction, createPrismaClient } from '../../../src/lib/db';
 import {
   createAccessModule,
+  createControlAreaGuard,
   createControlAreas,
   createAccessService,
   createZoneTeamPort,
@@ -471,6 +472,7 @@ export async function createAuthTestEnv() {
     });
     exportGate.run = (id) => exportsModule.service.run(id, { finalAttempt: true });
     const moduleRouters = [
+      createControlAreaGuard(controlAreas), // D178: exports, audit, Settings > Security
       auth.router,
       exportsModule.router,
       createAuditModule({ prisma }).router,

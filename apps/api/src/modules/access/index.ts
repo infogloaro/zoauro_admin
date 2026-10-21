@@ -19,7 +19,7 @@ import { SuperAdminsService } from './super-admins.service';
 
 export { createAccessMailer, noopAccessMailer, type AccessMailer } from './access.mails';
 export { ADMIN_ZONES_CHANGED, memberScopeEvent } from './access.events';
-export { createControlAreas, ControlAreasService } from './control-areas';
+export { createControlAreaGuard, createControlAreas, ControlAreasService } from './control-areas';
 
 /**
  * Access context for every request (doc 14 section 4). The Access Control module calls invalidateUsers on it after
