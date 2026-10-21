@@ -15,6 +15,7 @@ import { paymentsRouter } from './modules/payments';
 import { customersRouter } from './modules/customers';
 import { deliveryPartnersRouter } from './modules/delivery-partners';
 import { thirdPartyProvidersRouter } from './modules/third-party-providers';
+import { dashboardRouter } from './modules/dashboard';
 export function createApp(): Express {
   const app = express();
   app.disable('x-powered-by');
@@ -50,6 +51,7 @@ export function createApp(): Express {
   v1.use('/customers', customersRouter);
   v1.use('/delivery-partners', deliveryPartnersRouter);
   v1.use('/third-party-providers', thirdPartyProvidersRouter);
+  v1.use('/dashboard', dashboardRouter);
   app.use('/api/v1', v1);
 
   app.use('/api', apiNotFound);

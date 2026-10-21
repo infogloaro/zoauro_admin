@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-/** SA-1.1: the Super Admin dashboard arrives in a later task (doc 20). */
+/** Doc 18 §2: Super Admin lands on the global dashboard (M16). */
 export default function SuperAdminIndex() {
-  redirect('/super-admin/zones');
+  redirect('/super-admin/dashboard');
 }

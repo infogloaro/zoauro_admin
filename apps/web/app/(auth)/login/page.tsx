@@ -22,7 +22,7 @@ const TABS = [
 ];
 
 function landingFor(role: LoginInput['role']): string {
-  return role === 'SUPER_ADMIN' ? '/super-admin/zones' : '/zone/dashboard';
+  return role === 'SUPER_ADMIN' ? '/super-admin/dashboard' : '/zone/dashboard';
 }
 
 function LoginForm() {

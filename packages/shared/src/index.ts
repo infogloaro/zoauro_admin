@@ -9,3 +9,5 @@ export * from './menu';
 export * from './customers';
 export * from './delivery-partners';
 export * from './third-party-providers';
+export * from './payments';
+export * from './dashboard';

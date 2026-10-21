@@ -53,7 +53,10 @@ const SECTIONS: NavSection[] = [
     label: 'Overview',
     icon: LayoutDashboard,
     openByDefault: true,
-    children: [{ label: 'Dashboard Overview' }, { label: 'Recent Activities' }],
+    children: [
+      { label: 'Dashboard Overview', href: '/super-admin/dashboard' },
+      { label: 'Recent Activities' },
+    ],
   },
   {
     id: 'service',
