@@ -13,15 +13,23 @@ import {
 import { BedDouble, Plus, UtensilsCrossed } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DataTable, type Column } from '../../components/shared/DataTable';
+import { ExportButton } from '../../components/shared/ExportButton';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { formatPaise } from '../audit/format';
 import { CardError, EmptyState } from '../dashboard/parts';
-import { useBookingList, useDiningList, type BookingListFilters } from './api';
+import {
+  hotelListQuery,
+  useBookingList,
+  useDiningList,
+  type BookingListFilters,
+  type DiningListFilters,
+} from './api';
 import { BookingFormDialog, DiningFormDialog, MoveDialog, type PendingMove } from './HotelDialogs';
 import {
   BOOKING_SORTS,
@@ -140,6 +148,7 @@ export function BookingsPanel({
   showZone,
   canAdd,
   canMove,
+  canExport = false,
 }: {
   /** the zone switcher's zone, if one */
   zoneId?: string;
@@ -148,7 +157,10 @@ export function BookingsPanel({
   showZone: boolean;
   canAdd: boolean;
   canMove: boolean;
+  /** bookings:export where the zone's export switch is on (lib/export-access) */
+  canExport?: boolean;
 }) {
+  const client = useApiClient();
   const url = useUrlState();
   const [search, setSearch, q] = useSearchParam();
   const status = pick(BOOKING_STATUSES, url.params.get('status'));
@@ -335,6 +347,11 @@ export function BookingsPanel({
             options={BOOKING_SORTS}
           />
         </Filters>
+        {canExport ? (
+          <ExportButton
+            start={() => client.get('/hotels/bookings/export', { query: hotelListQuery(filters) })}
+          />
+        ) : null}
         {canAdd ? (
           <Button onClick={() => setCreating(true)}>
             <Plus aria-hidden className="size-4" /> New room booking
@@ -391,13 +408,17 @@ export function DiningPanel({
   showZone,
   canAdd,
   canMove,
+  canExport = false,
 }: {
   zoneId?: string;
   hotel?: { id: string; name: string };
   showZone: boolean;
   canAdd: boolean;
   canMove: boolean;
+  /** dining:export where the zone's export switch is on (lib/export-access) */
+  canExport?: boolean;
 }) {
+  const client = useApiClient();
   const url = useUrlState();
   const [search, setSearch, q] = useSearchParam();
   const status = pick(DINING_STATUSES, url.params.get('status'));
@@ -407,7 +428,7 @@ export function DiningPanel({
   const [creating, setCreating] = useState(false);
   const [pending, setPending] = useState<PendingMove<DiningStatusTarget> | null>(null);
 
-  const list = useDiningList({
+  const filters: DiningListFilters = {
     page,
     sort,
     ...(q ? { q } : {}),
@@ -415,7 +436,8 @@ export function DiningPanel({
     ...(hotel ? { hotelId: hotel.id } : {}),
     ...(status ? { status } : {}),
     ...(date ? { reservedDate: date } : {}),
-  });
+  };
+  const list = useDiningList(filters);
   const filtered = Boolean(q || status || date);
 
   const columns: Column<DiningRow>[] = [
@@ -570,6 +592,11 @@ export function DiningPanel({
             options={DINING_SORTS}
           />
         </Filters>
+        {canExport ? (
+          <ExportButton
+            start={() => client.get('/hotels/dining/export', { query: hotelListQuery(filters) })}
+          />
+        ) : null}
         {canAdd ? (
           <Button onClick={() => setCreating(true)}>
             <Plus aria-hidden className="size-4" /> New table booking

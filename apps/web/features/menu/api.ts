@@ -23,29 +23,30 @@ export interface MenuFilters {
   featured?: boolean;
 }
 
+/** The list's query; GET /menu-items/export (D149) takes the same filters and exports every matching row. */
+export function menuListQuery(f: MenuFilters) {
+  const availability = MENU_TABS.find((t) => t.id === f.tab)?.availability ?? null;
+  return {
+    page: f.page,
+    pageSize: DEFAULT_LIST_PAGE_SIZE,
+    sort: f.sort,
+    ...(availability ? { availability } : {}),
+    ...(f.q ? { q: f.q } : {}),
+    ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
+    ...(f.vendorKind ? { vendorKind: f.vendorKind } : {}),
+    ...(f.vendorId ? { vendorId: f.vendorId } : {}),
+    ...(f.categoryId ? { categoryId: f.categoryId } : {}),
+    ...(f.dietary ? { dietary: f.dietary } : {}),
+    ...(f.featured ? { featured: true } : {}),
+  };
+}
+
 export function useMenuItems(f: MenuFilters, enabled = true) {
   const client = useApiClient();
-  const availability = MENU_TABS.find((t) => t.id === f.tab)?.availability ?? null;
   return useQuery({
     queryKey: ['menu', 'items', f],
     enabled,
-    queryFn: ({ signal }) =>
-      client.get('/menu-items', {
-        query: {
-          page: f.page,
-          pageSize: DEFAULT_LIST_PAGE_SIZE,
-          sort: f.sort,
-          ...(availability ? { availability } : {}),
-          ...(f.q ? { q: f.q } : {}),
-          ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
-          ...(f.vendorKind ? { vendorKind: f.vendorKind } : {}),
-          ...(f.vendorId ? { vendorId: f.vendorId } : {}),
-          ...(f.categoryId ? { categoryId: f.categoryId } : {}),
-          ...(f.dietary ? { dietary: f.dietary } : {}),
-          ...(f.featured ? { featured: true } : {}),
-        },
-        signal,
-      }),
+    queryFn: ({ signal }) => client.get('/menu-items', { query: menuListQuery(f), signal }),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
     retry: retryTransient,

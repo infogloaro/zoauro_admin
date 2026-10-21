@@ -10,19 +10,26 @@ import { Bell, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
+import { ExportButton } from '../../components/shared/ExportButton';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
-import { useNotificationList, useNotificationTabCounts, type NotificationFilters } from './api';
+import {
+  notificationExportQuery,
+  useNotificationList,
+  useNotificationTabCounts,
+  type NotificationFilters,
+} from './api';
 import {
   AUDIENCE_LABEL,
   CHANNEL_LABEL,
@@ -44,11 +51,15 @@ export function NotificationsPage({
   role,
   myZones = [],
   canAdd,
+  canExport = false,
 }: {
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   myZones?: ScopeZone[];
   canAdd: boolean;
+  /** notifications:export where the zone's export switch is on (lib/export-access) */
+  canExport?: boolean;
 }) {
+  const client = useApiClient();
   const router = useRouter();
   const url = useUrlState();
   const allZones = useZoneOptions(role === 'SUPER_ADMIN');
@@ -187,10 +198,21 @@ export function NotificationsPage({
             : 'Messages and promotions to your zones. Promotions go out after a Super Admin approves them.'
         }
         actions={
-          canAdd ? (
-            <Button onClick={() => setComposing(true)}>
-              <Plus aria-hidden className="size-4" /> New notification
-            </Button>
+          canAdd || canExport ? (
+            <div className="flex flex-wrap items-start gap-2">
+              {canExport ? (
+                <ExportButton
+                  start={() =>
+                    client.get('/notifications/export', { query: notificationExportQuery(filters) })
+                  }
+                />
+              ) : null}
+              {canAdd ? (
+                <Button onClick={() => setComposing(true)}>
+                  <Plus aria-hidden className="size-4" /> New notification
+                </Button>
+              ) : null}
+            </div>
           ) : undefined
         }
       />

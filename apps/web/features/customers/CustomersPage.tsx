@@ -5,12 +5,14 @@ import { Plus, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
+import { ExportButton } from '../../components/shared/ExportButton';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
@@ -18,7 +20,7 @@ import { formatPaise } from '../audit/format';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
-import { useCustomerList, type CustomerListFilters } from './api';
+import { customerListQuery, useCustomerList, type CustomerListFilters } from './api';
 import { CustomerFormDialog } from './CustomerDialogs';
 import type { CustomerPageProps } from './customer-page-props';
 import {
@@ -41,7 +43,17 @@ import {
 
 type Row = NonNullable<ReturnType<typeof useCustomerList>['data']>['data'][number];
 
-export function CustomersPage({ role, myZones, addZones, can }: CustomerPageProps) {
+export function CustomersPage({
+  role,
+  myZones,
+  addZones,
+  can,
+  canExport = false,
+}: CustomerPageProps & {
+  /** customers:export where the zone's export switch is on (lib/export-access) */
+  canExport?: boolean;
+}) {
+  const client = useApiClient();
   const router = useRouter();
   const url = useUrlState();
   const allZones = useZoneOptions(role === 'SUPER_ADMIN');
@@ -186,10 +198,21 @@ export function CustomersPage({ role, myZones, addZones, can }: CustomerPageProp
               : 'Customers with an address or an order in your zones; order figures count your zones only.'
         }
         actions={
-          can.add ? (
-            <Button onClick={() => setCreating(true)}>
-              <Plus aria-hidden className="size-4" /> Add customer
-            </Button>
+          can.add || canExport ? (
+            <div className="flex flex-wrap items-start gap-2">
+              {canExport ? (
+                <ExportButton
+                  start={() =>
+                    client.get('/customers/export', { query: customerListQuery(filters) })
+                  }
+                />
+              ) : null}
+              {can.add ? (
+                <Button onClick={() => setCreating(true)}>
+                  <Plus aria-hidden className="size-4" /> Add customer
+                </Button>
+              ) : null}
+            </div>
           ) : undefined
         }
       />

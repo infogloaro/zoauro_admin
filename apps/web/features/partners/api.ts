@@ -30,29 +30,31 @@ export const partnerKeys = {
   detail: (id: string) => ['partners', 'detail', id] as const,
 };
 
+/** The list's query; GET /delivery-partners/export (D149) takes the same filters and exports every matching row. */
+export function partnerListQuery(f: PartnerListFilters) {
+  return {
+    page: f.page,
+    pageSize: DEFAULT_LIST_PAGE_SIZE,
+    sort: f.sort,
+    ...(f.q ? { q: f.q } : {}),
+    ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
+    ...(f.status ? { status: f.status } : {}),
+    ...(f.verification ? { verification: f.verification } : {}),
+    ...(f.available ? { available: 'true' as const } : {}),
+    ...(f.unassigned ? { assignment: 'UNASSIGNED' as const } : {}),
+    ...(f.online === undefined
+      ? {}
+      : { online: f.online ? ('true' as const) : ('false' as const) }),
+  };
+}
+
 export function usePartnerList(f: PartnerListFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: partnerKeys.list(f),
     enabled,
     queryFn: ({ signal }) =>
-      client.get('/delivery-partners', {
-        query: {
-          page: f.page,
-          pageSize: DEFAULT_LIST_PAGE_SIZE,
-          sort: f.sort,
-          ...(f.q ? { q: f.q } : {}),
-          ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
-          ...(f.status ? { status: f.status } : {}),
-          ...(f.verification ? { verification: f.verification } : {}),
-          ...(f.available ? { available: 'true' as const } : {}),
-          ...(f.unassigned ? { assignment: 'UNASSIGNED' as const } : {}),
-          ...(f.online === undefined
-            ? {}
-            : { online: f.online ? ('true' as const) : ('false' as const) }),
-        },
-        signal,
-      }),
+      client.get('/delivery-partners', { query: partnerListQuery(f), signal }),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
     retry: retryTransient,

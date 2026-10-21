@@ -14,6 +14,7 @@ import {
 } from '@zoauro/shared';
 import { Plus, UtensilsCrossed } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ExportButton } from '../../components/shared/ExportButton';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
@@ -31,7 +32,13 @@ import { formatPaise } from '../audit/format';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
 import { CardError, CardSkeleton, EmptyState } from '../dashboard/parts';
 import { useZoneOptions } from '../platform-settings/api';
-import { useCategories, useInvalidateMenu, useMenuItems, type MenuFilters } from './api';
+import {
+  menuListQuery,
+  useCategories,
+  useInvalidateMenu,
+  useMenuItems,
+  type MenuFilters,
+} from './api';
 import {
   AVAILABILITY_LABEL,
   AVAILABILITY_TONE,
@@ -51,11 +58,15 @@ export function MenuItemsPage({
   role,
   myZones = [],
   can,
+  canExport = false,
 }: {
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   myZones?: ScopeZone[];
   can: { add: boolean; edit: boolean };
+  /** menu:export where the zone's export switch is on (lib/export-access) */
+  canExport?: boolean;
 }) {
+  const client = useApiClient();
   const url = useUrlState();
   const allZones = useZoneOptions(role === 'SUPER_ADMIN');
   const zones: ScopeZone[] =
@@ -144,6 +155,11 @@ export function MenuItemsPage({
             >
               Categories
             </a>
+            {canExport ? (
+              <ExportButton
+                start={() => client.get('/menu-items/export', { query: menuListQuery(filters) })}
+              />
+            ) : null}
             {can.add ? (
               <Button onClick={() => setEditing('new')}>
                 <Plus aria-hidden className="size-4" /> Add item

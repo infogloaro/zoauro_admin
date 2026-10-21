@@ -25,24 +25,25 @@ export const customerKeys = {
   detail: (id: string) => ['customers', 'detail', id] as const,
 };
 
+/** The list's query; GET /customers/export (D149) takes the same filters and exports every matching row. */
+export function customerListQuery(f: CustomerListFilters) {
+  return {
+    page: f.page,
+    pageSize: DEFAULT_LIST_PAGE_SIZE,
+    sort: f.sort,
+    ...(f.q ? { q: f.q } : {}),
+    ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
+    ...(f.status ? { status: f.status } : {}),
+    ...(f.source ? { source: f.source } : {}),
+  };
+}
+
 export function useCustomerList(f: CustomerListFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: customerKeys.list(f),
     enabled,
-    queryFn: ({ signal }) =>
-      client.get('/customers', {
-        query: {
-          page: f.page,
-          pageSize: DEFAULT_LIST_PAGE_SIZE,
-          sort: f.sort,
-          ...(f.q ? { q: f.q } : {}),
-          ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
-          ...(f.status ? { status: f.status } : {}),
-          ...(f.source ? { source: f.source } : {}),
-        },
-        signal,
-      }),
+    queryFn: ({ signal }) => client.get('/customers', { query: customerListQuery(f), signal }),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
     retry: retryTransient,

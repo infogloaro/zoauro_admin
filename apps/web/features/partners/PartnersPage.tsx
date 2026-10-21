@@ -4,12 +4,14 @@ import { Bike, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
+import { ExportButton } from '../../components/shared/ExportButton';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
@@ -18,7 +20,7 @@ import { ClaimBadge } from '../claims/ClaimBadge';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
-import { usePartnerList, type PartnerListFilters } from './api';
+import { partnerListQuery, usePartnerList, type PartnerListFilters } from './api';
 import {
   PARTNER_SORTS,
   PARTNER_STATUS_LABEL,
@@ -43,12 +45,16 @@ export function PartnersPage({
   myZones = [],
   canAdd,
   mode = 'all',
+  canExport = false,
 }: {
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   myZones?: ScopeZone[];
   canAdd: boolean;
   mode?: 'all' | 'requests';
+  /** delivery:export where the zone's export switch is on (lib/export-access); the list, not the requests queue */
+  canExport?: boolean;
 }) {
+  const client = useApiClient();
   const router = useRouter();
   const url = useUrlState();
   const allZones = useZoneOptions(role === 'SUPER_ADMIN');
@@ -199,10 +205,21 @@ export function PartnersPage({
                 : 'Delivery partners in your zones.'
         }
         actions={
-          canAdd && !requests ? (
-            <Button onClick={() => setCreating(true)}>
-              <Plus aria-hidden className="size-4" /> Add partner
-            </Button>
+          !requests && (canAdd || canExport) ? (
+            <div className="flex flex-wrap items-start gap-2">
+              {canExport ? (
+                <ExportButton
+                  start={() =>
+                    client.get('/delivery-partners/export', { query: partnerListQuery(filters) })
+                  }
+                />
+              ) : null}
+              {canAdd ? (
+                <Button onClick={() => setCreating(true)}>
+                  <Plus aria-hidden className="size-4" /> Add partner
+                </Button>
+              ) : null}
+            </div>
           ) : undefined
         }
       />

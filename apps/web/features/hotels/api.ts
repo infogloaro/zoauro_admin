@@ -64,6 +64,9 @@ function query<T extends { zoneId?: string }>(f: T) {
   return { ...clean, pageSize: DEFAULT_LIST_PAGE_SIZE, ...(zoneId ? { zoneId: [zoneId] } : {}) };
 }
 
+/** The lists' query; GET /hotels/export, /hotels/bookings/export and /hotels/dining/export (D149) take the same. */
+export const hotelListQuery = <T extends { zoneId?: string }>(f: T) => query(f);
+
 export function useHotelList(f: HotelListFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({

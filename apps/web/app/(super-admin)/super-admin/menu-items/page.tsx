@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { MenuItemsPage } from '../../../../features/menu/MenuItemsPage';
 import { menuPageProps } from '../../../../features/menu/menu-page-props';
+import { canExportList } from '../../../../lib/export-access';
 import { getMe } from '../../../../lib/server-session';
 
 export const metadata: Metadata = { title: 'Menu items · ZOAURO Admin' };
@@ -13,6 +14,11 @@ export default async function Page() {
   const p = menuPageProps(me);
   if (p.role === 'ZONAL_ADMIN' && p.myZones.length === 0) notFound();
   return (
-    <MenuItemsPage role={p.role} myZones={p.myZones} can={{ add: p.can.add, edit: p.can.edit }} />
+    <MenuItemsPage
+      role={p.role}
+      myZones={p.myZones}
+      can={{ add: p.can.add, edit: p.can.edit }}
+      canExport={canExportList(me, 'menu')}
+    />
   );
 }

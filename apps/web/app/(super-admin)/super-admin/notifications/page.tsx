@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { NotificationsPage } from '../../../../features/notifications/NotificationsPage';
 import { notificationPageProps } from '../../../../features/notifications/notification-page-props';
+import { canExportList } from '../../../../lib/export-access';
 import { getMe } from '../../../../lib/server-session';
 
 export const metadata: Metadata = { title: 'Notifications · ZOAURO Admin' };
@@ -12,5 +13,12 @@ export default async function Page() {
   if (!me) return null;
   const p = notificationPageProps(me);
   if (p.role === 'ZONAL_ADMIN' && p.myZones.length === 0) notFound();
-  return <NotificationsPage role={p.role} myZones={p.myZones} canAdd={p.canAdd} />;
+  return (
+    <NotificationsPage
+      role={p.role}
+      myZones={p.myZones}
+      canAdd={p.canAdd}
+      canExport={canExportList(me, 'notifications')}
+    />
+  );
 }

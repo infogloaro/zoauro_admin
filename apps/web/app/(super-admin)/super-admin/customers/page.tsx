@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { CustomersPage } from '../../../../features/customers/CustomersPage';
 import { customerPageProps } from '../../../../features/customers/customer-page-props';
+import { canExportList } from '../../../../lib/export-access';
 import { getMe } from '../../../../lib/server-session';
 
 export const metadata: Metadata = { title: 'Customers · ZOAURO Admin' };
@@ -9,5 +10,5 @@ export const metadata: Metadata = { title: 'Customers · ZOAURO Admin' };
 export default async function Page() {
   const me = await getMe();
   if (!me) return null;
-  return <CustomersPage {...customerPageProps(me)} />;
+  return <CustomersPage {...customerPageProps(me)} canExport={canExportList(me, 'customers')} />;
 }

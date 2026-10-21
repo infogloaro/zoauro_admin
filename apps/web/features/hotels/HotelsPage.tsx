@@ -4,12 +4,14 @@ import { Hotel, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
+import { ExportButton } from '../../components/shared/ExportButton';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
@@ -18,7 +20,7 @@ import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
 import { useClaimsFor } from '../claims/api';
 import { ClaimBadge } from '../claims/ClaimBadge';
-import { useHotelList, type HotelListFilters } from './api';
+import { hotelListQuery, useHotelList, type HotelListFilters } from './api';
 import { BookingsPanel, DiningPanel } from './BookingPanels';
 import { HotelFormDialog } from './HotelDialogs';
 import type { HotelPageProps } from './hotel-page-props';
@@ -47,7 +49,16 @@ type Row = NonNullable<ReturnType<typeof useHotelList>['data']>['data'][number];
 /** The keys of one list's filters: cleared when another list is chosen. */
 const LIST_KEYS = ['q', 'tab', 'status', 'payment', 'from', 'to', 'date', 'sort', 'page'] as const;
 
-export function HotelsPage({ role, myZones, views, can }: HotelPageProps) {
+export function HotelsPage({
+  role,
+  myZones,
+  views,
+  can,
+  canExport = {},
+}: HotelPageProps & {
+  /** per list: {hotels,bookings,dining}:export where the zone's export switch is on (lib/export-access) */
+  canExport?: Partial<Record<'hotels' | 'bookings' | 'dining', boolean>>;
+}) {
   const url = useUrlState();
   const allZones = useZoneOptions(role === 'SUPER_ADMIN');
   const zones: ScopeZone[] =
@@ -118,13 +129,21 @@ export function HotelsPage({ role, myZones, views, can }: HotelPageProps) {
       ) : null}
 
       {waitingForZone ? null : view === 'hotels' ? (
-        <HotelsList role={role} zones={zones} zone={zone} showZone={showZone} can={can} />
+        <HotelsList
+          role={role}
+          zones={zones}
+          zone={zone}
+          showZone={showZone}
+          can={can}
+          canExport={canExport.hotels ?? false}
+        />
       ) : view === 'bookings' ? (
         <BookingsPanel
           zoneId={zone?.id}
           showZone={showZone}
           canAdd={can.addBooking}
           canMove={can.bookingStatus}
+          canExport={canExport.bookings ?? false}
         />
       ) : (
         <DiningPanel
@@ -132,6 +151,7 @@ export function HotelsPage({ role, myZones, views, can }: HotelPageProps) {
           showZone={showZone}
           canAdd={can.addDining}
           canMove={can.diningStatus}
+          canExport={canExport.dining ?? false}
         />
       )}
     </div>
@@ -144,13 +164,16 @@ function HotelsList({
   zone,
   showZone,
   can,
+  canExport,
 }: {
   role: HotelPageProps['role'];
   zones: ScopeZone[];
   zone: ScopeZone | null;
   showZone: boolean;
   can: HotelPageProps['can'];
+  canExport: boolean;
 }) {
+  const client = useApiClient();
   const router = useRouter();
   const url = useUrlState();
   const tab = hotelTabFromParam(url.params.get('tab'));
@@ -291,6 +314,11 @@ function HotelsList({
             );
           })}
         </div>
+        {canExport ? (
+          <ExportButton
+            start={() => client.get('/hotels/export', { query: hotelListQuery(filters) })}
+          />
+        ) : null}
         {can.addHotel ? (
           <Button onClick={() => setCreating(true)}>
             <Plus aria-hidden className="size-4" /> Add hotel

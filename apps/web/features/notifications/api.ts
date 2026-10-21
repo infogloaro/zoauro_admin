@@ -33,6 +33,10 @@ function query(f: Omit<NotificationFilters, 'page'>, page: number, pageSize: num
   };
 }
 
+/** GET /notifications/export (D149): the list's own filters; the job exports every matching row. */
+export const notificationExportQuery = (f: NotificationFilters) =>
+  query(f, 1, DEFAULT_LIST_PAGE_SIZE);
+
 export function useNotificationList(f: NotificationFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({
