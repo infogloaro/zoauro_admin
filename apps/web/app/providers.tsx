@@ -4,7 +4,7 @@ import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-qu
 import { useState, type ReactNode } from 'react';
 import { ToastProvider } from '../components/ui/toast';
 import { ApiClientProvider } from '../lib/api-client';
-import { noteQueryFailure } from '../lib/busy';
+import { noteQueryFailure, queryRetryDelay } from '../lib/busy';
 
 // Client-side providers for the whole app: TanStack Query (server state, doc 23), the typed API client and toasts.
 export function Providers({ children }: { children: ReactNode }) {
@@ -14,7 +14,7 @@ export function Providers({ children }: { children: ReactNode }) {
     () =>
       new QueryClient({
         queryCache: new QueryCache({ onError: (err) => noteQueryFailure(err) }),
-        defaultOptions: { queries: { refetchOnWindowFocus: false } },
+        defaultOptions: { queries: { refetchOnWindowFocus: false, retryDelay: queryRetryDelay } },
       }),
   );
   return (

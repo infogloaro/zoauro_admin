@@ -18,9 +18,15 @@ export const auditKeys = {
   detail: (id: string) => ['audit', 'detail', id] as const,
 };
 
-/** 4xx answers are final (403 and 404 change what the page shows); only network errors and 5xx are retried, twice. */
-export const retryTransient = (failures: number, error: unknown): boolean =>
-  !(error instanceof ApiError && error.status < 500) && failures < 2;
+/**
+ * 4xx answers are final (403 and 404 change what the page shows); network errors and 5xx are retried twice, except a
+ * 503 (busy, Retry-After), which is retried once after its delay (lib/busy queryRetryDelay).
+ */
+export const retryTransient = (failures: number, error: unknown): boolean => {
+  if (error instanceof ApiError && error.status < 500) return false;
+  if (error instanceof ApiError && error.status === 503) return failures < 1;
+  return failures < 2;
+};
 
 /** The status the UI branches on: 403, 404, or 'error' for anything else. */
 export function failureKind(error: unknown): 403 | 404 | 'error' {
