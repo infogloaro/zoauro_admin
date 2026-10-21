@@ -186,6 +186,26 @@ enum RecordSource {
   IMPORT
 }
 
+// D188 packages: ZOAURO's plans for vendors (catalogue, features, subscriptions)
+enum VendorPlanCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum VendorPlanStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+
+enum VendorPlanSubscriptionStatus {
+  TRIAL
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
 enum RestaurantKind {
   RESTAURANT
   SHOP
@@ -682,6 +702,8 @@ model Zone {
   recordClaims       RecordClaim[]
   refunds            Refund[]
 
+  vendorPlanSubscriptions VendorPlanSubscription[]
+
   @@index([status])
   @@map("zones")
 }
@@ -773,6 +795,8 @@ model Restaurant {
   menuChangeRequests MenuItemChangeRequest[]
   diningReservations DiningReservation[]
 
+  vendorPlanSubscriptions VendorPlanSubscription[]
+
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "restaurants_name_trgm_idx")
@@ -826,6 +850,8 @@ model Homemaker {
   menuItems          MenuItem[]
   orders             Order[]
   menuChangeRequests MenuItemChangeRequest[]
+
+  vendorPlanSubscriptions VendorPlanSubscription[]
 
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
@@ -1769,6 +1795,8 @@ model Hotel {
   roomBookings       RoomBooking[]
   diningReservations DiningReservation[]
 
+  vendorPlanSubscriptions VendorPlanSubscription[]
+
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "hotels_name_trgm_idx")
@@ -2186,4 +2214,80 @@ enum OnboardingStage {
   UNDER_REVIEW
   MORE_INFO_REQUIRED
   DECIDED
+}
+
+// ===========================================================================
+// VENDOR PLANS (D188 packages: ZOAURO -> vendor plans; no invoices or renewals yet)
+// ===========================================================================
+
+model VendorPlan {
+  id          String           @id @db.Uuid
+  code        String           @unique
+  name        String
+  description String?
+  pricePaise  Int              @map("price_paise") // CHECK >= 0: SQL
+  cycle       VendorPlanCycle
+  trialDays   Int              @default(0) @map("trial_days") // CHECK >= 0: SQL
+  vendorTypes String[]         @default([]) @map("vendor_types") // RESTAURANT, HOMEMAKER, HOTEL (CHECK: SQL)
+  zoneIds     String[]         @default([]) @map("zone_ids") @db.Uuid // empty = every zone
+  status      VendorPlanStatus @default(DRAFT)
+  sortOrder   Int              @default(0) @map("sort_order")
+  version     Int              @default(1)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy   String?          @map("created_by") @db.Uuid
+  updatedBy   String?          @map("updated_by") @db.Uuid
+  deletedAt   DateTime?        @map("deleted_at") @db.Timestamptz
+
+  features      VendorPlanFeature[]
+  subscriptions VendorPlanSubscription[]
+
+  @@index([status, sortOrder])
+  @@map("vendor_plans")
+}
+
+model VendorPlanFeature {
+  planId  String @map("plan_id") @db.Uuid
+  feature String
+  value   Int? // a limit (e.g. menu items); null = included without a limit
+
+  plan VendorPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@id([planId, feature])
+  @@map("vendor_plan_features")
+}
+
+/// One vendor on one plan. Exactly one of restaurant_id, homemaker_id, hotel_id (CHECK: SQL); at most one TRIAL or ACTIVE
+/// subscription per vendor (partial unique indexes: SQL).
+model VendorPlanSubscription {
+  id               String                       @id @db.Uuid
+  planId           String                       @map("plan_id") @db.Uuid
+  restaurantId     String?                      @map("restaurant_id") @db.Uuid
+  homemakerId      String?                      @map("homemaker_id") @db.Uuid
+  hotelId          String?                      @map("hotel_id") @db.Uuid
+  zoneId           String                       @map("zone_id") @db.Uuid // the vendor's zone (scope, D25)
+  status           VendorPlanSubscriptionStatus
+  startedAt        DateTime                     @map("started_at") @db.Timestamptz
+  endsAt           DateTime?                    @map("ends_at") @db.Timestamptz
+  pricePaise       Int                          @map("price_paise") // the plan price when subscribed (CHECK >= 0: SQL)
+  planSnapshotJson Json                         @map("plan_snapshot_json") // name, cycle, features when subscribed
+  source           RecordSource
+  createdBy        String?                      @map("created_by") @db.Uuid
+  updatedBy        String?                      @map("updated_by") @db.Uuid
+  version          Int                          @default(1)
+  createdAt        DateTime                     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime                     @updatedAt @map("updated_at") @db.Timestamptz
+
+  plan       VendorPlan  @relation(fields: [planId], references: [id], onDelete: Restrict)
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  homemaker  Homemaker?  @relation(fields: [homemakerId], references: [id], onDelete: Restrict)
+  hotel      Hotel?      @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  zone       Zone        @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  @@index([planId, status])
+  @@index([zoneId, status])
+  @@index([restaurantId])
+  @@index([homemakerId])
+  @@index([hotelId])
+  @@map("vendor_plan_subscriptions")
 }
