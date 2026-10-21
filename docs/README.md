@@ -36,6 +36,7 @@ Scope: Super Admin + Zonal Admin web panel. A Zonal Admin can operate **multiple
 | **46 Lifecycle Roadmap · 47 Deployment Runbook · 48 Integration Test and UAT Plan · 49 Claude Code Kickoff Steps and Prompts** (+ `deploy/`) | H-delivery | **new in v2.0** |
 | **39 Modules and Workflows · 40 Three-Developer Allocation and Module Plan** | F-execution | **new in v1.2** |
 | **60 Admin Workflow Map and Change Requests** (+ `60_Admin_Workflow_Map.html`, flowcharts and per-screen wireframes) | F-execution | **new 2026-10-18** |
+| **61 Demo Script** (sample-data demo: setup, logins per role, click path with readiness tags) | F-execution | **new 2026-10-21** |
 
 v1.2 changes: access model D41–D49 (docs 03, 04, 08, 09, 14, 18, 20, 22, 36), plans 34/35/37/38 patched, timeline corrected to about 24 weeks with 3 developers (superseded by v2.0: about 26 weeks).
 
