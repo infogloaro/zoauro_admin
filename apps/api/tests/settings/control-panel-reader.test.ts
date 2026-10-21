@@ -55,6 +55,16 @@ describe('Control Panel settings reader', () => {
     ).toEqual(['PAN', 'KITCHEN_PHOTOS']);
   });
 
+  it('refund rules: the D146 defaults, a zone value wins (D180, D187)', async () => {
+    const d = await reader({}).refundRules(Z);
+    expect(d.decisionTimeLimitMinutes).toBe(240);
+    expect(d.reasons.find((r) => r.code === 'GOODWILL')?.bearer).toBe('PLATFORM');
+    const own = { ...d, decisionTimeLimitMinutes: 60 };
+    expect(
+      (await reader({}, { 'refunds.rules': { [Z]: own } }).refundRules(Z)).decisionTimeLimitMinutes,
+    ).toBe(60);
+  });
+
   it('support SLA: default, then a zone override', async () => {
     expect(await reader({}).supportSla(Z)).toEqual({
       firstResponseMinutes: 120,

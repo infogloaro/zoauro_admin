@@ -128,3 +128,26 @@ describe('order, dispatch, payout, zone and session bounds', () => {
     ).toBe(false);
   });
 });
+
+describe('refund rules (D146, D180, D187)', () => {
+  const def = settingDef('refunds.rules');
+  const base = def?.default as Record<string, unknown>;
+  const ok = (v: unknown) => def?.schema.safeParse(v).success;
+  it('defaults: ten reasons with a bearer each, zone-overridable, PASSWORD', () => {
+    expect(def).toMatchObject({ zoneOverride: true, reauth: 'PASSWORD' });
+    expect((base['reasons'] as unknown[]).length).toBe(10);
+    expect(ok(base)).toBe(true);
+  });
+  it('bounds: unique reason codes, non-empty targets of the method, decision time 15..10080', () => {
+    const reasons = base['reasons'] as { code: string }[];
+    expect(ok({ ...base, reasons: [...reasons, reasons[0]] })).toBe(false);
+    expect(ok({ ...base, targets: { ONLINE: [], COD: ['WALLET'], WALLET: ['WALLET'] } })).toBe(
+      false,
+    );
+    expect(ok({ ...base, targets: { ONLINE: ['UPI'], COD: ['WALLET'], WALLET: ['WALLET'] } })).toBe(
+      false,
+    );
+    expect(ok({ ...base, decisionTimeLimitMinutes: 14 })).toBe(false);
+    expect(ok({ ...base, cancellationWindowMinutes: 30 })).toBe(false);
+  });
+});

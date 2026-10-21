@@ -10,6 +10,7 @@ import {
   sessionRememberSchema,
   supportSlaSchema,
   claimTimingSchema,
+  refundRulesSchema,
   loyaltyValuesSchema,
   zoneDeliveryChargeCapSchema,
   type OnboardingDocumentType,
@@ -571,6 +572,11 @@ export class SettingsReader {
   /** D101, D169: a zone's reward-point values; null = reward points off. */
   loyalty(zoneId: string) {
     return this.effective('loyalty.values', loyaltyValuesSchema, zoneId);
+  }
+
+  /** D146, D180, D187: a zone's refund rules (zone value ?? platform ?? the D146 defaults). */
+  refundRules(zoneId: string) {
+    return this.effective('refunds.rules', refundRulesSchema, zoneId);
   }
 
   /** D174 */

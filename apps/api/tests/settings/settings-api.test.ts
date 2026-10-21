@@ -75,7 +75,12 @@ describe('registry and the default rule (D109)', () => {
       reauth: 'STRONG',
       zoneOverride: true,
     });
-    expect(byKey(r.body, 'refunds.rules')?.effect.state).toBe('NOT_CONFIGURED');
+    // D146/D180/D187: refund rules have decided defaults now
+    expect(byKey(r.body, 'refunds.rules')).toMatchObject({
+      source: 'DEFAULT',
+      effect: { state: 'PENDING_MODULE' },
+      effective: { decisionTimeLimitMinutes: 240, targets: { COD: ['WALLET', 'UPI'] } },
+    });
     expect(byKey(r.body, 'loyalty.values')?.effect.state).toBe('NOT_CONFIGURED');
     expect(byKey(r.body, 'support.sla')?.effect).toMatchObject({
       state: 'PENDING_MODULE',

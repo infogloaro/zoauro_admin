@@ -47,20 +47,102 @@ export const refundLimitsSchema = z
     message: 'the day cap cannot be lower than the per-refund cap',
   });
 
-/** D96: deliberately not configured until management confirms the values (null = refunds rules off). */
-export const REFUND_COST_BEARERS = ['VENDOR', 'PLATFORM', 'SHARED'] as const;
+/**
+ * D146, D180, D187: refund reasons with who bears the cost (VENDOR: deducted from the vendor's payout, D152; PLATFORM;
+ * CUSTOMER: no refund unless an admin decides), auto-approval of small refunds for trusted customers, the decision
+ * deadline, reopening, and where a refund may go per payment method. Cancellation windows are orders.cancellationRules.
+ */
+export const REFUND_COST_BEARERS = ['VENDOR', 'PLATFORM', 'CUSTOMER'] as const;
+export const REFUND_TARGETS = {
+  ONLINE: ['SOURCE', 'WALLET'],
+  COD: ['WALLET', 'UPI'],
+  WALLET: ['WALLET'],
+} as const;
+const targetList = <T extends readonly [string, ...string[]]>(values: T) =>
+  z
+    .array(z.enum(values))
+    .min(1)
+    .max(values.length)
+    .refine((l) => new Set(l).size === l.length, 'must not repeat a target');
 export const refundRulesSchema = z
   .object({
-    cancellationWindowMinutes: z
+    reasons: z
+      .array(
+        z
+          .object({
+            code: z.string().regex(/^[A-Z][A-Z0-9_]{1,39}$/, 'capital letters, digits and _'),
+            label: z.string().trim().min(2).max(60),
+            bearer: z.enum(REFUND_COST_BEARERS),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(30)
+      .refine((l) => new Set(l.map((r) => r.code)).size === l.length, 'must not repeat a reason'),
+    autoApprove: z
+      .object({
+        enabled: z.boolean(),
+        maxAmountPaise: paise,
+        withinHoursOfDelivery: z.number().int().min(1).max(168),
+        trusted: z
+          .object({
+            minDeliveredOrders: z.number().int().min(0).max(100_000),
+            maxRefundsLast90Days: z.number().int().min(0).max(1_000),
+          })
+          .strict(),
+      })
+      .strict(),
+    decisionTimeLimitMinutes: z
       .number()
       .int()
-      .min(0)
+      .min(15)
       .max(7 * 24 * 60),
-    reasons: z.array(z.string().trim().min(1).max(80)).min(1).max(30),
-    costBearer: z.enum(REFUND_COST_BEARERS),
+    reopenWithinDays: z.number().int().min(0).max(30),
+    reopenedResolveWorkingDays: z.number().int().min(1).max(30),
+    targets: z
+      .object({
+        ONLINE: targetList(REFUND_TARGETS.ONLINE),
+        COD: targetList(REFUND_TARGETS.COD),
+        WALLET: targetList(REFUND_TARGETS.WALLET),
+      })
+      .strict(),
   })
-  .strict()
-  .nullable();
+  .strict();
+export type RefundRules = z.infer<typeof refundRulesSchema>;
+const reason = (code: string, label: string, bearer: (typeof REFUND_COST_BEARERS)[number]) => ({
+  code,
+  label,
+  bearer,
+});
+/** D146 defaults until the Super Admin changes them. */
+export const DEFAULT_REFUND_RULES: RefundRules = {
+  reasons: [
+    reason('WRONG_ITEM', 'Wrong item', 'VENDOR'),
+    reason('MISSING_ITEM', 'Missing item', 'VENDOR'),
+    reason('QUALITY_ISSUE', 'Quality issue', 'VENDOR'),
+    reason('ITEM_UNAVAILABLE', 'Item unavailable', 'VENDOR'),
+    reason('VENDOR_CANCELLED', 'Vendor cancelled', 'VENDOR'),
+    reason('DELIVERY_DELAYED', 'Delivery delayed', 'PLATFORM'),
+    reason('PARTNER_ISSUE', 'Delivery partner issue', 'PLATFORM'),
+    reason('PAYMENT_ISSUE', 'Payment issue', 'PLATFORM'),
+    reason('GOODWILL', 'Goodwill', 'PLATFORM'),
+    reason(
+      'CUSTOMER_CANCELLED_AFTER_PREP',
+      'Customer cancelled after preparation started',
+      'CUSTOMER',
+    ),
+  ],
+  autoApprove: {
+    enabled: true,
+    maxAmountPaise: 200_00,
+    withinHoursOfDelivery: 24,
+    trusted: { minDeliveredOrders: 5, maxRefundsLast90Days: 2 },
+  },
+  decisionTimeLimitMinutes: 240,
+  reopenWithinDays: 7,
+  reopenedResolveWorkingDays: 3,
+  targets: { ONLINE: ['SOURCE', 'WALLET'], COD: ['WALLET', 'UPI'], WALLET: ['WALLET'] },
+};
 
 /** The D97 vocabulary (the first codes of the catalogue; the web labels them). */
 export const ONBOARDING_DOCUMENT_TYPES = [
@@ -452,9 +534,9 @@ export const SETTINGS: readonly SettingDef[] = [
     group: 'refunds',
     label: 'Refund rules',
     description:
-      'Cancellation window, refund reasons and who bears the cost. Not configured until management confirms the values (D96).',
+      'Refund reasons and who bears each cost, auto-approval of small refunds for trusted customers, the decision deadline, reopening, and where refunds may go per payment method.',
     schema: refundRulesSchema,
-    default: null,
+    default: DEFAULT_REFUND_RULES,
     zoneOverride: true,
     reauth: 'PASSWORD',
     editable: true,
