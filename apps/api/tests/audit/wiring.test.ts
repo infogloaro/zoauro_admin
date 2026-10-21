@@ -167,8 +167,8 @@ describe('TC-AUD-19 coverage guard on the real app', () => {
     const failures = report.failures.join('\n');
     expect(failures).toMatch(/POST \/auth\/logout: the Express route declares no auditMeta/);
     expect(failures).toMatch(/POST \S*\/auth\/logout: audit coverage: no audit metadata/); // logout answered 204
-    // runs the authorization harness over the whole real contract (doc 32, P6)
-  }, 180_000);
+    // runs the authorization harness over the whole real contract (doc 32, P6); 300 s since the contract grew (doc 32)
+  }, 300_000);
 });
 
 describe('TC-AUD-27 a 2xx that changed nothing is an audited no-op, not a violation', () => {
