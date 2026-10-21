@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SECURITY_POLICY, type MeZone } from '@zoauro/shared';
 import { matchPages } from '../../components/shell/PageSearch';
 import { initialsOf } from '../../components/shell/UserMenu';
@@ -9,6 +9,9 @@ import { greeting, relativeTime } from './time';
 import { ZonalDashboard, groupPermissions } from './ZonalDashboard';
 
 // Theme and dashboards (owner's prototype + roadmap): the pure helpers and the Zonal dashboard built from /me.
+
+// the operations tiles call the API and read the URL (their own tests in tiles/tiles.test.tsx)
+vi.mock('./tiles/OperationsTiles', () => ({ OperationsTiles: () => <p>operations tiles</p> }));
 
 const zone = (permissions: MeZone['permissions'], perRefund = 0): MeZone => ({
   zoneId: '0192f1d2-0000-7000-8000-000000000001',

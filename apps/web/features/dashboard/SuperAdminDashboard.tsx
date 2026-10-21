@@ -23,6 +23,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/card';
 import { NAV_GROUPS, NAV_MODULES, comingSoonHref } from '../../lib/navigation';
 import { formatPaise } from '../audit/format';
 import { CardError, CardSkeleton, EmptyState, ProportionBar } from './parts';
+import { OperationsTiles } from './tiles/OperationsTiles';
 import { greeting, relativeTime, todayLabel } from './time';
 import { CHANGE_TYPE_LABEL } from '../access/history/filters';
 import { usePendingRequestCount } from '../access/requests/api';
@@ -168,6 +169,10 @@ export function SuperAdminDashboard({ name }: { name: string }) {
           </div>
         </div>
       ) : null}
+
+      <OperationsTiles userRole="SUPER_ADMIN" />
+
+      <h2 className="text-lg font-semibold">Platform</h2>
 
       <div className="grid gap-6 xl:grid-cols-3">
         {/* zones by status */}

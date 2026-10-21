@@ -7,11 +7,12 @@ import { Card, CardBody, CardHeader } from '../../components/ui/card';
 import { NavIconGlyph } from '../../components/shell/icons';
 import { menuFor } from '../../lib/navigation';
 import { formatPaise } from '../audit/format';
+import { OperationsTiles } from './tiles/OperationsTiles';
 import { greeting, todayLabel } from './time';
 
-// Zonal Admin dashboard (M16): the member's own zones, what they may do in each (from /me, resolved by the API per
-// request) and their refund limits, plus the modules they can open. Zone-scoped operational KPIs (orders, revenue)
-// arrive with the Orders and Payments modules; nothing is invented until then.
+// Zonal Admin dashboard (M16): the operations tiles for the member's zones (orders, vendors, partners, customers,
+// counted only where they may view each module), then their own zones, what they may do in each (from /me, resolved by
+// the API per request) and their refund limits, plus the modules they can open. Money tiles wait for the ledger.
 
 const STATUS_TONE: Record<MeZone['status'], BadgeTone> = {
   ACTIVE: 'success',
@@ -81,6 +82,10 @@ export function ZonalDashboard({ name, zones }: { name: string; zones: readonly 
           href="/account/security"
         />
       </div>
+
+      {zones.length > 0 ? <OperationsTiles userRole="ZONAL_ADMIN" /> : null}
+
+      <h2 className="text-lg font-semibold">My zones and access</h2>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {zones.map((z) => {

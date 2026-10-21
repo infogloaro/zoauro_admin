@@ -12,6 +12,9 @@ import { SuperAdminDashboard } from './SuperAdminDashboard';
 
 afterEach(cleanup);
 
+// the operations tiles call the API and read the URL (their own tests in tiles/tiles.test.tsx)
+vi.mock('./tiles/OperationsTiles', () => ({ OperationsTiles: () => <p>operations tiles</p> }));
+
 const member = (lastLoginAt: string | null) => ({ id: crypto.randomUUID(), lastLoginAt });
 
 function setup() {
