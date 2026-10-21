@@ -52,6 +52,10 @@ function listQuery(
   };
 }
 
+/** GET /orders/export (D149): the list's own filters; the job exports every matching row, not one page. */
+export const orderExportQuery = (f: OrderFilters) =>
+  listQuery(f, 1, DEFAULT_LIST_PAGE_SIZE, f.sort);
+
 export function useOrderList(f: OrderFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({

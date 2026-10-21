@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { VendorsPage } from '../../../../features/vendors/VendorsPage';
 import { vendorPageProps } from '../../../../features/vendors/vendor-page-props';
+import { canExportList } from '../../../../lib/export-access';
 import { getMe } from '../../../../lib/server-session';
 
 export const metadata: Metadata = { title: 'Restaurants · ZOAURO Admin' };
@@ -12,5 +13,13 @@ export default async function Page() {
   if (!me) return null;
   const p = vendorPageProps(me, 'restaurants');
   if (p.role === 'ZONAL_ADMIN' && p.myZones.length === 0) notFound();
-  return <VendorsPage module="restaurants" role={p.role} myZones={p.myZones} canAdd={p.canAdd} />;
+  return (
+    <VendorsPage
+      module="restaurants"
+      role={p.role}
+      myZones={p.myZones}
+      canAdd={p.canAdd}
+      canExport={canExportList(me, 'restaurants')}
+    />
+  );
 }

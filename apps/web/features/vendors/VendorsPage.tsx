@@ -5,12 +5,14 @@ import { Plus, Store } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
+import { ExportButton } from '../../components/shared/ExportButton';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
@@ -19,7 +21,7 @@ import { ClaimBadge } from '../claims/ClaimBadge';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
-import { useVendorList, type VendorListFilters } from './api';
+import { useVendorList, vendorListQuery, type VendorListFilters } from './api';
 import {
   SORTS,
   VENDOR_META,
@@ -44,6 +46,7 @@ export function VendorsPage({
   role,
   myZones = [],
   canAdd,
+  canExport = false,
 }: {
   module: VendorModule;
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
@@ -51,7 +54,10 @@ export function VendorsPage({
   myZones?: ScopeZone[];
   /** Super Admin, or a Zonal Admin with {module}:add in at least one zone */
   canAdd: boolean;
+  /** {module}:export where the zone's export switch is on (lib/export-access) */
+  canExport?: boolean;
 }) {
+  const client = useApiClient();
   const meta = VENDOR_META[module];
   const router = useRouter();
   const url = useUrlState();
@@ -194,10 +200,23 @@ export function VendorsPage({
               : `${meta.title} in your zones.`
         }
         actions={
-          canAdd ? (
-            <Button onClick={() => setCreating(true)}>
-              <Plus aria-hidden className="size-4" /> Add {meta.noun}
-            </Button>
+          canAdd || canExport ? (
+            <div className="flex flex-wrap items-start gap-2">
+              {canExport ? (
+                <ExportButton
+                  start={() =>
+                    module === 'restaurants'
+                      ? client.get('/restaurants/export', { query: vendorListQuery(filters) })
+                      : client.get('/homemakers/export', { query: vendorListQuery(filters) })
+                  }
+                />
+              ) : null}
+              {canAdd ? (
+                <Button onClick={() => setCreating(true)}>
+                  <Plus aria-hidden className="size-4" /> Add {meta.noun}
+                </Button>
+              ) : null}
+            </div>
           ) : undefined
         }
       />

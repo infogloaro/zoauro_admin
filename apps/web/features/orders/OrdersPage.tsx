@@ -10,12 +10,14 @@ import { ReceiptText, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
+import { ExportButton } from '../../components/shared/ExportButton';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
@@ -23,7 +25,7 @@ import { formatPaise } from '../audit/format';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
-import { useOrderList, useOrderTabCounts, type OrderFilters } from './api';
+import { orderExportQuery, useOrderList, useOrderTabCounts, type OrderFilters } from './api';
 import {
   ORDER_SORTS,
   ORDER_STATUS_LABEL,
@@ -40,8 +42,8 @@ import {
 
 // Orders list for both roles (doc 20 "Orders list", SA-4.3, ZA-4.1; D117 port of dev_cb onto the core): tabs with real
 // counts, search (order no, customer, vendor), filters for payment method, vendor type and dates, sort, 25 a page, all in
-// the URL; the zone switcher's ?zone narrows to one zone; refreshed every 15 s while visible (doc 23). Export waits for
-// the export jobs (not built), so it is not offered.
+// the URL; the zone switcher's ?zone narrows to one zone; refreshed every 15 s while visible (doc 23). Export (D149)
+// sends the same filters as a CSV job, when the member may export orders.
 
 type Row = NonNullable<ReturnType<typeof useOrderList>['data']>['data'][number];
 
@@ -53,10 +55,14 @@ const VENDOR_TYPE_LABEL: Record<OrderVendorType, string> = {
 export function OrdersPage({
   role,
   myZones = [],
+  canExport = false,
 }: {
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   myZones?: ScopeZone[];
+  /** orders:export where the zone's export switch is on (lib/export-access) */
+  canExport?: boolean;
 }) {
+  const client = useApiClient();
   const router = useRouter();
   const url = useUrlState();
   const allZones = useZoneOptions(role === 'SUPER_ADMIN');
@@ -235,12 +241,22 @@ export function OrdersPage({
               : 'Orders in your zones.'
         }
         actions={
-          <p className="flex items-center gap-1.5 text-xs text-muted" aria-live="polite">
-            <RefreshCw aria-hidden className={cn('size-3.5', list.isFetching && 'animate-spin')} />
-            {list.dataUpdatedAt
-              ? `Updated ${relativeTime(new Date(list.dataUpdatedAt).toISOString())}`
-              : 'Loading…'}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="flex items-center gap-1.5 text-xs text-muted" aria-live="polite">
+              <RefreshCw
+                aria-hidden
+                className={cn('size-3.5', list.isFetching && 'animate-spin')}
+              />
+              {list.dataUpdatedAt
+                ? `Updated ${relativeTime(new Date(list.dataUpdatedAt).toISOString())}`
+                : 'Loading…'}
+            </p>
+            {canExport ? (
+              <ExportButton
+                start={() => client.get('/orders/export', { query: orderExportQuery(filters) })}
+              />
+            ) : null}
+          </div>
         }
       />
 

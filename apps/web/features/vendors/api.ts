@@ -37,13 +37,9 @@ export const vendorKeys = {
 
 type Client = ReturnType<typeof useApiClient>;
 
-function fetchVendorList(
-  client: Client,
-  module: VendorModule,
-  f: VendorListFilters,
-  signal: AbortSignal,
-) {
-  const query = {
+/** The list's query; GET /{module}/export (D149) takes the same filters and exports every matching row. */
+export function vendorListQuery(f: VendorListFilters) {
+  return {
     page: f.page,
     pageSize: DEFAULT_LIST_PAGE_SIZE,
     sort: f.sort,
@@ -54,6 +50,15 @@ function fetchVendorList(
     ...(f.area ? { area: f.area } : {}),
     ...(f.tag ? { tag: f.tag } : {}),
   };
+}
+
+function fetchVendorList(
+  client: Client,
+  module: VendorModule,
+  f: VendorListFilters,
+  signal: AbortSignal,
+) {
+  const query = vendorListQuery(f);
   return module === 'restaurants'
     ? client.get('/restaurants', { query, signal })
     : client.get('/homemakers', { query, signal });
