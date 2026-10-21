@@ -74,10 +74,11 @@ export function useAccessRequestQueue(
 }
 
 /** The number of requests waiting for a Super Admin (dashboard tile). */
-export function usePendingRequestCount() {
+export function usePendingRequestCount(enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: ['access-requests', 'pending-count'],
+    enabled,
     queryFn: async ({ signal }) =>
       (await client.get('/access-requests', { query: { status: 'PENDING', limit: 1 }, signal }))
         .meta.pendingCount,

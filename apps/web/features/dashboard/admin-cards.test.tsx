@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '@zoauro/api-client';
@@ -8,7 +8,8 @@ import { ApiClientProvider } from '../../lib/api-client';
 import { SuperAdminDashboard } from './SuperAdminDashboard';
 
 // Super Admin dashboard, spec 2.1: Zonal Admin counts from the member list totals and the latest access changes.
-// Other cards are left to fail here (their own error states); each card loads on its own.
+// Other cards are left to fail here (their own error states); each card loads on its own. D178: a non-primary Super
+// Admin gets (and asks for) only the cards of the Control Panel areas granted.
 
 afterEach(cleanup);
 
@@ -17,7 +18,7 @@ vi.mock('./tiles/OperationsTiles', () => ({ OperationsTiles: () => <p>operations
 
 const member = (lastLoginAt: string | null) => ({ id: crypto.randomUUID(), lastLoginAt });
 
-function setup() {
+function setup(areas?: { isPrimary: boolean; areas: string[] }) {
   const get = vi.fn(async (path: string, init?: { query?: Record<string, unknown> }) => {
     const q = init?.query ?? {};
     if (path === '/zonal-admins') {
@@ -55,9 +56,43 @@ function setup() {
       <ApiClientProvider client={client}>{children}</ApiClientProvider>
     </QueryClientProvider>
   );
-  render(<SuperAdminDashboard name="Asha Super" />, { wrapper: wrap });
+  render(<SuperAdminDashboard name="Asha Super" areas={areas} />, { wrapper: wrap });
   return { get };
 }
+
+describe('Super Admin dashboard: Control Panel areas (D178)', () => {
+  it('a non-primary without security, audit or access gets none of those cards, and none is asked for', async () => {
+    const { get } = setup({ isPrimary: false, areas: ['settings.refunds'] });
+    expect(await screen.findByText('operations tiles')).toBeTruthy();
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/zones/summary', expect.anything()));
+    for (const heading of [
+      'Security status',
+      'Zonal Admins',
+      'Recent access changes',
+      'Recent activity',
+    ])
+      expect(screen.queryByRole('heading', { name: heading })).toBeNull();
+    expect(screen.queryByText('2-step verification')).toBeNull();
+    expect(screen.queryByRole('link', { name: /System logs/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Add zone/ })).toBeNull();
+    const asked = get.mock.calls.map(([path]) => path);
+    for (const path of [
+      '/settings/security/status',
+      '/audit-logs',
+      '/zonal-admins',
+      '/access-changes',
+      '/access-requests',
+    ])
+      expect(asked).not.toContain(path);
+  });
+
+  it('the access area brings the Zonal Admin cards back', async () => {
+    setup({ isPrimary: false, areas: ['access'] });
+    expect(await screen.findByText('Zone added · Meena R')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Zonal Admins' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Recent activity' })).toBeNull();
+  });
+});
 
 describe('Super Admin dashboard: admins and access changes', () => {
   it('counts all, active, suspended and not-yet-signed-in Zonal Admins from real totals', async () => {

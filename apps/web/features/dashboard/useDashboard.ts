@@ -5,7 +5,8 @@ import { useApiClient } from '../../lib/api-client';
 import { retryTransient } from '../audit/useAuditLogs';
 
 // Server state for the dashboards (doc 23 section 3 keys). Each card loads on its own so one failure never blanks the
-// page. Every number shown comes from these calls; nothing is invented while a module is not built.
+// page. Every number shown comes from these calls; nothing is invented while a module is not built. `enabled` false:
+// the card is not for this member (D178: a Control Panel area they were not granted), so nothing is asked.
 
 const STALE_MS = 30_000;
 
@@ -29,10 +30,11 @@ export function useZonePreview(limit = 6) {
   });
 }
 
-export function useSecurityStatus() {
+export function useSecurityStatus(enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: ['settings', 'security', 'status'],
+    enabled,
     queryFn: ({ signal }) => client.get('/settings/security/status', { signal }),
     staleTime: STALE_MS,
     retry: retryTransient,
@@ -43,10 +45,11 @@ export function useSecurityStatus() {
  * Zonal Admin counts from the member list totals (spec 2.1): all, active, suspended, and "not signed in yet" (D116:
  * created but never signed in; counted from the first 100 active members, `capped` when there are more).
  */
-export function useAdminCounts() {
+export function useAdminCounts(enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: ['members', 'counts'],
+    enabled,
     queryFn: async ({ signal }) => {
       const page = (status?: 'ACTIVE' | 'SUSPENDED', pageSize = 1) =>
         client.get('/zonal-admins', {
@@ -71,20 +74,22 @@ export function useAdminCounts() {
   });
 }
 
-export function useRecentAccessChanges(limit = 5) {
+export function useRecentAccessChanges(limit = 5, enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: ['access', 'changes', { limit }],
+    enabled,
     queryFn: ({ signal }) => client.get('/access-changes', { query: { limit }, signal }),
     staleTime: 15_000,
     retry: retryTransient,
   });
 }
 
-export function useRecentActivity(limit = 8) {
+export function useRecentActivity(limit = 8, enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: ['audit', 'list', 'global', { limit }],
+    enabled,
     queryFn: ({ signal }) => client.get('/audit-logs', { query: { limit }, signal }),
     staleTime: 15_000,
     retry: retryTransient,

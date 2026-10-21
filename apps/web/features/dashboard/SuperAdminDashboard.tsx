@@ -15,12 +15,13 @@ import {
   Sparkles,
   UsersRound,
 } from 'lucide-react';
+import type { ControlAreas } from '@zoauro/shared';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { StatCard } from '../../components/shared/StatCard';
 import { Badge, type BadgeTone } from '../../components/ui/badge';
 import { buttonClass } from '../../components/ui/button';
 import { Card, CardBody, CardHeader } from '../../components/ui/card';
-import { NAV_GROUPS, NAV_MODULES, comingSoonHref } from '../../lib/navigation';
+import { NAV_GROUPS, NAV_MODULES, areaAllows, comingSoonHref } from '../../lib/navigation';
 import { formatPaise } from '../audit/format';
 import { CardError, CardSkeleton, EmptyState, ProportionBar } from './parts';
 import { OperationsTiles } from './tiles/OperationsTiles';
@@ -38,7 +39,9 @@ import {
 
 // Super Admin dashboard (M16, owner's prototype): greeting, KPI cards that drill down, zones by status, security
 // posture, recent activity and the module roadmap. Every figure is read from the live API; modules that are not built
-// show their plan instead of numbers (doc 56: no fake data).
+// show their plan instead of numbers (doc 56: no fake data). D178: a non-primary Super Admin sees (and the page asks
+// for) only the cards of the Control Panel areas granted, the same check as the menu: security status needs
+// settings.security, recent activity audit, the Zonal Admin cards and the requests banner access, Add zone zones.
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   ACTIVE: 'success',
@@ -57,14 +60,27 @@ const METHOD_LABEL: Record<string, string> = {
   BACKUP_CODE: 'Backup codes',
 };
 
-export function SuperAdminDashboard({ name }: { name: string }) {
+export function SuperAdminDashboard({
+  name,
+  areas,
+}: {
+  name: string;
+  /** /me controlAreas (null or absent: every card, as for a primary) */
+  areas?: ControlAreas | null;
+}) {
+  const can = {
+    security: areaAllows('settings.security', areas),
+    audit: areaAllows('audit', areas),
+    access: areaAllows('access', areas),
+    zones: areaAllows('zones', areas),
+  };
   const summary = useZoneSummary();
   const zones = useZonePreview();
-  const security = useSecurityStatus();
-  const activity = useRecentActivity();
-  const admins = useAdminCounts();
-  const accessChanges = useRecentAccessChanges();
-  const pendingRequests = usePendingRequestCount();
+  const security = useSecurityStatus(can.security);
+  const activity = useRecentActivity(8, can.audit);
+  const admins = useAdminCounts(can.access);
+  const accessChanges = useRecentAccessChanges(5, can.access);
+  const pendingRequests = usePendingRequestCount(can.access);
 
   const s = summary.data;
   const sec = security.data;
@@ -79,12 +95,16 @@ export function SuperAdminDashboard({ name }: { name: string }) {
         description={`Here is what is happening across ZOAURO today · ${todayLabel()}`}
         actions={
           <>
-            <a href="/super-admin/settings/logs" className={buttonClass('secondary')}>
-              <ScrollText aria-hidden className="size-4" /> System logs
-            </a>
-            <a href="/super-admin/zones?new=1" className={buttonClass('primary')}>
-              <Plus aria-hidden className="size-4" /> Add zone
-            </a>
+            {can.audit ? (
+              <a href="/super-admin/settings/logs" className={buttonClass('secondary')}>
+                <ScrollText aria-hidden className="size-4" /> System logs
+              </a>
+            ) : null}
+            {can.zones ? (
+              <a href="/super-admin/zones?new=1" className={buttonClass('primary')}>
+                <Plus aria-hidden className="size-4" /> Add zone
+              </a>
+            ) : null}
           </>
         }
       />
@@ -124,15 +144,17 @@ export function SuperAdminDashboard({ name }: { name: string }) {
           tone="warning"
           loading={summary.isPending}
         />
-        <StatCard
-          label="2-step verification"
-          value={sec ? (members > 0 ? `${Math.round((enrolled / members) * 100)}%` : '—') : null}
-          hint={sec ? `${enrolled} of ${members} admins enrolled` : undefined}
-          icon={ShieldCheck}
-          tone="info"
-          href="/super-admin/settings/security"
-          loading={security.isPending}
-        />
+        {can.security ? (
+          <StatCard
+            label="2-step verification"
+            value={sec ? (members > 0 ? `${Math.round((enrolled / members) * 100)}%` : '—') : null}
+            hint={sec ? `${enrolled} of ${members} admins enrolled` : undefined}
+            icon={ShieldCheck}
+            tone="info"
+            href="/super-admin/settings/security"
+            loading={security.isPending}
+          />
+        ) : null}
       </div>
 
       {pendingRequests.data ? (
@@ -200,12 +222,14 @@ export function SuperAdminDashboard({ name }: { name: string }) {
                 icon={<Map aria-hidden className="size-5" />}
                 title="No zones yet"
                 action={
-                  <a
-                    href="/super-admin/zones?new=1"
-                    className={buttonClass('primary', undefined, 'sm')}
-                  >
-                    <Plus aria-hidden className="size-4" /> Create the first zone
-                  </a>
+                  can.zones ? (
+                    <a
+                      href="/super-admin/zones?new=1"
+                      className={buttonClass('primary', undefined, 'sm')}
+                    >
+                      <Plus aria-hidden className="size-4" /> Create the first zone
+                    </a>
+                  ) : undefined
                 }
               >
                 Zones decide which pincodes ZOAURO serves and who manages them.
@@ -279,276 +303,284 @@ export function SuperAdminDashboard({ name }: { name: string }) {
         </Card>
 
         {/* security posture */}
-        <Card aria-labelledby="security-posture">
-          <CardHeader
-            id="security-posture"
-            title="Security status"
-            subtitle="Sign-in protection across admins"
-            actions={
-              <a
-                href="/super-admin/settings/security"
-                className="text-sm font-medium text-primary-strong hover:underline"
-              >
-                Settings
-              </a>
-            }
-          />
-          <CardBody className="flex flex-col gap-5">
-            {security.isError ? (
-              <CardError what="Security status" onRetry={() => void security.refetch()} />
-            ) : !sec ? (
-              <CardSkeleton rows={4} />
-            ) : (
-              <>
-                {sec.members.map((m) => {
-                  const total = m.enrolled + m.notEnrolled;
-                  return (
-                    <div key={m.role}>
-                      <div className="mb-1.5 flex items-center justify-between text-sm">
-                        <span className="font-medium">
-                          {m.role === 'SUPER_ADMIN' ? 'Super Admins' : 'Zonal Admins'}
-                        </span>
-                        <span className="text-muted tabular-nums">
-                          {m.enrolled}/{total} enrolled
-                        </span>
+        {can.security ? (
+          <Card aria-labelledby="security-posture">
+            <CardHeader
+              id="security-posture"
+              title="Security status"
+              subtitle="Sign-in protection across admins"
+              actions={
+                <a
+                  href="/super-admin/settings/security"
+                  className="text-sm font-medium text-primary-strong hover:underline"
+                >
+                  Settings
+                </a>
+              }
+            />
+            <CardBody className="flex flex-col gap-5">
+              {security.isError ? (
+                <CardError what="Security status" onRetry={() => void security.refetch()} />
+              ) : !sec ? (
+                <CardSkeleton rows={4} />
+              ) : (
+                <>
+                  {sec.members.map((m) => {
+                    const total = m.enrolled + m.notEnrolled;
+                    return (
+                      <div key={m.role}>
+                        <div className="mb-1.5 flex items-center justify-between text-sm">
+                          <span className="font-medium">
+                            {m.role === 'SUPER_ADMIN' ? 'Super Admins' : 'Zonal Admins'}
+                          </span>
+                          <span className="text-muted tabular-nums">
+                            {m.enrolled}/{total} enrolled
+                          </span>
+                        </div>
+                        <div
+                          className="h-2 overflow-hidden rounded-full bg-neutral-100"
+                          role="img"
+                          aria-label={`${m.enrolled} of ${total} enrolled`}
+                        >
+                          <span
+                            className="block h-full rounded-full bg-green-500"
+                            style={{ width: total > 0 ? `${(m.enrolled / total) * 100}%` : '0%' }}
+                          />
+                        </div>
                       </div>
-                      <div
-                        className="h-2 overflow-hidden rounded-full bg-neutral-100"
-                        role="img"
-                        aria-label={`${m.enrolled} of ${total} enrolled`}
-                      >
-                        <span
-                          className="block h-full rounded-full bg-green-500"
-                          style={{ width: total > 0 ? `${(m.enrolled / total) * 100}%` : '0%' }}
-                        />
-                      </div>
+                    );
+                  })}
+                  <dl className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-input bg-surface-muted p-3">
+                      <dt className="text-xs text-muted">Active Super Admins</dt>
+                      <dd className="mt-0.5 text-lg font-bold">{sec.activeSuperAdmins}</dd>
                     </div>
-                  );
-                })}
-                <dl className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-input bg-surface-muted p-3">
-                    <dt className="text-xs text-muted">Active Super Admins</dt>
-                    <dd className="mt-0.5 text-lg font-bold">{sec.activeSuperAdmins}</dd>
+                    <div className="rounded-input bg-surface-muted p-3">
+                      <dt className="text-xs text-muted">Failed 2nd steps (24 h)</dt>
+                      <dd className="mt-0.5 text-lg font-bold">{sec.failedSecondStepsLast24h}</dd>
+                    </div>
+                  </dl>
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-muted uppercase">Methods in use</p>
+                    {sec.methods.length === 0 ? (
+                      <p className="text-sm text-muted">No methods enrolled yet.</p>
+                    ) : (
+                      <ul className="flex flex-wrap gap-1.5">
+                        {sec.methods.map((m) => (
+                          <li key={m.type}>
+                            <Badge tone="info">
+                              {METHOD_LABEL[m.type] ?? m.type} · {m.count}
+                            </Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <div className="rounded-input bg-surface-muted p-3">
-                    <dt className="text-xs text-muted">Failed 2nd steps (24 h)</dt>
-                    <dd className="mt-0.5 text-lg font-bold">{sec.failedSecondStepsLast24h}</dd>
-                  </div>
-                </dl>
-                <div>
-                  <p className="mb-2 text-xs font-medium text-muted uppercase">Methods in use</p>
-                  {sec.methods.length === 0 ? (
-                    <p className="text-sm text-muted">No methods enrolled yet.</p>
-                  ) : (
-                    <ul className="flex flex-wrap gap-1.5">
-                      {sec.methods.map((m) => (
-                        <li key={m.type}>
-                          <Badge tone="info">
-                            {METHOD_LABEL[m.type] ?? m.type} · {m.count}
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <p className="flex items-center gap-2 text-sm">
-                  <span className="text-muted">SMS codes:</span>
-                  {sec.sms.paused ? (
-                    <Badge tone="danger" dot>
-                      Paused by the hourly cap
-                    </Badge>
-                  ) : sec.sms.enabled ? (
-                    <Badge tone="success" dot>
-                      On
-                    </Badge>
-                  ) : (
-                    <Badge dot>
-                      {sec.sms.provider === 'none' ? 'Off (no provider yet)' : 'Off'}
-                    </Badge>
-                  )}
-                </p>
-              </>
-            )}
-          </CardBody>
-        </Card>
+                  <p className="flex items-center gap-2 text-sm">
+                    <span className="text-muted">SMS codes:</span>
+                    {sec.sms.paused ? (
+                      <Badge tone="danger" dot>
+                        Paused by the hourly cap
+                      </Badge>
+                    ) : sec.sms.enabled ? (
+                      <Badge tone="success" dot>
+                        On
+                      </Badge>
+                    ) : (
+                      <Badge dot>
+                        {sec.sms.provider === 'none' ? 'Off (no provider yet)' : 'Off'}
+                      </Badge>
+                    )}
+                  </p>
+                </>
+              )}
+            </CardBody>
+          </Card>
+        ) : null}
 
         {/* administrators (spec 2.1) */}
-        <Card aria-labelledby="admin-accounts">
-          <CardHeader
-            id="admin-accounts"
-            title="Zonal Admins"
-            subtitle="Accounts the Super Admin manages"
-            actions={
-              <a
-                href="/super-admin/zonal-admins"
-                className="text-sm font-medium text-primary-strong hover:underline"
-              >
-                Manage
-              </a>
-            }
-          />
-          <CardBody>
-            {admins.isError ? (
-              <CardError what="Admin counts" onRetry={() => void admins.refetch()} />
-            ) : !admins.data ? (
-              <CardSkeleton rows={2} />
-            ) : (
-              <dl className="grid grid-cols-2 gap-3 text-sm">
-                {[
-                  ['All accounts', admins.data.total, '/super-admin/zonal-admins'],
-                  ['Active', admins.data.active, '/super-admin/zonal-admins?status=ACTIVE'],
-                  [
-                    'Suspended',
-                    admins.data.suspended,
-                    '/super-admin/zonal-admins?status=SUSPENDED',
-                  ],
-                  [
-                    'Not signed in yet',
-                    admins.data.capped
-                      ? `${admins.data.neverSignedIn}+`
-                      : admins.data.neverSignedIn,
-                    null,
-                  ],
-                ].map(([label, value, href]) => (
-                  <div key={String(label)} className="rounded-input bg-surface-muted p-3">
-                    <dt className="text-xs text-muted">{label}</dt>
-                    <dd className="mt-0.5 text-lg font-bold tabular-nums">
-                      {href ? (
-                        <a href={String(href)} className="hover:underline">
-                          {value}
-                        </a>
-                      ) : (
-                        value
-                      )}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </CardBody>
-        </Card>
+        {can.access ? (
+          <Card aria-labelledby="admin-accounts">
+            <CardHeader
+              id="admin-accounts"
+              title="Zonal Admins"
+              subtitle="Accounts the Super Admin manages"
+              actions={
+                <a
+                  href="/super-admin/zonal-admins"
+                  className="text-sm font-medium text-primary-strong hover:underline"
+                >
+                  Manage
+                </a>
+              }
+            />
+            <CardBody>
+              {admins.isError ? (
+                <CardError what="Admin counts" onRetry={() => void admins.refetch()} />
+              ) : !admins.data ? (
+                <CardSkeleton rows={2} />
+              ) : (
+                <dl className="grid grid-cols-2 gap-3 text-sm">
+                  {[
+                    ['All accounts', admins.data.total, '/super-admin/zonal-admins'],
+                    ['Active', admins.data.active, '/super-admin/zonal-admins?status=ACTIVE'],
+                    [
+                      'Suspended',
+                      admins.data.suspended,
+                      '/super-admin/zonal-admins?status=SUSPENDED',
+                    ],
+                    [
+                      'Not signed in yet',
+                      admins.data.capped
+                        ? `${admins.data.neverSignedIn}+`
+                        : admins.data.neverSignedIn,
+                      null,
+                    ],
+                  ].map(([label, value, href]) => (
+                    <div key={String(label)} className="rounded-input bg-surface-muted p-3">
+                      <dt className="text-xs text-muted">{label}</dt>
+                      <dd className="mt-0.5 text-lg font-bold tabular-nums">
+                        {href ? (
+                          <a href={String(href)} className="hover:underline">
+                            {value}
+                          </a>
+                        ) : (
+                          value
+                        )}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </CardBody>
+          </Card>
+        ) : null}
 
         {/* recent access changes (spec 2.1) */}
-        <Card className="xl:col-span-2" aria-labelledby="recent-access">
-          <CardHeader
-            id="recent-access"
-            title="Recent access changes"
-            subtitle="Zones, profiles, permissions and limits given or taken away"
-            actions={
-              <a
-                href="/super-admin/access/history"
-                className="text-sm font-medium text-primary-strong hover:underline"
-              >
-                Access history
-              </a>
-            }
-          />
-          <CardBody>
-            {accessChanges.isError ? (
-              <CardError what="Access changes" onRetry={() => void accessChanges.refetch()} />
-            ) : !accessChanges.data ? (
-              <CardSkeleton rows={3} />
-            ) : accessChanges.data.data.length === 0 ? (
-              <p className="text-sm text-muted">No access changes yet.</p>
-            ) : (
-              <ul className="divide-y divide-line">
-                {accessChanges.data.data.map((c) => (
-                  <li key={c.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                    <UsersRound aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">
-                        {CHANGE_TYPE_LABEL[c.changeType]} · {c.member.name}
-                      </p>
-                      <p className="truncate text-xs text-muted">
-                        by {c.actor.name}
-                        {c.zone?.name ? ` · ${c.zone.name}` : ''}
-                      </p>
-                    </div>
-                    <time dateTime={c.createdAt} className="shrink-0 text-xs text-muted">
-                      {relativeTime(c.createdAt)}
-                    </time>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardBody>
-        </Card>
+        {can.access ? (
+          <Card className="xl:col-span-2" aria-labelledby="recent-access">
+            <CardHeader
+              id="recent-access"
+              title="Recent access changes"
+              subtitle="Zones, profiles, permissions and limits given or taken away"
+              actions={
+                <a
+                  href="/super-admin/access/history"
+                  className="text-sm font-medium text-primary-strong hover:underline"
+                >
+                  Access history
+                </a>
+              }
+            />
+            <CardBody>
+              {accessChanges.isError ? (
+                <CardError what="Access changes" onRetry={() => void accessChanges.refetch()} />
+              ) : !accessChanges.data ? (
+                <CardSkeleton rows={3} />
+              ) : accessChanges.data.data.length === 0 ? (
+                <p className="text-sm text-muted">No access changes yet.</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {accessChanges.data.data.map((c) => (
+                    <li key={c.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <UsersRound aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">
+                          {CHANGE_TYPE_LABEL[c.changeType]} · {c.member.name}
+                        </p>
+                        <p className="truncate text-xs text-muted">
+                          by {c.actor.name}
+                          {c.zone?.name ? ` · ${c.zone.name}` : ''}
+                        </p>
+                      </div>
+                      <time dateTime={c.createdAt} className="shrink-0 text-xs text-muted">
+                        {relativeTime(c.createdAt)}
+                      </time>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardBody>
+          </Card>
+        ) : null}
 
         {/* recent activity */}
-        <Card className="xl:col-span-2" aria-labelledby="recent-activity">
-          <CardHeader
-            id="recent-activity"
-            title="Recent activity"
-            subtitle="Latest actions recorded in the audit trail"
-            actions={
-              <a
-                href="/super-admin/activity"
-                className="text-sm font-medium text-primary-strong hover:underline"
-              >
-                View all
-              </a>
-            }
-          />
-          <CardBody>
-            {activity.isError ? (
-              <CardError what="Recent activity" onRetry={() => void activity.refetch()} />
-            ) : !activity.data ? (
-              <CardSkeleton rows={5} />
-            ) : activity.data.data.length === 0 ? (
-              <EmptyState
-                icon={<Activity aria-hidden className="size-5" />}
-                title="Nothing recorded yet"
-              >
-                Every change made in the panel will be listed here.
-              </EmptyState>
-            ) : (
-              <ul className="divide-y divide-line">
-                {activity.data.data.map((e) => (
-                  <li key={e.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                    <span
-                      aria-hidden
-                      className={
-                        e.outcome === 'DENIED'
-                          ? 'flex size-9 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger'
-                          : 'flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-strong'
-                      }
-                    >
-                      {e.outcome === 'DENIED' ? (
-                        <CircleAlert className="size-4" />
-                      ) : (
-                        <Activity className="size-4" />
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">
-                        {e.actionLabel}
+        {can.audit ? (
+          <Card className="xl:col-span-2" aria-labelledby="recent-activity">
+            <CardHeader
+              id="recent-activity"
+              title="Recent activity"
+              subtitle="Latest actions recorded in the audit trail"
+              actions={
+                <a
+                  href="/super-admin/activity"
+                  className="text-sm font-medium text-primary-strong hover:underline"
+                >
+                  View all
+                </a>
+              }
+            />
+            <CardBody>
+              {activity.isError ? (
+                <CardError what="Recent activity" onRetry={() => void activity.refetch()} />
+              ) : !activity.data ? (
+                <CardSkeleton rows={5} />
+              ) : activity.data.data.length === 0 ? (
+                <EmptyState
+                  icon={<Activity aria-hidden className="size-5" />}
+                  title="Nothing recorded yet"
+                >
+                  Every change made in the panel will be listed here.
+                </EmptyState>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {activity.data.data.map((e) => (
+                    <li key={e.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                      <span
+                        aria-hidden
+                        className={
+                          e.outcome === 'DENIED'
+                            ? 'flex size-9 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger'
+                            : 'flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-strong'
+                        }
+                      >
                         {e.outcome === 'DENIED' ? (
-                          <Badge tone="danger" className="ml-2">
-                            Denied
-                          </Badge>
-                        ) : null}
-                      </p>
-                      <p className="truncate text-xs text-muted">
-                        {e.entity.label ?? e.entity.type} · {e.actor.name}
-                        {e.zone?.name ? ` · ${e.zone.name}` : ''}
-                      </p>
-                    </div>
-                    <time
-                      dateTime={e.createdAt}
-                      title={new Date(e.createdAt).toLocaleString('en-IN', {
-                        timeZone: 'Asia/Kolkata',
-                      })}
-                      className="flex shrink-0 items-center gap-1 text-xs text-muted"
-                    >
-                      <Clock aria-hidden className="size-3" />
-                      {relativeTime(e.createdAt)}
-                    </time>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardBody>
-        </Card>
+                          <CircleAlert className="size-4" />
+                        ) : (
+                          <Activity className="size-4" />
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">
+                          {e.actionLabel}
+                          {e.outcome === 'DENIED' ? (
+                            <Badge tone="danger" className="ml-2">
+                              Denied
+                            </Badge>
+                          ) : null}
+                        </p>
+                        <p className="truncate text-xs text-muted">
+                          {e.entity.label ?? e.entity.type} · {e.actor.name}
+                          {e.zone?.name ? ` · ${e.zone.name}` : ''}
+                        </p>
+                      </div>
+                      <time
+                        dateTime={e.createdAt}
+                        title={new Date(e.createdAt).toLocaleString('en-IN', {
+                          timeZone: 'Asia/Kolkata',
+                        })}
+                        className="flex shrink-0 items-center gap-1 text-xs text-muted"
+                      >
+                        <Clock aria-hidden className="size-3" />
+                        {relativeTime(e.createdAt)}
+                      </time>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardBody>
+          </Card>
+        ) : null}
 
         {/* module roadmap */}
         <Card aria-labelledby="module-roadmap">
