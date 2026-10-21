@@ -17,6 +17,7 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/.next/**',
+      '**/.next-demo/**',
       '**/dist/**',
       '**/coverage/**',
       'docs/**',

@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
+  // a second dev server (the demo web on zoauro_demo) builds into its own folder; two servers sharing .next corrupt it
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   reactStrictMode: true,
   transpilePackages: ['@zoauro/shared'],
   async rewrites() {
