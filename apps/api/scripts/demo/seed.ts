@@ -10,7 +10,7 @@ import { seedVendors } from './vendors';
 import { ensureAppClients, seedMenu } from './menu';
 import { seedPartners } from './partners';
 import { seedCustomers } from './customers';
-import { seedOrders } from './orders';
+import { freshenPreorders, seedOrders } from './orders';
 import { seedSettings } from './settings';
 import { seedHotels, seedNotifications, seedSupport } from './extras';
 import { seedRefunds } from './refunds';
@@ -161,6 +161,7 @@ async function main(): Promise<void> {
       },
       log,
     );
+    await freshenPreorders(db, log);
     console.log('8 hotels: room bookings and table bookings');
     await seedHotels(db, sa, people.zoneId, customers, vendors, log);
     console.log('9 support desk: tickets in every status');

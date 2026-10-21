@@ -443,7 +443,11 @@ export async function seedOrders(
     pre.push(
       buildOrder(c, v, pick(customersIn(v.zoneId)), new Date(now - min(30 + i * 20)), 'PLACED', {
         payment: 'ONLINE',
-        scheduledFor: new Date(tomorrow.getTime() + min((i % 2 === 0 ? 13 : 20) * 60)),
+        // the first is due within 2 hours (order overview: due soon), the rest tomorrow at lunch or dinner
+        scheduledFor:
+          i === 0
+            ? new Date(now + min(100))
+            : new Date(tomorrow.getTime() + min((i % 2 === 0 ? 13 : 20) * 60)),
       }),
     );
   }
@@ -513,4 +517,30 @@ export async function seedOrders(
   log(
     `live board: ${live.length} orders today (${moved} moved through the API), 1 unpaid online order hidden, ${pre.length} pre-orders for tomorrow`,
   );
+}
+
+/**
+ * Run on every seed: keeps one pre-order due within the next 2 hours (the order overview's due-soon tile), since a seed
+ * from the day before has none left. Moves the earliest future pre-order still waiting for dispatch.
+ */
+export async function freshenPreorders(db: PrismaClient, log: Log): Promise<void> {
+  const now = Date.now();
+  const soon = await db.order.count({
+    where: {
+      scheduledFor: { gte: new Date(now), lte: new Date(now + min(120)) },
+      status: 'PLACED',
+    },
+  });
+  if (soon > 0) return;
+  const next = await db.order.findFirst({
+    where: { scheduledFor: { gt: new Date(now) }, status: 'PLACED', releasedAt: null },
+    orderBy: { scheduledFor: 'asc' },
+    select: { id: true, orderNo: true },
+  });
+  if (!next) return;
+  await db.order.update({
+    where: { id: next.id },
+    data: { scheduledFor: new Date(now + min(100)), dispatchAt: new Date(now + min(55)) },
+  });
+  log(`pre-order ${next.orderNo} now due in 100 minutes`);
 }
