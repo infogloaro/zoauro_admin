@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ONBOARDING_DOCUMENT_TYPES,
   SETTING_REASON_MAX,
   SETTING_REASON_MIN,
   renderOrderNumber,
@@ -20,7 +19,6 @@ import { ReauthCancelled, useReauthGuard } from '../account/useReauthGuard';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
 import { useInvalidateSettings, type SettingItem } from './api';
 import {
-  DOCUMENT_LABEL,
   KEY_SPECS,
   OPTION_LABEL,
   describeValue,
@@ -29,6 +27,8 @@ import {
   toDraft,
   validate,
   type Draft,
+  type DraftRow,
+  type DraftValue,
   type FieldSpec,
 } from './fields';
 
@@ -324,9 +324,9 @@ function FieldControl({
   onChange,
 }: {
   field: FieldSpec;
-  value: string | boolean | string[] | null;
+  value: DraftValue;
   error: string | undefined;
-  onChange: (v: string | boolean | string[] | null) => void;
+  onChange: (v: DraftValue) => void;
 }) {
   const groupId = useId();
   if (f.kind === 'bool')
@@ -339,41 +339,31 @@ function FieldControl({
         {error ? <p className="text-xs font-medium text-danger">{error}</p> : null}
       </div>
     );
-  if (f.kind === 'docs') {
-    const list = Array.isArray(value) ? value : null;
+  if (f.kind === 'checks') {
+    const picked = Array.isArray(value) ? (value as string[]) : [];
     return (
-      <fieldset className="flex flex-col gap-1.5 sm:col-span-2">
-        <legend className="mb-1 text-sm font-medium">{f.label}: required documents</legend>
-        {f.nullable ? (
-          <label className="flex items-center gap-2 text-sm text-muted">
-            <input
-              type="checkbox"
-              checked={list === null}
-              onChange={(e) => onChange(e.target.checked ? null : [])}
-            />
-            Not configured yet
-          </label>
-        ) : null}
-        {list !== null ? (
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-            {ONBOARDING_DOCUMENT_TYPES.map((d) => (
-              <label key={d} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={list.includes(d)}
-                  onChange={(e) =>
-                    onChange(e.target.checked ? [...list, d] : list.filter((x) => x !== d))
-                  }
-                />
-                {DOCUMENT_LABEL[d]}
-              </label>
-            ))}
-          </div>
-        ) : null}
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1 text-sm font-medium">{f.label}</legend>
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          {(f.options ?? []).map((o) => (
+            <label key={o} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={picked.includes(o)}
+                onChange={(e) =>
+                  onChange(e.target.checked ? [...picked, o] : picked.filter((x) => x !== o))
+                }
+              />
+              {OPTION_LABEL[o] ?? o}
+            </label>
+          ))}
+        </div>
         {error ? <p className="text-xs font-medium text-danger">{error}</p> : null}
       </fieldset>
     );
   }
+  if (f.kind === 'rows')
+    return <RowsControl field={f} value={value} error={error} onChange={onChange} />;
   const text = typeof value === 'string' ? value : '';
   const hint =
     f.kind === 'minutes' && text.trim() !== '' && Number.isFinite(Number(text))
@@ -426,6 +416,127 @@ function FieldControl({
         onChange={(e) => onChange(e.target.value)}
       />
     </FormField>
+  );
+}
+
+/** A small table (refund reasons, onboarding documents): edit cells, add and remove rows, or leave it not configured. */
+function RowsControl({
+  field: f,
+  value,
+  error,
+  onChange,
+}: {
+  field: FieldSpec;
+  value: DraftValue;
+  error: string | undefined;
+  onChange: (v: DraftValue) => void;
+}) {
+  const rows = Array.isArray(value) ? (value as DraftRow[]) : null;
+  const columns = f.columns ?? [];
+  const setCell = (i: number, key: string, cell: string | boolean) =>
+    rows && onChange(rows.map((r, j) => (j === i ? { ...r, [key]: cell } : r)));
+  return (
+    <fieldset className="flex flex-col gap-2 sm:col-span-2">
+      <legend className="mb-1 text-sm font-medium">{f.label}</legend>
+      {f.hint ? <p className="text-xs text-muted">{f.hint}</p> : null}
+      {f.nullable ? (
+        <label className="flex items-center gap-2 text-sm text-muted">
+          <input
+            type="checkbox"
+            checked={rows === null}
+            onChange={(e) => onChange(e.target.checked ? null : [])}
+          />
+          Not configured yet
+        </label>
+      ) : null}
+      {rows !== null ? (
+        <div className="overflow-x-auto rounded-input border border-line">
+          <table className="w-full text-sm">
+            <thead className="bg-surface-muted text-left text-xs text-muted">
+              <tr>
+                {columns.map((c) => (
+                  <th key={c.key} className="px-2 py-1.5 font-medium">
+                    {c.label}
+                  </th>
+                ))}
+                <th className="px-2 py-1.5">
+                  <span className="sr-only">Remove</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i} className="border-t border-line">
+                  {columns.map((c) => {
+                    const cellLabel = `${c.label}, row ${i + 1}`;
+                    const cell = r[c.key];
+                    return (
+                      <td key={c.key} className="px-2 py-1.5">
+                        {c.kind === 'bool' ? (
+                          <input
+                            type="checkbox"
+                            aria-label={cellLabel}
+                            checked={cell === true}
+                            onChange={(e) => setCell(i, c.key, e.target.checked)}
+                          />
+                        ) : c.kind === 'select' ? (
+                          <select
+                            aria-label={cellLabel}
+                            className={inputClass('h-8 min-w-28')}
+                            value={String(cell ?? '')}
+                            onChange={(e) => setCell(i, c.key, e.target.value)}
+                          >
+                            {(c.options ?? []).map((o) => (
+                              <option key={o} value={o}>
+                                {OPTION_LABEL[o] ?? o}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <Input
+                            aria-label={cellLabel}
+                            className={c.kind === 'code' ? 'h-8 font-mono uppercase' : 'h-8'}
+                            maxLength={c.kind === 'code' ? 40 : 60}
+                            value={String(cell ?? '')}
+                            onChange={(e) =>
+                              setCell(
+                                i,
+                                c.key,
+                                c.kind === 'code' ? e.target.value.toUpperCase() : e.target.value,
+                              )
+                            }
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="px-2 py-1.5 text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={`Remove row ${i + 1}`}
+                      onClick={() => onChange(rows.filter((_, j) => j !== i))}
+                    >
+                      Remove
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="border-t border-line p-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => onChange([...rows, { ...(f.newRow ?? {}) }])}
+            >
+              Add a row
+            </Button>
+          </div>
+        </div>
+      ) : null}
+      {error ? <p className="text-xs font-medium text-danger">{error}</p> : null}
+    </fieldset>
   );
 }
 

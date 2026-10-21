@@ -1,6 +1,7 @@
 import {
   ONBOARDING_DOCUMENT_TYPES,
   REFUND_COST_BEARERS,
+  REFUND_TARGETS,
   SMS_PROVIDER_CHOICES,
   SUPPORT_ASSIGNMENT,
   settingDef,
@@ -8,17 +9,40 @@ import {
 import { formatPaise } from '../audit/format';
 
 // Platform settings forms (doc 59, D109–D116): one field list per registry key, the conversion between a stored value
-// and the form's text fields, client-side validation with the registry's own schema (the server validates again), and
-// the one-line summaries the cards show. Pure, so it is tested without a browser.
+// and the form's fields, client-side validation with the registry's own schema (the server validates again), and the
+// one-line summaries the cards show. A field's path may be dotted ("autoApprove.trusted.minDeliveredOrders"); a "rows"
+// field is a small table (refund reasons D146/D180, onboarding documents D145); a "checks" field picks several of a
+// fixed list (refund targets). Pure, so it is tested without a browser.
 
 export type FieldKind =
-  'money' | 'minutes' | 'int' | 'number' | 'time' | 'bool' | 'select' | 'text' | 'lines' | 'docs';
+  | 'money'
+  | 'minutes'
+  | 'int'
+  | 'number'
+  | 'time'
+  | 'bool'
+  | 'select'
+  | 'text'
+  | 'lines'
+  | 'checks'
+  | 'rows';
+
+/** A column of a "rows" field. A code column is upper case (A–Z, 0–9, _). */
+export interface ColumnSpec {
+  key: string;
+  label: string;
+  kind: 'text' | 'code' | 'select' | 'bool';
+  options?: readonly string[];
+}
 
 export interface FieldSpec {
   path: string;
   label: string;
   kind: FieldKind;
   options?: readonly string[];
+  /** the columns of a "rows" field, and what a new row starts with */
+  columns?: readonly ColumnSpec[];
+  newRow?: DraftRow;
   hint?: string;
   /** the field itself may be "not configured" (null) */
   nullable?: boolean;
@@ -43,12 +67,35 @@ export const DOCUMENT_LABEL: Record<(typeof ONBOARDING_DOCUMENT_TYPES)[number], 
 export const OPTION_LABEL: Record<string, string> = {
   VENDOR: 'Vendor',
   PLATFORM: 'ZOAURO',
+  CUSTOMER: 'Customer',
   SHARED: 'Shared',
   ROUND_ROBIN: 'Round-robin',
   LEAST_BUSY: 'Least busy',
   MSG91: 'MSG91',
   NONE: 'None',
+  SOURCE: 'Original payment method',
+  WALLET: 'ZOAURO wallet',
+  UPI: 'UPI',
 };
+
+const REASON_COLUMNS: readonly ColumnSpec[] = [
+  { key: 'code', label: 'Code', kind: 'code' },
+  { key: 'label', label: 'Reason', kind: 'text' },
+  { key: 'bearer', label: 'Who pays', kind: 'select', options: REFUND_COST_BEARERS },
+];
+const DOC_COLUMNS: readonly ColumnSpec[] = [
+  { key: 'code', label: 'Code', kind: 'code' },
+  { key: 'label', label: 'Document', kind: 'text' },
+  { key: 'mandatory', label: 'Required', kind: 'bool' },
+];
+const docs = (path: string, label: string, nullable = false): FieldSpec => ({
+  path,
+  label,
+  kind: 'rows',
+  columns: DOC_COLUMNS,
+  newRow: { code: '', label: '', mandatory: true },
+  nullable,
+});
 
 export const KEY_SPECS: Record<string, KeySpec> = {
   'refunds.limits': {
@@ -63,23 +110,65 @@ export const KEY_SPECS: Record<string, KeySpec> = {
     ],
   },
   'refunds.rules': {
-    nullable: true,
     fields: [
-      { path: 'cancellationWindowMinutes', label: 'Cancellation window', kind: 'minutes' },
-      { path: 'reasons', label: 'Refund reasons', kind: 'lines', hint: 'One reason per line' },
       {
-        path: 'costBearer',
-        label: 'Who bears the cost',
-        kind: 'select',
-        options: REFUND_COST_BEARERS,
+        path: 'reasons',
+        label: 'Refund reasons',
+        kind: 'rows',
+        columns: REASON_COLUMNS,
+        newRow: { code: '', label: '', bearer: 'PLATFORM' },
+        hint: 'Who pays: the vendor (taken from their payout), ZOAURO, or the customer',
+      },
+      { path: 'autoApprove.enabled', label: 'Approve small refunds automatically', kind: 'bool' },
+      { path: 'autoApprove.maxAmountPaise', label: 'Automatic approval up to', kind: 'money' },
+      {
+        path: 'autoApprove.withinHoursOfDelivery',
+        label: 'Within hours of delivery',
+        kind: 'int',
+      },
+      {
+        path: 'autoApprove.trusted.minDeliveredOrders',
+        label: 'Trusted: at least this many delivered orders',
+        kind: 'int',
+      },
+      {
+        path: 'autoApprove.trusted.maxRefundsLast90Days',
+        label: 'Trusted: at most this many refunds in 90 days',
+        kind: 'int',
+      },
+      { path: 'decisionTimeLimitMinutes', label: 'Decide a refund within', kind: 'minutes' },
+      { path: 'reopenWithinDays', label: 'Customer may reopen within (days)', kind: 'int' },
+      {
+        path: 'reopenedResolveWorkingDays',
+        label: 'Resolve a reopened case within (working days)',
+        kind: 'int',
+      },
+      {
+        path: 'targets.ONLINE',
+        label: 'Online payments are refunded to',
+        kind: 'checks',
+        options: REFUND_TARGETS.ONLINE,
+      },
+      {
+        path: 'targets.COD',
+        label: 'Cash on delivery is refunded to',
+        kind: 'checks',
+        options: REFUND_TARGETS.COD,
+      },
+      {
+        path: 'targets.WALLET',
+        label: 'Wallet payments are refunded to',
+        kind: 'checks',
+        options: REFUND_TARGETS.WALLET,
       },
     ],
   },
   'onboarding.documents': {
     fields: [
-      { path: 'RESTAURANT', label: 'Restaurants', kind: 'docs' },
-      { path: 'DELIVERY_PARTNER', label: 'Delivery partners', kind: 'docs' },
-      { path: 'HOME_FOOD', label: 'Home Food', kind: 'docs', nullable: true },
+      docs('RESTAURANT', 'Restaurants'),
+      docs('HOMEMAKER', 'Home Food'),
+      docs('DELIVERY_PARTNER', 'Delivery partners'),
+      docs('HOTEL', 'Hotels', true),
     ],
   },
   'support.sla': {
@@ -142,8 +231,10 @@ export const KEY_SPECS: Record<string, KeySpec> = {
   },
 };
 
-/** The form state: text for numbers and strings, booleans, document lists; null = that field is "not configured". */
-export type DraftValue = string | boolean | string[] | null;
+/** One row of a "rows" field: text cells and switches. */
+export type DraftRow = Record<string, string | boolean>;
+/** The form state: text for numbers and strings, booleans, picked options, table rows; null = "not configured". */
+export type DraftValue = string | boolean | string[] | DraftRow[] | null;
 export interface Draft {
   configured: boolean;
   fields: Record<string, DraftValue>;
@@ -152,12 +243,28 @@ export interface Draft {
 const record = (v: unknown): Record<string, unknown> =>
   typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : {};
 
+/** The value at a dotted path ("a.b.c"), or undefined. */
+export function getPath(obj: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>((o, k) => record(o)[k], obj);
+}
+
+/** Sets a dotted path, creating the objects on the way. */
+function setPath(out: Record<string, unknown>, path: string, v: unknown): void {
+  const keys = path.split('.');
+  const last = keys.pop() ?? path;
+  let o = out;
+  for (const k of keys) {
+    if (typeof o[k] !== 'object' || o[k] === null) o[k] = {};
+    o = o[k] as Record<string, unknown>;
+  }
+  o[last] = v;
+}
+
 export function toDraft(key: string, value: unknown): Draft {
   const spec = KEY_SPECS[key];
-  const obj = record(value);
   const fields: Record<string, DraftValue> = {};
   for (const f of spec?.fields ?? []) {
-    const v = obj[f.path];
+    const v = getPath(value, f.path);
     switch (f.kind) {
       case 'money':
         fields[f.path] = typeof v === 'number' ? String(v / 100) : '';
@@ -173,8 +280,21 @@ export function toDraft(key: string, value: unknown): Draft {
       case 'lines':
         fields[f.path] = Array.isArray(v) ? v.map(String).join('\n') : '';
         break;
-      case 'docs':
-        fields[f.path] = Array.isArray(v) ? v.map(String) : f.nullable ? null : [];
+      case 'checks':
+        fields[f.path] = Array.isArray(v) ? v.map(String) : [];
+        break;
+      case 'rows':
+        fields[f.path] = Array.isArray(v)
+          ? v.map((row) => {
+              const r = record(row);
+              const out: DraftRow = {};
+              for (const c of f.columns ?? [])
+                out[c.key] = c.kind === 'bool' ? r[c.key] === true : String(r[c.key] ?? '');
+              return out;
+            })
+          : f.nullable
+            ? null
+            : [];
         break;
       default:
         fields[f.path] =
@@ -194,47 +314,93 @@ export function fromDraft(key: string, draft: Draft): unknown {
     const v = draft.fields[f.path] ?? null;
     switch (f.kind) {
       case 'money':
-        out[f.path] = Math.round(num(v) * 100);
+        setPath(out, f.path, Math.round(num(v) * 100));
         break;
       case 'minutes':
       case 'int':
       case 'number':
-        out[f.path] = num(v);
+        setPath(out, f.path, num(v));
         break;
       case 'bool':
-        out[f.path] = v === true;
+        setPath(out, f.path, v === true);
         break;
       case 'lines':
-        out[f.path] =
+        setPath(
+          out,
+          f.path,
           typeof v === 'string'
             ? v
                 .split('\n')
                 .map((l) => l.trim())
                 .filter(Boolean)
-            : [];
+            : [],
+        );
         break;
-      case 'docs':
-        out[f.path] = Array.isArray(v) ? v : null;
+      case 'checks':
+        // in the order the options are listed (the first is preferred)
+        setPath(
+          out,
+          f.path,
+          Array.isArray(v) ? (f.options ?? []).filter((o) => (v as unknown[]).includes(o)) : [],
+        );
+        break;
+      case 'rows':
+        setPath(
+          out,
+          f.path,
+          Array.isArray(v)
+            ? (v as DraftRow[]).map((row) => {
+                const r: Record<string, unknown> = {};
+                for (const c of f.columns ?? []) {
+                  const cell = row[c.key];
+                  r[c.key] =
+                    c.kind === 'bool'
+                      ? cell === true
+                      : c.kind === 'code'
+                        ? String(cell ?? '')
+                            .trim()
+                            .toUpperCase()
+                        : String(cell ?? '').trim();
+                }
+                return r;
+              })
+            : null,
+        );
         break;
       default:
-        out[f.path] =
-          f.nullable && (v === null || v === '') ? null : typeof v === 'string' ? v.trim() : v;
+        setPath(
+          out,
+          f.path,
+          f.nullable && (v === null || v === '') ? null : typeof v === 'string' ? v.trim() : v,
+        );
     }
   }
   return out;
 }
 
-/** Field errors keyed by field path ('' = the value as a whole), from the registry's schema. */
+/**
+ * Field errors keyed by field path ('' = the value as a whole), from the registry's schema. An issue inside a field
+ * (a nested key, or row 3 of a table) is reported on that field; a row's issue names the row.
+ */
 export function validate(key: string, value: unknown): Record<string, string> {
   const def = settingDef(key);
   if (!def) return { '': 'Unknown setting' };
   const parsed = def.schema.safeParse(value);
   if (parsed.success) return {};
+  const paths = (KEY_SPECS[key]?.fields ?? []).map((f) => f.path);
   const errors: Record<string, string> = {};
   for (const issue of parsed.error.issues) {
-    const path = String(issue.path[0] ?? '');
+    const segments = issue.path.map(String);
+    const joined = segments.join('.');
+    const field =
+      paths
+        .filter((p) => joined === p || joined.startsWith(`${p}.`))
+        .sort((a, b) => b.length - a.length)[0] ?? '';
+    const rest = field ? segments.slice(field.split('.').length) : [];
+    const row =
+      rest[0] !== undefined && /^\d+$/.test(rest[0]) ? `Row ${Number(rest[0]) + 1}: ` : '';
     const msg = issue.code === 'invalid_type' ? 'Enter a value' : issue.message;
-    if (!errors[path]) errors[path] = msg;
+    if (!errors[field]) errors[field] = `${row}${msg}`;
   }
   return errors;
 }
@@ -255,17 +421,27 @@ function fieldText(f: FieldSpec, v: unknown): string {
       return typeof v === 'number' ? formatMinutes(v) : String(v);
     case 'bool':
       return v === true ? 'On' : 'Off';
-    case 'docs':
     case 'lines':
+      return Array.isArray(v) ? (v.length === 0 ? 'None' : v.join(', ')) : String(v);
+    case 'checks':
       return Array.isArray(v)
         ? v.length === 0
           ? 'None'
-          : v
-              .map((d) =>
-                f.kind === 'docs' ? (DOCUMENT_LABEL[d as keyof typeof DOCUMENT_LABEL] ?? d) : d,
-              )
-              .join(', ')
+          : v.map((o) => OPTION_LABEL[String(o)] ?? String(o)).join(', ')
         : String(v);
+    case 'rows':
+      if (!Array.isArray(v)) return String(v);
+      if (v.length === 0) return 'None';
+      return v
+        .map((row) => {
+          const r = record(row);
+          const label = String(r['label'] ?? r['code'] ?? '');
+          if ('bearer' in r)
+            return `${label} (${OPTION_LABEL[String(r['bearer'])] ?? r['bearer']})`;
+          if ('mandatory' in r) return r['mandatory'] === false ? `${label} (optional)` : label;
+          return label;
+        })
+        .join(', ');
     case 'select':
       return OPTION_LABEL[String(v)] ?? String(v);
     default:
@@ -278,6 +454,5 @@ export function describeValue(key: string, value: unknown): { label: string; tex
   const spec = KEY_SPECS[key];
   if (!spec) return [{ label: 'Value', text: JSON.stringify(value) }];
   if (value === null || value === undefined) return [{ label: 'Status', text: 'Not configured' }];
-  const obj = record(value);
-  return spec.fields.map((f) => ({ label: f.label, text: fieldText(f, obj[f.path]) }));
+  return spec.fields.map((f) => ({ label: f.label, text: fieldText(f, getPath(value, f.path)) }));
 }

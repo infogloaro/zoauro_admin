@@ -45,7 +45,7 @@ describe('settings form model', () => {
     );
   });
 
-  it('a "not configured" setting stays null (refund rules D96, loyalty D101, Home Food documents D113)', () => {
+  it('a "not configured" setting stays null (loyalty D101); a hotel document list may be null (D145)', () => {
     expect(toDraft('loyalty.values', null).configured).toBe(false);
     expect(fromDraft('loyalty.values', toDraft('loyalty.values', null))).toBeNull();
     const docs = fromDraft(
@@ -53,13 +53,50 @@ describe('settings form model', () => {
       toDraft('onboarding.documents', settingDef('onboarding.documents')?.default),
     );
     expect(docs).toMatchObject({
-      HOME_FOOD: null,
-      RESTAURANT: ['FSSAI', 'GST', 'PAN', 'BANK_DETAILS'],
+      HOTEL: null,
+      RESTAURANT: [
+        { code: 'FSSAI', mandatory: true },
+        { code: 'GST', mandatory: true },
+        { code: 'PAN', mandatory: true },
+        { code: 'BANK_DETAILS', mandatory: true },
+      ],
     });
     expect(validate('onboarding.documents', docs)).toEqual({});
-    expect(describeValue('refunds.rules', null)).toEqual([
-      { label: 'Status', text: 'Not configured' },
-    ]);
+    expect(describeValue('onboarding.documents', docs)[1]?.text).toContain('(optional)');
+  });
+
+  it('refund rules round-trip: reasons table, nested auto-approval, targets in their listed order (D146, D180)', () => {
+    const def = settingDef('refunds.rules');
+    const draft = toDraft('refunds.rules', def?.default);
+    expect(draft.fields['autoApprove.maxAmountPaise']).toBe('200');
+    expect(draft.fields['autoApprove.trusted.minDeliveredOrders']).toBe('5');
+    expect(fromDraft('refunds.rules', draft)).toEqual(def?.default);
+    // a new reason: the code is upper-cased; COD targets keep the listed order whatever order they were ticked in
+    const rows = draft.fields['reasons'] as Record<string, string | boolean>[];
+    draft.fields['reasons'] = [
+      ...rows,
+      { code: 'late_food', label: 'Food came late', bearer: 'VENDOR' },
+    ];
+    draft.fields['targets.COD'] = ['UPI', 'WALLET'];
+    const value = fromDraft('refunds.rules', draft) as {
+      reasons: { code: string }[];
+      targets: { COD: string[] };
+    };
+    expect(value.reasons.at(-1)?.code).toBe('LATE_FOOD');
+    expect(value.targets.COD).toEqual(['WALLET', 'UPI']);
+    expect(validate('refunds.rules', value)).toEqual({});
+    // errors land on the field, naming the row
+    draft.fields['reasons'] = [...rows, { code: '', label: 'x', bearer: 'VENDOR' }];
+    expect(validate('refunds.rules', fromDraft('refunds.rules', draft))['reasons']).toMatch(
+      /^Row 11: /,
+    );
+    draft.fields['autoApprove.withinHoursOfDelivery'] = '0';
+    expect(
+      validate('refunds.rules', fromDraft('refunds.rules', draft))[
+        'autoApprove.withinHoursOfDelivery'
+      ],
+    ).toBeTruthy();
+    expect(describeValue('refunds.rules', def?.default)[0]?.text).toMatch(/^Wrong item \(Vendor\)/);
   });
 
   it('durations read as people say them', () => {
@@ -157,7 +194,8 @@ describe('Platform Settings page', () => {
     expect(limits.getByText('Enforced')).toBeTruthy();
     expect(limits.getByText(/^₹1,000(\.00)?$/)).toBeTruthy();
     const rules = await row('Refund rules');
-    expect(rules.getByText('Not configured', { selector: 'span' })).toBeTruthy();
+    // decided defaults now (D146, D180): the reasons with who pays
+    expect(rules.getByText(/Wrong item \(Vendor\)/)).toBeTruthy();
     const sla = await row('Support response times');
     expect(sla.getByText('Set by Super Admin')).toBeTruthy();
     expect(sla.getByText('Applies when Support desk ships')).toBeTruthy();
