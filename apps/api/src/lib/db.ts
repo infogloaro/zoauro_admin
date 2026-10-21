@@ -40,6 +40,30 @@ export async function currentDatabaseRole(prisma: PrismaClient): Promise<string>
 }
 
 /** The application connection: DATABASE_URL, role zoauro_app only (never the migration role). */
+export const DEFAULT_DB_POOL_MAX = 10;
+export const DEFAULT_DB_POOL_TIMEOUT_MS = 20_000;
+
+/**
+ * The pg pool behind Prisma (driver adapter): DB_POOL_MAX connections, DB_POOL_TIMEOUT_MS to wait for one. The Prisma
+ * engine's `?connection_limit=` URL parameters do not apply to the pg adapter (doc 32). A value that is not a positive
+ * whole number falls back to the default rather than stopping the process.
+ */
+export function poolOptions(env: Readonly<Record<string, string | undefined>>): {
+  max: number;
+  connectionTimeoutMillis: number;
+} {
+  const int = (raw: string | undefined, fallback: number, ceiling: number) => {
+    const n = raw === undefined ? NaN : Number(raw);
+    return Number.isInteger(n) && n >= 1 && n <= ceiling ? n : fallback;
+  };
+  return {
+    max: int(env['DB_POOL_MAX'], DEFAULT_DB_POOL_MAX, 200),
+    connectionTimeoutMillis: int(env['DB_POOL_TIMEOUT_MS'], DEFAULT_DB_POOL_TIMEOUT_MS, 300_000),
+  };
+}
+
 export function createPrismaClient(databaseUrl: string): PrismaClient {
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString: databaseUrl, ...poolOptions(process.env) }),
+  });
 }
