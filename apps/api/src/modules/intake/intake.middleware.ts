@@ -1,6 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import type { RequestHandler, Response } from 'express';
 import type { Clock } from '../../lib/auth/config';
+import { runWithAuditContext } from '../../lib/audit';
 import { AppError, requestIdOf } from '../../lib/errors';
 import { idempotency, type IdempotencyStore } from '../../lib/idempotency';
 import { INTAKE_KEY_PREFIX } from '../../lib/idempotency';
@@ -206,6 +207,22 @@ export function writeIdempotency(deps: { store: IdempotencyStore; clock: Clock }
     codes: { inProgress: 'IDEMPOTENCY_IN_PROGRESS', mismatch: 'IDEMPOTENCY_CONFLICT' },
   });
   return (req, res, next) => (MUTATING.has(req.method) ? guard(req, res, next) : next());
+}
+
+/** Every write an app makes is audited as that API client (doc 50: actor type APP_CLIENT, never a member). */
+export function appAuditContext(): RequestHandler {
+  return (req, res, next) => {
+    const client = intakeClientOf(res);
+    runWithAuditContext(
+      {
+        actor: { type: 'APP_CLIENT', id: client.id, name: client.name, role: null },
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+        requestId: requestIdOf(res),
+      },
+      next,
+    );
+  };
 }
 
 export function requireScope(scope: string): RequestHandler {
