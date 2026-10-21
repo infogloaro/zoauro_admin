@@ -6,7 +6,15 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '@zoauro/api-client';
 import { ApiClientProvider } from '../../lib/api-client';
-import { dayRange, orderActions, orderSortFromParam, orderTabFromParam } from './labels';
+import {
+  dayRange,
+  fromLocalInput,
+  orderActions,
+  orderSortFromParam,
+  orderTabFromParam,
+  preorderTime,
+  toLocalInput,
+} from './labels';
 import { OrdersPage } from './OrdersPage';
 
 // Orders (M11, D117): the buttons each status allows (doc 10), URL filters, India-time day ranges, and the list against a
@@ -65,6 +73,13 @@ describe('order rules', () => {
     });
     expect(dayRange('17/10/2026', null)).toEqual({});
   });
+
+  it('pre-order times read and are typed in India time (D150)', () => {
+    expect(preorderTime('2026-10-22T14:00:00.000Z')).toBe('22 Oct, 19:30');
+    expect(toLocalInput('2026-10-22T14:00:00.000Z')).toBe('2026-10-22T19:30');
+    expect(fromLocalInput('2026-10-22T20:00')).toBe('2026-10-22T20:00:00+05:30');
+    expect(fromLocalInput('')).toBeNull();
+  });
 });
 
 describe('Orders list (Super Admin)', () => {
@@ -120,7 +135,9 @@ describe('Orders list (Super Admin)', () => {
 
   it('lists 25 a page with real tab counts, the zone column and masked phones', async () => {
     const { get } = setup();
-    expect(await screen.findByRole('button', { name: 'Open order ZO-ANN-000123' })).toBeTruthy();
+    // a real link to the order page (new tab, copy, keyboard), still opening in place on a plain click
+    const open = await screen.findByRole('link', { name: 'Open order ZO-ANN-000123' });
+    expect(open.getAttribute('href')).toMatch(/^\/super-admin\/orders\/[0-9a-f-]{36}$/);
     const list = get.mock.calls.find((c) => c[0] === '/orders' && c[1]?.query?.pageSize === 25);
     expect(list?.[1]?.query).toMatchObject({ page: 1, sort: '-placedAt' });
     const tabs = screen.getByRole('tablist', { name: 'Orders by status' });
@@ -134,7 +151,7 @@ describe('Orders list (Super Admin)', () => {
   it('a tab filters by its statuses; a row opens the order', async () => {
     const user = userEvent.setup();
     const { get } = setup();
-    await screen.findByRole('button', { name: 'Open order ZO-ANN-000123' });
+    await screen.findByRole('link', { name: 'Open order ZO-ANN-000123' });
     await user.click(screen.getByRole('tab', { name: /Preparing/ }));
     await waitFor(() =>
       expect(
@@ -146,7 +163,7 @@ describe('Orders list (Super Admin)', () => {
         ),
       ).toBe(true),
     );
-    await user.click(await screen.findByRole('button', { name: 'Open order ZO-ANN-000123' }));
+    await user.click(await screen.findByRole('link', { name: 'Open order ZO-ANN-000123' }));
     expect(nav.push).toHaveBeenCalledWith(
       '/super-admin/orders/0192f1d2-0000-7000-8000-0000000000f1',
     );
@@ -210,10 +227,10 @@ describe('Order detail', () => {
     ...over,
   });
 
-  async function mountDetail(post: ReturnType<typeof vi.fn>) {
+  async function mountDetail(post: ReturnType<typeof vi.fn>, over: Record<string, unknown> = {}) {
     const { OrderDetailPage } = await import('./OrderDetailPage');
     const { ToastProvider } = await import('../../components/ui/toast');
-    const get = vi.fn(async () => order());
+    const get = vi.fn(async () => order(over));
     const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queries}>
@@ -256,6 +273,47 @@ describe('Order detail', () => {
     await mountDetail(post);
     await user.click(await screen.findByRole('button', { name: 'Accept' }));
     expect(await screen.findByText(/This order changed a moment ago/)).toBeTruthy();
+  });
+
+  it('a pre-order shows its times; Reschedule sends India time at the version seen; a refusal reads plainly', async () => {
+    const user = userEvent.setup();
+    const { ApiError } = await import('@zoauro/api-client');
+    const post = vi.fn(async () => {
+      throw new ApiError(422, 'VALIDATION_ERROR', 'Too soon', [
+        { field: 'scheduledFor', issue: 'TOO_SOON' },
+      ]);
+    });
+    await mountDetail(post, {
+      preorder: {
+        scheduledFor: '2026-10-22T14:00:00.000Z',
+        dispatchAt: '2026-10-22T13:15:00.000Z',
+        releasedAt: null,
+        rescheduleCount: 1,
+        deliveryAddress: 'Tidel Park, Gate 2',
+        deliveryLat: null,
+        deliveryLng: null,
+      },
+    });
+    const card = await screen.findByRole('region', { name: 'Pre-order' });
+    expect(card.textContent).toContain('22 Oct, 19:30');
+    expect(card.textContent).toContain('Tidel Park, Gate 2');
+    expect(card.textContent).toContain('1 time');
+    await user.click(screen.getByRole('button', { name: 'Reschedule' }));
+    const dialog = await screen.findByRole('dialog');
+    const when = within(dialog).getByLabelText('Deliver at (India time)');
+    expect((when as HTMLInputElement).value).toBe('2026-10-22T19:30');
+    await user.clear(when);
+    await user.type(when, '2026-10-22T20:00');
+    await user.type(within(dialog).getByRole('textbox', { name: /Reason/ }), 'Customer asked');
+    await user.click(within(dialog).getByRole('button', { name: 'Reschedule' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/orders/{id}/reschedule', {
+        params: { id: order().id },
+        body: { scheduledFor: '2026-10-22T20:00:00+05:30', reason: 'Customer asked' },
+        ifMatch: 4,
+      }),
+    );
+    expect(await within(dialog).findByText(/too soon/)).toBeTruthy();
   });
 });
 

@@ -3,6 +3,7 @@ import {
   type OrderStatus,
   type PaymentMethod,
   type PaymentStatus,
+  type PreorderIssue,
 } from '@zoauro/shared';
 import type { BadgeTone } from '../../components/ui/badge';
 
@@ -109,4 +110,37 @@ export function dayRange(from: string | null, to: string | null): { from?: strin
     ...(ok(from) ? { from: new Date(`${from}T00:00:00+05:30`).toISOString() } : {}),
     ...(ok(to) ? { to: new Date(`${to}T23:59:59.999+05:30`).toISOString() } : {}),
   };
+}
+
+/** "21 Oct, 19:30" in India time, for a pre-order's scheduled or dispatch time (D150). */
+export function preorderTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+/** Why the API refused a reschedule (PREORDER_ISSUES), in plain words; the window and caps are Control Panel values. */
+export const PREORDER_ISSUE_TEXT: Record<PreorderIssue, string> = {
+  NOT_A_PREORDER: 'This order was placed for now, not for a later time.',
+  TOO_SOON: 'That time is too soon. Choose a later time.',
+  TOO_FAR_AHEAD: 'That time is too far ahead. Choose an earlier time.',
+  RELEASED: 'The order has already gone to the kitchen, so its time cannot change.',
+  PAST_CUTOFF: 'It is too close to the scheduled time to change it now.',
+  TOO_MANY_RESCHEDULES: 'This order has been rescheduled the most times allowed.',
+};
+
+/** "2026-10-21T19:30" for a datetime-local input, in India time. */
+export function toLocalInput(iso: string): string {
+  const d = new Date(new Date(iso).getTime() + (5 * 60 + 30) * 60_000);
+  return d.toISOString().slice(0, 16);
+}
+
+/** A datetime-local value typed in India time, as an ISO instant with the +05:30 offset. */
+export function fromLocalInput(local: string): string | null {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local) ? `${local}:00+05:30` : null;
 }

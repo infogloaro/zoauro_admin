@@ -9,7 +9,7 @@ import {
 import { ReceiptText, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { DataTable, type Column } from '../../components/shared/DataTable';
+import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
@@ -35,6 +35,7 @@ import {
   dayRange,
   orderSortFromParam,
   orderTabFromParam,
+  preorderTime,
 } from './labels';
 
 // Orders list for both roles (doc 20 "Orders list", SA-4.3, ZA-4.1; D117 port of dev_cb onto the core): tabs with real
@@ -86,6 +87,7 @@ export function OrdersPage({
     : undefined;
   const fromDay = url.params.get('from');
   const toDay = url.params.get('to');
+  const scheduled = url.params.get('preorders') === '1';
   const [search, setSearch] = useState(q);
 
   const filters: OrderFilters = {
@@ -97,6 +99,7 @@ export function OrdersPage({
     ...(paymentMethod ? { paymentMethod } : {}),
     ...(vendorType ? { vendorType } : {}),
     ...dayRange(fromDay, toDay),
+    ...(scheduled ? { scheduled } : {}),
   };
   const list = useOrderList(filters, !waiting);
   const counts = useOrderTabCounts(filters, !waiting);
@@ -112,7 +115,9 @@ export function OrdersPage({
   const base = role === 'SUPER_ADMIN' ? '/super-admin/orders' : '/zone/orders';
   const showZone = !zone && (role === 'SUPER_ADMIN' || zones.length > 1);
   const zoneCodeOf = (id: string) => zones.find((z) => z.id === id)?.code ?? '—';
-  const filtered = Boolean(q || paymentMethod || vendorType || fromDay || toDay || tab !== 'all');
+  const filtered = Boolean(
+    q || paymentMethod || vendorType || fromDay || toDay || scheduled || tab !== 'all',
+  );
 
   const columns: Column<Row>[] = [
     {
@@ -120,16 +125,15 @@ export function OrdersPage({
       header: 'Order',
       cell: (r, ctx) => (
         <div>
-          <button
-            type="button"
-            {...ctx.activatorProps}
-            className={cn(ctx.activatorProps.className, 'font-mono font-semibold')}
-          >
+          <RowActivator ctx={ctx} className="font-mono font-semibold">
             {r.orderNo}
-          </button>
+          </RowActivator>
           <p className="text-xs text-muted">
             {r.itemCount} item{r.itemCount === 1 ? '' : 's'}
           </p>
+          {r.preorder ? (
+            <Badge tone="brand">Pre-order · {preorderTime(r.preorder.scheduledFor)}</Badge>
+          ) : null}
         </div>
       ),
     },
@@ -324,6 +328,14 @@ export function OrdersPage({
             onChange={(e) => url.patch({ to: e.target.value || null, page: null })}
           />
         </label>
+        <label className="flex h-10 items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={scheduled}
+            onChange={(e) => url.patch({ preorders: e.target.checked ? '1' : null, page: null })}
+          />
+          Pre-orders only
+        </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium">
           Sort
           <select
@@ -355,6 +367,7 @@ export function OrdersPage({
                 vendor: null,
                 from: null,
                 to: null,
+                preorders: null,
                 page: null,
               });
             }}
@@ -371,6 +384,7 @@ export function OrdersPage({
           rows={list.data?.data ?? []}
           getRowId={(r) => r.id}
           onActivate={(r) => router.push(`${base}/${r.id}`)}
+          rowHref={(r) => `${base}/${r.id}`}
           activateLabel={(r) => `Open order ${r.orderNo}`}
           status={list.isError ? 'error' : list.data ? 'ready' : 'loading'}
           busy={list.isFetching && list.isPlaceholderData}

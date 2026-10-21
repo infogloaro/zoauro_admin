@@ -23,6 +23,8 @@ export interface OrderFilters {
   vendorType?: OrderVendorType;
   from?: string;
   to?: string;
+  /** pre-orders only (D150) */
+  scheduled?: boolean;
 }
 
 function listQuery(
@@ -43,6 +45,7 @@ function listQuery(
     ...(f.vendorType ? { vendorType: f.vendorType } : {}),
     ...(f.from ? { from: f.from } : {}),
     ...(f.to ? { to: f.to } : {}),
+    ...(f.scheduled ? { scheduled: true } : {}),
   };
 }
 

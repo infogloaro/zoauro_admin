@@ -1,7 +1,7 @@
 'use client';
 
-import type { OrderStatus } from '@zoauro/shared';
-import { Ban, Bike, Undo2 } from 'lucide-react';
+import { PREORDER_ISSUES, type OrderStatus } from '@zoauro/shared';
+import { Ban, Bike, CalendarClock, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Badge } from '../../components/ui/badge';
@@ -24,7 +24,11 @@ import {
   PAYMENT_METHOD_LABEL,
   PAYMENT_STATUS_LABEL,
   PAYMENT_STATUS_TONE,
+  PREORDER_ISSUE_TEXT,
+  fromLocalInput,
   orderActions,
+  preorderTime,
+  toLocalInput,
 } from './labels';
 
 // One order (doc 20 "Order details", SA-4.4, ZA-4.2; doc 10 state machine): status with the moves it allows, items,
@@ -57,6 +61,7 @@ export function OrderDetailPage({
   const [alert, setAlert] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
   const listPath = role === 'SUPER_ADMIN' ? '/super-admin/orders' : '/zone/orders';
 
   if (detail.isError)
@@ -118,6 +123,51 @@ export function OrderDetailPage({
         ]}
         description={`Placed ${relativeTime(o.placedAt)} · ${new Date(o.placedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`}
       />
+
+      {o.preorder ? (
+        <Card aria-labelledby="order-preorder">
+          <CardHeader
+            id="order-preorder"
+            title="Pre-order"
+            subtitle={
+              o.preorder.releasedAt
+                ? `Sent to the kitchen ${relativeTime(o.preorder.releasedAt)}`
+                : 'Waiting: the kitchen and the partner get it at the dispatch time'
+            }
+            actions={
+              can.assign && !o.preorder.releasedAt && o.status === 'PLACED' ? (
+                <Button size="sm" variant="secondary" onClick={() => setRescheduling(true)}>
+                  <CalendarClock aria-hidden className="size-4" /> Reschedule
+                </Button>
+              ) : undefined
+            }
+          />
+          <CardBody>
+            <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-xs text-muted">Deliver at</dt>
+                <dd className="font-semibold">{preorderTime(o.preorder.scheduledFor)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted">Dispatch at</dt>
+                <dd>{preorderTime(o.preorder.dispatchAt)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted">Rescheduled</dt>
+                <dd>
+                  {o.preorder.rescheduleCount === 0
+                    ? 'Never'
+                    : `${o.preorder.rescheduleCount} time${o.preorder.rescheduleCount === 1 ? '' : 's'}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted">Deliver to</dt>
+                <dd>{o.preorder.deliveryAddress ?? 'The customer’s address'}</dd>
+              </div>
+            </dl>
+          </CardBody>
+        </Card>
+      ) : null}
 
       <Card aria-labelledby="order-status">
         <CardHeader
@@ -335,7 +385,103 @@ export function OrderDetailPage({
           }}
         />
       ) : null}
+      {rescheduling && o.preorder ? (
+        <RescheduleDialog
+          order={{
+            id: o.id,
+            orderNo: o.orderNo,
+            version: o.version,
+            scheduledFor: o.preorder.scheduledFor,
+          }}
+          onClose={() => setRescheduling(false)}
+          onDone={async () => {
+            setRescheduling(false);
+            await invalidate();
+          }}
+        />
+      ) : null}
     </div>
+  );
+}
+
+/** D150: move a pre-order inside the Control Panel window, before the cut-off, at the version seen (If-Match). */
+function RescheduleDialog({
+  order,
+  onClose,
+  onDone,
+}: {
+  order: { id: string; orderNo: string; version: number; scheduledFor: string };
+  onClose: () => void;
+  onDone: () => Promise<void>;
+}) {
+  const client = useApiClient();
+  const { toast } = useToast();
+  const [when, setWhen] = useState(() => toLocalInput(order.scheduledFor));
+  const [reason, setReason] = useState('');
+  const [alert, setAlert] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const scheduledFor = fromLocalInput(when);
+  const ok = scheduledFor !== null && reason.trim().length >= 3;
+
+  const run = async () => {
+    if (!scheduledFor) return;
+    setAlert(null);
+    setBusy(true);
+    try {
+      await client.post('/orders/{id}/reschedule', {
+        params: { id: order.id },
+        body: { scheduledFor, reason: reason.trim() },
+        ifMatch: order.version,
+      });
+      toast({ title: `Order ${order.orderNo} moved to ${preorderTime(scheduledFor)}` });
+      await onDone();
+    } catch (err) {
+      const issue = isApiError(err)
+        ? PREORDER_ISSUES.find((i) => err.details.some((d) => d.issue === i))
+        : undefined;
+      setAlert(issue ? PREORDER_ISSUE_TEXT[issue] : failure(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
+      <DialogContent>
+        <div>
+          <DialogTitle>Reschedule order {order.orderNo}?</DialogTitle>
+          <DialogDescription>
+            The dispatch time moves with it. The allowed window, the cut-off and how many times an
+            order may move are set in the Control Panel.
+          </DialogDescription>
+        </div>
+        {alert ? <FormAlert>{alert}</FormAlert> : null}
+        <FormField label="Deliver at (India time)">
+          <input
+            type="datetime-local"
+            className={inputClass()}
+            value={when}
+            onChange={(e) => setWhen(e.target.value)}
+          />
+        </FormField>
+        <FormField label="Reason" hint="At least 3 characters; kept in the audit log">
+          <textarea
+            className={inputClass('min-h-20 py-2')}
+            maxLength={300}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </FormField>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
+            Back
+          </Button>
+          <Button onClick={() => void run()} disabled={busy || !ok}>
+            Reschedule
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
