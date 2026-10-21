@@ -13,6 +13,7 @@ import { CardSkeleton, DetailError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useCustomerDetail } from './api';
 import { BlockDialog, CustomerFormDialog } from './CustomerDialogs';
+import { RewardsCard } from './RewardsCard';
 import type { CustomerPageProps } from './customer-page-props';
 import { CUSTOMER_STATUS_LABEL, CUSTOMER_STATUS_TONE, customersPath, sourceLabel } from './labels';
 
@@ -136,6 +137,8 @@ export function CustomerDetailPage({ id, role, can }: CustomerPageProps & { id: 
           </CardBody>
         </Card>
       </div>
+
+      <RewardsCard id={c.id} name={c.name} canEdit={can.loyalty} />
 
       <Card aria-labelledby="customer-addresses">
         <CardHeader

@@ -59,6 +59,25 @@ export function useCustomerDetail(id: string) {
   });
 }
 
+/** D169: the reward points panel (balance, rules of the customer's zone, the ledger newest first), 10 entries a page. */
+export const REWARD_PAGE_SIZE = 10;
+
+export function useCustomerRewards(id: string, page: number) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: [...customerKeys.detail(id), 'rewards', page] as const,
+    queryFn: ({ signal }) =>
+      client.get('/customers/{id}/rewards', {
+        params: { id },
+        query: { page, pageSize: REWARD_PAGE_SIZE },
+        signal,
+      }),
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+    retry: retryTransient,
+  });
+}
+
 export function useInvalidateCustomers() {
   const qc = useQueryClient();
   return useCallback(() => qc.invalidateQueries({ queryKey: customerKeys.all }), [qc]);

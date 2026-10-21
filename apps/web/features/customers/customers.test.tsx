@@ -12,6 +12,7 @@ import { BlockDialog, customerBody, issuesByField } from './CustomerDialogs';
 import { CustomerDetailPage } from './CustomerDetailPage';
 import { customerPageProps } from './customer-page-props';
 import { CustomersPage } from './CustomersPage';
+import { RewardsCard, rulesLines, signedPoints } from './RewardsCard';
 import {
   customerSortFromParam,
   customerTabFromParam,
@@ -115,7 +116,7 @@ describe('customer screen rules', () => {
     const p = customerPageProps(me);
     expect(p.myZones.map((z) => z.code)).toEqual(['ANN']);
     expect(p.addZones.map((z) => z.code)).toEqual(['ADY']);
-    expect(p.can).toEqual({ add: true, edit: false, status: true, reveal: true });
+    expect(p.can).toEqual({ add: true, edit: false, status: true, reveal: true, loyalty: false });
   });
 
   it('bodies: the first address on create; on edit only what was typed', () => {
@@ -209,6 +210,7 @@ describe('Customer detail', () => {
     const get = vi.fn(async (path: string) => {
       if (path === '/customers/{id}') return detail;
       if (path === '/customers/{id}/reveal') return { phone: '+919876543210', email: 'l@x.test' };
+      if (path === '/customers/{id}/rewards') return rewardsOff;
       throw new Error(`unexpected ${path}`);
     });
     render(<CustomerDetailPage id={CUST} {...SUPER} />, { wrapper: wrap(get) });
@@ -243,5 +245,100 @@ describe('Customer detail', () => {
       params: { id: CUST },
       body: { reason: 'abc fraud' },
     });
+  });
+});
+
+// ---- reward points (D169) ---------------------------------------------------------------------------------------------
+
+const rules = {
+  earnRatePercent: 2,
+  pointsExpiryDays: 180,
+  pointValuePaise: 50,
+  minRedeemPoints: 100,
+  maxRedeemPercentPerOrder: 20,
+  monthlyEarnCapPoints: null,
+  walletConversionEnabled: true,
+};
+const meta = { page: 1, pageSize: 10, total: 1 };
+const rewardsOff = {
+  balance: 0,
+  walletBalancePaise: 0,
+  expiringSoon: 0,
+  rules: null,
+  entries: [],
+  meta: { ...meta, total: 0 },
+};
+const rewardsOn = {
+  balance: 240,
+  walletBalancePaise: 5000,
+  expiringSoon: 40,
+  rules,
+  entries: [
+    {
+      id: '0192f1d2-aaaa-7000-8000-000000000001',
+      type: 'MANUAL_GRANT',
+      points: 40,
+      balanceAfter: 240,
+      orderNo: null,
+      reason: 'Late delivery',
+      expiresAt: null,
+      actor: { id: ZA, name: 'Meena' },
+      createdAt: '2026-10-20T08:00:00.000Z',
+    },
+  ],
+  meta,
+};
+
+describe('Reward points card', () => {
+  it('reads the rules and signs the points', () => {
+    expect(signedPoints(40)).toBe('+40');
+    expect(signedPoints(-1200)).toBe('−1,200');
+    expect(rulesLines(rules)).toContain('1 point = ₹0.50');
+    expect(rulesLines({ ...rules, walletConversionEnabled: false })).toContain(
+      'Wallet conversion is off',
+    );
+  });
+
+  it('says when points are off in the zone and offers no conversion', async () => {
+    const get = vi.fn(async () => rewardsOff);
+    render(<RewardsCard id={CUST} name="Lakshmi" canEdit />, { wrapper: wrap(get) });
+    expect(await screen.findByText(/off in this customer’s zone/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /wallet credit/ })).toBeNull();
+    expect(get).toHaveBeenCalledWith('/customers/{id}/rewards', {
+      params: { id: CUST },
+      query: { page: 1, pageSize: 10 },
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it('a deduction cannot exceed the balance; a grant sends points and the reason', async () => {
+    const user = userEvent.setup();
+    const post = vi.fn(async () => rewardsOn);
+    render(<RewardsCard id={CUST} name="Lakshmi" canEdit />, {
+      wrapper: wrap(
+        vi.fn(async () => rewardsOn),
+        post,
+      ),
+    });
+    expect(await screen.findByText('240 pts')).toBeTruthy();
+    expect(screen.getByText('Granted by an admin')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /Grant or deduct/ }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('radio', { name: 'Deduct' }));
+    await user.type(within(dialog).getByRole('spinbutton', { name: 'Points' }), '500');
+    await user.type(within(dialog).getByRole('textbox', { name: 'Reason' }), 'Fraud check');
+    expect(within(dialog).getByText('They have only 240 points.')).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Deduct points' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    await user.click(within(dialog).getByRole('radio', { name: 'Grant' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Grant points' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/customers/{id}/rewards/adjust', {
+        params: { id: CUST },
+        body: { points: 500, reason: 'Fraud check' },
+      }),
+    );
   });
 });
