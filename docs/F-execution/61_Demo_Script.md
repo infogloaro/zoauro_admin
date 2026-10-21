@@ -1,6 +1,6 @@
 # 61 — Demo Script (admin panel, sample data)
 
-Version 0.1, 2026-10-21. Owner: docs lane. Demo planned for the end of 2026-10-22.
+Version 0.2, 2026-10-21 (demo accounts, zones and start commands from the demo seed). Owner: docs lane. Demo planned for the end of 2026-10-22 (D188).
 
 The demo shows the ZOAURO admin panel with **sample data only**: no live app data, no app integration, no payment gateway (Razorpay keys are pending from management). It walks through what each role sees and controls, how the main flows work, and how the Super Admin changes business rules from the Control Panel without code changes.
 
@@ -17,30 +17,59 @@ Update the tags after each push wave. Before the demo, rehearse once and change 
 
 ## 1. Before the demo
 
-1. Close other heavy programs. The machine has 7.75 GB of RAM; only the database containers, the API and the web app should run during the demo. Stop the build sessions an hour before.
-2. Start the services: Postgres, Redis, MinIO and Mailpit (`pnpm infra:up`). Use `127.0.0.1` for local services.
-3. Point the API at the demo database `zoauro_demo`, never at `zoauro`. The demo seed (intake lane) creates the data and prints the demo passwords once in its own window; keep them out of git, docs and chat.
-4. Start the API and the web app (`pnpm dev`). Check `http://127.0.0.1:4000/api/ready` shows database and Redis `ok`, and that `http://localhost:3000/login` opens.
-5. Open Mailpit at `http://localhost:8025` in a second tab. Two-step sign-in codes arrive there.
-6. Open `docs/F-execution/60_Admin_Workflow_Map.html` in a third tab as the backup for anything marked Design.
+1. Close other heavy programs. The machine has 7.75 GB of RAM; only Docker, the demo API and the demo web app should run during the demo. Stop all build sessions an hour before (D189).
+2. From the repo root, with Docker running:
+
+   | Step | Command | When |
+   |---|---|---|
+   | Services (Postgres, Redis, MinIO, Mailpit) | `pnpm infra:up` | Every time |
+   | Demo settings file `apps/api/.env.demo` (git-ignored) | `pnpm --filter @zoauro/api demo:env` | Once |
+   | Frozen production build of the committed code into `D:\GloAro pvt lmt - PR\zoauro-demo-build` (pin a commit with `demo:build -- --commit <sha>`; 3–5 minutes) | `pnpm --filter @zoauro/api demo:build` | After the final push |
+   | Create and migrate `zoauro_demo` and the `zoauro-demo` bucket | `pnpm --filter @zoauro/api demo:db` | First time only |
+   | Demo API on port 4100 (terminal 1, built API) | `pnpm --filter @zoauro/api demo:api` | Every time |
+   | Demo web app on port 3100 (terminal 2, built web) | `pnpm --filter @zoauro/api demo:web` | Every time |
+   | Sample data (re-runnable, skips what exists) | `pnpm --filter @zoauro/api demo:data` | Once the API is up |
+   | Fresh sample data after a rehearsal | stop `demo:api` (Ctrl+C), run `pnpm --filter @zoauro/api demo:reset`, start `demo:api`, run `demo:data` | Before the real demo |
+
+   The demo runs from the frozen build, never from the shared working folder, so unfinished work in other sessions cannot break it. Pages load in about a second.
+
+   To stop a server, press Ctrl+C in its terminal. If one was started in the background, Windows keeps the port busy: run `netstat -ano | findstr :4100` (or `:3100`) and end that process.
+
+3. The demo uses only `zoauro_demo`; the real `zoauro` database is never touched (D188).
+4. Check `http://127.0.0.1:4100/api/ready` shows database and Redis `ok`. The first check after a quiet spell can say "database down" for a moment; check again.
+5. Open the panel at **`http://127.0.0.1:3100`**. Use `127.0.0.1`, not `localhost`, so it doesn't share sign-in cookies with the development app.
+6. Open Mailpit at `http://127.0.0.1:8025` in a second tab. Two-step sign-in codes arrive there; the demo API sends every email to Mailpit only.
+7. Open `docs/F-execution/60_Admin_Workflow_Map.html` in a third tab as the backup for anything marked Design.
 
 ## 2. Logins
 
-| Account | Role | What it shows |
-|---|---|---|
-| Primary Super Admin | Super Admin (primary) | Everything: all zones, Control Panel, access, commissions, approvals, other Super Admins |
-| Admin | Super Admin with only some Control Panel areas granted (D178) | All-zone operations, but only the Control Panel areas the primary granted |
-| Zonal Admin | Zonal Admin with two zones and a limited profile | Zone switcher, restricted menu, refund limits, asking for more access |
-| Zonal Admin (one zone), optional | Zonal Admin with one zone | Contrast: a single zone, no switcher |
+| Account | Email | Role | What it shows |
+|---|---|---|---|
+| Arun Prakash | `superadmin@zoauro.demo` | Primary Super Admin | Everything: all zones, Control Panel, access, commissions, approvals, other Super Admins |
+| Meena Sundaram ("Admin") | `admin@zoauro.demo` | Super Admin, not primary, with Control Panel areas: zones, refund settings, onboarding settings, loyalty settings (D178) | All-zone operations, but only the granted Control Panel areas |
+| Karthik Raj | `karthik.zonal@zoauro.demo` | Zonal Admin, two zones: Coimbatore Central (Zone Manager; refunds up to ₹500 each, ₹2,000 a day) and Coimbatore North (Operations; menu edit/delete and refunds denied; ₹200 / ₹500) | Zone switcher, restricted menu, refund limits, a pending access request for menu edit in Coimbatore North |
+| Priya Venkatesh | `priya.zonal@zoauro.demo` | Zonal Admin, Coimbatore Central only, "Menu Desk" profile | A second admin in the same zone with a narrower job |
+| Suresh Kumar | `suresh.zonal@zoauro.demo` | Zonal Admin, Tiruppur only, Zone Manager | One zone, no switcher; hotel booking switched off in this zone |
 
-Account emails and zone names are filled in here once the seed is fixed. Passwords are never written down here.
+Passwords and authenticator secrets are in the local file `apps/api/.env.demo-credentials.json` (git-ignored, never committed). They are never written in git, docs or chat, and stay the same across re-seeds.
+
+**Demo zones:** Coimbatore Central (CBE, pincodes 641001–641020, delivery ₹30), Coimbatore North (CBN, 641021–641035, ₹35), Tiruppur (TUP, 641601–641610, ₹40, hotel booking off), Pollachi (PLC, 642001–642008, Upcoming).
+
+**Sample data:** 16 vendors (restaurants, a shop, Home Food) at every onboarding stage with documents; 38 menu items and 6 food item requests from the vendor app (4 pending); 9 delivery partners and 4 partner requests (1 in Needs a zone); 24 customers (2 blocked) with reward points; 586 orders over 30 days plus today's live board (28 orders in every status), 1 hidden unpaid online order and 4 pre-orders for tomorrow; 4 hotels (2 live, 1 under review, 1 rejected), 5 room bookings and 5 table bookings; 6 support tickets; notifications (one sent, one promotion waiting for approval, one scheduled); 8 refunds (2 requested, 1 waiting for approval, 1 approved, 3 processed, 1 rejected); Control Panel values with zone overrides (reward points, orders per partner, Tiruppur refund caps, commission-edit switch on).
+
+**Actions to do live** (each uses up its sample record; reset the data after a rehearsal):
+- Approve Karthik's access request (menu edit in Coimbatore North), then show his menu change.
+- Approve the refund waiting for approval.
+- Verify Kovai Biryani House or Arya Bhavan from the onboarding queue.
+- Approve a food item request.
+- Assign a READY order to a partner.
+- Approve the biryani promotion.
 
 **Signing in (every account):**
-1. Open `http://localhost:3000/login`.
-2. Choose the **Super Admin** tab for the first two accounts, **Zonal Admin** for the others. The wrong tab gives the same message as a wrong password.
+1. Open `http://127.0.0.1:3100/login`.
+2. Choose the **Super Admin** tab for Arun and Meena, **Zonal Admin** for the others. The wrong tab gives the same message as a wrong password.
 3. Type the email and password.
-4. First sign-in only: confirm the email with the code from Mailpit, then save the 10 backup codes (tick "I have saved these codes").
-5. Later sign-ins: type the 6-digit code from Mailpit.
+4. Choose **Email code** and type the 6-digit code from Mailpit (every demo account also has an authenticator set up).
 
 Talking point: there is no Google sign-in, 2-step is required for both roles, and 5 wrong attempts lock the account for 30 minutes.
 
