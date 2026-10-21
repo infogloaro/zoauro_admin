@@ -1,6 +1,6 @@
 # 61 — Demo Script (admin panel, sample data)
 
-Version 0.2, 2026-10-21 (demo accounts, zones and start commands from the demo seed). Owner: docs lane. Demo planned for the end of 2026-10-22 (D188).
+Version 0.3, 2026-10-21 (tags updated from the QA walkthrough on the frozen demo build 217e3e1; see §5). Owner: docs lane. Demo planned for the end of 2026-10-22 (D188).
 
 The demo shows the ZOAURO admin panel with **sample data only**: no live app data, no app integration, no payment gateway (Razorpay keys are pending from management). It walks through what each role sees and controls, how the main flows work, and how the Super Admin changes business rules from the Control Panel without code changes.
 
@@ -8,8 +8,8 @@ Each step carries a tag so the presenter never clicks into something unfinished:
 
 | Tag | Meaning |
 |---|---|
-| **Ready** | Built and working on main today |
-| **Today** | Planned to land on 2026-10-21 |
+| **Ready** | Built and checked on the frozen demo build (§5) |
+| **Today** | Built, or fix pending; recheck after the next rebuild |
 | **Tomorrow** | Planned to land on 2026-10-22 morning |
 | **Design** | Not built; show the workflow map (`60_Admin_Workflow_Map.html`) or doc 60 instead |
 
@@ -35,11 +35,12 @@ Update the tags after each push wave. Before the demo, rehearse once and change 
 
    To stop a server, press Ctrl+C in its terminal. If one was started in the background, Windows keeps the port busy: run `netstat -ano | findstr :4100` (or `:3100`) and end that process.
 
-3. The demo uses only `zoauro_demo`; the real `zoauro` database is never touched (D188).
-4. Check `http://127.0.0.1:4100/api/ready` shows database and Redis `ok`. The first check after a quiet spell can say "database down" for a moment; check again.
-5. Open the panel at **`http://127.0.0.1:3100`**. Use `127.0.0.1`, not `localhost`, so it doesn't share sign-in cookies with the development app.
-6. Open Mailpit at `http://127.0.0.1:8025` in a second tab. Two-step sign-in codes arrive there; the demo API sends every email to Mailpit only.
-7. Open `docs/F-execution/60_Admin_Workflow_Map.html` in a third tab as the backup for anything marked Design.
+3. **Morning of the demo** (about 12 minutes; the coordinator runs it with the seed lane): after the final push, `demo:build`, then stop `demo:api`, `demo:reset`, start `demo:api` and `demo:web`, `demo:data`. Today's live board and the pre-orders are placed relative to the moment the data is loaded, so data loaded the day before would read as yesterday's.
+4. The demo uses only `zoauro_demo`; the real `zoauro` database is never touched (D188).
+5. Check `http://127.0.0.1:4100/api/ready` shows database and Redis `ok`. The first check after a quiet spell can say "database down" for a moment; check again.
+6. Open the panel at **`http://127.0.0.1:3100`**. Use `127.0.0.1`, not `localhost`, so it doesn't share sign-in cookies with the development app.
+7. Open Mailpit at `http://127.0.0.1:8025` in a second tab. Two-step sign-in codes arrive there; the demo API sends every email to Mailpit only.
+8. Open `docs/F-execution/60_Admin_Workflow_Map.html` in a third tab as the backup for anything marked Design.
 
 ## 2. Logins
 
@@ -83,7 +84,7 @@ Each act names the screen (menu path), what to do, and what to say. Times are a 
 
 ### Act 1. Super Admin: dashboard and zones (5 min)
 Sign in as the **Primary Super Admin**.
-1. **Dashboard** — Today. Tiles for orders, vendors, partners, customers and pending work; charts by status and zone.
+1. **Dashboard** — Ready. Tiles for orders, vendors, partners, customers and pending work; charts by status and zone.
 2. **Zone Operations → Zone management** — Ready. Zones with pincodes, team, counts. Open one zone: Overview, Pincodes, Services, Team, Activity.
 3. **Add zone** — Ready. Name, code, city, pincodes, delivery charge. A pincode that already belongs to another zone is refused and names that zone.
 4. **Activate / deactivate** — Ready. The impact table shows what changes; open orders always finish.
@@ -108,12 +109,12 @@ Talking point: management can change prices, limits and rules any time, per zone
 2. **Member access** — Ready. Add a zone with an access profile; set refund limits; grant or deny single actions (deny wins); reveal and export switches; **Preview** shows exactly which menu and tiles the member will see.
 3. **Access profiles** — Ready. The permission matrix; Super Admin-only rows are locked.
 4. **Zone teams** and **Access history** — Ready. Who works where; every access change with before and after.
-5. **Super Admins** — Ready (panel) / Today (granted areas, D178). The primary creates another Super Admin and grants only some Control Panel areas.
+5. **Super Admins** — Ready. Arun carries the Primary badge; each Super Admin shows the Control Panel areas granted; only a primary adds, removes or changes them (D178).
 6. **Commission** — Ready. Set on the vendor by the Super Admin; a Zonal Admin can edit it only where the Super Admin enables it (D155).
 
 ### Act 4. Vendors: onboarding and managing (10 min)
-1. **Requests & approvals → Vendor onboarding** — Today. One queue for Restaurants, Shops and Home Food (cloud kitchens are Home Food, D168); stages Submitted, Under review, More info, Decided; waiting-time colours at 24 h and 48 h; Needs a zone (Super Admin only).
-2. Open a submitted vendor — Ready. Check each document (FSSAI, GST, PAN, bank): view, accept or reject with a note. Then **Verify** (or **Reject** with a reason, or **Ask for more info** — Today).
+1. **Requests & approvals → Vendor onboarding** — Today (fix pending: the row buttons Start review / Decide / Ask for more info are covered by the row link; the list itself is Ready). One queue for Restaurants, Shops and Home Food (cloud kitchens are Home Food, D168); stages Submitted, Under review, More info, Decided; waiting-time colours at 24 h and 48 h; Needs a zone (Super Admin only).
+2. Open a submitted vendor — Ready. Check each document (FSSAI, GST, PAN, bank): view, accept or reject with a note. Then **Verify** (or **Reject** with a reason, or **Ask for more info** — Today, same fix).
 3. **Activate** — Ready. Only a verified vendor can go live. Suspend stops new orders; open orders finish.
 4. **Service Management → Restaurants / Home Food** — Ready. Status tabs with counts, search, masked phone and email; **Reveal** is audited.
 5. **Menus & food items** — Ready. Items, categories, stock, admin disable, bulk price change (all or nothing).
@@ -127,7 +128,7 @@ Talking point: management can change prices, limits and rules any time, per zone
 ### Act 6. Orders and delivery partners (8 min)
 1. **Orders** — Ready. Status tabs with counts, filters (payment method, vendor type, date), zone column.
 2. Open an order — Ready. Items, payment, customer, timeline with who did each step; move the status; **Assign partner** (only partners in the same zone, under their limit); **Cancel** with a reason. A second admin changing the same order gets "This record changed. Reload".
-3. **Order overview** — Tomorrow. Open, delayed and unassigned orders, cancellations and average times.
+3. **Order overview** — Ready. Open, delayed and unassigned orders, cancellations and average times.
 4. **Delivery partners** and **Delivery partner requests** — Ready. Verify documents, activate, force offline; cash in hand.
 
 ### Act 7. Customers (4 min)
@@ -136,8 +137,8 @@ Talking point: management can change prices, limits and rules any time, per zone
 
 ### Act 8. Money: refunds, payments, payouts (8 min)
 No payment gateway in the demo: refunds are processed manually or to the customer's wallet.
-1. **Refunds** — Today. Raise a refund on an order (full, partial or goodwill, with a reason). Within the member's limit it is approved at once; above it, it waits in the Super Admin approval queue; the requester can never approve their own.
-2. **Payments, COD cash, payouts** — Tomorrow (read-only lists on sample data). Payments by method (UPI, card, COD, wallet); "Refund processing" status; partner cash to settle; the weekly payout with the vendor-fault refund deducted.
+1. **Refunds** — Ready (raise, approve, above-limit approval all checked). Raise a refund on an order (full, partial or goodwill, with a reason). Within the member's limit it is approved at once; above it, it waits in the Super Admin approval queue; the requester can never approve their own.
+2. **Payments** — Ready. Payments by method (UPI, card, COD, wallet) with filters; "Refund processing" status. **COD cash and payouts** — Design: they are "Soon" plan pages in the menu (partner cash to settle; the weekly payout with the vendor-fault refund deducted).
 3. Talking point: Razorpay connects when management provides the keys; the flow and rules are already in place.
 
 ### Act 9. Packages (4 min)
@@ -145,26 +146,44 @@ No payment gateway in the demo: refunds are processed manually or to the custome
 2. Customer weekly and monthly meal plans — Design (doc 60 §10.5).
 
 ### Act 10. Support and notifications (4 min)
-1. **Support desk** — Today. Tickets with SLA timers and assignment; a separate support team (D175).
+1. **Support desk** — Ready. Tickets with SLA timers and assignment; a separate support team (D175).
 2. **Notifications** — Ready. Compose to a zone or audience, schedule, promotion approval, quiet hours.
 
 ### Act 11. The Zonal Admin view (6 min)
 Sign out; sign in as the **Zonal Admin** on the Zonal Admin tab.
 1. The menu shows only modules this member may open; no Control Panel, zones or access screens.
 2. **Zone switcher** — Ready. "All my zones" or one zone; every list and tile follows it.
-3. Try a refund above the member's limit — Today. It goes to the Super Admin for approval.
+3. Try a refund above the member's limit — Ready. It goes to the Super Admin for approval.
 4. **Access requests** — Ready. Ask for a zone or more access with a reason. Switch back to the Super Admin, approve it (password), and show the member's menu change.
 
 ### Act 12. The "Admin" view (3 min)
-Sign in as the **Admin** (Super Admin with granted areas) — Today. All-zone operations, but the Control Panel shows only the granted areas.
+Sign in as the **Admin** (Super Admin with granted areas) — Ready, except her dashboard (fix pending: some cards ask for data she has no area for and show "Try again"). Until it is fixed, open **Zone management** or **Platform settings** first. All-zone operations, but the menu and Control Panel show only the granted areas, and the Super Admins list is view-only.
 
 ### Act 13. Audit trail (2 min)
 **Administration → Audit & logs** — Ready. Every action from this demo is listed: who, what, which zone, before and after, denied attempts.
 
 ### Act 14. What comes next (3 min) — Design
-From the workflow map and doc 60: app integration (customer, vendor, partner apps), Razorpay payments, advertising and commission, customer meal plans, offers, maps and automatic partner assignment, multi-restaurant checkout.
+The "Soon" entries in the menu open each module's plan page (owner's choice: show the roadmap, not hide it). From the workflow map and doc 60: app integration (customer, vendor, partner apps), Razorpay payments, advertising and commission, customer meal plans, offers, maps and automatic partner assignment, multi-restaurant checkout.
 
 ## 4. If something breaks
 - A screen errors: say it is the next build step, switch to the workflow map tab and show the same screen's layout and flow there.
-- Sign-in code missing: refresh Mailpit; the code is valid for 5 minutes.
+- Sign-in code missing: refresh Mailpit (or the mailbox the code goes to); the code is valid for 5 minutes. Every demo account also has an authenticator, so "Authenticator app" works as a fallback.
 - The whole app is slow: the machine is short of memory; close everything except the browser, the API, the web app and Docker.
+
+## 5. QA status
+
+Checked on 2026-10-21 against the frozen demo build of commit `217e3e1` on `zoauro_demo`, by an automated walk that signs in as each account, opens every menu entry and the first record of every list, and records failed API calls, browser errors and error screens.
+
+| Account | Pages checked | Result |
+|---|---|---|
+| Arun (primary Super Admin) | 53 | No errors |
+| Meena (Admin, granted areas) | 43 | Dashboard only: some cards show "Try again" (fix pending) |
+| Karthik (Zonal Admin, two zones) | 29 | No errors |
+| Priya (Zonal Admin, one zone) | 15 | No errors |
+| Suresh (Zonal Admin, Tiruppur) | 24 | No errors |
+
+**Zone isolation:** each Zonal Admin's restaurant, Home Food, order and delivery-partner lists show only their own zones, and a record from another zone answers "not found".
+
+**Live actions checked in the database:** approving Karthik's access request (approved after the password check); approving the refund waiting for approval; Karthik's ₹600 refund going to Super Admin approval (his limit is ₹500); approving the biryani promotion (scheduled); assigning a partner to a ready order. The onboarding queue actions wait for the row-button fix.
+
+Pages marked "Soon" in the menu are the roadmap and are not counted as errors.
