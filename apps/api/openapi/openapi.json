@@ -3716,7 +3716,13 @@
                                         "loyalty:edit",
                                         "loyalty:delete",
                                         "loyalty:status",
-                                        "loyalty:export"
+                                        "loyalty:export",
+                                        "plans:view",
+                                        "plans:add",
+                                        "plans:edit",
+                                        "plans:delete",
+                                        "plans:status",
+                                        "plans:export"
                                       ]
                                     }
                                   },
@@ -3959,7 +3965,8 @@
                 "audit",
                 "system",
                 "hotels",
-                "support"
+                "support",
+                "plans"
               ]
             },
             "required": false,
@@ -4338,7 +4345,8 @@
                           "audit",
                           "system",
                           "hotels",
-                          "support"
+                          "support",
+                          "plans"
                         ]
                       }
                     },
@@ -4373,7 +4381,8 @@
                               "audit",
                               "system",
                               "hotels",
-                              "support"
+                              "support",
+                              "plans"
                             ]
                           },
                           "label": {
@@ -10850,6 +10859,7 @@
                               "bookings",
                               "dining",
                               "loyalty",
+                              "plans",
                               null
                             ]
                           },
@@ -10997,7 +11007,8 @@
                                   "hotels",
                                   "bookings",
                                   "dining",
-                                  "loyalty"
+                                  "loyalty",
+                                  "plans"
                                 ]
                               },
                               "action": {
@@ -11144,7 +11155,8 @@
                           "hotels",
                           "bookings",
                           "dining",
-                          "loyalty"
+                          "loyalty",
+                          "plans"
                         ]
                       },
                       "action": {
@@ -11279,6 +11291,7 @@
                         "bookings",
                         "dining",
                         "loyalty",
+                        "plans",
                         null
                       ]
                     },
@@ -11544,6 +11557,7 @@
                         "bookings",
                         "dining",
                         "loyalty",
+                        "plans",
                         null
                       ]
                     },
@@ -11856,6 +11870,7 @@
                               "bookings",
                               "dining",
                               "loyalty",
+                              "plans",
                               null
                             ]
                           },
@@ -12138,6 +12153,7 @@
                         "bookings",
                         "dining",
                         "loyalty",
+                        "plans",
                         null
                       ]
                     },
@@ -12421,6 +12437,7 @@
                         "bookings",
                         "dining",
                         "loyalty",
+                        "plans",
                         null
                       ]
                     },
@@ -12715,6 +12732,7 @@
                         "bookings",
                         "dining",
                         "loyalty",
+                        "plans",
                         null
                       ]
                     },
@@ -13160,7 +13178,8 @@
                               "hotels",
                               "bookings",
                               "dining",
-                              "loyalty"
+                              "loyalty",
+                              "plans"
                             ]
                           },
                           "action": {
@@ -13419,7 +13438,13 @@
                           "loyalty:edit",
                           "loyalty:delete",
                           "loyalty:status",
-                          "loyalty:export"
+                          "loyalty:export",
+                          "plans:view",
+                          "plans:add",
+                          "plans:edit",
+                          "plans:delete",
+                          "plans:status",
+                          "plans:export"
                         ]
                       }
                     },
@@ -15674,7 +15699,8 @@
                                     "hotels",
                                     "bookings",
                                     "dining",
-                                    "loyalty"
+                                    "loyalty",
+                                    "plans"
                                   ]
                                 },
                                 "action": {
@@ -15933,7 +15959,13 @@
                                 "loyalty:edit",
                                 "loyalty:delete",
                                 "loyalty:status",
-                                "loyalty:export"
+                                "loyalty:export",
+                                "plans:view",
+                                "plans:add",
+                                "plans:edit",
+                                "plans:delete",
+                                "plans:status",
+                                "plans:export"
                               ]
                             }
                           },
@@ -16112,7 +16144,8 @@
                                   "hotels",
                                   "bookings",
                                   "dining",
-                                  "loyalty"
+                                  "loyalty",
+                                  "plans"
                                 ]
                               },
                               "action": {
@@ -16140,7 +16173,7 @@
                               "effect"
                             ]
                           },
-                          "maxItems": 162,
+                          "maxItems": 168,
                           "default": []
                         },
                         "limits": {
@@ -16323,7 +16356,8 @@
                                     "hotels",
                                     "bookings",
                                     "dining",
-                                    "loyalty"
+                                    "loyalty",
+                                    "plans"
                                   ]
                                 },
                                 "action": {
@@ -16582,7 +16616,13 @@
                                 "loyalty:edit",
                                 "loyalty:delete",
                                 "loyalty:status",
-                                "loyalty:export"
+                                "loyalty:export",
+                                "plans:view",
+                                "plans:add",
+                                "plans:edit",
+                                "plans:delete",
+                                "plans:status",
+                                "plans:export"
                               ]
                             }
                           },
@@ -16917,7 +16957,13 @@
                           "loyalty:edit",
                           "loyalty:delete",
                           "loyalty:status",
-                          "loyalty:export"
+                          "loyalty:export",
+                          "plans:view",
+                          "plans:add",
+                          "plans:edit",
+                          "plans:delete",
+                          "plans:status",
+                          "plans:export"
                         ]
                       }
                     },
@@ -16980,7 +17026,8 @@
                               "hotels",
                               "bookings",
                               "dining",
-                              "loyalty"
+                              "loyalty",
+                              "plans"
                             ]
                           },
                           "action": {
@@ -17056,7 +17103,8 @@
                           "hotels",
                           "bookings",
                           "dining",
-                          "loyalty"
+                          "loyalty",
+                          "plans"
                         ]
                       }
                     }
@@ -17639,7 +17687,8 @@
                             "hotels",
                             "bookings",
                             "dining",
-                            "loyalty"
+                            "loyalty",
+                            "plans"
                           ]
                         },
                         "actions": {
@@ -17663,7 +17712,7 @@
                         "actions"
                       ]
                     },
-                    "maxItems": 27,
+                    "maxItems": 28,
                     "default": []
                   }
                 },
@@ -17778,7 +17827,8 @@
                               "hotels",
                               "bookings",
                               "dining",
-                              "loyalty"
+                              "loyalty",
+                              "plans"
                             ]
                           },
                           "actions": {
@@ -18008,7 +18058,8 @@
                               "hotels",
                               "bookings",
                               "dining",
-                              "loyalty"
+                              "loyalty",
+                              "plans"
                             ]
                           },
                           "actions": {
@@ -18247,7 +18298,8 @@
                               "hotels",
                               "bookings",
                               "dining",
-                              "loyalty"
+                              "loyalty",
+                              "plans"
                             ]
                           },
                           "actions": {
@@ -18509,7 +18561,8 @@
                               "hotels",
                               "bookings",
                               "dining",
-                              "loyalty"
+                              "loyalty",
+                              "plans"
                             ]
                           },
                           "actions": {
@@ -18688,7 +18741,8 @@
                             "hotels",
                             "bookings",
                             "dining",
-                            "loyalty"
+                            "loyalty",
+                            "plans"
                           ]
                         },
                         "actions": {
@@ -18712,7 +18766,7 @@
                         "actions"
                       ]
                     },
-                    "maxItems": 27
+                    "maxItems": 28
                   },
                   "defaults": {
                     "type": "object",
@@ -18803,7 +18857,8 @@
                               "hotels",
                               "bookings",
                               "dining",
-                              "loyalty"
+                              "loyalty",
+                              "plans"
                             ]
                           },
                           "actions": {
@@ -48628,6 +48683,2220 @@
         "x-audit": {
           "module": "hotels",
           "action": "hotel.more_info_requested"
+        }
+      }
+    },
+    "/vendor-plans": {
+      "get": {
+        "operationId": "listVendorPlans",
+        "tags": [
+          "plans"
+        ],
+        "summary": "The plan catalogue (Super Admin: every plan; Zonal Admin: active plans) with live subscribers in scope",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "ACTIVE",
+                "RETIRED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "RESTAURANT",
+                "HOMEMAKER",
+                "HOTEL"
+              ]
+            },
+            "required": false,
+            "name": "vendorType",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "pricePaise": {
+                            "type": "integer"
+                          },
+                          "cycle": {
+                            "type": "string",
+                            "enum": [
+                              "MONTHLY",
+                              "QUARTERLY",
+                              "YEARLY"
+                            ]
+                          },
+                          "trialDays": {
+                            "type": "integer"
+                          },
+                          "vendorTypes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "RESTAURANT",
+                                "HOMEMAKER",
+                                "HOTEL"
+                              ]
+                            }
+                          },
+                          "zones": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "code": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name",
+                                "code"
+                              ]
+                            }
+                          },
+                          "features": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "feature": {
+                                  "type": "string",
+                                  "enum": [
+                                    "MEAL_PLANS",
+                                    "AD_CREDIT_MONTHLY",
+                                    "FREE_TOP_LISTING_DAYS",
+                                    "PRIORITY_SUPPORT",
+                                    "ANALYTICS"
+                                  ]
+                                },
+                                "value": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              },
+                              "required": [
+                                "feature",
+                                "value"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "ACTIVE",
+                              "RETIRED"
+                            ]
+                          },
+                          "sortOrder": {
+                            "type": "integer"
+                          },
+                          "subscriberCount": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "name",
+                          "description",
+                          "pricePaise",
+                          "cycle",
+                          "trialDays",
+                          "vendorTypes",
+                          "zones",
+                          "features",
+                          "status",
+                          "sortOrder",
+                          "subscriberCount",
+                          "version",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "plans:view",
+          "zone": "none"
+        }
+      },
+      "post": {
+        "operationId": "createVendorPlan",
+        "tags": [
+          "plans"
+        ],
+        "summary": "Add a plan (Super Admin), created as DRAFT; the code is unique and never changes",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]{1,23}$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  },
+                  "pricePaise": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "cycle": {
+                    "type": "string",
+                    "enum": [
+                      "MONTHLY",
+                      "QUARTERLY",
+                      "YEARLY"
+                    ]
+                  },
+                  "trialDays": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 90,
+                    "default": 0
+                  },
+                  "vendorTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "RESTAURANT",
+                        "HOMEMAKER",
+                        "HOTEL"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 3
+                  },
+                  "zoneIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "maxItems": 50,
+                    "default": []
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature": {
+                          "type": "string",
+                          "enum": [
+                            "MEAL_PLANS",
+                            "AD_CREDIT_MONTHLY",
+                            "FREE_TOP_LISTING_DAYS",
+                            "PRIORITY_SUPPORT",
+                            "ANALYTICS"
+                          ]
+                        },
+                        "value": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "feature",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 5,
+                    "default": []
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000,
+                    "default": 0
+                  }
+                },
+                "required": [
+                  "code",
+                  "name",
+                  "pricePaise",
+                  "cycle",
+                  "vendorTypes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pricePaise": {
+                      "type": "integer"
+                    },
+                    "cycle": {
+                      "type": "string",
+                      "enum": [
+                        "MONTHLY",
+                        "QUARTERLY",
+                        "YEARLY"
+                      ]
+                    },
+                    "trialDays": {
+                      "type": "integer"
+                    },
+                    "vendorTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "RESTAURANT",
+                          "HOMEMAKER",
+                          "HOTEL"
+                        ]
+                      }
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "features": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "feature": {
+                            "type": "string",
+                            "enum": [
+                              "MEAL_PLANS",
+                              "AD_CREDIT_MONTHLY",
+                              "FREE_TOP_LISTING_DAYS",
+                              "PRIORITY_SUPPORT",
+                              "ANALYTICS"
+                            ]
+                          },
+                          "value": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "feature",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "RETIRED"
+                      ]
+                    },
+                    "sortOrder": {
+                      "type": "integer"
+                    },
+                    "subscriberCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "description",
+                    "pricePaise",
+                    "cycle",
+                    "trialDays",
+                    "vendorTypes",
+                    "zones",
+                    "features",
+                    "status",
+                    "sortOrder",
+                    "subscriberCount",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "plans:add",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "plans",
+          "action": "vendor_plan.created"
+        }
+      }
+    },
+    "/vendor-plans/{id}": {
+      "get": {
+        "operationId": "getVendorPlan",
+        "tags": [
+          "plans"
+        ],
+        "summary": "One plan (a Zonal Admin sees active plans only)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pricePaise": {
+                      "type": "integer"
+                    },
+                    "cycle": {
+                      "type": "string",
+                      "enum": [
+                        "MONTHLY",
+                        "QUARTERLY",
+                        "YEARLY"
+                      ]
+                    },
+                    "trialDays": {
+                      "type": "integer"
+                    },
+                    "vendorTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "RESTAURANT",
+                          "HOMEMAKER",
+                          "HOTEL"
+                        ]
+                      }
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "features": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "feature": {
+                            "type": "string",
+                            "enum": [
+                              "MEAL_PLANS",
+                              "AD_CREDIT_MONTHLY",
+                              "FREE_TOP_LISTING_DAYS",
+                              "PRIORITY_SUPPORT",
+                              "ANALYTICS"
+                            ]
+                          },
+                          "value": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "feature",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "RETIRED"
+                      ]
+                    },
+                    "sortOrder": {
+                      "type": "integer"
+                    },
+                    "subscriberCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "description",
+                    "pricePaise",
+                    "cycle",
+                    "trialDays",
+                    "vendorTypes",
+                    "zones",
+                    "features",
+                    "status",
+                    "sortOrder",
+                    "subscriberCount",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "plans:view",
+          "zone": "none"
+        }
+      },
+      "patch": {
+        "operationId": "updateVendorPlan",
+        "tags": [
+          "plans"
+        ],
+        "summary": "Edit a plan at its version (Super Admin); new prices apply to new subscribers",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  },
+                  "pricePaise": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "cycle": {
+                    "type": "string",
+                    "enum": [
+                      "MONTHLY",
+                      "QUARTERLY",
+                      "YEARLY"
+                    ]
+                  },
+                  "trialDays": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 90,
+                    "default": 0
+                  },
+                  "vendorTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "RESTAURANT",
+                        "HOMEMAKER",
+                        "HOTEL"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 3
+                  },
+                  "zoneIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "maxItems": 50,
+                    "default": []
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature": {
+                          "type": "string",
+                          "enum": [
+                            "MEAL_PLANS",
+                            "AD_CREDIT_MONTHLY",
+                            "FREE_TOP_LISTING_DAYS",
+                            "PRIORITY_SUPPORT",
+                            "ANALYTICS"
+                          ]
+                        },
+                        "value": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "feature",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 5,
+                    "default": []
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000,
+                    "default": 0
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pricePaise": {
+                      "type": "integer"
+                    },
+                    "cycle": {
+                      "type": "string",
+                      "enum": [
+                        "MONTHLY",
+                        "QUARTERLY",
+                        "YEARLY"
+                      ]
+                    },
+                    "trialDays": {
+                      "type": "integer"
+                    },
+                    "vendorTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "RESTAURANT",
+                          "HOMEMAKER",
+                          "HOTEL"
+                        ]
+                      }
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "features": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "feature": {
+                            "type": "string",
+                            "enum": [
+                              "MEAL_PLANS",
+                              "AD_CREDIT_MONTHLY",
+                              "FREE_TOP_LISTING_DAYS",
+                              "PRIORITY_SUPPORT",
+                              "ANALYTICS"
+                            ]
+                          },
+                          "value": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "feature",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "RETIRED"
+                      ]
+                    },
+                    "sortOrder": {
+                      "type": "integer"
+                    },
+                    "subscriberCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "description",
+                    "pricePaise",
+                    "cycle",
+                    "trialDays",
+                    "vendorTypes",
+                    "zones",
+                    "features",
+                    "status",
+                    "sortOrder",
+                    "subscriberCount",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "plans:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "plans",
+          "action": "vendor_plan.updated"
+        }
+      }
+    },
+    "/vendor-plans/{id}/status": {
+      "post": {
+        "operationId": "setVendorPlanStatus",
+        "tags": [
+          "plans"
+        ],
+        "summary": "DRAFT → ACTIVE → RETIRED (Super Admin); a retired plan keeps its subscribers",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVE",
+                      "RETIRED"
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "status",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pricePaise": {
+                      "type": "integer"
+                    },
+                    "cycle": {
+                      "type": "string",
+                      "enum": [
+                        "MONTHLY",
+                        "QUARTERLY",
+                        "YEARLY"
+                      ]
+                    },
+                    "trialDays": {
+                      "type": "integer"
+                    },
+                    "vendorTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "RESTAURANT",
+                          "HOMEMAKER",
+                          "HOTEL"
+                        ]
+                      }
+                    },
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "code"
+                        ]
+                      }
+                    },
+                    "features": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "feature": {
+                            "type": "string",
+                            "enum": [
+                              "MEAL_PLANS",
+                              "AD_CREDIT_MONTHLY",
+                              "FREE_TOP_LISTING_DAYS",
+                              "PRIORITY_SUPPORT",
+                              "ANALYTICS"
+                            ]
+                          },
+                          "value": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "feature",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "RETIRED"
+                      ]
+                    },
+                    "sortOrder": {
+                      "type": "integer"
+                    },
+                    "subscriberCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "description",
+                    "pricePaise",
+                    "cycle",
+                    "trialDays",
+                    "vendorTypes",
+                    "zones",
+                    "features",
+                    "status",
+                    "sortOrder",
+                    "subscriberCount",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "plans:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "plans",
+          "action": "vendor_plan.activated"
+        }
+      }
+    },
+    "/vendor-plans/{id}/subscriptions": {
+      "get": {
+        "operationId": "listVendorPlanSubscriptions",
+        "tags": [
+          "plans"
+        ],
+        "summary": "The vendors on a plan, in the zones the caller views with plans:view",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "TRIAL",
+                "ACTIVE",
+                "CANCELLED",
+                "EXPIRED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "RESTAURANT",
+                "HOMEMAKER",
+                "HOTEL"
+              ]
+            },
+            "required": false,
+            "name": "vendorType",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "plan": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "code",
+                              "name"
+                            ]
+                          },
+                          "vendor": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "RESTAURANT",
+                                  "HOMEMAKER",
+                                  "HOTEL"
+                                ]
+                              },
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "TRIAL",
+                              "ACTIVE",
+                              "CANCELLED",
+                              "EXPIRED"
+                            ]
+                          },
+                          "pricePaise": {
+                            "type": "integer"
+                          },
+                          "startedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endsAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "plan",
+                          "vendor",
+                          "zone",
+                          "status",
+                          "pricePaise",
+                          "startedAt",
+                          "endsAt",
+                          "version"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "plans:view",
+          "zone": "none"
+        }
+      },
+      "post": {
+        "operationId": "subscribeVendorPlan",
+        "tags": [
+          "plans"
+        ],
+        "summary": "Put a vendor on an active plan (Super Admin): the plan must cover the vendor type and zone; a trial first when the plan has one; one live plan per vendor (409)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "vendorType": {
+                    "type": "string",
+                    "enum": [
+                      "RESTAURANT",
+                      "HOMEMAKER",
+                      "HOTEL"
+                    ]
+                  },
+                  "vendorId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "vendorType",
+                  "vendorId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Subscribed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "plan": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "code",
+                        "name"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "HOTEL"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "TRIAL",
+                        "ACTIVE",
+                        "CANCELLED",
+                        "EXPIRED"
+                      ]
+                    },
+                    "pricePaise": {
+                      "type": "integer"
+                    },
+                    "startedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "endsAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "plan",
+                    "vendor",
+                    "zone",
+                    "status",
+                    "pricePaise",
+                    "startedAt",
+                    "endsAt",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "plans:add",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "plans",
+          "action": "vendor_plan_subscription.created"
+        }
+      }
+    },
+    "/vendor-plan-subscriptions/{id}/cancel": {
+      "post": {
+        "operationId": "cancelVendorPlanSubscription",
+        "tags": [
+          "plans"
+        ],
+        "summary": "End a vendor’s plan now (Super Admin, at its version)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "plan": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "code",
+                        "name"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "HOTEL"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "TRIAL",
+                        "ACTIVE",
+                        "CANCELLED",
+                        "EXPIRED"
+                      ]
+                    },
+                    "pricePaise": {
+                      "type": "integer"
+                    },
+                    "startedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "endsAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "plan",
+                    "vendor",
+                    "zone",
+                    "status",
+                    "pricePaise",
+                    "startedAt",
+                    "endsAt",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "plans:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "plans",
+          "action": "vendor_plan_subscription.cancelled"
         }
       }
     },

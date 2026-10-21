@@ -246,6 +246,15 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /homemakers/{id}/onboarding/more-info',
         'POST /hotels/{id}/onboarding/review',
         'POST /hotels/{id}/onboarding/more-info',
+        // D188 vendor plans
+        'GET /vendor-plans',
+        'POST /vendor-plans',
+        'GET /vendor-plans/{id}',
+        'PATCH /vendor-plans/{id}',
+        'POST /vendor-plans/{id}/status',
+        'GET /vendor-plans/{id}/subscriptions',
+        'POST /vendor-plans/{id}/subscriptions',
+        'POST /vendor-plan-subscriptions/{id}/cancel',
         // D159 payments and D180/D187 refunds
         'GET /payments',
         'GET /payments/{id}',

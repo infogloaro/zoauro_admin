@@ -137,6 +137,7 @@ import { HOTEL_OPERATIONS } from './operations.hotels';
 import { PREORDER_OPERATIONS } from './operations.preorders';
 import { MENU_OPERATIONS } from './operations.menu';
 import { ONBOARDING_OPERATIONS } from './operations.onboarding';
+import { PLAN_OPERATIONS } from './operations.plans';
 import { PARTNER_OPERATIONS } from './operations.partners';
 import { NOTIFICATION_OPERATIONS } from './operations.notifications';
 import { DASHBOARD_OPERATIONS } from './operations.dashboard';
@@ -1463,6 +1464,8 @@ export const OPERATIONS: OperationDef[] = [
   ...PREORDER_OPERATIONS,
   // D170 onboarding queue (operations.onboarding.ts)
   ...ONBOARDING_OPERATIONS,
+  // D188 vendor plans (operations.plans.ts)
+  ...PLAN_OPERATIONS,
   ...NOTIFICATION_OPERATIONS,
   ...DASHBOARD_OPERATIONS,
   ...SEARCH_OPERATIONS,

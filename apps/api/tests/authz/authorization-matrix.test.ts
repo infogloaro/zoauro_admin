@@ -188,6 +188,13 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         requestHomemakerMoreInfo: { ownObject: true },
         startHotelReview: { ownObject: true },
         requestHotelMoreInfo: { ownObject: true },
+        // D188 vendor plans: no fixture plan, so the placeholder id is not found for whoever passes the guard
+        getVendorPlan: { ownObject: true },
+        updateVendorPlan: { ownObject: true },
+        setVendorPlanStatus: { ownObject: true },
+        listVendorPlanSubscriptions: { ownObject: true },
+        subscribeVendorPlan: { ownObject: true },
+        cancelVendorPlanSubscription: { ownObject: true },
         // M17 notifications: one per zone A, B, C (C is nobody's); a list row names its zones. Object routes use the
         // zone A one (placeholder id): an actor without notifications:view there gets 404 (scope: tests/notifications/)
         listNotifications: {
@@ -278,7 +285,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 1 order overview (D179)
     // + 1 refund options (the Request-refund dialog)
     // + 2 COD settlement and 1 payouts (D152, D173)
-    expect(report.coveredRoutes).toHaveLength(245);
+    // + 8 vendor plans (D188)
+    expect(report.coveredRoutes).toHaveLength(253);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

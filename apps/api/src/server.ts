@@ -20,6 +20,7 @@ import { createHotelsModule } from './modules/hotels';
 import { createPreordersModule } from './modules/orders/preorders.routes';
 import { createMenuModule } from './modules/menu';
 import { createOnboardingModule } from './modules/onboarding';
+import { createPlansModule } from './modules/plans';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
 import { createCustomersModule } from './modules/customers';
@@ -337,6 +338,8 @@ const app = createApp({
         appOrigin: new URL(env.APP_URL).origin,
         claims: accessControl.claims,
       }).router,
+      // D188 vendor plans (catalogue writes Super Admin only)
+      createPlansModule({ prisma, appOrigin: new URL(env.APP_URL).origin }).router,
       support.router,
     ],
   },

@@ -27,6 +27,7 @@ import { createHotelsModule } from '../../../src/modules/hotels';
 import { createPreordersModule } from '../../../src/modules/orders/preorders.routes';
 import { createMenuModule } from '../../../src/modules/menu';
 import { createOnboardingModule } from '../../../src/modules/onboarding';
+import { createPlansModule } from '../../../src/modules/plans';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
 import { createCustomersModule } from '../../../src/modules/customers';
@@ -510,6 +511,7 @@ export async function createAuthTestEnv() {
         claims: accessControl.claims,
         clock: clock.now,
       }).router,
+      createPlansModule({ prisma, appOrigin: APP_ORIGIN, clock: clock.now }).router,
       support.router,
     ];
     const extraRouters = [

@@ -41,6 +41,8 @@ export const PERMISSION_MODULES = [
   'dining',
   // D169: reward points (the zone's loyalty values)
   'loyalty',
+  // D188: ZOAURO → vendor plans (catalogue writes Super Admin only)
+  'plans',
 ] as const;
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
 
@@ -88,6 +90,8 @@ export const GRANTABLE_ACTIONS: Readonly<Record<PermissionModule, readonly Permi
   dining: ['view', 'add', 'status', 'export'],
   // D169 (owner, 2026-10-20): a Zonal Admin may see and set their zones' reward-point values when granted
   loyalty: ['view', 'edit'],
+  // D188 (owner): Zonal Admins see the plans and their zones' subscribers; the catalogue is the Super Admin's
+  plans: ['view'],
 };
 
 export const permissionKey = (module: PermissionModule, action: PermissionAction): PermissionKey =>

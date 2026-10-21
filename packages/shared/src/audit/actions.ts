@@ -21,6 +21,7 @@ export const AUDIT_MODULES = [
   'system',
   'hotels', // D118
   'support', // D93, D139
+  'plans', // D188
 ] as const;
 export type AuditModule = (typeof AUDIT_MODULES)[number];
 export type AuditSensitivity = 'NORMAL' | 'HIGH';
@@ -257,6 +258,13 @@ export const AUDIT_ACTIONS = {
   'job.payment_expired': a('system', 'Payment expired'),
   'job.payout_run': a('system', 'Payout run'),
   'job.preorder_released': a('system', 'Pre-order released for dispatch'),
+  // D188 vendor plans
+  'vendor_plan.created': a('plans', 'Created vendor plan', H),
+  'vendor_plan.updated': a('plans', 'Updated vendor plan', H),
+  'vendor_plan.activated': a('plans', 'Activated vendor plan', H),
+  'vendor_plan.retired': a('plans', 'Retired vendor plan', H),
+  'vendor_plan_subscription.created': a('plans', 'Put vendor on a plan'),
+  'vendor_plan_subscription.cancelled': a('plans', 'Cancelled vendor plan'),
 } as const satisfies Record<string, AuditActionDef>;
 
 export type AuditActionKey = keyof typeof AUDIT_ACTIONS;
@@ -276,6 +284,7 @@ export const ZONE_REQUIRED_ENTITY_TYPES: ReadonlySet<string> = new Set([
   'room_booking',
   'dining_reservation',
   'ticket', // D139: a ticket belongs to exactly one zone
+  'vendor_plan_subscription',
 ]);
 /** Zone-related but the zone depends on context (e.g. customer): `zoneId` must be passed explicitly, `null` allowed. */
 export const ZONE_EXPLICIT_ENTITY_TYPES: ReadonlySet<string> = new Set([
