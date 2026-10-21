@@ -25,6 +25,8 @@ export interface OrderFilters {
   to?: string;
   /** pre-orders only (D150) */
   scheduled?: boolean;
+  /** past their stage target (orders.sla; the order overview drill-down, D179) */
+  delayed?: boolean;
 }
 
 function listQuery(
@@ -46,6 +48,7 @@ function listQuery(
     ...(f.from ? { from: f.from } : {}),
     ...(f.to ? { to: f.to } : {}),
     ...(f.scheduled ? { scheduled: true } : {}),
+    ...(f.delayed ? { delayed: true } : {}),
   };
 }
 

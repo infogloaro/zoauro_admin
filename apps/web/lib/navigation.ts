@@ -291,6 +291,18 @@ export const NAV_MODULES: readonly NavModule[] = [
     zonal: { href: '/zone/orders', permission: 'orders' },
   },
   {
+    id: 'M11-OV',
+    slug: 'order-overview',
+    label: 'Order overview',
+    group: 'orders',
+    icon: 'chart',
+    description:
+      'Live orders by stage against the stage targets, delays, ready orders nobody took, pre-orders due soon, cancellations, average times and payment mix (D179).',
+    status: 'live',
+    superAdminHref: '/super-admin/orders/overview',
+    zonal: { href: '/zone/orders/overview', permission: 'orders' },
+  },
+  {
     id: 'M09',
     slug: 'customers',
     label: 'Customers',

@@ -88,6 +88,7 @@ export function OrdersPage({
   const fromDay = url.params.get('from');
   const toDay = url.params.get('to');
   const scheduled = url.params.get('preorders') === '1';
+  const delayed = url.params.get('delayed') === '1';
   const [search, setSearch] = useState(q);
 
   const filters: OrderFilters = {
@@ -100,6 +101,7 @@ export function OrdersPage({
     ...(vendorType ? { vendorType } : {}),
     ...dayRange(fromDay, toDay),
     ...(scheduled ? { scheduled } : {}),
+    ...(delayed ? { delayed } : {}),
   };
   const list = useOrderList(filters, !waiting);
   const counts = useOrderTabCounts(filters, !waiting);
@@ -116,7 +118,7 @@ export function OrdersPage({
   const showZone = !zone && (role === 'SUPER_ADMIN' || zones.length > 1);
   const zoneCodeOf = (id: string) => zones.find((z) => z.id === id)?.code ?? '—';
   const filtered = Boolean(
-    q || paymentMethod || vendorType || fromDay || toDay || scheduled || tab !== 'all',
+    q || paymentMethod || vendorType || fromDay || toDay || scheduled || delayed || tab !== 'all',
   );
 
   const columns: Column<Row>[] = [
@@ -336,6 +338,14 @@ export function OrdersPage({
           />
           Pre-orders only
         </label>
+        <label className="flex h-10 items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={delayed}
+            onChange={(e) => url.patch({ delayed: e.target.checked ? '1' : null, page: null })}
+          />
+          Delayed only
+        </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium">
           Sort
           <select
@@ -368,6 +378,7 @@ export function OrdersPage({
                 from: null,
                 to: null,
                 preorders: null,
+                delayed: null,
                 page: null,
               });
             }}
