@@ -35,7 +35,7 @@ import { createS3Storage } from './lib/s3-storage';
 import { RedisRateLimiter } from './lib/rate-limiter';
 import { createSecretBox } from './modules/auth/mfa/secret-box';
 import { createIntakeModule } from './modules/intake';
-import { createZonesModule, stubImpactSources } from './modules/zones';
+import { createZoneCountPorts, createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
 import { demoCopyFrom, withDemoOtpRedirect } from './lib/demo-otp-redirect';
 import { createS3ExportFileStore } from './lib/exports';
@@ -139,8 +139,12 @@ const zones = createZonesModule({
   redis,
   appOrigin: new URL(env.APP_URL).origin,
   requireReauth: auth.requireReauth,
-  // M03 supplies the real zone team; the other sources stay stubs until their modules exist (partial: true)
-  impactSources: { ...stubImpactSources(), team: createZoneTeamPort(prisma) },
+  // the real zone team (M03) and counts; only the pincode-mismatch report stays a stub (vendors have no pincode yet)
+  impactSources: {
+    ...stubImpactSources(),
+    counts: createZoneCountPorts(prisma),
+    team: createZoneTeamPort(prisma),
+  },
 });
 
 const accessControl = createAccessModule({

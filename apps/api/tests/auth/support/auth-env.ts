@@ -49,6 +49,7 @@ import { createFakeStorage } from '../../uploads/fake-storage';
 import {
   createZonesModule,
   stubImpactSources,
+  createZoneCountPorts,
   type ImpactSources,
 } from '../../../src/modules/zones';
 import type { ZonesCacheVersion } from '../../../src/modules/zones/zones.events';
@@ -316,9 +317,10 @@ export async function createAuthTestEnv() {
       appOrigin: APP_ORIGIN,
       requireReauth: auth.requireReauth,
       clock: clock.now,
-      // as server.ts: the real zone team (M03), every other source a stub, unless a test brings its own
+      // as server.ts: the real zone team and counts, unless a test brings its own
       impactSources: extra.zones?.impactSources ?? {
         ...stubImpactSources(),
+        counts: createZoneCountPorts(prisma),
         team: createZoneTeamPort(prisma),
       },
       ...(extra.zones?.cache ? { cache: extra.zones.cache } : {}),

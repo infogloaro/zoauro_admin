@@ -20,6 +20,7 @@ export {
   type ZoneTeamPort,
   type ZoneMismatchPort,
 } from './impact.service';
+export { createZoneCountPorts } from './impact.repository';
 export { ZONES_VERSION_KEY, ZONE_UPDATED, ADMIN_ZONES_CHANGED } from './zones.events';
 export { ZoneResolver, type ZoneResolution, type ResolveInput } from './resolve.service';
 export { RESOLVE_SCOPE, type ResolveCaller } from './resolve.caller';
