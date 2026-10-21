@@ -86,9 +86,10 @@ function tiles(range: string) {
   } as Record<string, unknown>;
 }
 
-function mount() {
+function mount(override: Record<string, unknown> = {}, hold?: Promise<void>) {
   const get = vi.fn(async (path: string, init?: { query?: { range?: string } }) => {
-    const all = tiles(init?.query?.range ?? '7d');
+    if (hold) await hold;
+    const all = { ...tiles(init?.query?.range ?? '7d'), ...override };
     if (path in all) return all[path];
     throw new Error(`unexpected ${path}`);
   });
@@ -140,6 +141,35 @@ describe('OperationsTiles', () => {
       query: { range: '7d' },
       signal: expect.any(AbortSignal),
     });
+  });
+
+  it('labels no tile while loading; a menu desk never sees partner or customer tiles (QA, demo)', async () => {
+    let release = () => {};
+    const hold = new Promise<void>((r) => {
+      release = r;
+    });
+    const summary = tiles('7d')['/dashboard/summary'] as object;
+    mount(
+      {
+        '/dashboard/summary': { ...summary, deliveryPartners: null, customers: null },
+        '/dashboard/new-registrations': {
+          range: '7d',
+          customers: null,
+          vendors: null,
+          deliveryPartners: null,
+        },
+      },
+      hold,
+    );
+    expect(screen.getByLabelText('Headline figures: loading')).toBeTruthy();
+    expect(screen.queryByText('Delivery partners')).toBeNull();
+    expect(screen.queryByText('Customers')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Orders over time' })).toBeNull();
+    release();
+    expect(await screen.findByText('120')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Orders over time' })).toBeTruthy();
+    expect(screen.queryByText('Delivery partners')).toBeNull();
+    expect(screen.queryByText('Customers')).toBeNull();
   });
 
   it('the period is a URL filter', async () => {

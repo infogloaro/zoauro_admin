@@ -17,7 +17,9 @@ import { OrdersChart } from './OrdersChart';
 // Operations on both dashboards (M16, 6a08d1d; demo priority 1): a range filter (?range=, default the last 7 days),
 // headline counts, orders over time, orders by status, by zone (or by area for a single zone), the top restaurants and
 // categories by delivered orders, and new sign-ups. Each tile counts only what the member may view; a tile they cannot
-// see anywhere is hidden, never shown as zero. Money tiles wait for the ledger (SA-6.7).
+// see anywhere is hidden, never shown as zero, and no tile is labelled while loading (only the API's answer says which
+// tiles the member may see: a "Delivery partners" placeholder must not flash for a menu desk). Money tiles wait for
+// the ledger (SA-6.7).
 
 /** 0.05 → "5%", 0.025 → "2.5%" (one decimal at most). */
 export const pct = (n: number) => `${parseFloat((n * 100).toFixed(1))}%`;
@@ -74,14 +76,20 @@ function Tile({
   empty: string;
   children: ReactNode;
 }) {
+  if (state === 'loading')
+    return (
+      <Card className={className}>
+        <CardBody>
+          <CardSkeleton rows={4} />
+        </CardBody>
+      </Card>
+    );
   return (
     <Card aria-labelledby={id} className={className}>
       <CardHeader id={id} title={title} subtitle={subtitle} />
       <CardBody>
         {state === 'error' ? (
           <CardError what={title} onRetry={onRetry} />
-        ) : state === 'loading' ? (
-          <CardSkeleton rows={4} />
         ) : state === 'empty' ? (
           <p className="text-sm text-muted">{empty}</p>
         ) : (
@@ -151,72 +159,70 @@ export function OperationsTiles({ userRole }: { userRole: 'SUPER_ADMIN' | 'ZONAL
 
       {t.summary.isError ? (
         <CardError what="The headline figures" onRetry={() => void t.summary.refetch()} />
+      ) : !s ? (
+        <div
+          aria-busy="true"
+          aria-label="Headline figures: loading"
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="flex items-center gap-4 rounded-card border border-line bg-surface p-4 shadow-card"
+            >
+              <span className="size-11 shrink-0 animate-pulse rounded-xl bg-neutral-100" />
+              <span className="flex flex-1 flex-col gap-2">
+                <span className="h-3 w-24 animate-pulse rounded bg-neutral-100" />
+                <span className="h-6 w-16 animate-pulse rounded bg-neutral-200" />
+              </span>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {s?.orders !== null ? (
+          {s.orders ? (
             <StatCard
               label={`Orders, ${period}`}
-              value={s?.orders?.total ?? null}
-              loading={!s}
-              hint={
-                s?.orders
-                  ? `${s.orders.delivered.toLocaleString('en-IN')} delivered · ${pct(s.orders.cancellationRate)} cancelled`
-                  : undefined
-              }
+              value={s.orders.total}
+              hint={`${s.orders.delivered.toLocaleString('en-IN')} delivered · ${pct(s.orders.cancellationRate)} cancelled`}
               icon={ShoppingBag}
               href={`${base}/orders`}
             />
           ) : null}
-          {s?.restaurants !== null ? (
+          {s.restaurants ? (
             <StatCard
               label="Restaurants"
-              value={s?.restaurants?.total ?? null}
-              loading={!s}
-              hint={
-                s?.restaurants
-                  ? `${s.restaurants.active} active · ${s.restaurants.pendingVerification} to verify`
-                  : undefined
-              }
+              value={s.restaurants.total}
+              hint={`${s.restaurants.active} active · ${s.restaurants.pendingVerification} to verify`}
               icon={Store}
               tone="info"
               href={`${base}/restaurants`}
             />
           ) : null}
-          {s?.homemakers !== null ? (
+          {s.homemakers ? (
             <StatCard
               label="Home Food"
-              value={s?.homemakers?.total ?? null}
-              loading={!s}
-              hint={
-                s?.homemakers
-                  ? `${s.homemakers.active} active · ${s.homemakers.pendingVerification} to verify`
-                  : undefined
-              }
+              value={s.homemakers.total}
+              hint={`${s.homemakers.active} active · ${s.homemakers.pendingVerification} to verify`}
               icon={ChefHat}
               tone="success"
               href={`${base}/homemakers`}
             />
           ) : null}
-          {s?.deliveryPartners !== null ? (
+          {s.deliveryPartners ? (
             <StatCard
               label="Delivery partners"
-              value={s?.deliveryPartners?.total ?? null}
-              loading={!s}
-              hint={
-                s?.deliveryPartners
-                  ? `${s.deliveryPartners.onDuty} on duty · ${s.deliveryPartners.pendingVerification} to verify`
-                  : undefined
-              }
+              value={s.deliveryPartners.total}
+              hint={`${s.deliveryPartners.onDuty} on duty · ${s.deliveryPartners.pendingVerification} to verify`}
               icon={Bike}
               tone="warning"
               href={`${base}/delivery-partners`}
             />
           ) : null}
-          {s?.customers !== null ? (
+          {s.customers !== null ? (
             <StatCard
               label="Customers"
-              value={s?.customers ?? null}
-              loading={!s}
+              value={s.customers}
               hint="All time, in scope"
               icon={Users}
               tone="neutral"
