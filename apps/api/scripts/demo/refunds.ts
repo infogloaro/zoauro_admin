@@ -203,3 +203,43 @@ export async function seedRefunds(
   const states = await db.refund.groupBy({ by: ['status'], _count: { _all: true } });
   log(`refunds: ${states.map((s) => `${s.status} ${s._count._all}`).join(', ')}`);
 }
+
+/**
+ * Run on every seed: keeps one refund waiting for the Super Admin (the "approve a refund" demo action), by the Zonal
+ * Admin, in full, on a delivered online order above the member's own limit (₹500 in Coimbatore Central).
+ */
+export async function ensurePendingRefund(
+  db: PrismaClient,
+  zonal: DemoClient,
+  zoneId: string,
+  log: Log,
+): Promise<void> {
+  if ((await db.refund.count({ where: { status: 'PENDING_APPROVAL' } })) > 0) return;
+  const order = await db.order.findFirst({
+    where: {
+      zoneId,
+      status: 'DELIVERED',
+      paymentMethod: 'ONLINE',
+      paymentStatus: 'PAID',
+      total: { gte: 60_000 },
+      refunds: { none: {} },
+    },
+    orderBy: { placedAt: 'desc' },
+    select: { id: true, orderNo: true, total: true },
+  });
+  if (!order) return;
+  const r = await tryStep(log, `refund on ${order.orderNo}`, () =>
+    zonal.call<{ status: string }>(
+      'POST',
+      `/orders/${order.id}/refunds`,
+      {
+        amountPaise: order.total,
+        reasonCode: 'QUALITY_ISSUE',
+        target: 'SOURCE',
+        note: 'Whole order spoilt; customer sent photos.',
+      },
+      { 'Idempotency-Key': randomUUID() },
+    ),
+  );
+  if (r) log(`refund on ${order.orderNo} (₹${order.total / 100}): ${r.status}`);
+}

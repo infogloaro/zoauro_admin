@@ -13,7 +13,7 @@ import { seedCustomers } from './customers';
 import { freshenPreorders, seedOrders } from './orders';
 import { seedSettings } from './settings';
 import { seedHotels, seedNotifications, seedSupport } from './extras';
-import { seedRefunds } from './refunds';
+import { ensurePendingRefund, seedRefunds } from './refunds';
 import { seedOnboarding } from './onboarding';
 import { seedMoney, seedPlans } from './finance';
 import { createSecretBox } from '../../src/modules/auth/mfa/secret-box';
@@ -198,6 +198,7 @@ async function main(): Promise<void> {
       appClients['CUSTOMER_APP'] ?? '',
       log,
     );
+    await ensurePendingRefund(db, people.clients.karthik, people.zoneId['CBE'] ?? '', log);
     console.log('13 vendor plans: BASIC, GROWTH (trial), PRO, subscriptions');
     await seedPlans(db, sa, vendors, log);
     console.log('14 money: COD collections and hand-overs, payouts to vendors and partners');
