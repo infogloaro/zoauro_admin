@@ -40,25 +40,35 @@ const ZA = '0192f1d2-0000-7000-8000-00000000000a';
 const SUPER = 'SUPER_ADMIN' as const;
 
 describe('order rules', () => {
-  it('each status offers only the doc 10 moves; assign and cancel have their own dialogs', () => {
-    expect(orderActions('PLACED')).toEqual({
+  it('the buttons are only what the API allows on this order (d626f19); a read-only zone gets none', () => {
+    const none = { transitions: [], cancel: false, assign: false, reschedule: false };
+    expect(orderActions('PLACED', { ...none, transitions: ['ACCEPTED'], cancel: true })).toEqual({
       moves: [{ to: 'ACCEPTED', label: 'Accept' }],
       canAssign: false,
       canUnassign: false,
       canCancel: true,
+      canReschedule: false,
     });
-    expect(orderActions('READY').canAssign).toBe(true);
-    expect(orderActions('ASSIGNED')).toMatchObject({
+    // ASSIGNED back to READY is the Unassign button, not a plain move
+    expect(
+      orderActions('ASSIGNED', {
+        ...none,
+        transitions: ['OUT_FOR_DELIVERY', 'READY'],
+        assign: true,
+      }),
+    ).toEqual({
+      moves: [{ to: 'OUT_FOR_DELIVERY', label: 'Out for delivery' }],
       canAssign: true,
       canUnassign: true,
       canCancel: false,
+      canReschedule: false,
     });
-    expect(orderActions('ASSIGNED').moves.map((m) => m.to)).toEqual(['OUT_FOR_DELIVERY']);
-    expect(orderActions('DELIVERED')).toEqual({
+    expect(orderActions('PLACED', none)).toEqual({
       moves: [],
       canAssign: false,
       canUnassign: false,
       canCancel: false,
+      canReschedule: false,
     });
   });
 
@@ -188,6 +198,8 @@ describe('Order detail', () => {
     deliveryPartnerId: null,
     placedAt: new Date().toISOString(),
     version: 4,
+    actions: { transitions: ['ACCEPTED'], cancel: true, assign: false, reschedule: false },
+    addressLine: '12, 2nd Avenue, Anna Nagar, Chennai 600040',
     subtotal: 40000,
     tax: 2000,
     deliveryCharge: 3000,
@@ -284,6 +296,7 @@ describe('Order detail', () => {
       ]);
     });
     await mountDetail(post, {
+      actions: { transitions: ['ACCEPTED'], cancel: true, assign: false, reschedule: true },
       preorder: {
         scheduledFor: '2026-10-22T14:00:00.000Z',
         dispatchAt: '2026-10-22T13:15:00.000Z',
@@ -314,6 +327,16 @@ describe('Order detail', () => {
       }),
     );
     expect(await within(dialog).findByText(/too soon/)).toBeTruthy();
+  });
+
+  it('read-only in the order’s zone: no buttons at all; the delivery address shows', async () => {
+    await mountDetail(vi.fn(), {
+      actions: { transitions: [], cancel: false, assign: false, reschedule: false },
+    });
+    expect(await screen.findByText('No action for you on this order.')).toBeTruthy();
+    for (const name of ['Accept', 'Cancel order', /Assign partner/])
+      expect(screen.queryByRole('button', { name })).toBeNull();
+    expect(screen.getByText('12, 2nd Avenue, Anna Nagar, Chennai 600040')).toBeTruthy();
   });
 });
 

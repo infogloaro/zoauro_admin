@@ -1,14 +1,8 @@
-import {
-  ORDER_TRANSITIONS,
-  type OrderStatus,
-  type PaymentMethod,
-  type PaymentStatus,
-  type PreorderIssue,
-} from '@zoauro/shared';
+import type { OrderStatus, PaymentMethod, PaymentStatus, PreorderIssue } from '@zoauro/shared';
 import type { BadgeTone } from '../../components/ui/badge';
 
 // Orders (M11; doc 20 "Orders list" and "Order details", doc 10 state machine, ported onto the core per D117). Labels,
-// list tabs and the action buttons each status allows. Pure, so the tests check them without a browser.
+// list tabs and the action buttons the API allows on an order. Pure, so the tests check them without a browser.
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   PLACED: 'New',
@@ -85,21 +79,37 @@ const MOVE_LABEL: Partial<Record<OrderStatus, string>> = {
   DELIVERED: 'Mark delivered',
 };
 
-/** Buttons for an order in `status` (doc 10): plain moves, plus whether assign / unassign / cancel apply. */
-export function orderActions(status: OrderStatus): {
+/** GET /orders/{id} `actions` (d626f19): decided by the API from doc 10 and the viewer's rights in the order's zone. */
+export interface OrderServerActions {
+  /** POST /orders/{id}/transition targets (never CANCELLED, ASSIGNED or REFUNDED) */
+  transitions: readonly OrderStatus[];
+  cancel: boolean;
+  assign: boolean;
+  reschedule: boolean;
+}
+
+/**
+ * The order page's buttons, only from what the API allows this viewer on this order (a member read-only in its zone
+ * gets none): plain moves, unassign (ASSIGNED back to READY), cancel, assign / reassign and reschedule.
+ */
+export function orderActions(
+  status: OrderStatus,
+  a: OrderServerActions,
+): {
   moves: { to: OrderStatus; label: string }[];
   canAssign: boolean;
   canUnassign: boolean;
   canCancel: boolean;
+  canReschedule: boolean;
 } {
-  const next = ORDER_TRANSITIONS[status];
   return {
-    moves: next
+    moves: a.transitions
       .filter((to) => MOVE_LABEL[to] !== undefined && !(status === 'ASSIGNED' && to === 'READY'))
       .map((to) => ({ to, label: MOVE_LABEL[to] ?? to })),
-    canAssign: next.includes('ASSIGNED') || status === 'ASSIGNED',
-    canUnassign: status === 'ASSIGNED' && next.includes('READY'),
-    canCancel: next.includes('CANCELLED'),
+    canAssign: a.assign,
+    canUnassign: status === 'ASSIGNED' && a.transitions.includes('READY'),
+    canCancel: a.cancel,
+    canReschedule: a.reschedule,
   };
 }
 

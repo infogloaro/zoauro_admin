@@ -51,7 +51,7 @@ export function OrderDetailPage({
 }: {
   id: string;
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
-  /** orders:status (moves, cancel) somewhere; the API decides per zone */
+  /** refunds:add (the Request-refund button); moves, cancel, assign and reschedule follow the order's `actions` */
   can: { status: boolean; assign: boolean; refund?: boolean };
 }) {
   const client = useApiClient();
@@ -84,7 +84,8 @@ export function OrderDetailPage({
     );
   if (!detail.data) return <CardSkeleton rows={8} />;
   const o = detail.data;
-  const acts = orderActions(o.status);
+  // the buttons follow the API's actions for this order's zone (d626f19), never "allowed somewhere"
+  const acts = orderActions(o.status, o.actions);
 
   const move = async (to: OrderStatus) => {
     setAlert(null);
@@ -137,7 +138,7 @@ export function OrderDetailPage({
                 : 'Waiting: the kitchen and the partner get it at the dispatch time'
             }
             actions={
-              can.assign && !o.preorder.releasedAt && o.status === 'PLACED' ? (
+              acts.canReschedule ? (
                 <Button size="sm" variant="secondary" onClick={() => setRescheduling(true)}>
                   <CalendarClock aria-hidden className="size-4" /> Reschedule
                 </Button>
@@ -183,7 +184,7 @@ export function OrderDetailPage({
         />
         <CardBody className="flex flex-col gap-3">
           {alert ? <FormAlert>{alert}</FormAlert> : null}
-          {can.status && (acts.moves.length > 0 || acts.canCancel || acts.canUnassign) ? (
+          {acts.moves.length > 0 || acts.canCancel || acts.canUnassign ? (
             <div className="flex flex-wrap gap-2">
               {acts.moves.map((m) => (
                 <Button key={m.to} disabled={busy} onClick={() => void move(m.to)}>
@@ -208,7 +209,7 @@ export function OrderDetailPage({
                 : 'No action for you on this order.'}
             </p>
           )}
-          {can.assign && acts.canAssign ? (
+          {acts.canAssign ? (
             <div>
               <Button
                 variant={o.status === 'READY' ? 'primary' : 'secondary'}
@@ -290,6 +291,10 @@ export function OrderDetailPage({
                     <span className="tabular-nums">{o.customer.phoneMasked}</span>
                     {o.customer.emailMasked ? ` · ${o.customer.emailMasked}` : ''}
                   </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted">Deliver to</dt>
+                  <dd>{o.addressLine ?? 'No address recorded'}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-muted">Vendor</dt>
