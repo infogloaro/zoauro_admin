@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Vendor Plans, Customers, Support Tickets, Global Search, Payments, Refunds, Vendor Onboarding, Order overview and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Vendor Plans, Customers, Support Tickets, Global Search, Payments, Refunds, COD Cash Settlement, Payouts, Vendor Onboarding, Order overview and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -69,6 +69,8 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M11-OV',
       'M12',
       'M13',
+      'M14',
+      'M15',
       'M16',
       'M17',
       'M18',
@@ -202,12 +204,27 @@ describe('menu by role', () => {
     for (const id of ['M13', 'M14', 'M20-SUP', 'M17']) expect(none).not.toContain(id);
   });
 
+  it('COD settlement and payouts (6a5f9b9) are live pages, each behind its own view grant', () => {
+    const items = menuFor('ZONAL_ADMIN', [zone('A', ['settlements:view', 'payouts:view'])]);
+    expect(items.find((m) => m.id === 'M14')).toMatchObject({
+      status: 'live',
+      href: '/zone/cod-settlement',
+    });
+    expect(items.find((m) => m.id === 'M15')).toMatchObject({
+      status: 'live',
+      href: '/zone/payouts',
+    });
+    expect(
+      menuFor('ZONAL_ADMIN', [zone('A', ['settlements:view'])]).map((m) => m.id),
+    ).not.toContain('M15');
+  });
+
   it('a Coming Soon page exists only for a module this person could see', () => {
     const zones = [zone('A', ['orders:view'])];
     expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)).toBeNull(); // live
     expect(
-      comingSoonModule('cod-settlement', 'ZONAL_ADMIN', [zone('A', ['settlements:view'])])?.id,
-    ).toBe('M14');
+      comingSoonModule('cod-settlement', 'ZONAL_ADMIN', [zone('A', ['settlements:view'])]),
+    ).toBeNull(); // live since 6a5f9b9
     expect(
       comingSoonModule('restaurant-requests', 'ZONAL_ADMIN', [zone('A', ['restaurants:view'])]),
     ).toBeNull(); // live as Vendor Onboarding (D170)

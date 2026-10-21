@@ -345,14 +345,11 @@ export const NAV_MODULES: readonly NavModule[] = [
     label: 'COD Cash Settlement',
     group: 'delivery',
     icon: 'banknote',
-    description: 'Delivery partners’ cash in hand against cash handed in, with variances.',
-    status: 'coming-soon',
-    zonal: { permission: 'settlements' },
-    blueprint: {
-      phase: 'Phase 1',
-      screens: ['Cash in hand by partner', 'Settlement entry and variance report'],
-      rules: ['COD cash is kept separate from Razorpay and wallet transactions'],
-    },
+    description:
+      'Delivery partners’ cash in hand against cash handed in, with variances (read only until the settlement form, D173).',
+    status: 'live',
+    superAdminHref: '/super-admin/cod-settlement',
+    zonal: { href: '/zone/cod-settlement', permission: 'settlements' },
   },
 
   // ---- Payments & Finance ------------------------------------------------------------------------------------------
@@ -387,12 +384,10 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'finance',
     icon: 'wallet',
     description:
-      'Weekly vendor and delivery partner payouts, mark as paid, daily reconciliation and mismatch report.',
-    status: 'coming-soon',
-    blueprint: {
-      phase: 'Phase 1',
-      screens: ['Payout runs', 'Daily reconciliation and mismatch report'],
-    },
+      'Vendor and delivery partner payouts per cycle with commission and vendor-fault refunds (read only until the payout job, D152).',
+    status: 'live',
+    superAdminHref: '/super-admin/payouts',
+    zonal: { href: '/zone/payouts', permission: 'payouts' },
   },
 
   // ---- Support & Engagement ----------------------------------------------------------------------------------------

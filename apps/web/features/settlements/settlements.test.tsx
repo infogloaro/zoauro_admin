@@ -1,0 +1,196 @@
+// @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ApiClient } from '@zoauro/api-client';
+import { ApiClientProvider } from '../../lib/api-client';
+import { CodSettlementPage } from './CodSettlementPage';
+import { codViewFromParam, payoutTone, periodText, statusText, varianceText } from './labels';
+import { PayoutsPage } from './PayoutsPage';
+
+// COD settlement (D173) and payouts (D152), read only on 6a5f9b9: the words for statuses and variances, the views and
+// filters in the URL as the API wants them, and a Zonal Admin's own zones.
+
+vi.mock('next/navigation', async () => {
+  const React = await import('react');
+  return {
+    usePathname: () => window.location.pathname,
+    useSearchParams: () => React.useMemo(() => new URLSearchParams(window.location.search), []),
+    useRouter: () => ({
+      push: vi.fn(),
+      replace: (to: string) => window.history.replaceState(null, '', to),
+    }),
+  };
+});
+
+afterEach(cleanup);
+beforeEach(() => window.history.replaceState(null, '', '/zone/cod-settlement'));
+
+const PARTNER = '0192f1d2-5555-7000-8000-000000000001';
+const zone = { id: '0192f1d2-0000-7000-8000-00000000000a', name: 'Anna Nagar', code: 'ANN' };
+/** Page props as a spread, so the tests write no JSX role attribute. */
+const asZonalAdmin = {
+  role: 'ZONAL_ADMIN' as const,
+  myZones: [{ id: zone.id, name: zone.name, code: zone.code, colorHex: '#123456' }],
+};
+const meta = { page: 1, pageSize: 25, total: 1 };
+
+function mount(ui: ReactNode, get: ReturnType<typeof vi.fn>) {
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <ApiClientProvider client={{ get } as unknown as ApiClient}>{ui}</ApiClientProvider>
+    </QueryClientProvider>,
+  );
+}
+
+describe('settlement and payout words', () => {
+  it('statuses as written, variance short or over, periods, views', () => {
+    expect(statusText('ON_HOLD')).toBe('On hold');
+    expect(statusText('PAID')).toBe('Paid');
+    expect(payoutTone('PAID')).toBe('success');
+    expect(payoutTone('ON_HOLD')).toBe('warning');
+    expect(payoutTone('PENDING')).toBe('neutral');
+    const rs = (p: number) => `₹${p / 100}`;
+    expect(varianceText(-5000, rs)).toBe('₹50 short');
+    expect(varianceText(2000, rs)).toBe('₹20 over');
+    expect(varianceText(0, rs)).toBe('Exact');
+    expect(periodText('2026-10-01', '2026-10-07')).toBe('1 Oct to 7 Oct 2026');
+    expect(codViewFromParam('history')).toBe('history');
+    expect(codViewFromParam('other')).toBe('cash');
+  });
+});
+
+describe('COD cash settlement', () => {
+  it('cash in hand per partner; "only holding cash" is a URL filter', async () => {
+    const user = userEvent.setup();
+    const get = vi.fn(async () => ({
+      data: [
+        {
+          partner: { id: PARTNER, name: 'Ravi Kumar', status: 'ACTIVE', isOnline: true },
+          zone,
+          cashInHandPaise: 125_000,
+          lastSettlement: {
+            settledAt: '2026-10-20T10:00:00.000Z',
+            handedInPaise: 90_000,
+            variancePaise: -5_000,
+          },
+        },
+      ],
+      meta: { ...meta, counts: { partners: 4, withCash: 1, cashInHandPaise: 125_000 } },
+    }));
+    mount(<CodSettlementPage {...asZonalAdmin} />, get);
+    expect(await screen.findByText('Ravi Kumar')).toBeTruthy();
+    expect(screen.getAllByText('₹1,250.00').length).toBeGreaterThan(0);
+    expect(screen.getByText('₹50.00 short')).toBeTruthy();
+    await user.click(screen.getByRole('checkbox', { name: 'Only partners holding cash' }));
+    await waitFor(() =>
+      expect(get).toHaveBeenLastCalledWith('/cash-settlements/balances', {
+        query: { page: 1, pageSize: 25, sort: '-cashInHand', withCash: 'true' },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('one partner’s settlements from the partner page link, only those with a difference', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      `/zone/cod-settlement?view=history&partner=${PARTNER}&variance=1`,
+    );
+    const get = vi.fn(async () => ({
+      data: [
+        {
+          id: '0192f1d2-6666-7000-8000-000000000001',
+          zone,
+          partner: { id: PARTNER, name: 'Ravi Kumar' },
+          expectedPaise: 95_000,
+          handedInPaise: 90_000,
+          variancePaise: -5_000,
+          settledBy: { id: '0192f1d2-1111-7000-8000-000000000001', name: 'Karthik' },
+          settledAt: '2026-10-20T10:00:00.000Z',
+          note: 'Short by a change error',
+        },
+      ],
+      meta: {
+        ...meta,
+        counts: {
+          total: 1,
+          withVariance: 1,
+          expectedPaise: 95_000,
+          handedInPaise: 90_000,
+          variancePaise: -5_000,
+        },
+      },
+    }));
+    mount(<CodSettlementPage {...asZonalAdmin} />, get);
+    expect(await screen.findByText('“Short by a change error”')).toBeTruthy();
+    expect(get).toHaveBeenCalledWith('/cash-settlements', {
+      query: {
+        page: 1,
+        pageSize: 25,
+        sort: '-settledAt',
+        deliveryPartnerId: PARTNER,
+        varianceOnly: 'true',
+      },
+      signal: expect.any(AbortSignal),
+    });
+  });
+});
+
+describe('Payouts', () => {
+  it('payee tabs and the statuses the API reports; vendor refunds come off', async () => {
+    window.history.replaceState(null, '', '/zone/payouts');
+    const user = userEvent.setup();
+    const get = vi.fn(async () => ({
+      data: [
+        {
+          id: '0192f1d2-7777-7000-8000-000000000001',
+          payee: {
+            type: 'RESTAURANT',
+            id: '0192f1d2-4444-7000-8000-000000000001',
+            name: 'Saravana Bhavan',
+          },
+          zone,
+          periodFrom: '2026-10-01',
+          periodTo: '2026-10-07',
+          grossPaise: 1_000_000,
+          commissionPaise: 150_000,
+          netPaise: 800_000,
+          vendorRefundsPaise: 50_000,
+          status: 'PENDING',
+          paidAt: null,
+          paidBy: null,
+          createdAt: '2026-10-08T00:00:00.000Z',
+        },
+      ],
+      meta: {
+        ...meta,
+        counts: {
+          total: 1,
+          byStatus: { PENDING: 1, PAID: 3 },
+          grossPaise: 1_000_000,
+          commissionPaise: 150_000,
+          netPaise: 800_000,
+        },
+        cycles: [{ zoneId: zone.id, days: 7 }],
+      },
+    }));
+    mount(<PayoutsPage {...asZonalAdmin} />, get);
+    expect(await screen.findByText('Saravana Bhavan')).toBeTruthy();
+    expect(screen.getByText('−₹500.00')).toBeTruthy();
+    expect(screen.getByText(/per 7-day cycle/)).toBeTruthy();
+    const status = screen.getByLabelText('Status') as HTMLSelectElement;
+    expect([...status.options].map((o) => o.value)).toEqual(['', 'PAID', 'PENDING']);
+    await user.click(screen.getByRole('tab', { name: 'Delivery partners' }));
+    await waitFor(() =>
+      expect(get).toHaveBeenLastCalledWith('/payouts', {
+        query: { page: 1, pageSize: 25, sort: '-periodTo', payeeType: 'DELIVERY_PARTNER' },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+});

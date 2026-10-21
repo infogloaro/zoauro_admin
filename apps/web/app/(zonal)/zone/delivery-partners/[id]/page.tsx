@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PartnerDetailPage } from '../../../../../features/partners/PartnerDetailPage';
 import { partnerPageProps } from '../../../../../features/partners/partner-page-props';
+import { settlementPageProps } from '../../../../../features/settlements/settlement-page-props';
 import { getMe } from '../../../../../lib/server-session';
 
 export const metadata: Metadata = { title: 'Delivery partner · ZOAURO Admin' };
@@ -15,5 +16,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!me) return null;
   const p = partnerPageProps(me);
   if (!UUID.test(id) || (p.role === 'ZONAL_ADMIN' && p.myZones.length === 0)) notFound();
-  return <PartnerDetailPage id={id} role={p.role} myZones={p.myZones} can={p.can} />;
+  return (
+    <PartnerDetailPage
+      id={id}
+      role={p.role}
+      myZones={p.myZones}
+      can={p.can}
+      canSettlements={
+        p.role === 'SUPER_ADMIN' || settlementPageProps(me, 'settlements').myZones.length > 0
+      }
+    />
+  );
 }

@@ -67,11 +67,14 @@ export function PartnerDetailPage({
   role,
   myZones = [],
   can,
+  canSettlements = false,
 }: {
   id: string;
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   myZones?: ScopeZone[];
   can: { edit: boolean; status: boolean; delete: boolean; reveal: boolean };
+  /** settlements:view somewhere: the cash in hand links to this partner's COD settlements */
+  canSettlements?: boolean;
 }) {
   const router = useRouter();
   const detail = usePartnerDetail(id);
@@ -112,7 +115,7 @@ export function PartnerDetailPage({
   const forcedOffline =
     p.forceOfflineUntil !== null && new Date(p.forceOfflineUntil).getTime() > Date.now();
 
-  const facts: [string, string][] = [
+  const facts: [string, React.ReactNode][] = [
     ['Zone', p.zone ? `${p.zone.name} (${p.zone.code})` : 'No zone yet'],
     ['Phone', p.phone ?? '—'],
     ['Email', p.email ?? '—'],
@@ -121,7 +124,20 @@ export function PartnerDetailPage({
     ['Current orders', loadText(p.currentOrders, p.maxConcurrentOrders)],
     ['Deliveries', p.deliveriesCount.toLocaleString('en-IN')],
     ['Rating', p.ratingAvg === null ? 'No ratings yet' : `${p.ratingAvg.toFixed(1)} / 5`],
-    ['Cash in hand', `${formatPaise(p.cashInHand)} (settled in COD Settlement)`],
+    [
+      'Cash in hand',
+      canSettlements ? (
+        <a
+          key="cash"
+          href={`${role === 'SUPER_ADMIN' ? '/super-admin' : '/zone'}/cod-settlement?view=history&partner=${p.id}`}
+          className="text-primary-strong hover:underline"
+        >
+          {formatPaise(p.cashInHand)} · settlements
+        </a>
+      ) : (
+        formatPaise(p.cashInHand)
+      ),
+    ],
     [
       'Source',
       p.source === 'APP'
