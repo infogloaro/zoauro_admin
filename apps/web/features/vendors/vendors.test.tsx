@@ -164,7 +164,7 @@ describe('Restaurants list (Super Admin)', () => {
 
   it('asks for 25 a page, shows the counts from the API on the tabs, and the zone column', async () => {
     const { get } = setup();
-    expect(await screen.findByRole('button', { name: 'Open Saravana Bhavan' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Open Saravana Bhavan' })).toBeTruthy();
     const query = get.mock.calls.find((c) => c[0] === '/restaurants')?.[1]?.query;
     expect(query).toMatchObject({ page: 1, pageSize: 25, sort: '-createdAt' });
     const tabs = screen.getByRole('tablist', { name: 'Restaurants by status' });
@@ -176,7 +176,7 @@ describe('Restaurants list (Super Admin)', () => {
   it('a tab filters by verification and resets the page; a row opens the detail page', async () => {
     const user = userEvent.setup();
     const { get } = setup();
-    await screen.findByRole('button', { name: 'Open Saravana Bhavan' });
+    await screen.findByRole('link', { name: 'Open Saravana Bhavan' });
     await user.click(screen.getByRole('tab', { name: /Pending verification/ }));
     await waitFor(() =>
       expect(
@@ -185,7 +185,7 @@ describe('Restaurants list (Super Admin)', () => {
         ),
       ).toBe(true),
     );
-    await user.click(await screen.findByRole('button', { name: 'Open Saravana Bhavan' }));
+    await user.click(await screen.findByRole('link', { name: 'Open Saravana Bhavan' }));
     expect(nav.push).toHaveBeenCalledWith(
       '/super-admin/restaurants/0192f1d2-0000-7000-8000-0000000000f1',
     );

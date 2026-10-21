@@ -13,6 +13,46 @@ import { cn } from '../../lib/utils';
 export interface RowContext {
   /** spread on the <button> that opens the row (usually the first column's text) */
   activatorProps: ButtonHTMLAttributes<HTMLButtonElement> & { 'data-row-activate': string };
+  /** the row's page, when the table has one per row: the activator is then a real link */
+  href?: string;
+}
+
+/**
+ * The row's opener: a real link when the row has a page (open in a new tab, copy, crawl), still opening in place on a
+ * plain click; otherwise the button. Stretched over the row either way.
+ */
+export function RowActivator({
+  ctx,
+  className,
+  children,
+}: {
+  ctx: RowContext;
+  className?: string;
+  children: ReactNode;
+}) {
+  const { onClick, className: base, ...rest } = ctx.activatorProps;
+  if (ctx.href)
+    return (
+      <a
+        href={ctx.href}
+        data-row-activate={rest['data-row-activate']}
+        aria-label={rest['aria-label']}
+        className={cn(base, className)}
+        onClick={(e) => {
+          if (!onClick || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+            return;
+          e.preventDefault();
+          onClick(e as unknown as React.MouseEvent<HTMLButtonElement>);
+        }}
+      >
+        {children}
+      </a>
+    );
+  return (
+    <button type="button" {...ctx.activatorProps} className={cn(base, className)}>
+      {children}
+    </button>
+  );
 }
 
 export interface Column<T> {
@@ -29,6 +69,8 @@ export interface DataTableProps<T> {
   rows: T[];
   getRowId: (row: T) => string;
   onActivate?: (row: T) => void;
+  /** the row's page: its activator becomes a link (see RowActivator) */
+  rowHref?: (row: T) => string;
   /** accessible name of a row's activator, e.g. "View details of Changed commission" */
   activateLabel?: (row: T) => string;
   status: 'loading' | 'ready' | 'error';
@@ -48,6 +90,7 @@ export function DataTable<T>({
   rows,
   getRowId,
   onActivate,
+  rowHref,
   activateLabel,
   status,
   busy = false,
@@ -106,6 +149,7 @@ export function DataTable<T>({
                       className:
                         'text-left after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px]',
                     },
+                    ...(rowHref ? { href: rowHref(row) } : {}),
                   };
                   return (
                     <tr

@@ -9,7 +9,7 @@ import {
 import { Bell, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { DataTable, type Column } from '../../components/shared/DataTable';
+import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
@@ -106,13 +106,9 @@ export function NotificationsPage({
       header: 'Notification',
       cell: (r, ctx) => (
         <div className="min-w-56">
-          <button
-            type="button"
-            {...ctx.activatorProps}
-            className={cn(ctx.activatorProps.className, 'font-semibold')}
-          >
+          <RowActivator ctx={ctx} className="font-semibold">
             {r.title}
-          </button>
+          </RowActivator>
           <p className="line-clamp-1 text-xs text-muted">{r.body}</p>
         </div>
       ),
@@ -287,6 +283,7 @@ export function NotificationsPage({
           rows={list.data?.data ?? []}
           getRowId={(r) => r.id}
           onActivate={(r) => router.push(`${base}/${r.id}`)}
+          rowHref={(r) => `${base}/${r.id}`}
           activateLabel={(r) => `Open ${r.title}`}
           status={list.isError ? 'error' : list.data ? 'ready' : 'loading'}
           busy={list.isFetching && list.isPlaceholderData}

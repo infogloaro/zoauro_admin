@@ -175,7 +175,7 @@ describe('Delivery Partners list', () => {
   it('shows tabs with API counts, load against the cap and masked phones; On duty filters available partners', async () => {
     const user = userEvent.setup();
     const { get } = setup();
-    expect(await screen.findByRole('button', { name: 'Open Ravi' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Open Ravi' })).toBeTruthy();
     const tabs = screen.getByRole('tablist', { name: 'Delivery partners by status' });
     expect(within(tabs).getByRole('tab', { name: /On duty now\s*1/ })).toBeTruthy();
     expect(screen.getByText('1 of 2')).toBeTruthy();
@@ -194,7 +194,7 @@ describe('Delivery Partners list', () => {
     window.history.replaceState(null, '', '/super-admin/partner-requests');
     const user = userEvent.setup();
     const { get } = setup('requests');
-    await screen.findByRole('button', { name: 'Open Ravi' });
+    await screen.findByRole('link', { name: 'Open Ravi' });
     expect(get.mock.calls.find((c) => c[0] === '/delivery-partners')?.[1]?.query).toMatchObject({
       verification: 'PENDING',
     });

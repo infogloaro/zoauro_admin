@@ -3,7 +3,7 @@
 import { Bike, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { DataTable, type Column } from '../../components/shared/DataTable';
+import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { Badge } from '../../components/ui/badge';
@@ -108,13 +108,9 @@ export function PartnersPage({
       header: 'Partner',
       cell: (r, ctx) => (
         <div className="min-w-44">
-          <button
-            type="button"
-            {...ctx.activatorProps}
-            className={cn(ctx.activatorProps.className, 'font-semibold')}
-          >
+          <RowActivator ctx={ctx} className="font-semibold">
             {r.name}
-          </button>
+          </RowActivator>
           <p className="text-xs text-muted">
             {[r.vehicleType, r.vehicleNo].filter(Boolean).join(' · ') || 'No vehicle yet'}
           </p>
@@ -335,6 +331,7 @@ export function PartnersPage({
           rows={list.data?.data ?? []}
           getRowId={(r) => r.id}
           onActivate={(r) => router.push(`${base}/${r.id}`)}
+          rowHref={(r) => `${base}/${r.id}`}
           activateLabel={(r) => `Open ${r.name}`}
           status={list.isError ? 'error' : list.data ? 'ready' : 'loading'}
           busy={list.isFetching && list.isPlaceholderData}

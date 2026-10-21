@@ -9,7 +9,7 @@ import {
 import { Headset, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { DataTable, type Column } from '../../components/shared/DataTable';
+import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
 import { ExportButton } from '../../components/shared/ExportButton';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
@@ -113,13 +113,9 @@ export function SupportPage({ role, myZones, can }: SupportPageProps) {
       header: 'Ticket',
       cell: (r, ctx) => (
         <div className="min-w-56">
-          <button
-            type="button"
-            {...ctx.activatorProps}
-            className={cn(ctx.activatorProps.className, 'font-semibold')}
-          >
+          <RowActivator ctx={ctx} className="font-semibold">
             {r.subject}
-          </button>
+          </RowActivator>
           <p className="text-xs text-muted">
             {r.ticketNo} · {CATEGORY_LABEL[r.category]} · {relativeTime(r.createdAt)}
           </p>
@@ -338,6 +334,7 @@ export function SupportPage({ role, myZones, can }: SupportPageProps) {
           rows={list.data?.data ?? []}
           getRowId={(r) => r.id}
           onActivate={(r) => router.push(`${base}/${r.id}`)}
+          rowHref={(r) => `${base}/${r.id}`}
           activateLabel={(r) => `Open ticket ${r.ticketNo}`}
           status={list.isError ? 'error' : list.data ? 'ready' : 'loading'}
           busy={list.isFetching && list.isPlaceholderData}

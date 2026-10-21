@@ -144,7 +144,7 @@ describe('Notifications screens', () => {
     render(<NotificationsPage role={SUPER} canAdd />, {
       wrapper: wrap({ get } as unknown as ApiClient),
     });
-    expect(await screen.findByRole('button', { name: 'Open Diwali offer' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Open Diwali offer' })).toBeTruthy();
     const tabs = screen.getByRole('tablist', { name: 'Notifications by status' });
     expect(await within(tabs).findByRole('tab', { name: /All\s*4/ })).toBeTruthy();
     await user.click(within(tabs).getByRole('tab', { name: /Waiting for approval/ }));
