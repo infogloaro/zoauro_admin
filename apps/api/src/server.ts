@@ -18,6 +18,7 @@ import { createAuthMailer, createAuthModule, createSmsProvider } from './modules
 import { createHotelsModule } from './modules/hotels';
 import { createPreordersModule } from './modules/orders/preorders.routes';
 import { createMenuModule } from './modules/menu';
+import { createOnboardingModule } from './modules/onboarding';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
 import { createCustomersModule } from './modules/customers';
@@ -317,6 +318,12 @@ const app = createApp({
       menu.router,
       hotels.router,
       preorders.router,
+      // D170 onboarding queue: start review claims the record (D174)
+      createOnboardingModule({
+        prisma,
+        appOrigin: new URL(env.APP_URL).origin,
+        claims: accessControl.claims,
+      }).router,
       support.router,
     ],
   },

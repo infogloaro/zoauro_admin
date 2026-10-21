@@ -1154,6 +1154,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/homemakers/{id}/onboarding/more-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the vendor for more information (UNDER_REVIEW → MORE_INFO_REQUIRED, "Waiting for vendor"); the message goes to the app (onboarding.more_info_required) */
+        post: operations["requestHomemakerMoreInfo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/homemakers/{id}/onboarding/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the review (SUBMITTED or MORE_INFO_REQUIRED → UNDER_REVIEW) and claim the record for the reviewer (D174: 409 RECORD_CLAIMED when someone else holds it) */
+        post: operations["startHomemakerReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/homemakers/{id}/reveal": {
         parameters: {
             query?: never;
@@ -1271,6 +1305,40 @@ export interface paths {
         put?: never;
         /** Book a stay [checkIn, checkOut) at an active hotel; the hotel row is locked and the stay must fit total_rooms on every night (409 NO_ROOMS_AVAILABLE, D127). Needs Hotel Booking on (D92); payment status is informational */
         post: operations["createRoomBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/{id}/onboarding/more-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the vendor for more information (UNDER_REVIEW → MORE_INFO_REQUIRED, "Waiting for vendor"); the message goes to the app (onboarding.more_info_required) */
+        post: operations["requestHotelMoreInfo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/{id}/onboarding/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the review (SUBMITTED or MORE_INFO_REQUIRED → UNDER_REVIEW) and claim the record for the reviewer (D174: 409 RECORD_CLAIMED when someone else holds it) */
+        post: operations["startHotelReview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2083,6 +2151,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The onboarding queue (D170): restaurants, shops, Home Food and hotels in the zones where the caller views each module; "Needs a zone" for the Super Admin. Type, stage (default: open stages) and age tabs (24 h / 48 h), search q, oldest first */
+        get: operations["listOnboarding"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/openapi.json": {
         parameters: {
             query?: never;
@@ -2488,6 +2573,40 @@ export interface paths {
         put?: never;
         /** Move to another zone, or assign an app sign-up that has none (R-VEN-3: Super Admin, PASSWORD re-auth); emits vendor.updated */
         post: operations["moveRestaurantZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/{id}/onboarding/more-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the vendor for more information (UNDER_REVIEW → MORE_INFO_REQUIRED, "Waiting for vendor"); the message goes to the app (onboarding.more_info_required) */
+        post: operations["requestRestaurantMoreInfo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/{id}/onboarding/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the review (SUBMITTED or MORE_INFO_REQUIRED → UNDER_REVIEW) and claim the record for the reviewer (D174: 409 RECORD_CLAIMED when someone else holds it) */
+        post: operations["startRestaurantReview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -11305,6 +11424,204 @@ export interface operations {
             };
         };
     };
+    requestHomemakerMoreInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Waiting for vendor */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ageHours: number;
+                        /** @enum {string} */
+                        ageLevel: "OK" | "WARN" | "LATE";
+                        area: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "restaurants" | "homemakers" | "hotels";
+                        moreInfoMessage: string | null;
+                        name: string;
+                        /** @enum {string} */
+                        stage: "SUBMITTED" | "UNDER_REVIEW" | "MORE_INFO_REQUIRED" | "DECIDED";
+                        /** Format: date-time */
+                        stageAt: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** @enum {string} */
+                        type: "RESTAURANT" | "SHOP" | "HOME_FOOD" | "HOTEL" | "NEEDS_ZONE";
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    startHomemakerReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Under review */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ageHours: number;
+                        /** @enum {string} */
+                        ageLevel: "OK" | "WARN" | "LATE";
+                        area: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "restaurants" | "homemakers" | "hotels";
+                        moreInfoMessage: string | null;
+                        name: string;
+                        /** @enum {string} */
+                        stage: "SUBMITTED" | "UNDER_REVIEW" | "MORE_INFO_REQUIRED" | "DECIDED";
+                        /** Format: date-time */
+                        stageAt: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** @enum {string} */
+                        type: "RESTAURANT" | "SHOP" | "HOME_FOOD" | "HOTEL" | "NEEDS_ZONE";
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     revealHomemakerContact: {
         parameters: {
             query?: never;
@@ -12461,6 +12778,204 @@ export interface operations {
                 };
             };
             /** @description Not allowed from the current state; No room is free for every night of the stay (D127); The service is switched off in this zone (error.meta.service, D92) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    requestHotelMoreInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Waiting for vendor */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ageHours: number;
+                        /** @enum {string} */
+                        ageLevel: "OK" | "WARN" | "LATE";
+                        area: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "restaurants" | "homemakers" | "hotels";
+                        moreInfoMessage: string | null;
+                        name: string;
+                        /** @enum {string} */
+                        stage: "SUBMITTED" | "UNDER_REVIEW" | "MORE_INFO_REQUIRED" | "DECIDED";
+                        /** Format: date-time */
+                        stageAt: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** @enum {string} */
+                        type: "RESTAURANT" | "SHOP" | "HOME_FOOD" | "HOTEL" | "NEEDS_ZONE";
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    startHotelReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Under review */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ageHours: number;
+                        /** @enum {string} */
+                        ageLevel: "OK" | "WARN" | "LATE";
+                        area: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "restaurants" | "homemakers" | "hotels";
+                        moreInfoMessage: string | null;
+                        name: string;
+                        /** @enum {string} */
+                        stage: "SUBMITTED" | "UNDER_REVIEW" | "MORE_INFO_REQUIRED" | "DECIDED";
+                        /** Format: date-time */
+                        stageAt: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** @enum {string} */
+                        type: "RESTAURANT" | "SHOP" | "HOME_FOOD" | "HOTEL" | "NEEDS_ZONE";
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -17472,6 +17987,127 @@ export interface operations {
             };
         };
     };
+    listOnboarding: {
+        parameters: {
+            query?: {
+                age?: "OK" | "WARN" | "LATE";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                stage?: "SUBMITTED" | "UNDER_REVIEW" | "MORE_INFO_REQUIRED" | "DECIDED";
+                type?: "RESTAURANT" | "SHOP" | "HOME_FOOD" | "HOTEL" | "NEEDS_ZONE";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            ageHours: number;
+                            /** @enum {string} */
+                            ageLevel: "OK" | "WARN" | "LATE";
+                            area: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            module: "restaurants" | "homemakers" | "hotels";
+                            moreInfoMessage: string | null;
+                            name: string;
+                            /** @enum {string} */
+                            stage: "SUBMITTED" | "UNDER_REVIEW" | "MORE_INFO_REQUIRED" | "DECIDED";
+                            /** Format: date-time */
+                            stageAt: string;
+                            /** @enum {string} */
+                            status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "SHOP" | "HOME_FOOD" | "HOTEL" | "NEEDS_ZONE";
+                            /** @enum {string} */
+                            verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                        }[];
+                        meta: {
+                            counts: {
+                                age: {
+                                    LATE: number;
+                                    OK: number;
+                                    WARN: number;
+                                };
+                                stage: {
+                                    DECIDED: number;
+                                    MORE_INFO_REQUIRED: number;
+                                    SUBMITTED: number;
+                                    UNDER_REVIEW: number;
+                                };
+                                type: {
+                                    HOME_FOOD: number;
+                                    HOTEL: number;
+                                    NEEDS_ZONE: number;
+                                    RESTAURANT: number;
+                                    SHOP: number;
+                                };
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     getOpenApiDocument: {
         parameters: {
             query?: never;
@@ -20833,6 +21469,204 @@ export interface operations {
                 };
             };
             /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    requestRestaurantMoreInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Waiting for vendor */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ageHours: number;
+                        /** @enum {string} */
+                        ageLevel: "OK" | "WARN" | "LATE";
+                        area: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "restaurants" | "homemakers" | "hotels";
+                        moreInfoMessage: string | null;
+                        name: string;
+                        /** @enum {string} */
+                        stage: "SUBMITTED" | "UNDER_REVIEW" | "MORE_INFO_REQUIRED" | "DECIDED";
+                        /** Format: date-time */
+                        stageAt: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** @enum {string} */
+                        type: "RESTAURANT" | "SHOP" | "HOME_FOOD" | "HOTEL" | "NEEDS_ZONE";
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    startRestaurantReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Under review */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ageHours: number;
+                        /** @enum {string} */
+                        ageLevel: "OK" | "WARN" | "LATE";
+                        area: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "restaurants" | "homemakers" | "hotels";
+                        moreInfoMessage: string | null;
+                        name: string;
+                        /** @enum {string} */
+                        stage: "SUBMITTED" | "UNDER_REVIEW" | "MORE_INFO_REQUIRED" | "DECIDED";
+                        /** Format: date-time */
+                        stageAt: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                        /** @enum {string} */
+                        type: "RESTAURANT" | "SHOP" | "HOME_FOOD" | "HOTEL" | "NEEDS_ZONE";
+                        /** @enum {string} */
+                        verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry */
             409: {
                 headers: {
                     [name: string]: unknown;

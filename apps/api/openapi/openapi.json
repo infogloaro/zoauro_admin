@@ -46437,6 +46437,1811 @@
         }
       }
     },
+    "/onboarding": {
+      "get": {
+        "operationId": "listOnboarding",
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "The onboarding queue (D170): restaurants, shops, Home Food and hotels in the zones where the caller views each module; \"Needs a zone\" for the Super Admin. Type, stage (default: open stages) and age tabs (24 h / 48 h), search q, oldest first",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "RESTAURANT",
+                "SHOP",
+                "HOME_FOOD",
+                "HOTEL",
+                "NEEDS_ZONE"
+              ]
+            },
+            "required": false,
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUBMITTED",
+                "UNDER_REVIEW",
+                "MORE_INFO_REQUIRED",
+                "DECIDED"
+              ]
+            },
+            "required": false,
+            "name": "stage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OK",
+                "WARN",
+                "LATE"
+              ]
+            },
+            "required": false,
+            "name": "age",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "module": {
+                            "type": "string",
+                            "enum": [
+                              "restaurants",
+                              "homemakers",
+                              "hotels"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "RESTAURANT",
+                              "SHOP",
+                              "HOME_FOOD",
+                              "HOTEL",
+                              "NEEDS_ZONE"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "zone": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "area": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "stage": {
+                            "type": "string",
+                            "enum": [
+                              "SUBMITTED",
+                              "UNDER_REVIEW",
+                              "MORE_INFO_REQUIRED",
+                              "DECIDED"
+                            ]
+                          },
+                          "stageAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "ageHours": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "ageLevel": {
+                            "type": "string",
+                            "enum": [
+                              "OK",
+                              "WARN",
+                              "LATE"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "ACTIVE",
+                              "INACTIVE",
+                              "SUSPENDED"
+                            ]
+                          },
+                          "verificationStatus": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "VERIFIED",
+                              "REJECTED"
+                            ]
+                          },
+                          "moreInfoMessage": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "module",
+                          "id",
+                          "type",
+                          "name",
+                          "zone",
+                          "area",
+                          "stage",
+                          "stageAt",
+                          "ageHours",
+                          "ageLevel",
+                          "status",
+                          "verificationStatus",
+                          "moreInfoMessage",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "counts": {
+                          "type": "object",
+                          "properties": {
+                            "stage": {
+                              "type": "object",
+                              "properties": {
+                                "SUBMITTED": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "UNDER_REVIEW": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "MORE_INFO_REQUIRED": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "DECIDED": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                }
+                              },
+                              "required": [
+                                "SUBMITTED",
+                                "UNDER_REVIEW",
+                                "MORE_INFO_REQUIRED",
+                                "DECIDED"
+                              ]
+                            },
+                            "type": {
+                              "type": "object",
+                              "properties": {
+                                "RESTAURANT": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "SHOP": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "HOME_FOOD": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "HOTEL": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "NEEDS_ZONE": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                }
+                              },
+                              "required": [
+                                "RESTAURANT",
+                                "SHOP",
+                                "HOME_FOOD",
+                                "HOTEL",
+                                "NEEDS_ZONE"
+                              ]
+                            },
+                            "age": {
+                              "type": "object",
+                              "properties": {
+                                "OK": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "WARN": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "LATE": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                }
+                              },
+                              "required": [
+                                "OK",
+                                "WARN",
+                                "LATE"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "stage",
+                            "type",
+                            "age"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "counts"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "restaurants:view",
+          "zone": "query"
+        }
+      }
+    },
+    "/restaurants/{id}/onboarding/review": {
+      "post": {
+        "operationId": "startRestaurantReview",
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Start the review (SUBMITTED or MORE_INFO_REQUIRED → UNDER_REVIEW) and claim the record for the reviewer (D174: 409 RECORD_CLAIMED when someone else holds it)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Under review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "module": {
+                      "type": "string",
+                      "enum": [
+                        "restaurants",
+                        "homemakers",
+                        "hotels"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "RESTAURANT",
+                        "SHOP",
+                        "HOME_FOOD",
+                        "HOTEL",
+                        "NEEDS_ZONE"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "SUBMITTED",
+                        "UNDER_REVIEW",
+                        "MORE_INFO_REQUIRED",
+                        "DECIDED"
+                      ]
+                    },
+                    "stageAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ageHours": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "ageLevel": {
+                      "type": "string",
+                      "enum": [
+                        "OK",
+                        "WARN",
+                        "LATE"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "moreInfoMessage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "module",
+                    "id",
+                    "type",
+                    "name",
+                    "zone",
+                    "area",
+                    "stage",
+                    "stageAt",
+                    "ageHours",
+                    "ageLevel",
+                    "status",
+                    "verificationStatus",
+                    "moreInfoMessage",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "restaurants:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "restaurants",
+          "action": "restaurant.onboarding_review_started"
+        }
+      }
+    },
+    "/restaurants/{id}/onboarding/more-info": {
+      "post": {
+        "operationId": "requestRestaurantMoreInfo",
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Ask the vendor for more information (UNDER_REVIEW → MORE_INFO_REQUIRED, \"Waiting for vendor\"); the message goes to the app (onboarding.more_info_required)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waiting for vendor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "module": {
+                      "type": "string",
+                      "enum": [
+                        "restaurants",
+                        "homemakers",
+                        "hotels"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "RESTAURANT",
+                        "SHOP",
+                        "HOME_FOOD",
+                        "HOTEL",
+                        "NEEDS_ZONE"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "SUBMITTED",
+                        "UNDER_REVIEW",
+                        "MORE_INFO_REQUIRED",
+                        "DECIDED"
+                      ]
+                    },
+                    "stageAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ageHours": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "ageLevel": {
+                      "type": "string",
+                      "enum": [
+                        "OK",
+                        "WARN",
+                        "LATE"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "moreInfoMessage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "module",
+                    "id",
+                    "type",
+                    "name",
+                    "zone",
+                    "area",
+                    "stage",
+                    "stageAt",
+                    "ageHours",
+                    "ageLevel",
+                    "status",
+                    "verificationStatus",
+                    "moreInfoMessage",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "restaurants:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "restaurants",
+          "action": "restaurant.more_info_requested"
+        }
+      }
+    },
+    "/homemakers/{id}/onboarding/review": {
+      "post": {
+        "operationId": "startHomemakerReview",
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Start the review (SUBMITTED or MORE_INFO_REQUIRED → UNDER_REVIEW) and claim the record for the reviewer (D174: 409 RECORD_CLAIMED when someone else holds it)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Under review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "module": {
+                      "type": "string",
+                      "enum": [
+                        "restaurants",
+                        "homemakers",
+                        "hotels"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "RESTAURANT",
+                        "SHOP",
+                        "HOME_FOOD",
+                        "HOTEL",
+                        "NEEDS_ZONE"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "SUBMITTED",
+                        "UNDER_REVIEW",
+                        "MORE_INFO_REQUIRED",
+                        "DECIDED"
+                      ]
+                    },
+                    "stageAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ageHours": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "ageLevel": {
+                      "type": "string",
+                      "enum": [
+                        "OK",
+                        "WARN",
+                        "LATE"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "moreInfoMessage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "module",
+                    "id",
+                    "type",
+                    "name",
+                    "zone",
+                    "area",
+                    "stage",
+                    "stageAt",
+                    "ageHours",
+                    "ageLevel",
+                    "status",
+                    "verificationStatus",
+                    "moreInfoMessage",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "homemakers:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "homemakers",
+          "action": "homemaker.onboarding_review_started"
+        }
+      }
+    },
+    "/homemakers/{id}/onboarding/more-info": {
+      "post": {
+        "operationId": "requestHomemakerMoreInfo",
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Ask the vendor for more information (UNDER_REVIEW → MORE_INFO_REQUIRED, \"Waiting for vendor\"); the message goes to the app (onboarding.more_info_required)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waiting for vendor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "module": {
+                      "type": "string",
+                      "enum": [
+                        "restaurants",
+                        "homemakers",
+                        "hotels"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "RESTAURANT",
+                        "SHOP",
+                        "HOME_FOOD",
+                        "HOTEL",
+                        "NEEDS_ZONE"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "SUBMITTED",
+                        "UNDER_REVIEW",
+                        "MORE_INFO_REQUIRED",
+                        "DECIDED"
+                      ]
+                    },
+                    "stageAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ageHours": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "ageLevel": {
+                      "type": "string",
+                      "enum": [
+                        "OK",
+                        "WARN",
+                        "LATE"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "moreInfoMessage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "module",
+                    "id",
+                    "type",
+                    "name",
+                    "zone",
+                    "area",
+                    "stage",
+                    "stageAt",
+                    "ageHours",
+                    "ageLevel",
+                    "status",
+                    "verificationStatus",
+                    "moreInfoMessage",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "homemakers:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "homemakers",
+          "action": "homemaker.more_info_requested"
+        }
+      }
+    },
+    "/hotels/{id}/onboarding/review": {
+      "post": {
+        "operationId": "startHotelReview",
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Start the review (SUBMITTED or MORE_INFO_REQUIRED → UNDER_REVIEW) and claim the record for the reviewer (D174: 409 RECORD_CLAIMED when someone else holds it)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Under review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "module": {
+                      "type": "string",
+                      "enum": [
+                        "restaurants",
+                        "homemakers",
+                        "hotels"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "RESTAURANT",
+                        "SHOP",
+                        "HOME_FOOD",
+                        "HOTEL",
+                        "NEEDS_ZONE"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "SUBMITTED",
+                        "UNDER_REVIEW",
+                        "MORE_INFO_REQUIRED",
+                        "DECIDED"
+                      ]
+                    },
+                    "stageAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ageHours": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "ageLevel": {
+                      "type": "string",
+                      "enum": [
+                        "OK",
+                        "WARN",
+                        "LATE"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "moreInfoMessage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "module",
+                    "id",
+                    "type",
+                    "name",
+                    "zone",
+                    "area",
+                    "stage",
+                    "stageAt",
+                    "ageHours",
+                    "ageLevel",
+                    "status",
+                    "verificationStatus",
+                    "moreInfoMessage",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "hotels:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "hotel.onboarding_review_started"
+        }
+      }
+    },
+    "/hotels/{id}/onboarding/more-info": {
+      "post": {
+        "operationId": "requestHotelMoreInfo",
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Ask the vendor for more information (UNDER_REVIEW → MORE_INFO_REQUIRED, \"Waiting for vendor\"); the message goes to the app (onboarding.more_info_required)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waiting for vendor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "module": {
+                      "type": "string",
+                      "enum": [
+                        "restaurants",
+                        "homemakers",
+                        "hotels"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "RESTAURANT",
+                        "SHOP",
+                        "HOME_FOOD",
+                        "HOTEL",
+                        "NEEDS_ZONE"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "zone": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "area": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "SUBMITTED",
+                        "UNDER_REVIEW",
+                        "MORE_INFO_REQUIRED",
+                        "DECIDED"
+                      ]
+                    },
+                    "stageAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ageHours": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "ageLevel": {
+                      "type": "string",
+                      "enum": [
+                        "OK",
+                        "WARN",
+                        "LATE"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "verificationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "VERIFIED",
+                        "REJECTED"
+                      ]
+                    },
+                    "moreInfoMessage": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "module",
+                    "id",
+                    "type",
+                    "name",
+                    "zone",
+                    "area",
+                    "stage",
+                    "stageAt",
+                    "ageHours",
+                    "ageLevel",
+                    "status",
+                    "verificationStatus",
+                    "moreInfoMessage",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state; Another admin is working on this record (D174); meta names the claimer and the expiry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "hotels:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "hotels",
+          "action": "hotel.more_info_requested"
+        }
+      }
+    },
     "/notifications": {
       "get": {
         "operationId": "listNotifications",

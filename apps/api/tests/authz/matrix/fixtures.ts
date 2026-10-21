@@ -314,6 +314,16 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     );
   }
 
+  // D170 onboarding queue: the fixture vendors above are VERIFIED (DECIDED), so one PENDING restaurant per zone A, B, C
+  // keeps the open queue showing which zones an actor reached
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    await env.db.owner.query(
+      `INSERT INTO restaurants (id, zone_id, name, status, verification_status, source, updated_at)
+       VALUES ($1, $2, 'Matrix sign-up', 'PENDING', 'PENDING', 'APP', now())`,
+      [`0192f1d2-0000-7000-8000-00000000b0${i}0`, zones[z]],
+    );
+  }
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,
