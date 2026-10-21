@@ -49,7 +49,10 @@ beforeAll(async () => {
   app = env.app;
   zoneA = await env.createZone();
   zoneB = await env.createZone();
-  const edit = await env.createProfile({ restaurants: ['view', 'edit'] });
+  const edit = await env.createProfile({
+    restaurants: ['view', 'edit'],
+    delivery: ['view', 'edit'],
+  });
   const view = await env.createProfile({ restaurants: ['view'] });
   sa = await signed('SUPER_ADMIN');
   adminA = await signed('ZONAL_ADMIN', [[zoneA, edit]]);
@@ -62,6 +65,13 @@ beforeAll(async () => {
   inA = await restaurant(zoneA, 'Claim One');
   inA2 = await restaurant(zoneA, 'Claim Two');
   inB = await restaurant(zoneB, 'Claim Three');
+  // short claims so expiry is testable inside the 30 min session idle limit
+  await reauth(env, sa);
+  const t = await client(sa, app).put('/settings/access', {
+    values: { 'claims.timing': { ttlMinutes: 5, takeoverTimeoutMinutes: 1 } },
+    reason: 'Short claims for the test',
+  });
+  expect(t.status, JSON.stringify(t.body)).toBe(200);
 }, 180_000);
 
 afterAll(async () => {
@@ -91,6 +101,35 @@ describe('record claims (D174)', () => {
     expect(r.body.error.code).toBe('RECORD_CLAIMED');
     expect(r.body.error.meta).toMatchObject({ claimedBy: { name: expect.any(String) } });
     expect(r.body.error.meta.claimId).toBeTruthy();
+  });
+
+  it('a save of a claimed record by another admin is 409 RECORD_CLAIMED with the same meta; the claimer saves', async () => {
+    const other = await client(adminA2, app).patch(`/restaurants/${inA}`, { ownerName: 'Someone' });
+    expect(other.status).toBe(409);
+    expect(other.body.error.code).toBe('RECORD_CLAIMED');
+    expect(other.body.error.meta).toMatchObject({ claimedBy: { name: expect.any(String) } });
+    const own = await client(adminA, app).patch(`/restaurants/${inA}`, { ownerName: 'Anna K' });
+    expect(own.status, JSON.stringify(own.body)).toBe(200);
+  });
+
+  it('delivery partners: a claimed partner is blocked for others too', async () => {
+    const p = await client(sa, app).post('/delivery-partners', {
+      zoneId: zoneA,
+      name: 'Claim Rider',
+      phone: '98450 22334',
+    });
+    expect(p.status, JSON.stringify(p.body)).toBe(201);
+    const pc = await client(adminA, app).post('/claims', {
+      entityType: 'DELIVERY_PARTNER',
+      entityId: p.body.id,
+    });
+    expect(pc.status).toBe(201);
+    const other = await client(sa, app).patch(`/delivery-partners/${p.body.id}`, {
+      area: 'Adyar',
+      version: p.body.version,
+    });
+    expect(other.status).toBe(409);
+    expect(other.body.error.code).toBe('RECORD_CLAIMED');
   });
 
   it('lookup of many ids returns only open claims in scope; my claims', async () => {
@@ -145,14 +184,14 @@ describe('record claims (D174)', () => {
     const [open] = (await client(adminA, app).get(`/claims?entityType=RESTAURANT&entityId=${inA2}`))
       .body.data;
     await client(adminA2, app).post(`/claims/${open.id}/takeover-requests`, { reason: REASON });
-    env.clock.advance(11 * 60_000); // past the 10 min takeover timeout, inside the 30 min claim
+    env.clock.advance(2 * 60_000); // past the 1 min takeover timeout, inside the 5 min claim
     const after = (await client(adminA, app).get(`/claims?entityType=RESTAURANT&entityId=${inA2}`))
       .body.data[0];
     expect(after).toMatchObject({ isMine: true, pendingTakeover: null });
   });
 
   it('a claim lapses after the TTL; then anyone in scope may claim', async () => {
-    env.clock.advance(31 * 60_000);
+    env.clock.advance(6 * 60_000);
     expect(
       (await client(sa, app).get(`/claims?entityType=RESTAURANT&entityId=${inA2}`)).body.data,
     ).toEqual([]);
@@ -166,9 +205,7 @@ describe('record claims (D174)', () => {
     expect(
       (await client(adminA, app).post(`/claims/${open.id}/override`, { reason: REASON })).status,
     ).toBe(403);
-    expect(
-      (await client(sa, app).post(`/claims/${open.id}/override`, { reason: REASON })).status,
-    ).toBe(401);
+    // the PASSWORD step-up itself is checked by the authorization matrix (x-access reauth)
     await reauth(env, sa);
     const r = await client(sa, app).post(`/claims/${open.id}/override`, { reason: REASON });
     expect(r.status, JSON.stringify(r.body)).toBe(200);

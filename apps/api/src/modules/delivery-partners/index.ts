@@ -7,6 +7,7 @@ import { createPartnersRoutes } from './partners.routes';
 import {
   PartnersService,
   type PartnerChecklistSource,
+  type PartnerClaimGuard,
   type PartnerUploadsGate,
 } from './partners.service';
 
@@ -26,6 +27,8 @@ export function createPartnersModule(deps: {
   /** the uploads module's fileKey gate (D120) */
   uploads: PartnerUploadsGate;
   limiter: RateLimiter;
+  /** D174 record claims (the access module) */
+  claims?: PartnerClaimGuard;
   clock?: () => Date;
 }): {
   router: Router;
@@ -42,6 +45,7 @@ export function createPartnersModule(deps: {
     storage: deps.storage,
     uploads: deps.uploads,
     limiter: deps.limiter,
+    ...(deps.claims ? { claims: deps.claims } : {}),
   });
   return {
     router: createPartnersRoutes(service, {

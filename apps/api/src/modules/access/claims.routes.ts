@@ -53,11 +53,17 @@ export function registerClaimsRoutes(
   router.post('/claims/:id/extend', ...own, auditMeta(auditOf('extendClaim')), async (req, res) => {
     res.json(await service.extend(authContextOf(res), id(req.params)));
   });
-  router.delete('/claims/:id', ...own, auditMeta(auditOf('releaseClaim')), async (req, res) => {
-    const body = parseBody(releaseClaimSchema, req.body ?? {});
-    await service.release(authContextOf(res), id(req.params), body.reason);
-    res.status(204).end();
-  });
+  router.delete(
+    '/claims/:id',
+    ...own,
+    requireJsonBody,
+    auditMeta(auditOf('releaseClaim')),
+    async (req, res) => {
+      const body = parseBody(releaseClaimSchema, req.body);
+      await service.release(authContextOf(res), id(req.params), body.reason);
+      res.status(204).end();
+    },
+  );
   router.post(
     '/claims/:id/takeover-requests',
     ...own,

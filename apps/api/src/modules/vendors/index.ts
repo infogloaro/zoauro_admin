@@ -23,6 +23,7 @@ export function createVendorsModule(deps: {
   checklist: VendorsDeps['checklist'];
   limiter: RateLimiter;
   clock?: () => Date;
+  claims?: VendorsDeps['claims'];
 }): { router: Router; service: VendorsService; entities: VendorsDatabase['repo'] } {
   const db = new VendorsDatabase(deps.prisma);
   const service = new VendorsService({
@@ -33,6 +34,7 @@ export function createVendorsModule(deps: {
     checklist: deps.checklist,
     limiter: deps.limiter,
     clock: deps.clock ?? (() => new Date()),
+    ...(deps.claims ? { claims: deps.claims } : {}),
   });
   return {
     router: createVendorsRoutes(service, {

@@ -68,7 +68,8 @@ export const CLAIM_OPERATIONS: OperationDef[] = [
     method: 'delete',
     path: '/claims/{id}',
     tags: ['claims'],
-    summary: 'The claimer releases the record (a pending takeover request is cancelled)',
+    summary:
+      'The claimer releases the record (a pending takeover request is cancelled). JSON body {reason?} (send {} for none)',
     access: { kind: 'session' },
     audit: { module: 'access', action: 'claim.released' },
     params: claimIdParamsSchema,

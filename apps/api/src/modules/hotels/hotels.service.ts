@@ -39,6 +39,8 @@ export interface HotelsDeps {
   /** the zones module (D92) */
   services: { assertServiceEnabled(zoneId: string, service: ZoneServiceKind): Promise<void> };
   clock: () => Date;
+  /** D174: 409 RECORD_CLAIMED when another admin holds a claim on the hotel (absent: no claims, tests) */
+  claims?: { assertNotClaimedByOther(ctx: AuthContext, type: 'HOTEL', id: string): Promise<void> };
 }
 
 export class HotelsService {
@@ -195,6 +197,7 @@ export class HotelsService {
     const h = await this.deps.db.repo.findHotel(ctx, id);
     if (!h) throw notFound();
     assertCanWrite(ctx, key, h.zoneId);
+    await this.deps.claims?.assertNotClaimedByOther(ctx, 'HOTEL', id);
     return h;
   }
 

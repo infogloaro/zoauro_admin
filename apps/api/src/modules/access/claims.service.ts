@@ -6,7 +6,7 @@ import type {
   PermissionKey,
   RecordClaimedMeta,
 } from '@zoauro/shared';
-import { record, uuidv7, type AuditTx } from '../../lib/audit';
+import { noteAuditNoop, record, uuidv7, type AuditTx } from '../../lib/audit';
 import { can, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
 
@@ -238,6 +238,7 @@ export class ClaimsService {
       if (open) {
         if (open.claim.claimedBy.id === ctx.userId && this.live(open.claim, now)) {
           await tx.repo.extend(open.claim.id, now, until);
+          noteAuditNoop(); // already the caller's: only the expiry moves
           return false;
         }
         if (this.live(open.claim, now)) throw recordClaimed(open.claim);
@@ -463,7 +464,7 @@ export class ClaimsService {
   }
 
   /** The sweep job: closes expired claims and takeover requests (lazy expiry covers reads in between). */
-  sweep(): Promise<{ claims: number; takeovers: number }> {
+  sweepExpired(): Promise<{ claims: number; takeovers: number }> {
     return this.deps.db.repo.expireDue(this.deps.clock());
   }
 }

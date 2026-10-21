@@ -327,6 +327,7 @@ export async function createAuthTestEnv() {
     // as server.ts: vendors and uploads ask each other (who owns a key; is a key uploaded)
     const uploadsGate: { service?: ReturnType<typeof createUploadsModule>['service'] } = {};
     const vendors = createVendorsModule({
+      claims: accessControl.claims, // D174
       prisma,
       appOrigin: APP_ORIGIN,
       requireReauth: auth.requireReauth,
@@ -343,6 +344,7 @@ export async function createAuthTestEnv() {
       clock: clock.now,
     });
     const partners = createPartnersModule({
+      claims: accessControl.claims, // D174
       prisma,
       appOrigin: APP_ORIGIN,
       requireReauth: auth.requireReauth,
@@ -371,6 +373,7 @@ export async function createAuthTestEnv() {
       clock: clock.now,
     });
     const hotels = createHotelsModule({
+      claims: accessControl.claims, // D174
       prisma,
       appOrigin: APP_ORIGIN,
       services: zones.service,

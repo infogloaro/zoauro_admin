@@ -459,7 +459,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** The claimer releases the record (a pending takeover request is cancelled) */
+        /** The claimer releases the record (a pending takeover request is cancelled). JSON body {reason?} (send {} for none) */
         delete: operations["releaseClaim"];
         options?: never;
         head?: never;

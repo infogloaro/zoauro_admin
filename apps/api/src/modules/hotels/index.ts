@@ -2,7 +2,7 @@ import type { Router } from 'express';
 import { BookingsService, type BookingsDeps } from './bookings.service';
 import { HotelsDatabase } from './hotels.repository';
 import { createHotelsRoutes } from './hotels.routes';
-import { HotelsService } from './hotels.service';
+import { HotelsService, type HotelsDeps } from './hotels.service';
 
 export { HotelsService } from './hotels.service';
 export { BookingsService } from './bookings.service';
@@ -16,10 +16,17 @@ export function createHotelsModule(deps: {
   appOrigin: string;
   services: BookingsDeps['services'];
   clock?: () => Date;
+  /** D174 record claims (the access module) */
+  claims?: HotelsDeps['claims'];
 }): { router: Router; hotels: HotelsService; bookings: BookingsService } {
   const db = new HotelsDatabase(deps.prisma);
   const clock = deps.clock ?? (() => new Date());
-  const hotels = new HotelsService({ db, services: deps.services, clock });
+  const hotels = new HotelsService({
+    db,
+    services: deps.services,
+    clock,
+    ...(deps.claims ? { claims: deps.claims } : {}),
+  });
   const bookings = new BookingsService({ db, services: deps.services });
   return {
     router: createHotelsRoutes({ hotels, bookings }, { appOrigin: deps.appOrigin }),

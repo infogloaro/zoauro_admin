@@ -77,6 +77,10 @@ export interface PartnerChecklistSource {
   ): Promise<{ code: string; label: string; mandatory: boolean }[] | null>;
 }
 
+export interface PartnerClaimGuard {
+  assertNotClaimedByOther(ctx: AuthContext, type: 'DELIVERY_PARTNER', id: string): Promise<void>;
+}
+
 export interface PartnerUploadsGate {
   assertUploaded(ctx: AuthContext, fileKey: string): Promise<unknown>;
 }
@@ -92,6 +96,8 @@ export class PartnersService {
       storage: ObjectStorage;
       uploads: PartnerUploadsGate;
       limiter: RateLimiter;
+      /** D174: 409 RECORD_CLAIMED when another admin holds a claim on the record (absent: no claims, tests) */
+      claims?: PartnerClaimGuard;
     },
   ) {}
 
@@ -261,7 +267,7 @@ export class PartnersService {
     id: string,
     input: PartnerForceOfflineInput,
   ): Promise<PartnerDetail> {
-    await this.writable(ctx, id, 'status');
+    await this.writable(ctx, id, 'status', false);
     const now = this.deps.clock();
     const until = new Date(input.until);
     if (until <= now || until.getTime() - now.getTime() > MAX_FORCE_OFFLINE_MS)
@@ -448,12 +454,15 @@ export class PartnersService {
     ctx: AuthContext,
     id: string,
     action: 'edit' | 'status' | 'delete',
+    /** false: an operational action that a review claim must not block (force offline) */
+    claimed = true,
   ): Promise<PartnerRecord & { zoneId: string }> {
     const p = await this.deps.db.repo.find(ctx, id);
     if (!p) throw notFound();
     if (p.zoneId === null)
       throw new AppError('CONFLICT', 'Move the partner into a zone before changing them');
     assertCanWrite(ctx, `delivery:${action}`, p.zoneId);
+    if (claimed) await this.deps.claims?.assertNotClaimedByOther(ctx, 'DELIVERY_PARTNER', id);
     return { ...p, zoneId: p.zoneId };
   }
 

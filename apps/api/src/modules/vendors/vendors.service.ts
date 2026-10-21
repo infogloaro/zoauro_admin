@@ -67,6 +67,14 @@ const key = (module: VendorModule, action: string) => `${module}:${action}` as P
 
 export interface VendorsDeps {
   db: VendorsDatabase;
+  /** D174: 409 RECORD_CLAIMED when another admin holds a claim on the record (absent: no claims, tests) */
+  claims?: {
+    assertNotClaimedByOther(
+      ctx: AuthContext,
+      type: 'RESTAURANT' | 'HOMEMAKER',
+      id: string,
+    ): Promise<void>;
+  };
   storage: ObjectStorage;
   /** the uploads module's gate for a fileKey */
   uploads: { assertUploaded(ctx: AuthContext, fileKey: string): Promise<unknown> };
@@ -419,6 +427,11 @@ export class VendorsService {
     if (v.zoneId === null)
       throw new AppError('CONFLICT', 'Move the vendor into a zone before changing it');
     assertCanWrite(ctx, key(module, action), v.zoneId);
+    await this.deps.claims?.assertNotClaimedByOther(
+      ctx,
+      module === 'restaurants' ? 'RESTAURANT' : 'HOMEMAKER',
+      id,
+    );
     return { ...v, zoneId: v.zoneId };
   }
 

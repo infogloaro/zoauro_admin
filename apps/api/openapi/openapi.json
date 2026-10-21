@@ -30928,7 +30928,7 @@
         "tags": [
           "claims"
         ],
-        "summary": "The claimer releases the record (a pending takeover request is cancelled)",
+        "summary": "The claimer releases the record (a pending takeover request is cancelled). JSON body {reason?} (send {} for none)",
         "security": [
           {
             "sessionCookie": [],

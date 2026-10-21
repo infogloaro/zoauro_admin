@@ -130,6 +130,7 @@ const storage = createS3Storage({
 });
 const uploadsGate: { service?: ReturnType<typeof createUploadsModule>['service'] } = {};
 const vendors = createVendorsModule({
+  claims: accessControl.claims, // D174
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   requireReauth: auth.requireReauth,
@@ -146,6 +147,7 @@ const vendors = createVendorsModule({
 });
 // M10 delivery partners + R12 (D130–D133): documents through the same uploads gate
 const partners = createPartnersModule({
+  claims: accessControl.claims, // D174
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   requireReauth: auth.requireReauth,
@@ -178,6 +180,7 @@ const menu = createMenuModule({
 
 // D118 hotels, room bookings and dining (D127): new hotels, bookings and reservations need HOTEL_BOOKING on (D92)
 const hotels = createHotelsModule({
+  claims: accessControl.claims, // D174
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   services: zones.service,
