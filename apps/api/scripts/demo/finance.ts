@@ -281,3 +281,24 @@ export async function seedMoney(
     `money: ${rows.length} COD hand-overs (1 short), ${cashInHand.size} partners holding cash, ${payoutRows.length} payouts (${payoutRows.filter((p) => p.status === 'PENDING').length} pending)`,
   );
 }
+
+/** D173 COD gate: at or above this much cash in hand a partner gets no new COD orders until they hand it over. */
+const COD_LIMIT_PAISE = 500_000;
+
+/**
+ * Run on every seed: keeps one active partner at the COD limit, so the gate shows in the demo. Arjun Selvam (Coimbatore
+ * Central) skipped his Monday hand-over and holds ₹5,240.
+ */
+export async function ensureCodLimitPartner(db: PrismaClient, log: Log): Promise<void> {
+  const over = await db.deliveryPartner.count({
+    where: { deletedAt: null, cashInHand: { gte: COD_LIMIT_PAISE } },
+  });
+  if (over > 0) return;
+  const p = await db.deliveryPartner.findFirst({
+    where: { name: 'Arjun Selvam', deletedAt: null },
+    select: { id: true },
+  });
+  if (!p) return;
+  await db.deliveryPartner.update({ where: { id: p.id }, data: { cashInHand: 524_000 } });
+  log('Arjun Selvam holds ₹5,240 in COD cash (over the ₹5,000 limit)');
+}

@@ -15,7 +15,7 @@ import { seedSettings } from './settings';
 import { seedHotels, seedNotifications, seedSupport } from './extras';
 import { ensurePendingRefund, seedRefunds } from './refunds';
 import { seedOnboarding } from './onboarding';
-import { seedMoney, seedPlans } from './finance';
+import { ensureCodLimitPartner, seedMoney, seedPlans } from './finance';
 import { createSecretBox } from '../../src/modules/auth/mfa/secret-box';
 
 // `pnpm --filter @zoauro/api demo:data` (env from .env.demo): sample data for the demo, through the RUNNING demo API
@@ -212,6 +212,7 @@ async function main(): Promise<void> {
       people.userId.primary,
       log,
     );
+    await ensureCodLimitPartner(db, log);
   } finally {
     await db.$disconnect();
   }
