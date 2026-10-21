@@ -5,6 +5,8 @@ import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'ZOAURO Admin',
+  // the brand mark as the tab icon (without one the browser asks for /favicon.ico and gets a 404)
+  icons: { icon: '/brand/zoauro-logo.jpeg' },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

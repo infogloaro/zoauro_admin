@@ -54,7 +54,10 @@ export function AppShell({
   const [rail, setRail] = useState(false);
   const pathname = usePathname();
   const current = activeItem(menu, pathname);
-  const pending = usePendingCounts(menu.filter((m) => m.status === 'live').map((m) => m.id));
+  const pending = usePendingCounts(
+    menu.filter((m) => m.status === 'live').map((m) => m.id),
+    user.role,
+  );
   // the session's CSRF token for the pages' state-changing calls (lib/csrf.ts)
   useEffect(() => setCsrfToken(csrfToken), [csrfToken]);
   useEffect(() => setRail(readRail()), []);

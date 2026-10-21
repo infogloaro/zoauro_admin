@@ -22,10 +22,16 @@ function useCount(id: string, enabled: boolean, fetch: (signal: AbortSignal) => 
   });
 }
 
-/** Waiting counts by menu entry id (R09 food item requests, R12 partner requests, R13 access requests). */
-export function usePendingCounts(menuIds: readonly string[]): Record<string, number> {
+/**
+ * Waiting counts by menu entry id (R09 food item requests, R12 partner requests, R13 access requests). R13 is the Super
+ * Admin's decision queue: a Zonal Admin's Access Requests entry lists their own asks, so it carries no badge.
+ */
+export function usePendingCounts(
+  menuIds: readonly string[],
+  role: 'SUPER_ADMIN' | 'ZONAL_ADMIN',
+): Record<string, number> {
   const client = useApiClient();
-  const has = (id: string) => menuIds.includes(id);
+  const has = (id: string) => menuIds.includes(id) && (id !== 'R13' || role === 'SUPER_ADMIN');
   const food = useCount(
     'R09',
     has('R09'),
