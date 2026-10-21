@@ -397,6 +397,7 @@ export function OrderDetailPage({
             zoneId: o.zoneId,
             version: o.version,
             deliveryPartnerId: o.deliveryPartnerId,
+            paymentMethod: o.paymentMethod,
           }}
           onClose={() => setAssigning(false)}
           onDone={async () => {

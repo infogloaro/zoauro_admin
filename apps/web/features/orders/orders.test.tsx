@@ -359,6 +359,8 @@ describe('Assign a partner', () => {
     currentOrders: current,
     maxConcurrentOrders: 1,
     cashInHand: 0,
+    codLimitPaise: 500_000,
+    codBlocked: false,
     ratingAvg: null,
     deliveriesCount: 0,
     source: 'APP',
@@ -399,6 +401,7 @@ describe('Assign a partner', () => {
                 zoneId: ZA,
                 version: 4,
                 deliveryPartnerId: null,
+                paymentMethod: 'ONLINE',
               }}
               onClose={() => undefined}
               onDone={onDone}
@@ -420,5 +423,46 @@ describe('Assign a partner', () => {
       }),
     );
     expect(onDone).toHaveBeenCalled();
+  });
+
+  it('D173: a cash order is never offered to a partner over the COD limit; a prepaid one is', async () => {
+    const { AssignPartnerDialog } = await import('./AssignPartnerDialog');
+    const RICH = '0192f1d2-0000-7000-8000-0000000000b3';
+    const get = vi.fn(async () => ({
+      data: [{ ...partner(RICH, 'Suresh', 0), cashInHand: 600_000, codBlocked: true }],
+      meta: { page: 1, pageSize: 50, total: 1, counts: {} },
+    }));
+    const mountFor = (paymentMethod: 'COD' | 'ONLINE') =>
+      render(
+        <QueryClientProvider
+          client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+        >
+          <ApiClientProvider client={{ get, post: vi.fn() } as unknown as ApiClient}>
+            <AssignPartnerDialog
+              order={{
+                id: 'o',
+                orderNo: 'ZO-ANN-000124',
+                zoneId: ZA,
+                version: 4,
+                deliveryPartnerId: null,
+                paymentMethod,
+              }}
+              onClose={() => undefined}
+              onDone={async () => undefined}
+            />
+          </ApiClientProvider>
+        </QueryClientProvider>,
+      );
+    mountFor('COD');
+    expect(
+      ((await screen.findByRole('radio', { name: /Suresh/ })) as HTMLInputElement).disabled,
+    ).toBe(true);
+    expect(screen.getByText('Holds ₹6,000.00 cash, limit ₹5,000.00: settle first')).toBeTruthy();
+    cleanup();
+    mountFor('ONLINE');
+    expect(
+      ((await screen.findByRole('radio', { name: /Suresh/ })) as HTMLInputElement).disabled,
+    ).toBe(false);
+    expect(screen.queryByText(/settle first/)).toBeNull();
   });
 });

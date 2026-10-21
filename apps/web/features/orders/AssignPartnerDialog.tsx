@@ -9,6 +9,7 @@ import { FormAlert } from '../../components/ui/field';
 import { useToast } from '../../components/ui/toast';
 import { useApiClient } from '../../lib/api-client';
 import { cn } from '../../lib/utils';
+import { formatPaise } from '../audit/format';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
 import { CardSkeleton, EmptyState } from '../dashboard/parts';
 
@@ -16,6 +17,9 @@ import { CardSkeleton, EmptyState } from '../dashboard/parts';
 // active, verified, not forced offline; D121: never above the zone's orders-per-partner cap). The list comes from
 // GET /delivery-partners?available=true for the order's zone, least busy first; the API checks everything again and
 // answers PARTNER_AT_CAPACITY / PARTNER_OFFLINE / … when it changed meanwhile. Sends the order's version (If-Match).
+// D173 (ad5b4de): a cash-on-delivery order never goes to a partner holding cash at or above the zone's COD limit
+// (codBlocked); they are listed as blocked with what they hold, and the API refuses them anyway (PARTNER_COD_LIMIT).
+// Prepaid orders are not gated.
 
 const ISSUE_TEXT: Record<string, string> = {
   PARTNER_AT_CAPACITY:
@@ -26,6 +30,10 @@ const ISSUE_TEXT: Record<string, string> = {
   PARTNER_OTHER_ZONE: 'That partner belongs to another zone.',
   ALREADY_ASSIGNED: 'This order already has that partner.',
 };
+
+/** "Holds ₹6,000.00 cash, limit ₹5,000.00: settle first" */
+export const codBlockedText = (cashInHandPaise: number, limitPaise: number | null) =>
+  `Holds ${formatPaise(cashInHandPaise)} cash${limitPaise === null ? '' : `, limit ${formatPaise(limitPaise)}`}: settle first`;
 
 export function AssignPartnerDialog({
   order,
@@ -38,6 +46,8 @@ export function AssignPartnerDialog({
     zoneId: string;
     version: number;
     deliveryPartnerId: string | null;
+    /** COD orders are gated by the partner's cash in hand (D173) */
+    paymentMethod: 'ONLINE' | 'COD' | 'WALLET';
   };
   onClose: () => void;
   onDone: () => Promise<void>;
@@ -73,10 +83,16 @@ export function AssignPartnerDialog({
       await onDone();
     } catch (err) {
       const issue = isApiError(err) ? err.details[0]?.issue : undefined;
+      const meta = isApiError(err) ? err.meta : undefined;
       setAlert(
         isApiError(err, 'STALE_VERSION')
           ? 'This order changed a moment ago. Close and check it again.'
-          : ((issue && ISSUE_TEXT[issue]) ??
+          : issue === 'PARTNER_COD_LIMIT'
+            ? `That partner cannot take cash orders now. ${codBlockedText(
+                typeof meta?.['cashInHandPaise'] === 'number' ? meta['cashInHandPaise'] : 0,
+                typeof meta?.['limitPaise'] === 'number' ? meta['limitPaise'] : null,
+              )}.`
+            : ((issue && ISSUE_TEXT[issue]) ??
               (isApiError(err) ? err.message || TRY_AGAIN : TRY_AGAIN)),
       );
       void partners.refetch();
@@ -113,20 +129,22 @@ export function AssignPartnerDialog({
             {rows.map((p) => {
               const full =
                 p.maxConcurrentOrders !== null && p.currentOrders >= p.maxConcurrentOrders;
+              const codBlocked = order.paymentMethod === 'COD' && p.codBlocked;
+              const off = full || codBlocked;
               return (
                 <label
                   key={p.id}
                   className={cn(
                     'flex items-center gap-3 rounded-input border p-3 text-sm',
                     picked === p.id ? 'border-primary bg-primary-soft' : 'border-line',
-                    full && 'opacity-60',
+                    off && 'opacity-60',
                   )}
                 >
                   <input
                     type="radio"
                     name="partner"
                     value={p.id}
-                    disabled={full}
+                    disabled={off}
                     checked={picked === p.id}
                     onChange={() => setPicked(p.id)}
                   />
@@ -135,6 +153,11 @@ export function AssignPartnerDialog({
                     <span className="block text-xs text-muted">
                       {[p.vehicleType, p.vehicleNo, p.area].filter(Boolean).join(' · ') || '—'}
                     </span>
+                    {codBlocked ? (
+                      <span className="block text-xs font-medium text-danger">
+                        {codBlockedText(p.cashInHand, p.codLimitPaise)}
+                      </span>
+                    ) : null}
                   </span>
                   <span className="text-xs tabular-nums text-muted">
                     {p.maxConcurrentOrders !== null
