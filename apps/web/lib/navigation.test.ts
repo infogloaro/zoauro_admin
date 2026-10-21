@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Customers, Support Tickets, Global Search, Payments, Refunds and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Customers, Support Tickets, Global Search, Payments, Refunds, Vendor Onboarding and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -76,6 +76,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M19-SEC',
       'M20-SUP',
       'NEW-HOTEL',
+      'R01',
       'R09',
       'R12',
       'R13',
@@ -127,7 +128,7 @@ describe('menu by role', () => {
     ];
     expect(menuFor('ZONAL_ADMIN', zones).map((m) => m.label)).toEqual([
       'Dashboard',
-      'Restaurant Onboarding',
+      'Vendor Onboarding',
       'Access Requests',
       'Restaurants',
       'Orders',
@@ -184,8 +185,11 @@ describe('menu by role', () => {
     const zones = [zone('A', ['orders:view'])];
     expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)).toBeNull(); // live
     expect(
-      comingSoonModule('restaurant-requests', 'ZONAL_ADMIN', [zone('A', ['restaurants:view'])])?.id,
-    ).toBe('R01');
+      comingSoonModule('cod-settlement', 'ZONAL_ADMIN', [zone('A', ['settlements:view'])])?.id,
+    ).toBe('M14');
+    expect(
+      comingSoonModule('restaurant-requests', 'ZONAL_ADMIN', [zone('A', ['restaurants:view'])]),
+    ).toBeNull(); // live as Vendor Onboarding (D170)
     expect(comingSoonModule('access-requests', 'ZONAL_ADMIN', zones)).toBeNull(); // live
     expect(comingSoonModule('settings', 'ZONAL_ADMIN', zones)).toBeNull();
     expect(comingSoonModule('customers', 'ZONAL_ADMIN', zones)).toBeNull();

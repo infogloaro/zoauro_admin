@@ -143,30 +143,14 @@ export const NAV_MODULES: readonly NavModule[] = [
   {
     id: 'R01',
     slug: 'restaurant-requests',
-    label: 'Restaurant Onboarding',
+    label: 'Vendor Onboarding',
     group: 'requests',
     icon: 'store',
     description:
-      'Queue of restaurant listing requests received from the vendor app: review, approve, reject or ask for more information.',
-    status: 'coming-soon',
-    zonal: { permission: 'restaurants' },
-    blueprint: {
-      phase: 'Phase 1',
-      roadmap: ['R01', 'R02'],
-      screens: [
-        'Request queue with status filters, search and zone filter',
-        'Request detail: restaurant profile, owner and contact, proposed zone, address, documents, reviewer notes, timeline',
-        'Decision dialogs: approve, reject (reason required), request more information (reason required)',
-      ],
-      flow: ['Submitted', 'Under Review', 'More Information Required', 'Approved', 'Rejected'],
-      rules: [
-        'Request status and the restaurant’s operational status are separate fields',
-        'Approval does not make the restaurant available while verification or activation steps remain',
-        'Duplicate or conflicting active requests are prevented; every decision is kept in the history',
-        'The restaurant-facing registration form is outside this panel; requests arrive through the Integration API',
-      ],
-      dependsOn: ['Restaurants (M06)', 'Integration Hub (M21)'],
-    },
+      'One queue for restaurant, shop, Home Food and hotel applications: start a review, ask for more information, decide (D170).',
+    status: 'live',
+    superAdminHref: '/super-admin/vendor-onboarding',
+    zonal: { href: '/zone/vendor-onboarding', permission: 'restaurants' },
   },
   {
     id: 'R09',
