@@ -491,7 +491,10 @@ export async function createAuthTestEnv() {
       createPaymentsModule({ prisma }).router,
       createSettlementsModule({
         prisma,
+        appOrigin: APP_ORIGIN,
         cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
+        codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+        clock: clock.now,
       }).router,
       partners.router,
       notifications.router,

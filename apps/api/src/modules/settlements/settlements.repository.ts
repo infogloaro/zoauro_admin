@@ -1,8 +1,11 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import type { CashSettlementListQuery, CodBalanceQuery, PayoutListQuery } from '@zoauro/shared';
+import type { AuditTx } from '../../lib/audit';
+import { auditTx } from '../../lib/db';
 
 // The only file of the settlements module that imports Prisma. Cash settlements, partners' COD balances and payouts each
-// carry their own zone; a Zonal Admin reads them in zones where they hold settlements:view or payouts:view.
+// carry their own zone; a Zonal Admin reads them in zones where they hold settlements:view or payouts:view. A hand-in is
+// recorded under a row lock on the partner, with its ledger entries, audit row and outbox event in one transaction.
 
 export type Scope = 'ALL' | readonly string[];
 const zoneWhere = (scope: Scope) => (scope === 'ALL' ? {} : { zoneId: { in: [...scope] } });
@@ -56,7 +59,66 @@ const payoutSelect = {
 export type PayoutRecord = Prisma.PayoutGetPayload<{ select: typeof payoutSelect }>;
 
 export class SettlementsRepository {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(private readonly db: Prisma.TransactionClient) {}
+
+  // ---- recording a hand-in (doc 16 §2) -------------------------------------------------------------------------------
+
+  /** The partner under a row lock: the cash it holds now and its zone. */
+  async lockPartner(id: string) {
+    const rows = await this.db.$queryRaw<
+      { id: string; name: string; zone_id: string | null; cash_in_hand: number }[]
+    >`SELECT id, name, zone_id, cash_in_hand FROM delivery_partners
+      WHERE id = ${id}::uuid AND deleted_at IS NULL FOR UPDATE`;
+    const p = rows[0];
+    return p ? { id: p.id, name: p.name, zoneId: p.zone_id, cashInHand: p.cash_in_hand } : null;
+  }
+
+  async insertSettlement(row: {
+    id: string;
+    deliveryPartnerId: string;
+    zoneId: string;
+    expectedAmount: number;
+    handedInAmount: number;
+    variance: number;
+    settledBy: string;
+    settledAt: Date;
+    note: string | null;
+  }): Promise<SettlementRecord> {
+    return this.db.cashSettlement.create({ data: row, select: settlementSelect });
+  }
+
+  async setCashInHand(partnerId: string, paise: number): Promise<void> {
+    await this.db.deliveryPartner.update({ where: { id: partnerId }, data: { cashInHand: paise } });
+  }
+
+  async insertLedger(
+    rows: {
+      id: string;
+      account: string;
+      debit: number;
+      credit: number;
+      refType: string;
+      refId: string;
+    }[],
+  ): Promise<void> {
+    await this.db.ledgerEntry.createMany({ data: rows.map((r) => ({ ...r, orderId: null })) });
+  }
+
+  async insertOutbox(row: {
+    id: string;
+    eventType: string;
+    zoneId: string;
+    payload: Record<string, unknown>;
+  }): Promise<void> {
+    await this.db.outbox.create({
+      data: {
+        id: row.id,
+        eventType: row.eventType,
+        zoneId: row.zoneId,
+        payloadJson: row.payload as Prisma.InputJsonValue,
+      },
+    });
+  }
 
   // ---- cash settlements ----------------------------------------------------------------------------------------------
 
@@ -267,5 +329,25 @@ export class SettlementsRepository {
       at: r.decidedAt ?? r.requestedAt,
       paise: r.vendorSharePaise,
     }));
+  }
+}
+
+export interface SettlementsTx {
+  repo: SettlementsRepository;
+  audit: AuditTx;
+}
+
+export class SettlementsDatabase {
+  readonly repo: SettlementsRepository;
+
+  constructor(private readonly prisma: PrismaClient) {
+    this.repo = new SettlementsRepository(prisma);
+  }
+
+  transaction<T>(fn: (tx: SettlementsTx) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(
+      (tx) => fn({ repo: new SettlementsRepository(tx), audit: auditTx(tx) }),
+      { maxWait: 5_000, timeout: 15_000 },
+    );
   }
 }

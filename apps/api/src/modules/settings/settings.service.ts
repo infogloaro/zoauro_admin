@@ -7,6 +7,7 @@ import {
   orderPreorderSchema,
   orderUnpaidTimeoutSchema,
   payoutCycleSchema,
+  deliveryCodLimitSchema,
   sessionRememberSchema,
   supportSlaSchema,
   claimTimingSchema,
@@ -552,6 +553,12 @@ export class SettingsReader {
   /** D152 */
   async payoutCycleDays(zoneId: string): Promise<number> {
     return (await this.effective('payouts.cycleDays', payoutCycleSchema, zoneId)).days;
+  }
+
+  /** D173: the COD cash a delivery partner may hold in the zone before new COD orders stop. */
+  async codLimitPaise(zoneId: string): Promise<number> {
+    return (await this.effective('delivery.codLimitPaise', deliveryCodLimitSchema, zoneId))
+      .limitPaise;
   }
 
   /** D165: the highest delivery charge any zone may have (platform-wide). */

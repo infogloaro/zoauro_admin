@@ -480,6 +480,12 @@ export const deliveryMaxConcurrentOrdersSchema = z
   .object({ perPartner: z.number().int().min(1).max(MAX_ORDERS_PER_PARTNER) })
   .strict();
 
+/** D173: the COD cash a delivery partner may hold; at or above it the partner gets no new COD orders until settled. */
+export const MAX_COD_LIMIT_PAISE = 1_00_000_00;
+export const deliveryCodLimitSchema = z
+  .object({ limitPaise: z.number().int().min(0).max(MAX_COD_LIMIT_PAISE) })
+  .strict();
+
 /** D68: the provider and its non-secret identifiers; the API key stays in the server environment. */
 export const SMS_PROVIDER_CHOICES = ['MSG91', 'NONE'] as const;
 export const smsProviderSchema = z
@@ -663,6 +669,20 @@ export const SETTINGS: readonly SettingDef[] = [
     editable: true,
     appsRead: false,
     effect: pending('Orders'),
+  },
+  {
+    key: 'delivery.codLimitPaise',
+    group: 'orders',
+    label: 'COD cash limit per delivery partner',
+    description:
+      'The cash on delivery money one delivery partner may hold. At or above it the partner gets no new cash on delivery orders until the cash is settled.',
+    schema: deliveryCodLimitSchema,
+    default: { limitPaise: 5_000_00 },
+    zoneOverride: true,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: pending('Order assignment'),
   },
   {
     key: 'orders.unpaidTimeoutMinutes',

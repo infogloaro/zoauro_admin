@@ -405,7 +405,8 @@ export interface paths {
         /** COD settlement history: per partner the amount expected, handed in and the variance (?varianceOnly=true), who settled it and when; totals for the filters */
         get: operations["listCashSettlements"];
         put?: never;
-        post?: never;
+        /** Record the cash a delivery partner handed in (doc 16 §2): expectedPaise is the cash in hand the admin saw (409 when it changed since); a difference needs a note; the partner then holds expected minus handed in. Ledger, audit and settlement.confirmed for the partner app */
+        post: operations["createCashSettlement"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5792,6 +5793,107 @@ export interface operations {
             };
         };
     };
+    createCashSettlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    deliveryPartnerId: string;
+                    expectedPaise: number;
+                    handedInPaise: number;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Recorded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        cashInHandAfterPaise: number;
+                        expectedPaise: number;
+                        handedInPaise: number;
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        partner: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: date-time */
+                        settledAt: string;
+                        settledBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        variancePaise: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listCodBalances: {
         parameters: {
             query?: {
@@ -5817,12 +5919,14 @@ export interface operations {
                     "application/json": {
                         data: {
                             cashInHandPaise: number;
+                            codLimitPaise: number;
                             lastSettlement: {
                                 handedInPaise: number;
                                 /** Format: date-time */
                                 settledAt: string;
                                 variancePaise: number;
                             } | null;
+                            overLimit: boolean;
                             partner: {
                                 /** Format: uuid */
                                 id: string;

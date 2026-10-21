@@ -37,6 +37,7 @@ describe('settings registry', () => {
       'orders.preorder',
       'delivery.autoAssign',
       'payouts.cycleDays',
+      'delivery.codLimitPaise',
     ])
       expect(settingDef(k), k).toMatchObject({ zoneOverride: true, reauth: 'PASSWORD' });
   });

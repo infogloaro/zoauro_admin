@@ -62849,6 +62849,218 @@
           "permission": "settlements:view",
           "zone": "query"
         }
+      },
+      "post": {
+        "operationId": "createCashSettlement",
+        "tags": [
+          "settlements"
+        ],
+        "summary": "Record the cash a delivery partner handed in (doc 16 §2): expectedPaise is the cash in hand the admin saw (409 when it changed since); a difference needs a note; the partner then holds expected minus handed in. Ledger, audit and settlement.confirmed for the partner app",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "deliveryPartnerId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "expectedPaise": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "handedInPaise": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "deliveryPartnerId",
+                  "expectedPaise",
+                  "handedInPaise"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "partner": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "expectedPaise": {
+                      "type": "integer"
+                    },
+                    "handedInPaise": {
+                      "type": "integer"
+                    },
+                    "variancePaise": {
+                      "type": "integer"
+                    },
+                    "settledBy": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "settledAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "cashInHandAfterPaise": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "partner",
+                    "expectedPaise",
+                    "handedInPaise",
+                    "variancePaise",
+                    "settledBy",
+                    "settledAt",
+                    "note",
+                    "cashInHandAfterPaise"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "settlements:add",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "settlements",
+          "action": "cod_settlement.confirmed"
+        }
       }
     },
     "/cash-settlements/balances": {
@@ -62991,6 +63203,12 @@
                           "cashInHandPaise": {
                             "type": "integer"
                           },
+                          "codLimitPaise": {
+                            "type": "integer"
+                          },
+                          "overLimit": {
+                            "type": "boolean"
+                          },
                           "lastSettlement": {
                             "type": [
                               "object",
@@ -63019,6 +63237,8 @@
                           "partner",
                           "zone",
                           "cashInHandPaise",
+                          "codLimitPaise",
+                          "overLimit",
                           "lastSettlement"
                         ]
                       }

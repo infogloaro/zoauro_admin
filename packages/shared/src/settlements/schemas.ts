@@ -67,6 +67,30 @@ export const cashSettlementListResponseSchema = z.object({
 });
 export type CashSettlementListResponse = z.infer<typeof cashSettlementListResponseSchema>;
 
+/**
+ * POST /cash-settlements (doc 09, doc 16 §2): the cash a delivery partner handed in. expectedPaise is the cash in hand the
+ * admin saw (409 when it has changed since, e.g. a second click); a difference between the two needs a note.
+ */
+export const cashSettlementCreateSchema = z
+  .object({
+    deliveryPartnerId: z.uuid(),
+    expectedPaise: z.number().int().min(0),
+    handedInPaise: z.number().int().min(0).max(1_00_000_00),
+    note: z.string().trim().min(3).max(500).optional(),
+  })
+  .strict()
+  .refine((v) => v.handedInPaise === v.expectedPaise || v.note !== undefined, {
+    path: ['note'],
+    message: 'explain the difference between the cash expected and handed in',
+  });
+export type CashSettlementCreateInput = z.infer<typeof cashSettlementCreateSchema>;
+
+export const cashSettlementCreatedSchema = cashSettlementRowSchema.extend({
+  /** what the partner still holds after this hand-in (negative = handed in more than held) */
+  cashInHandAfterPaise: paise,
+});
+export type CashSettlementCreated = z.infer<typeof cashSettlementCreatedSchema>;
+
 // ---- COD balances (D173) ---------------------------------------------------------------------------------------------
 
 export const COD_BALANCE_SORT_FIELDS = ['cashInHand', 'name'] as const;
@@ -87,6 +111,10 @@ export const codBalanceRowSchema = z.object({
   partner: z.object({ id: z.uuid(), name: z.string(), status: z.string(), isOnline: z.boolean() }),
   zone: zoneRef,
   cashInHandPaise: paise,
+  /** settings delivery.codLimitPaise of the zone (D173) */
+  codLimitPaise: paise,
+  /** at or above the limit: no new COD orders until settled */
+  overLimit: z.boolean(),
   lastSettlement: z
     .object({ settledAt: isoOut, handedInPaise: paise, variancePaise: paise })
     .nullable(),

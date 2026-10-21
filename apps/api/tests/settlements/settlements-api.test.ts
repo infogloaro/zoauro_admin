@@ -120,6 +120,12 @@ beforeAll(async () => {
      VALUES ($1, 'payouts.cycleDays', '{"days": 14}', $2, now())`,
     [zoneB, saId],
   );
+  // D173: zone A lets a partner hold ₹1,000 of COD cash; zone B keeps the ₹5,000 default
+  await q(
+    `INSERT INTO zone_settings (zone_id, key, value_json, updated_by, updated_at)
+     VALUES ($1, 'delivery.codLimitPaise', '{"limitPaise": 100000}', $2, now())`,
+    [zoneA, saId],
+  );
 
   riderA = await rider(zoneA, 'Arun rider', 125_000);
   await rider(zoneA, 'Bala rider', 0);
@@ -138,7 +144,7 @@ beforeAll(async () => {
   await vendorRefund(kitchenA, zoneA, 3_000, '2026-10-18T23:00:00Z');
   await vendorRefund(kitchenA, zoneA, 9_000, '2026-10-19T08:00:00Z');
 
-  const full = await env.createProfile({ settlements: ['view'], payouts: ['view'] });
+  const full = await env.createProfile({ settlements: ['view', 'add'], payouts: ['view'] });
   const noPayouts = await env.createProfile({ settlements: ['view'] });
   const a = await env.createUser('ZONAL_ADMIN', { emailPrefix: 'st-a' });
   await env.assignZone(a.id, zoneA, saId, { profileId: full });
@@ -193,13 +199,15 @@ describe('COD settlement (D173)', () => {
     ]);
     expect(r.body.data[0]).toMatchObject({
       cashInHandPaise: 125_000,
+      codLimitPaise: 100_000,
+      overLimit: true,
       lastSettlement: {
         settledAt: '2026-10-20T14:00:00.000Z',
         handedInPaise: 55_000,
         variancePaise: -5_000,
       },
     });
-    expect(r.body.data[1].lastSettlement).toBeNull();
+    expect(r.body.data[1]).toMatchObject({ lastSettlement: null, overLimit: false });
     expect(r.body.meta.counts).toEqual({ partners: 2, withCash: 1, cashInHandPaise: 125_000 });
     const withCash = await client(adminA, app).get('/cash-settlements/balances?withCash=true');
     expect(withCash.body.meta.total).toBe(1);
@@ -273,5 +281,80 @@ describe('scope: SuperAdmin, Admin(A), Admin(A + B without payouts), Admin(none)
       expect(none.body.data, path).toEqual([]);
     }
     expect(zonesOf((await client(sa, app).get('/payouts')).body)).toEqual([zoneA, zoneB].sort());
+  });
+});
+
+describe('recording a hand-in (doc 16 §2)', () => {
+  it('a short hand-in needs a note; the partner keeps the rest; ledger, audit and the partner-app event', async () => {
+    const body = { deliveryPartnerId: riderA, expectedPaise: 125_000, handedInPaise: 120_000 };
+    const noNote = await client(adminA, app).post('/cash-settlements', body);
+    expect(noNote.status).toBe(422);
+    const r = await client(adminA, app).post('/cash-settlements', {
+      ...body,
+      note: 'Short by ₹50, brings it tomorrow',
+    });
+    expect(r.status, JSON.stringify(r.body)).toBe(201);
+    expect(r.body).toMatchObject({
+      partner: { id: riderA },
+      expectedPaise: 125_000,
+      handedInPaise: 120_000,
+      variancePaise: -5_000,
+      cashInHandAfterPaise: 5_000,
+      note: 'Short by ₹50, brings it tomorrow',
+    });
+    expect(r.body.zone.id).toBe(zoneA);
+    // the same form submitted again: the cash in hand has changed since
+    const again = await client(adminA, app).post('/cash-settlements', {
+      ...body,
+      note: 'Short by ₹50, brings it tomorrow',
+    });
+    expect(again.status).toBe(409);
+
+    const partner = await q(`SELECT cash_in_hand FROM delivery_partners WHERE id = $1`, [riderA]);
+    expect(partner.rows[0]).toEqual({ cash_in_hand: 5_000 });
+    const ledger = await q(
+      `SELECT account, debit, credit FROM ledger_entries WHERE ref_type = 'cash_settlement' AND ref_id = $1
+       ORDER BY account`,
+      [r.body.id],
+    );
+    expect(ledger.rows).toEqual([
+      { account: 'PARTNER_COD_RECEIVABLE', debit: 0, credit: 120_000 },
+      { account: 'PLATFORM_CASH', debit: 120_000, credit: 0 },
+    ]);
+    const audit = await q(`SELECT action, zone_id FROM audit_logs WHERE entity_id = $1`, [
+      r.body.id,
+    ]);
+    expect(audit.rows).toEqual([{ action: 'cod_settlement.confirmed', zone_id: zoneA }]);
+    const event = await q(
+      `SELECT payload_json->'audience'->>'partnerId' AS partner, payload_json->'data' AS data FROM outbox
+       WHERE event_type = 'settlement.confirmed' AND payload_json->'data'->>'settlementId' = $1`,
+      [r.body.id],
+    );
+    expect(event.rows).toEqual([
+      {
+        partner: riderA,
+        data: { settlementId: r.body.id, confirmedPaise: 120_000, variancePaise: -5_000 },
+      },
+    ]);
+    const balance = await client(adminA, app).get('/cash-settlements/balances?withCash=true');
+    expect(balance.body.data[0]).toMatchObject({ cashInHandPaise: 5_000, overLimit: false });
+  });
+
+  it('scope: 404 outside the zones, 403 without settlements:add there', async () => {
+    const body = { deliveryPartnerId: riderB, expectedPaise: 40_000, handedInPaise: 40_000 };
+    expect((await client(adminA, app).post('/cash-settlements', body)).status).toBe(404);
+    expect((await client(adminAB, app).post('/cash-settlements', body)).status).toBe(403);
+    expect((await client(adminNone, app).post('/cash-settlements', body)).status).toBe(403);
+    expect(
+      (
+        await client(sa, app).post('/cash-settlements', {
+          ...body,
+          deliveryPartnerId: '0192f1d2-0000-7000-8000-0000000000ff',
+        })
+      ).status,
+    ).toBe(404);
+    const exact = await client(sa, app).post('/cash-settlements', body);
+    expect(exact.status, JSON.stringify(exact.body)).toBe(201);
+    expect(exact.body).toMatchObject({ variancePaise: 0, cashInHandAfterPaise: 0 });
   });
 });

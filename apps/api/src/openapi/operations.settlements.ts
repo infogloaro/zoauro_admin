@@ -1,4 +1,6 @@
 import {
+  cashSettlementCreatedSchema,
+  cashSettlementCreateSchema,
   cashSettlementListQuerySchema,
   cashSettlementListResponseSchema,
   codBalanceListResponseSchema,
@@ -21,6 +23,19 @@ export const SETTLEMENT_OPERATIONS: OperationDef[] = [
     access: { kind: 'permission', permission: 'settlements:view', zone: 'query' },
     query: cashSettlementListQuerySchema,
     response: { status: 200, schema: cashSettlementListResponseSchema, description: 'One page' },
+  },
+  {
+    operationId: 'createCashSettlement',
+    method: 'post',
+    path: '/cash-settlements',
+    tags: ['settlements'],
+    summary:
+      'Record the cash a delivery partner handed in (doc 16 §2): expectedPaise is the cash in hand the admin saw (409 when it changed since); a difference needs a note; the partner then holds expected minus handed in. Ledger, audit and settlement.confirmed for the partner app',
+    access: { kind: 'permission', permission: 'settlements:add', zone: 'none' },
+    audit: { module: 'settlements', action: 'cod_settlement.confirmed' },
+    body: cashSettlementCreateSchema,
+    response: { status: 201, schema: cashSettlementCreatedSchema, description: 'Recorded' },
+    errors: ['NOT_FOUND', 'CONFLICT'],
   },
   {
     operationId: 'listCodBalances',

@@ -98,8 +98,8 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | PATCH | /delivery-partners/{id} | delivery:edit | |
 | POST | /delivery-partners/{id}/verification | delivery:status | |
 | POST | /delivery-partners/{id}/force-offline | delivery:status | |
-| GET/POST | /cash-settlements | settlements:* | COD settlement per partner. GET (built): the history, expected / handed in / variance, `?deliveryPartnerId`, `?varianceOnly`, totals. POST (record a hand-in) not built yet |
-| GET | /cash-settlements/balances | settlements:view | D173: each delivery partner's cash in hand with the last settlement, `?withCash`; added 2026-10-21 (doc 32) |
+| GET/POST | /cash-settlements | settlements:* | COD settlement per partner. GET (built): the history, expected / handed in / variance, `?deliveryPartnerId`, `?varianceOnly`, totals. POST (settlements:add in the partner's zone): `{deliveryPartnerId, expectedPaise, handedInPaise, note?}`; 409 when the cash in hand changed since; a difference needs a note; the partner then holds expected − handed in |
+| GET | /cash-settlements/balances | settlements:view | D173: each delivery partner's cash in hand with the last settlement and the zone's `delivery.codLimitPaise` (`overLimit`), `?withCash`; added 2026-10-21 (doc 32) |
 | GET | /payments, /payments/{id} | payments:view | D159 filters (method, status incl. REFUND_PROCESSING (D160), zone, vendor, dates); detail lists the refunds |
 | POST | /orders/{id}/refunds | refunds:add | idempotent; within the requester's own limits (the member's per refund and per day for the order's zone, IST day; a Super Admin's are the zone caps) approved at once, else PENDING_APPROVAL (D187) |
 | GET | /refunds?status=PENDING_APPROVAL, /refunds/{id} | refunds:view | also `?awaitingSecondApproval=true` (D95) and `?status=REQUESTED` (customer reports, D180) |

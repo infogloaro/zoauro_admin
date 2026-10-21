@@ -344,7 +344,9 @@ const app = createApp({
       // D173 COD settlement and D152 payouts, read only (the cycle from settings payouts.cycleDays)
       createSettlementsModule({
         prisma,
+        appOrigin: new URL(env.APP_URL).origin,
         cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
+        codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
       }).router,
       partners.router,
       notifications.router,
