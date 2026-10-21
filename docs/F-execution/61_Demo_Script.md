@@ -114,14 +114,14 @@ Talking point: management can change prices, limits and rules any time, per zone
 
 ### Act 4. Vendors: onboarding and managing (10 min)
 1. **Requests & approvals → Vendor onboarding** — Today (fix pending: the row buttons Start review / Decide / Ask for more info are covered by the row link; the list itself is Ready). One queue for Restaurants, Shops and Home Food (cloud kitchens are Home Food, D168); stages Submitted, Under review, More info, Decided; waiting-time colours at 24 h and 48 h; Needs a zone (Super Admin only).
-2. Open a submitted vendor — Ready. Check each document (FSSAI, GST, PAN, bank): view, accept or reject with a note. Then **Verify** (or **Reject** with a reason, or **Ask for more info** — Today, same fix).
+2. Open a submitted **restaurant or Home Food** vendor (not a hotel: hotel onboarding has no documents step yet) — Ready. Check each document (FSSAI, GST, PAN, bank): view, accept or reject with a note. Then **Verify** (or **Reject** with a reason, or **Ask for more info** — Today, same fix).
 3. **Activate** — Ready. Only a verified vendor can go live. Suspend stops new orders; open orders finish.
 4. **Service Management → Restaurants / Home Food** — Ready. Status tabs with counts, search, masked phone and email; **Reveal** is audited.
 5. **Menus & food items** — Ready. Items, categories, stock, admin disable, bulk price change (all or nothing).
 6. **Food item requests** — Ready. A vendor's price or name change waits for approval; the old value stays live until approved.
 
 ### Act 5. Hotels (5 min)
-1. **Hotels** — Ready. Hotels with rooms and capacity; room bookings (no overbooking); table bookings.
+1. **Hotels** — Ready. Hotels with rooms and capacity; room bookings (no overbooking); table bookings. A hotel also appears in the onboarding queue, but its documents step is not built yet: show documents on a restaurant instead.
 2. **Pre-orders** — Today. An order for a chosen time and place; dispatch starts at the right moment; reschedule or cancel.
 3. **Claim / lock** — Today. While one admin handles a hotel, another sees an alert and can request a takeover (D174).
 
@@ -129,7 +129,7 @@ Talking point: management can change prices, limits and rules any time, per zone
 1. **Orders** — Ready. Status tabs with counts, filters (payment method, vendor type, date), zone column.
 2. Open an order — Ready. Items, payment, customer, timeline with who did each step; move the status; **Assign partner** (only partners in the same zone, under their limit); **Cancel** with a reason. A second admin changing the same order gets "This record changed. Reload".
 3. **Order overview** — Ready. Open, delayed and unassigned orders, cancellations and average times.
-4. **Delivery partners** and **Delivery partner requests** — Ready. Verify documents, activate, force offline; cash in hand.
+4. **Delivery partners** and **Delivery partner requests** — Ready. Verify documents, activate, force offline; cash in hand. Partner requests have **Verify** and **Reject** only (no Start review or Ask for more info), so show Verify.
 
 ### Act 7. Customers (4 min)
 1. **Customers** — Ready. List and detail for both roles; addresses, orders, masked contact with audited reveal; block or unblock.
@@ -176,8 +176,8 @@ Checked on 2026-10-21 against the frozen demo build of commit `217e3e1` on `zoau
 
 | Account | Pages checked | Result |
 |---|---|---|
-| Arun (primary Super Admin) | 53 | No errors |
-| Meena (Admin, granted areas) | 43 | Dashboard only: some cards show "Try again" (fix pending) |
+| Arun (primary Super Admin) | 52 | No errors |
+| Meena (Admin, granted areas) | 42 | No errors (dashboard fix 796e13a confirmed) |
 | Karthik (Zonal Admin, two zones) | 29 | No errors |
 | Priya (Zonal Admin, one zone) | 15 | No errors |
 | Suresh (Zonal Admin, Tiruppur) | 24 | No errors |
@@ -185,5 +185,9 @@ Checked on 2026-10-21 against the frozen demo build of commit `217e3e1` on `zoau
 **Zone isolation:** each Zonal Admin's restaurant, Home Food, order and delivery-partner lists show only their own zones, and a record from another zone answers "not found".
 
 **Live actions checked in the database:** approving Karthik's access request (approved after the password check); approving the refund waiting for approval; Karthik's ₹600 refund going to Super Admin approval (his limit is ₹500); approving the biryani promotion (scheduled); assigning a partner to a ready order. The onboarding queue actions wait for the row-button fix.
+
+Rechecked at 17:00 on the next frozen build with fresh data: all five accounts clean, isolation 12 of 12. Onboarding **Start review** now works (the row-button fix); **Decide** and **Ask for more info** are still to be rechecked.
+
+**Known risk:** with the build sessions running, the laptop had only 0.14 GB of memory free and the demo API briefly lost its database connection, so a sign-in failed with "Something went wrong". Stopping all build sessions an hour before the demo (D189) removes this; if it ever happens, wait a few seconds and try again.
 
 Pages marked "Soon" in the menu are the roadmap and are not counted as errors.
