@@ -209,6 +209,11 @@ export class OrdersService {
       clock: () => Date;
       /** D121: effective `delivery.maxConcurrentOrders` for the zone */
       maxConcurrentOrders: (zoneId: string) => Promise<number>;
+      /**
+       * D169: after an order moved to DELIVERED (committed): the rewards module credits the points (its own
+       * transaction, idempotent per order; nothing when loyalty is off, D101). A failure never undoes the delivery.
+       */
+      onDelivered?: (orderId: string) => Promise<unknown>;
     },
   ) {}
 
@@ -224,7 +229,27 @@ export class OrdersService {
   }
 
   /** POST /orders/{id}/transition: every doc 10 move except cancel and assign (their own routes). */
-  transition(
+  async transition(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    input: TransitionOrderInput,
+  ): Promise<OrderWriteResponse> {
+    const result = await this.transitionInTx(ctx, id, version, input);
+    if (result.status === 'DELIVERED' && this.deps.onDelivered) {
+      try {
+        await this.deps.onDelivered(id);
+      } catch (err) {
+        // only the class name: messages can carry SQL or personal data
+        console.error(
+          `reward earn after delivery failed (${err instanceof Error ? err.name : 'unknown'})`,
+        );
+      }
+    }
+    return result;
+  }
+
+  private transitionInTx(
     ctx: AuthContext,
     id: string,
     version: number,
