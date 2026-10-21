@@ -9,6 +9,8 @@ export const GENERIC_SIGN_IN_ERROR = 'The email or password is not correct.';
 export const GENERIC_CODE_ERROR = 'That code didn’t work. Check it and try again.';
 export const SIGN_IN_ENDED = 'Your sign-in has ended. Sign in again.';
 export const TRY_AGAIN = 'Something went wrong. Try again.';
+/** 503 SERVICE_UNAVAILABLE (899e805): a short database hiccup the API tells apart from a failure; retrying works. */
+export const BUSY = 'The system is busy. Please try again in a moment.';
 
 const { maxAttempts, lockMinutes } = DEFAULT_SECURITY_POLICY.lockout;
 /**
@@ -20,11 +22,15 @@ export const LOCK_POLICY_HINT = `After ${maxAttempts} failed attempts the accoun
 export const isApiError = (err: unknown, code?: string): err is ApiError =>
   err instanceof ApiError && (code === undefined || err.code === code);
 
+/** The text for a failure nothing more specific explains: busy on a 503, otherwise the generic one. */
+export const failureText = (err: unknown): string =>
+  isApiError(err, 'SERVICE_UNAVAILABLE') ? BUSY : TRY_AGAIN;
+
 export function signInErrorMessage(err: unknown): string {
   if (isApiError(err, 'RATE_LIMITED'))
     return 'Too many attempts from here. Wait a few minutes and try again.';
   if (isApiError(err) && (err.status === 401 || err.status === 403)) return GENERIC_SIGN_IN_ERROR;
-  return TRY_AGAIN;
+  return failureText(err);
 }
 
 /**

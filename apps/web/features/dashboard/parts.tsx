@@ -3,19 +3,35 @@
 import { ApiError } from '@zoauro/api-client';
 import { CircleAlert, RefreshCw, SearchX } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { isBusyError, recentlyBusy } from '../../lib/busy';
 import { cn } from '../../lib/utils';
 
 // Small pieces shared by the dashboards: card states and a labelled proportion bar (greeting and dates: time.ts).
 
-/** A card's error state with a retry button (AGENTS.md: loading / empty / error on every view). */
-export function CardError({ what, onRetry }: { what: string; onRetry: () => void }) {
+/**
+ * A card's error state with a retry button (AGENTS.md: loading / empty / error on every view). A 503 (the error given,
+ * or one seen by any query in the last minute) says the system is busy instead: retrying in a moment works.
+ */
+export function CardError({
+  what,
+  onRetry,
+  error,
+}: {
+  what: string;
+  onRetry: () => void;
+  error?: unknown;
+}) {
+  const busy = error === undefined ? recentlyBusy() : isBusyError(error);
   return (
     <div
       role="alert"
       className="flex flex-col items-start gap-3 rounded-input bg-danger-soft p-4 text-sm"
     >
       <p className="flex items-center gap-2 font-medium text-danger">
-        <CircleAlert aria-hidden className="size-4" /> {what} could not be loaded.
+        <CircleAlert aria-hidden className="size-4" />{' '}
+        {busy
+          ? `${what} could not be loaded: the system is busy. Please try again in a moment.`
+          : `${what} could not be loaded.`}
       </p>
       <button
         type="button"
@@ -62,7 +78,7 @@ export function DetailError({
         </a>
       </div>
     );
-  return <CardError what={what} onRetry={onRetry} />;
+  return <CardError what={what} onRetry={onRetry} error={error} />;
 }
 
 export function CardSkeleton({ rows = 4 }: { rows?: number }) {

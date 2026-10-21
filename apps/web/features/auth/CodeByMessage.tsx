@@ -2,7 +2,7 @@
 
 import { useId, useState } from 'react';
 import { Button } from '../../components/ui/button';
-import { GENERIC_CODE_ERROR, isApiError, TRY_AGAIN } from './errors';
+import { failureText, GENERIC_CODE_ERROR, isApiError } from './errors';
 import { linkClass } from './AuthCard';
 import { DevMailHint } from './DevMailHint';
 import { OtpInput } from './OtpInput';
@@ -54,7 +54,7 @@ export function CodeByMessage({
     } catch (err) {
       if (isApiError(err, 'RATE_LIMITED')) setError('Please wait before asking for another code.');
       else if (isApiError(err, 'UNAUTHENTICATED')) onEnded?.();
-      else setError(TRY_AGAIN);
+      else setError(failureText(err));
     } finally {
       setBusy(false);
     }
@@ -78,7 +78,7 @@ export function CodeByMessage({
           ? GENERIC_CODE_ERROR
           : isApiError(err, 'RATE_LIMITED')
             ? 'Too many attempts. Wait a few minutes and try again.'
-            : TRY_AGAIN,
+            : failureText(err),
       );
       setCode('');
       setAttempt((n) => n + 1);

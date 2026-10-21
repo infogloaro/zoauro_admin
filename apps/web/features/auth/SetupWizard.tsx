@@ -13,7 +13,7 @@ import { AuthCard, linkClass } from './AuthCard';
 import { AuthenticatorSetup } from './AuthenticatorSetup';
 import { BackupCodes } from './BackupCodes';
 import { CodeByMessage } from './CodeByMessage';
-import { GENERIC_CODE_ERROR, isApiError, preSession, TRY_AGAIN } from './errors';
+import { failureText, GENERIC_CODE_ERROR, isApiError, preSession, TRY_AGAIN } from './errors';
 import { MethodChoice, METHOD_ORDER } from './MethodChoice';
 import { clearPending, readPending } from './pending';
 import { METHOD_LABEL } from './TwoStepVerify';
@@ -70,7 +70,7 @@ export function SetupWizard() {
       hardNavigate(afterSignIn(res, next));
     } catch (err) {
       if (isApiError(err, 'UNAUTHENTICATED')) setEnded(true);
-      else setFinishError(TRY_AGAIN);
+      else setFinishError(failureText(err));
       setFinishing(false);
     }
   }
@@ -284,7 +284,8 @@ function AddAuthenticator({
             );
           } catch (err) {
             if (isApiError(err, 'UNAUTHENTICATED')) onEnded();
-            else setError(isApiError(err, 'VALIDATION_ERROR') ? GENERIC_CODE_ERROR : TRY_AGAIN);
+            else
+              setError(isApiError(err, 'VALIDATION_ERROR') ? GENERIC_CODE_ERROR : failureText(err));
           } finally {
             setBusy(false);
           }
@@ -310,7 +311,7 @@ function AddAuthenticator({
             setSecret(await preSession(client, () => client.post('/me/mfa/authenticator/start')));
           } catch (err) {
             if (isApiError(err, 'UNAUTHENTICATED')) onEnded();
-            else setError(TRY_AGAIN);
+            else setError(failureText(err));
           } finally {
             setBusy(false);
           }

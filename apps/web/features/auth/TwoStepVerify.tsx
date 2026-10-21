@@ -11,12 +11,12 @@ import { afterSignIn } from '../../lib/redirects';
 import { AuthCard, linkClass } from './AuthCard';
 import {
   codeFailure,
+  failureText,
   GENERIC_CODE_ERROR,
   isApiError,
   LOCK_POLICY_HINT,
   preSession,
   SIGN_IN_ENDED,
-  TRY_AGAIN,
 } from './errors';
 import { DevMailHint } from './DevMailHint';
 import { MethodChoice, METHOD_ORDER } from './MethodChoice';
@@ -103,7 +103,7 @@ export function TwoStepVerify() {
           clearPending();
           setEnded(true);
         } else {
-          setError(TRY_AGAIN);
+          setError(failureText(err));
         }
       } finally {
         setSending(false);
@@ -142,7 +142,7 @@ export function TwoStepVerify() {
         setError(GENERIC_CODE_ERROR);
         setShake((n) => n + 1);
       } else {
-        setError(TRY_AGAIN);
+        setError(failureText(err));
       }
       setCode('');
       setBusy(false);

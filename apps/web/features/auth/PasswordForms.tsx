@@ -16,7 +16,7 @@ import { Input } from '../../components/ui/input';
 import { hardNavigate } from '../../lib/navigate';
 import { useApiClient } from '../../lib/api-client';
 import { AuthCard, linkClass } from './AuthCard';
-import { fieldErrors, isApiError, preSession, TRY_AGAIN } from './errors';
+import { failureText, fieldErrors, isApiError, preSession } from './errors';
 import { PasswordInput } from './PasswordInput';
 
 // Forgot password, reset password (link from the email) and change password (forced at first sign-in, or from Account
@@ -66,7 +66,7 @@ export function ForgotPasswordForm() {
       setError(
         isApiError(err, 'RATE_LIMITED')
           ? 'Too many requests. Wait a while and try again.'
-          : TRY_AGAIN,
+          : failureText(err),
       );
     }
   });
@@ -137,7 +137,7 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
         setError('This link has expired or was already used. Ask for a new one.');
       else if (isApiError(err, 'RATE_LIMITED'))
         setError('Too many attempts. Wait a while and try again.');
-      else setError(TRY_AGAIN);
+      else setError(failureText(err));
     }
   });
 
@@ -243,7 +243,7 @@ export function ChangePasswordForm({
       else if (isApiError(err, 'UNAUTHENTICATED')) hardNavigate('/login');
       else if (isApiError(err, 'FORBIDDEN'))
         setError('Your account cannot change its password right now. Try again later.');
-      else setError(TRY_AGAIN);
+      else setError(failureText(err));
     }
   });
 
