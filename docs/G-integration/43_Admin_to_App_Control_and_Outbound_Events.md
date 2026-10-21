@@ -51,6 +51,7 @@ Body envelope:
 | `refund.updated` | customer | refund requested/approved/processed/failed | show status and amount |
 | `vendor.status_changed` | vendor | verified, rejected (+note), activated, deactivated, suspended | rejected/suspended: block going online and taking orders; show the note |
 | `vendor.updated` | vendor | admin-owned fields changed (commission %, zone, label) | refresh display |
+| `onboarding.more_info_required` | vendor (restaurant, Home Food, hotel) | an admin asked for more information during onboarding review (D170); `{stage, message}` | show the message; the vendor resubmits from the app |
 | `menu_item.admin_changed` | vendor, customer | admin disabled/enabled an item or changed a vendor-owned field in an override case | hide/unhide; refresh |
 | `menu_item.change_decided` | vendor | a vendor item-change request (R09) was approved or rejected; `{requestId, kind, decision, itemId, menuItemId, reason?}` (D125) | approved: show the change as live; rejected: show the reason |
 | `partner.status_changed` | partner | verified, rejected, activated, suspended | suspended: sign out of duty |

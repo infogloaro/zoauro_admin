@@ -26,3 +26,4 @@ export * from './search';
 export * from './intake';
 export * from './rewards';
 export * from './refunds';
+export * from './onboarding';

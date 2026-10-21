@@ -16,6 +16,7 @@
     {"type": "payment.status_changed", "to": ["CUSTOMER_APP"], "data": {"orderId": "externalId", "paymentStatus": "PENDING|PAID|FAILED|PARTIALLY_REFUNDED|REFUNDED", "amountPaise": "int"}},
     {"type": "refund.updated", "to": ["CUSTOMER_APP"], "data": {"orderId": "externalId", "refundId": "uuid", "status": "REQUESTED|PENDING_APPROVAL|APPROVED|PROCESSED|REJECTED|FAILED", "amountPaise": "int", "target": "ORIGINAL|WALLET|MANUAL"}},
     {"type": "vendor.status_changed", "to": ["VENDOR_APP"], "data": {"verificationStatus": "PENDING|VERIFIED|REJECTED", "status": "PENDING|ACTIVE|INACTIVE|SUSPENDED", "note": "string?"}},
+    {"type": "onboarding.more_info_required", "to": ["VENDOR_APP"], "data": {"stage": "MORE_INFO_REQUIRED", "message": "string (D170)"}},
     {"type": "vendor.updated", "to": ["VENDOR_APP"], "data": {"fields": "object of admin-owned fields changed (commissionPct, zoneId, zoneName)"}},
     {"type": "menu_item.admin_changed", "to": ["VENDOR_APP","CUSTOMER_APP"], "data": {"itemId": "externalId", "adminDisabled": "bool", "reason": "string?"}},
     {"type": "menu_item.change_decided", "to": ["VENDOR_APP"], "data": {"requestId": "uuid", "kind": "CREATE|UPDATE|DELETE", "decision": "APPROVED|REJECTED", "itemId": "externalId (ours when none)", "menuItemId": "uuid?", "reason": "string? (rejected)"}},

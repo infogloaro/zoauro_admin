@@ -148,6 +148,13 @@ export const AUDIT_ACTIONS = {
   'hotel.verified': a('hotels', 'Verified hotel', H),
   'hotel.rejected': a('hotels', 'Rejected hotel', H),
   'hotel.commission_changed': a('hotels', 'Changed commission', H),
+  // D170 onboarding queue
+  'restaurant.onboarding_review_started': a('restaurants', 'Started onboarding review'),
+  'restaurant.more_info_requested': a('restaurants', 'Asked vendor for more information'),
+  'homemaker.onboarding_review_started': a('homemakers', 'Started onboarding review'),
+  'homemaker.more_info_requested': a('homemakers', 'Asked vendor for more information'),
+  'hotel.onboarding_review_started': a('hotels', 'Started onboarding review'),
+  'hotel.more_info_requested': a('hotels', 'Asked hotel for more information'),
   'room_booking.created': a('hotels', 'Created room booking'),
   'room_booking.status_changed': a('hotels', 'Changed room booking status'),
   'dining_reservation.created': a('hotels', 'Created dining reservation'),
