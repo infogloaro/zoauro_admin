@@ -22,6 +22,7 @@ import {
 } from '../../../src/modules/access';
 import { createAuditModule } from '../../../src/modules/audit';
 import { createHotelsModule } from '../../../src/modules/hotels';
+import { createPreordersModule } from '../../../src/modules/orders/preorders.routes';
 import { createMenuModule } from '../../../src/modules/menu';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
@@ -357,6 +358,12 @@ export async function createAuthTestEnv() {
       services: zones.service,
       clock: clock.now,
     });
+    const preorders = createPreordersModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      rules: (zoneId) => settings.reader.preorderRules(zoneId),
+      clock: clock.now,
+    });
     const moduleRouters = [
       auth.router,
       createAuditModule({ prisma }).router,
@@ -401,6 +408,7 @@ export async function createAuthTestEnv() {
       uploads.router,
       menu.router,
       hotels.router,
+      preorders.router,
     ];
     const extraRouters = [
       ...(extra.routers ?? []),

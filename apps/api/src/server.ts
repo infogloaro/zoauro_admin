@@ -15,6 +15,7 @@ import {
 import { createAuditModule } from './modules/audit';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
 import { createHotelsModule } from './modules/hotels';
+import { createPreordersModule } from './modules/orders/preorders.routes';
 import { createMenuModule } from './modules/menu';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
@@ -172,6 +173,13 @@ const hotels = createHotelsModule({
   services: zones.service,
 });
 
+// D167 pre-orders: reschedule here; the dispatch sweep runs in the worker (preorders.jobs.ts)
+const preorders = createPreordersModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  rules: (zoneId) => settings.reader.preorderRules(zoneId),
+});
+
 // M17 notifications (D134–D137): the API enqueues each zone's send; the worker process sends (notifications.jobs.ts)
 const notifications = createNotificationsModule({
   prisma,
@@ -232,6 +240,7 @@ const app = createApp({
       uploads.router,
       menu.router,
       hotels.router,
+      preorders.router,
     ],
   },
 });

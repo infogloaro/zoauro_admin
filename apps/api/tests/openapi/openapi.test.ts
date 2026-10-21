@@ -221,6 +221,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /orders/{id}/transition',
         'POST /orders/{id}/cancel',
         'POST /orders/{id}/assign',
+        'POST /orders/{id}/reschedule',
         // M10 delivery partners + R12 (doc 09, D130–D133)
         'GET /delivery-partners',
         'POST /delivery-partners',

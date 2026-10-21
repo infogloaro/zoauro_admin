@@ -1861,6 +1861,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/orders/{id}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a pre-order to a new time (If-Match: version) inside the orders.preorder window (422 TOO_SOON / TOO_FAR_AHEAD), before the reschedule cut-off and under the reschedule cap (409); recomputes dispatch_at and emits order.rescheduled */
+        post: operations["rescheduleOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/orders/{id}/transition": {
         parameters: {
             query?: never;
@@ -15607,6 +15624,99 @@ export interface operations {
                 };
             };
             /** @description A reason is required; Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rescheduleOrder: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    /** Format: date-time */
+                    scheduledFor: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Rescheduled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        preorder: {
+                            deliveryAddress: string | null;
+                            deliveryLat: number | null;
+                            deliveryLng: number | null;
+                            /** Format: date-time */
+                            dispatchAt: string;
+                            /** Format: date-time */
+                            releasedAt: string | null;
+                            rescheduleCount: number;
+                            /** Format: date-time */
+                            scheduledFor: string;
+                        };
+                        version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
             422: {
                 headers: {
                     [name: string]: unknown;

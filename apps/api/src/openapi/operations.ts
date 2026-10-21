@@ -129,6 +129,7 @@ import type { AuditRouteMeta } from '../lib/audit';
 import { CUSTOMER_OPERATIONS } from './operations.customers';
 import { REWARD_OPERATIONS } from './operations.rewards';
 import { HOTEL_OPERATIONS } from './operations.hotels';
+import { PREORDER_OPERATIONS } from './operations.preorders';
 import { MENU_OPERATIONS } from './operations.menu';
 import { PARTNER_OPERATIONS } from './operations.partners';
 import { NOTIFICATION_OPERATIONS } from './operations.notifications';
@@ -1447,6 +1448,8 @@ export const OPERATIONS: OperationDef[] = [
   ...MENU_OPERATIONS,
   // D118 hotels, room bookings and dining reservations (operations.hotels.ts)
   ...HOTEL_OPERATIONS,
+  // D167 pre-orders: reschedule (operations.preorders.ts)
+  ...PREORDER_OPERATIONS,
   ...NOTIFICATION_OPERATIONS,
   ...DASHBOARD_OPERATIONS,
   ...SEARCH_OPERATIONS,

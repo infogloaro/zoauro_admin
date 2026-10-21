@@ -43970,6 +43970,203 @@
         }
       }
     },
+    "/orders/{id}/reschedule": {
+      "post": {
+        "operationId": "rescheduleOrder",
+        "tags": [
+          "orders"
+        ],
+        "summary": "Move a pre-order to a new time (If-Match: version) inside the orders.preorder window (422 TOO_SOON / TOO_FAR_AHEAD), before the reschedule cut-off and under the reschedule cap (409); recomputes dispatch_at and emits order.rescheduled",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scheduledFor": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "scheduledFor",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rescheduled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "preorder": {
+                      "type": "object",
+                      "properties": {
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "dispatchAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "releasedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "rescheduleCount": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "deliveryAddress": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "deliveryLat": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "deliveryLng": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "scheduledFor",
+                        "dispatchAt",
+                        "releasedAt",
+                        "rescheduleCount",
+                        "deliveryAddress",
+                        "deliveryLat",
+                        "deliveryLng"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version",
+                    "preorder"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "orders:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "orders",
+          "action": "order.rescheduled"
+        }
+      }
+    },
     "/notifications": {
       "get": {
         "operationId": "listNotifications",

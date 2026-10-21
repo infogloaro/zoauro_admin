@@ -16,6 +16,8 @@ import { createAccessService } from './modules/access';
 import { createSecretBox } from './modules/auth/mfa/secret-box';
 import { createExportQueue, createExportsService, startExportJobs } from './modules/exports';
 import { createOrdersModule } from './modules/orders';
+import { startPreorderJobs } from './modules/orders/preorders.jobs';
+import { createPreordersModule } from './modules/orders/preorders.routes';
 import {
   createNotificationQueue,
   createNotificationsModule,
@@ -91,6 +93,17 @@ const notificationsService = createNotificationsModule({
 let jobs: OutboxJobs | null = null;
 let exportJobs: { close(): Promise<void> } | null = null;
 let notificationJobs: { close(): Promise<void> } | null = null;
+// D167: the pre-order dispatch sweep (every 60 s) releases due pre-orders to the vendor and partner apps
+const preorderSettings = new SettingsReader({
+  repo: new SettingsDatabase(prisma).repo,
+  now: () => Date.now(),
+});
+const preordersService = createPreordersModule({
+  prisma,
+  appOrigin: env.APP_URL,
+  rules: (zoneId) => preorderSettings.preorderRules(zoneId),
+}).service;
+let preorderJobs: { close(): Promise<void> } | null = null;
 
 async function shutdown(signal: string) {
   console.log(`worker stopping (${signal})`);
@@ -99,6 +112,7 @@ async function shutdown(signal: string) {
   await exportQueue.close();
   await notificationJobs?.close();
   await notificationQueue.close();
+  await preorderJobs?.close();
   redis.disconnect();
   await prisma.$disconnect();
   process.exit(0);
@@ -117,10 +131,11 @@ assertDatabaseRole({
       redisUrl: env.REDIS_URL,
       service: notificationsService,
     });
+    preorderJobs = await startPreorderJobs({ redisUrl: env.REDIS_URL, service: preordersService });
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
     process.once('SIGINT', () => void shutdown('SIGINT'));
     console.log(
-      `worker started (outbox publisher, webhook delivery: ${transport.name}, exports, notifications)`,
+      `worker started (outbox publisher, webhook delivery: ${transport.name}, exports, notifications, pre-orders)`,
     );
   })
   .catch((err: unknown) => {
