@@ -31,6 +31,54 @@ describe('transient database errors (503, not 500)', () => {
     expect(isTransientDbError(null)).toBe(false);
   });
 
+  // the pg driver adapter (@prisma/adapter-pg): the SQLSTATE sits in meta.driverAdapterError.cause
+  const adapterError = (cause: Record<string, unknown>, code = 'P2010') =>
+    Object.assign(new Error('Database error'), {
+      name: 'PrismaClientKnownRequestError',
+      code,
+      meta: {
+        driverAdapterError: Object.assign(new Error('x'), { name: 'DriverAdapterError', cause }),
+      },
+    });
+
+  it('recognises the pg adapter shape: recovery (57P03), admin shutdown, connection classes and lost sockets', () => {
+    for (const code of ['57P03', '57P01', '08006', '08001'])
+      expect(isTransientDbError(adapterError({ kind: 'postgres', code })), code).toBe(true);
+    expect(isTransientDbError(adapterError({ kind: 'postgres', originalCode: '57P03' }))).toBe(
+      true,
+    );
+    for (const kind of [
+      'DatabaseNotReachable',
+      'ConnectionClosed',
+      'SocketTimeout',
+      'TooManyConnections',
+    ])
+      expect(isTransientDbError(adapterError({ kind })), kind).toBe(true);
+    // a constraint violation through the adapter stays a real error
+    expect(isTransientDbError(adapterError({ kind: 'postgres', code: '23505' }, 'P2002'))).toBe(
+      false,
+    );
+    expect(isTransientDbError(adapterError({ kind: 'UniqueConstraintViolation' }, 'P2002'))).toBe(
+      false,
+    );
+  });
+
+  it('the adapter recovery error answers 503 and the log line carries the SQLSTATE, not the message', async () => {
+    const lines: string[] = [];
+    const orig = console.error;
+    console.error = (...a: unknown[]) => lines.push(a.join(' '));
+    try {
+      const g = await request(appThrowing(adapterError({ kind: 'postgres', code: '57P03' }))).get(
+        '/x',
+      );
+      expect(g.status).toBe(503);
+      expect(g.headers['retry-after']).toBe('5');
+    } finally {
+      console.error = orig;
+    }
+    expect(lines.some((l) => l.includes('code=57P03') && !l.includes('Database error'))).toBe(true);
+  });
+
   it('answers 503 SERVICE_UNAVAILABLE with Retry-After', async () => {
     const r = await request(appThrowing(prismaLike('P2024'))).get('/x');
     expect(r.status).toBe(503);

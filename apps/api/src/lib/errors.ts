@@ -83,12 +83,51 @@ const TRANSIENT_DB_CODES = new Set([
   '57P03',
   '53300',
 ]);
-export function isTransientDbError(err: unknown): boolean {
-  if (typeof err !== 'object' || err === null) return false;
-  const o = err as { code?: unknown; errorCode?: unknown; cause?: unknown };
-  for (const c of [o.code, o.errorCode])
-    if (typeof c === 'string' && TRANSIENT_DB_CODES.has(c)) return true;
-  return o.cause !== undefined && o.cause !== err ? isTransientDbError(o.cause) : false;
+/** The pg driver adapter's error kinds for a lost or refused connection (@prisma/adapter-pg). */
+const TRANSIENT_ADAPTER_KINDS = new Set([
+  'DatabaseNotReachable',
+  'ConnectionClosed',
+  'SocketTimeout',
+  'TooManyConnections',
+]);
+/** SQLSTATE class 08 (connection exception) and 57P0x (admin shutdown, crash shutdown, cannot connect now: recovery). */
+const isTransientSqlState = (c: string) => /^08[0-9A-Z]{3}$/.test(c) || /^57P0[1-4]$/.test(c);
+
+type ErrorLike = {
+  code?: unknown;
+  errorCode?: unknown;
+  originalCode?: unknown;
+  kind?: unknown;
+  cause?: unknown;
+  meta?: { driverAdapterError?: unknown };
+};
+
+/**
+ * With the pg driver adapter a server-side failure arrives as PrismaClientKnownRequestError whose `code` is a Prisma code
+ * and whose `meta.driverAdapterError.cause` carries {kind, code | originalCode}: e.g. kind "postgres" with SQLSTATE 57P03
+ * while Postgres recovers after a crash. Every layer is checked.
+ */
+export function isTransientDbError(err: unknown, depth = 0): boolean {
+  if (typeof err !== 'object' || err === null || depth > 5) return false;
+  const o = err as ErrorLike;
+  for (const c of [o.code, o.errorCode, o.originalCode])
+    if (typeof c === 'string' && (TRANSIENT_DB_CODES.has(c) || isTransientSqlState(c))) return true;
+  if (typeof o.kind === 'string' && TRANSIENT_ADAPTER_KINDS.has(o.kind)) return true;
+  for (const inner of [o.meta?.driverAdapterError, o.cause])
+    if (inner !== undefined && inner !== err && isTransientDbError(inner, depth + 1)) return true;
+  return false;
+}
+
+/** The P-code or SQLSTATE of a database error for the log line (codes only: messages can carry personal data). */
+export function dbErrorCodeOf(err: unknown, depth = 0): string | undefined {
+  if (typeof err !== 'object' || err === null || depth > 5) return undefined;
+  const o = err as ErrorLike;
+  const inner =
+    dbErrorCodeOf(o.meta?.driverAdapterError, depth + 1) ?? dbErrorCodeOf(o.cause, depth + 1);
+  if (inner) return inner;
+  for (const c of [o.originalCode, o.code, o.errorCode, o.kind])
+    if (typeof c === 'string' && /^[A-Za-z0-9_]{2,40}$/.test(c)) return c;
+  return undefined;
 }
 export const TRANSIENT_RETRY_AFTER_SEC = 5;
 
@@ -128,7 +167,7 @@ export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, next)
   }
   if (isTransientDbError(err)) {
     console.error(
-      `transient database error ${err instanceof Error ? err.name : 'unknown'} requestId=${requestId ?? '-'}`,
+      `transient database error ${err instanceof Error ? err.name : 'unknown'} code=${dbErrorCodeOf(err) ?? '-'} requestId=${requestId ?? '-'}`,
     );
     res.setHeader('Retry-After', String(TRANSIENT_RETRY_AFTER_SEC));
     res.status(503).json({
@@ -142,7 +181,7 @@ export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, next)
   }
   // Only the error class name is logged: messages can carry SQL fragments or personal data.
   console.error(
-    `unhandled error ${err instanceof Error ? err.name : 'unknown'} requestId=${requestId ?? '-'}`,
+    `unhandled error ${err instanceof Error ? err.name : 'unknown'} code=${dbErrorCodeOf(err) ?? '-'} requestId=${requestId ?? '-'}`,
   );
   res.status(500).json({ error: { code: 'INTERNAL', message: 'Something went wrong', requestId } });
 };
