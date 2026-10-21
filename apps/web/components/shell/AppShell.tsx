@@ -3,6 +3,7 @@
 import { Bell, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Suspense, useEffect, useState, type ReactNode } from 'react';
+import { MyReviews } from '../../features/claims/MyReviews';
 import { setCsrfToken } from '../../lib/csrf';
 import { activeItem, comingSoonHref, type MenuItem, type ShellRole } from '../../lib/navigation';
 import { cn } from '../../lib/utils';
@@ -168,6 +169,7 @@ export function AppShell({
               savedZoneId={savedZoneId}
             />
           </Suspense>
+          <MyReviews userRole={user.role} />
           {notifications ? (
             <a
               href={notificationsLive ? notifications.href : comingSoonHref('notifications')}

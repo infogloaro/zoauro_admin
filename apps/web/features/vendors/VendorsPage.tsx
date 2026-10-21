@@ -14,6 +14,8 @@ import { inputClass } from '../../components/ui/input';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
+import { useClaimsFor } from '../claims/api';
+import { ClaimBadge } from '../claims/ClaimBadge';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
@@ -83,6 +85,10 @@ export function VendorsPage({
     ...tabDef.filter,
   };
   const list = useVendorList(module, filters, !waitingForZone);
+  const claims = useClaimsFor(
+    module === 'restaurants' ? 'RESTAURANT' : 'HOMEMAKER',
+    list.data?.data.map((r) => r.id) ?? [],
+  );
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -115,6 +121,7 @@ export function VendorsPage({
             {'kind' in r && r.kind === 'SHOP' ? 'Shop · ' : ''}
             {r.source === 'APP' ? 'Joined from the app' : 'Added by an admin'}
           </p>
+          <ClaimBadge claim={claims.data?.get(r.id)} />
         </div>
       ),
     },

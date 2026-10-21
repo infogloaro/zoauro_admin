@@ -10,6 +10,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/card';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import type { ScopeZone } from '../../lib/zone-scope';
+import { ClaimBanner } from '../claims/ClaimBanner';
 import { CardSkeleton, DetailError } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useHotelDetail } from './api';
@@ -28,7 +29,7 @@ import {
 // One hotel (doc 21 detail pattern; layout from Chittra Priya's hotel screens, D117): its details and rooms held today,
 // the decisions (edit, verify/reject, activate/deactivate/suspend, delete), and its room and table bookings as tabs
 // (?tab=). What a Zonal Admin may do is decided by the API; the buttons follow the member's permissions as a
-// convenience. The claim on a hotel under review (owner, B6) arrives with its API.
+// convenience. Who is reviewing the hotel is shown on top (D174 claim; owner's rule for B6).
 
 const TABS = [
   { id: 'overview', label: 'Overview', view: null },
@@ -145,6 +146,14 @@ export function HotelDetailPage({
           </span>
         ) : null}
       </div>
+
+      <ClaimBanner
+        entityType="HOTEL"
+        entityId={h.id}
+        noun="this hotel"
+        canClaim={can.editHotel || can.hotelStatus}
+        isSuperAdmin={role === 'SUPER_ADMIN'}
+      />
 
       {tabs.length > 1 ? (
         <div

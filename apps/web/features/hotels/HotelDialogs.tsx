@@ -25,6 +25,7 @@ import type { ScopeZone } from '../../lib/zone-scope';
 import { ReauthCancelled, useReauthGuard } from '../account/useReauthGuard';
 import { fieldErrors, isApiError, TRY_AGAIN } from '../auth/errors';
 import { useVendorList } from '../vendors/api';
+import { claimedMessage } from '../claims/api';
 import { useHotelList, useInvalidateHotels } from './api';
 import { PAYMENT_LABEL, todayInIndia, type Move } from './labels';
 
@@ -46,6 +47,8 @@ const num = (s: string) => (s.trim() === '' ? undefined : Number(s));
 
 /** The API's words for the errors these dialogs can meet (D92, D127, doc 10). */
 export function hotelProblem(err: unknown): string {
+  const claimed = claimedMessage(err);
+  if (claimed) return claimed;
   if (isApiError(err, 'ZONE_SERVICE_DISABLED'))
     return 'Hotel Booking is switched off in this zone (Control Panel), so nothing new can be added there (D92).';
   if (isApiError(err, 'NO_ROOMS_AVAILABLE'))

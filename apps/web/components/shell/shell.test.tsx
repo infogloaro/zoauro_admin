@@ -26,6 +26,10 @@ vi.mock('next/navigation', () => ({
 vi.mock('./PageSearch', () => ({
   PageSearch: ({ userRole }: { userRole: string }) => <span>{`search:${userRole}`}</span>,
 }));
+// "My reviews" calls the API (claims tests); here only that the shell mounts it
+vi.mock('../../features/claims/MyReviews', () => ({
+  MyReviews: ({ userRole }: { userRole: string }) => <span>{`reviews:${userRole}`}</span>,
+}));
 // the zone switcher has its own tests (zone-switcher.test.tsx); here only that the shell mounts it for each role
 vi.mock('./ZoneSwitcher', () => ({
   ZoneSwitcher: ({ role, zones }: { role: string; zones: unknown[] }) => (

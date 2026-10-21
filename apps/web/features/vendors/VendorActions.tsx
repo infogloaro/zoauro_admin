@@ -16,6 +16,7 @@ import { useApiClient } from '../../lib/api-client';
 import type { ScopeZone } from '../../lib/zone-scope';
 import { ReauthCancelled, useReauthGuard } from '../account/useReauthGuard';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
+import { claimedMessage } from '../claims/api';
 import { useInvalidateVendors } from './api';
 
 // Vendor decisions (doc 10 section 4, doc 09, ported from Chittra Priya's vendor-actions, D117): status (activate,
@@ -221,7 +222,7 @@ export function VendorActionDialog({
       onDone?.(action);
     } catch (err) {
       if (err instanceof ReauthCancelled) return;
-      setAlert(isApiError(err) ? err.message || TRY_AGAIN : TRY_AGAIN);
+      setAlert(claimedMessage(err) ?? (isApiError(err) ? err.message || TRY_AGAIN : TRY_AGAIN));
     } finally {
       setBusy(false);
     }

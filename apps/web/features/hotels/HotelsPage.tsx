@@ -16,6 +16,8 @@ import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
+import { useClaimsFor } from '../claims/api';
+import { ClaimBadge } from '../claims/ClaimBadge';
 import { useHotelList, type HotelListFilters } from './api';
 import { BookingsPanel, DiningPanel } from './BookingPanels';
 import { HotelFormDialog } from './HotelDialogs';
@@ -168,6 +170,7 @@ function HotelsList({
     ...tabDef.filter,
   };
   const list = useHotelList(filters);
+  const claims = useClaimsFor('HOTEL', list.data?.data.map((r) => r.id) ?? []);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -194,6 +197,7 @@ function HotelsList({
             {r.name}
           </button>
           <p className="text-xs text-muted">{r.ownerName}</p>
+          <ClaimBadge claim={claims.data?.get(r.id)} />
         </div>
       ),
     },

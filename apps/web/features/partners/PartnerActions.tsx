@@ -15,6 +15,7 @@ import { useApiClient } from '../../lib/api-client';
 import type { ScopeZone } from '../../lib/zone-scope';
 import { ReauthCancelled, useReauthGuard } from '../account/useReauthGuard';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
+import { claimedMessage } from '../claims/api';
 import { useInvalidatePartners } from './api';
 import { FORCE_OFFLINE_MAX_DAYS, offlineUntil } from './labels';
 
@@ -236,7 +237,7 @@ export function PartnerActionDialog({
       onDone?.(action);
     } catch (err) {
       if (err instanceof ReauthCancelled) return;
-      setAlert(isApiError(err) ? err.message || TRY_AGAIN : TRY_AGAIN);
+      setAlert(claimedMessage(err) ?? (isApiError(err) ? err.message || TRY_AGAIN : TRY_AGAIN));
     } finally {
       setBusy(false);
     }

@@ -31,6 +31,7 @@ import { useApiClient } from '../../lib/api-client';
 import type { ScopeZone } from '../../lib/zone-scope';
 import { formatPaise } from '../audit/format';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
+import { ClaimBanner } from '../claims/ClaimBanner';
 import { CardSkeleton, DetailError } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
@@ -221,6 +222,14 @@ export function VendorDetailPage({
           </span>
         ) : null}
       </div>
+
+      <ClaimBanner
+        entityType={module === 'restaurants' ? 'RESTAURANT' : 'HOMEMAKER'}
+        entityId={v.id}
+        noun={module === 'restaurants' ? 'this restaurant' : 'this Home Food provider'}
+        canClaim={can.edit || can.status}
+        isSuperAdmin={role === 'SUPER_ADMIN'}
+      />
 
       {can.status ? (
         <Card aria-labelledby="decisions">

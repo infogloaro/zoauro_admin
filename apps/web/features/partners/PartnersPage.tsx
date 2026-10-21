@@ -13,6 +13,8 @@ import { inputClass } from '../../components/ui/input';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
+import { useClaimsFor } from '../claims/api';
+import { ClaimBadge } from '../claims/ClaimBadge';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
@@ -83,6 +85,7 @@ export function PartnersPage({
     ...(online === 'true' ? { online: true } : online === 'false' ? { online: false } : {}),
   };
   const list = usePartnerList(filters, !waiting);
+  const claims = useClaimsFor('DELIVERY_PARTNER', list.data?.data.map((r) => r.id) ?? []);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -115,6 +118,7 @@ export function PartnersPage({
           <p className="text-xs text-muted">
             {[r.vehicleType, r.vehicleNo].filter(Boolean).join(' · ') || 'No vehicle yet'}
           </p>
+          <ClaimBadge claim={claims.data?.get(r.id)} />
         </div>
       ),
     },
