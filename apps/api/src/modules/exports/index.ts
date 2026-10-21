@@ -7,8 +7,9 @@ import { ExportsService, type ContextBuilder } from './exports.service';
 import { listExportSources, type ListServices } from './sources/lists.source';
 import { ordersExportSource } from './sources/orders.source';
 
-// Export jobs (doc 09 GET /orders/export, GET /exports/{id}; D129). The API builds it with an enqueue function; the
-// worker builds it with the access service (to rebuild the requester's context) and runs the jobs.
+// Export jobs (doc 09 GET <list>/export, GET /exports/{id}; D129, D149). The API builds it with an enqueue function;
+// the worker builds it with the access service (to rebuild the requester's context) and runs the jobs. Both must get
+// the same list services, so every export the API accepts can run in the worker.
 
 export {
   createExportQueue,
@@ -53,5 +54,5 @@ export function createExportsService(deps: ExportsDeps): ExportsService {
 /** Service + routes (API). */
 export function createExportsModule(deps: ExportsDeps) {
   const service = createExportsService(deps);
-  return { router: createExportsRoutes(service), service };
+  return { router: createExportsRoutes(service, service.modules), service };
 }

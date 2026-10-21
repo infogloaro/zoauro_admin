@@ -281,6 +281,20 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     );
   }
 
+  // D139 support desk: one ticket per zone A, B, C (C is nobody's) for the orders block's customers, so GET
+  // /support/tickets shows which zones an actor reached; the zone A one has the placeholder id
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000b0${i}0`;
+    const customer = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000f0${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO support_tickets (id, ticket_no, zone_id, customer_id, category, subject, first_response_due_at,
+         resolution_due_at, escalation_due_at, updated_at)
+       VALUES ($1, $2, $3, $4, 'ORDER', 'Matrix ticket', now() + interval '2 hours', now() + interval '1 day',
+         now() + interval '12 hours', now())`,
+      [id, `TCK-MATRIX${i}`, zones[z], customer],
+    );
+  }
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,

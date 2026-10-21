@@ -128,6 +128,7 @@ import {
 import type { AuditRouteMeta } from '../lib/audit';
 import { CLAIM_OPERATIONS } from './operations.claims';
 import { CUSTOMER_OPERATIONS } from './operations.customers';
+import { EXPORT_OPERATIONS } from './operations.exports';
 import { REWARD_OPERATIONS } from './operations.rewards';
 import { HOTEL_OPERATIONS } from './operations.hotels';
 import { PREORDER_OPERATIONS } from './operations.preorders';
@@ -136,6 +137,7 @@ import { PARTNER_OPERATIONS } from './operations.partners';
 import { NOTIFICATION_OPERATIONS } from './operations.notifications';
 import { DASHBOARD_OPERATIONS } from './operations.dashboard';
 import { SEARCH_OPERATIONS } from './operations.search';
+import { SUPPORT_OPERATIONS } from './operations.support';
 import { VENDOR_OPERATIONS } from './operations.vendors';
 
 // The API contract, in one place. Every route the API serves under /api/v1 is declared here with:
@@ -193,7 +195,7 @@ export interface OperationDef {
   /** path parameters, e.g. { id } for /audit-logs/{id} */
   params?: z.ZodObject;
   /** success response */
-  response: { status: 200 | 201 | 204; schema?: z.ZodType; description: string };
+  response: { status: 200 | 201 | 202 | 204; schema?: z.ZodType; description: string };
   /** error statuses this operation can return, beyond what `access` implies */
   errors?: ErrorCode[];
   /** requires the Idempotency-Key header (doc 09) */
@@ -1460,6 +1462,9 @@ export const OPERATIONS: OperationDef[] = [
   ...CUSTOMER_OPERATIONS,
   // D169 reward points in the customer tab (operations.rewards.ts)
   ...REWARD_OPERATIONS,
+  // export jobs for every list (D129, D149; operations.exports.ts) and the support desk (D139-D141)
+  ...EXPORT_OPERATIONS,
+  ...SUPPORT_OPERATIONS,
 ];
 
 /**

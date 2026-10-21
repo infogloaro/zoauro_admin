@@ -60,6 +60,11 @@ export class ExportsService {
     },
   ) {}
 
+  /** The lists this service can export (one route each). */
+  get modules(): ExportModule[] {
+    return [...this.deps.sources.keys()];
+  }
+
   private source(module: ExportModule): ExportSource {
     const s = this.deps.sources.get(module);
     if (!s) throw new Error(`no export source for ${module}`);

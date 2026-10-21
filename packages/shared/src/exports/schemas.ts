@@ -34,6 +34,29 @@ export const EXPORT_MODULES = [
 ] as const;
 export type ExportModule = (typeof EXPORT_MODULES)[number];
 
+/**
+ * The list each export module reads, as an API path: `GET <path>/export` starts the export of `GET <path>` (doc 09,
+ * D149). null = the module has no list service yet, so no export route (payments, refunds, payouts; audit logs keep
+ * their own POST /audit-logs/exports, AU-8).
+ */
+export const EXPORT_LIST_PATHS = {
+  orders: '/orders',
+  restaurants: '/restaurants',
+  homemakers: '/homemakers',
+  menu: '/menu-items',
+  delivery: '/delivery-partners',
+  customers: '/customers',
+  payments: null,
+  refunds: null,
+  payouts: null,
+  notifications: '/notifications',
+  support: '/support/tickets',
+  hotels: '/hotels',
+  bookings: '/hotels/bookings',
+  dining: '/hotels/dining',
+  audit: null,
+} as const satisfies Record<ExportModule, string | null>;
+
 /** The most rows one export may hold (doc 09 audit exports: 100k; the same cap for every export). */
 export const EXPORT_MAX_ROWS = 100_000;
 /** How long a finished file stays downloadable (doc 09: 24 h link). */

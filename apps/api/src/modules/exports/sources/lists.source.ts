@@ -1,5 +1,6 @@
 import {
   bookingListQuerySchema,
+  customerListQuerySchema,
   diningListQuerySchema,
   hotelListQuerySchema,
   menuItemListQuerySchema,
@@ -8,6 +9,8 @@ import {
   ticketListQuerySchema,
   vendorListQuerySchema,
   type BookingListQuery,
+  type CustomerListItem,
+  type CustomerListQuery,
   type DiningListQuery,
   type DiningReservation,
   type HomemakerListItem,
@@ -30,8 +33,8 @@ import { parseBody } from '../../../lib/errors';
 import { datedFilename, pagedListSource, rupees, type ExportSource } from '../../../lib/exports';
 
 // D149: one export source per list, each reading through the module's own list service (its zone scope, filters, sort
-// and masking, D26). A source exists only where the list service exists on HEAD; customers, payments, refunds, payouts
-// and audit logs join when their list services land (audit has its own route, AU-8).
+// and masking, D26). A source exists only where the list service exists; payments, refunds and payouts join when their
+// list services land (audit logs keep their own route, AU-8).
 
 type Page<R> = Promise<{ data: readonly R[]; meta: { total: number } }>;
 
@@ -48,6 +51,7 @@ export interface ListServices {
   };
   notifications?: { list(ctx: AuthContext, q: NotificationListQuery): Page<NotificationListItem> };
   support?: { list(ctx: AuthContext, q: TicketListQuery): Page<TicketListItem> };
+  customers?: { list(ctx: AuthContext, q: CustomerListQuery): Page<CustomerListItem> };
 }
 
 const name = (r: { name: string } | null | undefined) => r?.name ?? '';
@@ -72,7 +76,7 @@ const vendorColumns = [
 
 export function listExportSources(s: ListServices): ExportSource[] {
   const out: ExportSource[] = [];
-  const { vendors, menu, partners, hotels, bookings, notifications, support } = s;
+  const { vendors, menu, partners, hotels, bookings, notifications, support, customers } = s;
 
   if (vendors) {
     out.push(
@@ -295,6 +299,31 @@ export function listExportSources(s: ListServices): ExportSource[] {
           { header: 'Id', value: (t) => t.id },
         ],
         filename: datedFilename('support-tickets'),
+      }),
+    );
+  }
+  if (customers) {
+    out.push(
+      pagedListSource<CustomerListQuery, CustomerListItem>({
+        module: 'customers',
+        viewKey: 'customers:view',
+        audit: { module: 'customers', action: 'customer.exported' },
+        parse: (raw) => parseBody(customerListQuerySchema, raw),
+        list: (ctx, q) => customers.list(ctx, q),
+        columns: () => [
+          { header: 'Name', value: (c) => c.name },
+          { header: 'Phone', value: (c) => c.phone },
+          { header: 'Email', value: (c) => c.email },
+          { header: 'Status', value: (c) => c.status },
+          { header: 'Source', value: (c) => c.source },
+          { header: 'Zones', value: (c) => list(c.zones.map((z) => z.name)) },
+          { header: 'Orders', value: (c) => c.orderCount },
+          { header: 'Total spent (INR)', value: (c) => rupees(c.totalSpentPaise) },
+          { header: 'Last order (UTC)', value: (c) => c.lastOrderAt },
+          { header: 'Created at (UTC)', value: (c) => c.createdAt },
+          { header: 'Id', value: (c) => c.id },
+        ],
+        filename: datedFilename('customers'),
       }),
     );
   }

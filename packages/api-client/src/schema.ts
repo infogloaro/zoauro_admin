@@ -706,6 +706,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/customers/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the customers list with the same filters and zone scope as GET /customers (D149). Needs customers:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportCustomers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dashboard/new-registrations": {
         parameters: {
             query?: never;
@@ -998,6 +1015,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/delivery-partners/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the delivery partners list with the same filters and zone scope as GET /delivery-partners (D149). Needs delivery:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportPartners"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One export job of the caller: status, row count, and while READY a signed download link valid until expiresAt (24 h). Anyone else’s job is 404 */
+        get: operations["getExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/homemakers": {
         parameters: {
             query?: never;
@@ -1154,6 +1205,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/homemakers/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the home-food vendors list with the same filters and zone scope as GET /homemakers (D149). Needs homemakers:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportHomemakers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/hotels": {
         parameters: {
             query?: never;
@@ -1294,6 +1362,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hotels/bookings/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the room bookings list with the same filters and zone scope as GET /hotels/bookings (D149). Needs bookings:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportRoomBookings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/hotels/dining": {
         parameters: {
             query?: never;
@@ -1340,6 +1425,40 @@ export interface paths {
         put?: never;
         /** Confirm, complete, cancel or mark a no-show at the version seen (PENDING -> CONFIRMED -> COMPLETED | NO_SHOW; cancel before completion) */
         post: operations["setDiningReservationStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/dining/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the dining reservations list with the same filters and zone scope as GET /hotels/dining (D149). Needs dining:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportDiningReservations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hotels/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the hotels list with the same filters and zone scope as GET /hotels (D149). Needs hotels:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportHotels"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1826,6 +1945,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/menu-items/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the menu items list with the same filters and zone scope as GET /menu-items (D149). Needs menu:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportMenuItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notifications": {
         parameters: {
             query?: never;
@@ -1907,6 +2043,23 @@ export interface paths {
         put?: never;
         /** Reject a pending promotion with a note (Super Admin; D134) */
         post: operations["rejectNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the notifications list with the same filters and zone scope as GET /notifications (D149). Needs notifications:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportNotifications"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2026,6 +2179,23 @@ export interface paths {
         put?: never;
         /** Move an order along doc 10 (If-Match: version). Cancel and assign have their own routes; REFUNDED comes from refunds (D40). Guards: vendor active, COD collected */
         post: operations["transitionOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the orders list with the same filters and zone scope as GET /orders (D149). Needs orders:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportOrders"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2182,6 +2352,23 @@ export interface paths {
         put?: never;
         /** Verify or reject a pending vendor (reject needs a note); emits vendor.status_changed. Audited as verified or rejected */
         post: operations["verifyRestaurant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the restaurants list with the same filters and zone scope as GET /restaurants (D149). Needs restaurants:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportRestaurants"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2393,6 +2580,109 @@ export interface paths {
         head?: never;
         /** Suspend (every session ends) or reactivate another Super Admin. Oneself 409 SELF; the last active Super Admin 409 LAST_SUPER_ADMIN */
         patch: operations["setSuperAdminStatus"];
+        trace?: never;
+    };
+    "/support/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tickets in the zones the caller can view (?zoneId repeatable): status, priority, category, assignee (me / none), customer, order, breached, q (ticket no or subject), from/to, sort, pages. Customer phone masked (D26) */
+        get: operations["listTickets"];
+        put?: never;
+        /** Open a ticket on a customer’s behalf (D141). Zone = the linked order’s, else the customer’s latest order’s, else the body’s zoneId (D139); auto-assigned round-robin or least busy among the zone’s members with support:edit (D140); SLA deadlines from support.sla */
+        post: operations["createTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/support/tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One ticket with its replies and internal notes and the statuses /transition accepts now. 404 outside the caller’s view scope */
+        get: operations["getTicket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/support/tickets/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign (If-Match: version) to a member holding support:edit in the ticket’s zone, or null for the automatic choice (D140) */
+        post: operations["assignTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/support/tickets/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A PUBLIC reply to the customer (the first one stops the first-response clock) or an INTERNAL note; up to 5 upload keys */
+        post: operations["addTicketMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/support/tickets/{id}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a ticket (If-Match: version): WAITING_CUSTOMER pauses the SLA clock, ASSIGNED resumes it, RESOLVED, CLOSED, REOPENED within support.sla.reopenWithinDays (D139) */
+        post: operations["transitionTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/support/tickets/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the support tickets list with the same filters and zone scope as GET /support/tickets (D149). Needs support:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportTickets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/uploads/confirm": {
@@ -7096,6 +7386,95 @@ export interface operations {
             };
         };
     };
+    exportCustomers: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                source?: "APP" | "ADMIN" | "REFERRAL" | "OTHER" | "IMPORT";
+                status?: "ACTIVE" | "INACTIVE" | "BLOCKED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     getDashboardNewRegistrations: {
         parameters: {
             query?: {
@@ -9331,6 +9710,174 @@ export interface operations {
             };
         };
     };
+    exportPartners: {
+        parameters: {
+            query?: {
+                area?: string;
+                assignment?: "ASSIGNED" | "UNASSIGNED";
+                available?: "true" | "false";
+                online?: "true" | "false";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING_VERIFICATION" | "VERIFIED" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                vehicleType?: string;
+                verification?: "PENDING" | "VERIFIED" | "REJECTED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getExport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The export job */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listHomemakers: {
         parameters: {
             query?: {
@@ -10889,6 +11436,98 @@ export interface operations {
             };
         };
     };
+    exportHomemakers: {
+        parameters: {
+            query?: {
+                area?: string;
+                assignment?: "ASSIGNED" | "UNASSIGNED";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                tag?: string;
+                verification?: "PENDING" | "VERIFIED" | "REJECTED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listHotels: {
         parameters: {
             query?: {
@@ -12130,6 +12769,98 @@ export interface operations {
             };
         };
     };
+    exportRoomBookings: {
+        parameters: {
+            query?: {
+                checkInFrom?: string;
+                checkInTo?: string;
+                hotelId?: string;
+                page?: number;
+                pageSize?: number;
+                paymentStatus?: "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+                q?: string;
+                sort?: string;
+                status?: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listDiningReservations: {
         parameters: {
             query?: {
@@ -12564,6 +13295,187 @@ export interface operations {
             };
             /** @description Invalid input */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    exportDiningReservations: {
+        parameters: {
+            query?: {
+                hotelId?: string;
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                reservedDate?: string;
+                restaurantId?: string;
+                sort?: string;
+                status?: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    exportHotels: {
+        parameters: {
+            query?: {
+                area?: string;
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                verification?: "PENDING" | "VERIFIED" | "REJECTED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15226,6 +16138,99 @@ export interface operations {
             };
         };
     };
+    exportMenuItems: {
+        parameters: {
+            query?: {
+                availability?: "live" | "out_of_stock" | "vendor_off" | "admin_disabled";
+                categoryId?: string;
+                dietary?: "VEGETARIAN" | "NON_VEG" | "EGG";
+                featured?: boolean;
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                vendorId?: string;
+                vendorKind?: "RESTAURANT" | "HOMEMAKER";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listNotifications: {
         parameters: {
             query?: {
@@ -16091,6 +17096,97 @@ export interface operations {
             };
         };
     };
+    exportNotifications: {
+        parameters: {
+            query?: {
+                audience?: "CUSTOMERS" | "VENDORS" | "PARTNERS" | "ALL";
+                from?: string;
+                kind?: "MESSAGE" | "PROMOTION";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING_APPROVAL" | "SCHEDULED" | "SENT" | "CANCELLED" | "FAILED" | "REJECTED";
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     getOpenApiDocument: {
         parameters: {
             query?: never;
@@ -16717,6 +17813,103 @@ export interface operations {
             };
             /** @description Invalid input */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    exportOrders: {
+        parameters: {
+            query?: {
+                customerId?: string;
+                deliveryPartnerId?: string;
+                from?: string;
+                homemakerId?: string;
+                page?: number;
+                pageSize?: number;
+                paymentMethod?: ("ONLINE" | "COD" | "WALLET")[];
+                paymentStatus?: ("PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED")[];
+                q?: string;
+                restaurantId?: string;
+                scheduled?: boolean;
+                sort?: string;
+                status?: ("PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED")[];
+                to?: string;
+                vendorType?: "RESTAURANT" | "HOMEMAKER";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18284,6 +19477,98 @@ export interface operations {
             };
         };
     };
+    exportRestaurants: {
+        parameters: {
+            query?: {
+                area?: string;
+                assignment?: "ASSIGNED" | "UNASSIGNED";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                sort?: string;
+                status?: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+                tag?: string;
+                verification?: "PENDING" | "VERIFIED" | "REJECTED";
+                zoneId?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     globalSearch: {
         parameters: {
             query: {
@@ -19640,6 +20925,665 @@ export interface operations {
             };
             /** @description Invalid input */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listTickets: {
+        parameters: {
+            query?: {
+                assigned?: "me" | "none";
+                assigneeId?: string;
+                breached?: "true" | "false";
+                category?: ("ORDER" | "PAYMENT_REFUND" | "DELIVERY" | "ACCOUNT" | "OTHER")[];
+                customerId?: string;
+                from?: string;
+                orderId?: string;
+                page?: number;
+                pageSize?: number;
+                priority?: ("LOW" | "NORMAL" | "HIGH")[];
+                q?: string;
+                sort?: string;
+                status?: ("OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED")[];
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of tickets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            assignee: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            breached: boolean;
+                            /** @enum {string} */
+                            category: "ORDER" | "PAYMENT_REFUND" | "DELIVERY" | "ACCOUNT" | "OTHER";
+                            createdAt: string;
+                            /** Format: uuid */
+                            customerId: string;
+                            customerName: string;
+                            customerPhoneMasked: string;
+                            escalatedAt: string | null;
+                            firstResponseDueAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            orderId: string | null;
+                            /** @enum {string} */
+                            priority: "LOW" | "NORMAL" | "HIGH";
+                            /** Format: uuid */
+                            refundId: string | null;
+                            resolutionDueAt: string;
+                            /** @enum {string} */
+                            status: "OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED";
+                            subject: string;
+                            ticketNo: string;
+                            version: number;
+                            /** Format: uuid */
+                            zoneId: string;
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    category: "ORDER" | "PAYMENT_REFUND" | "DELIVERY" | "ACCOUNT" | "OTHER";
+                    /** Format: uuid */
+                    customerId: string;
+                    description: string;
+                    /** Format: uuid */
+                    orderId?: string;
+                    /**
+                     * @default NORMAL
+                     * @enum {string}
+                     */
+                    priority?: "LOW" | "NORMAL" | "HIGH";
+                    /** Format: uuid */
+                    refundId?: string;
+                    subject: string;
+                    /** Format: uuid */
+                    zoneId?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        assigneeId: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        status: "OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED";
+                        version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The ticket */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        allowedTransitions: ("OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED")[];
+                        assignee: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        breached: boolean;
+                        /** @enum {string} */
+                        category: "ORDER" | "PAYMENT_REFUND" | "DELIVERY" | "ACCOUNT" | "OTHER";
+                        closedAt: string | null;
+                        createdAt: string;
+                        /** Format: uuid */
+                        customerId: string;
+                        customerName: string;
+                        customerPhoneMasked: string;
+                        escalatedAt: string | null;
+                        escalationDueAt: string;
+                        firstRespondedAt: string | null;
+                        firstResponseDueAt: string;
+                        /** Format: uuid */
+                        id: string;
+                        messages: {
+                            attachmentKeys: string[];
+                            author: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                            body: string;
+                            createdAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            visibility: "PUBLIC" | "INTERNAL";
+                        }[];
+                        /** Format: uuid */
+                        orderId: string | null;
+                        pausedAt: string | null;
+                        /** @enum {string} */
+                        priority: "LOW" | "NORMAL" | "HIGH";
+                        /** Format: uuid */
+                        refundId: string | null;
+                        reopenCount: number;
+                        resolutionDueAt: string;
+                        resolvedAt: string | null;
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        /** @enum {string} */
+                        status: "OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED";
+                        subject: string;
+                        ticketNo: string;
+                        version: number;
+                        /** Format: uuid */
+                        zoneId: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    assignTicket: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    assigneeId: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        assigneeId: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        status: "OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED";
+                        version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    addTicketMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default [] */
+                    attachmentKeys?: string[];
+                    body: string;
+                    /** @enum {string} */
+                    visibility: "PUBLIC" | "INTERNAL";
+                };
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        assigneeId: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        status: "OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED";
+                        version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    transitionTicket: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                    /** @enum {string} */
+                    to: "OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED";
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        assigneeId: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        status: "OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED";
+                        version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    exportTickets: {
+        parameters: {
+            query?: {
+                assigned?: "me" | "none";
+                assigneeId?: string;
+                breached?: "true" | "false";
+                category?: ("ORDER" | "PAYMENT_REFUND" | "DELIVERY" | "ACCOUNT" | "OTHER")[];
+                customerId?: string;
+                from?: string;
+                orderId?: string;
+                page?: number;
+                pageSize?: number;
+                priority?: ("LOW" | "NORMAL" | "HIGH")[];
+                q?: string;
+                sort?: string;
+                status?: ("OPEN" | "ASSIGNED" | "WAITING_CUSTOMER" | "RESOLVED" | "CLOSED" | "REOPENED")[];
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

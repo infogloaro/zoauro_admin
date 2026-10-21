@@ -26,9 +26,14 @@ import {
 import { SettingsDatabase } from './modules/settings/settings.repository';
 import { SettingsReader } from './modules/settings/settings.service';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
+import { createRewardsModule } from './modules/rewards';
+import { createSupportService, startSupportJobs } from './modules/support';
+import { buildWorkerListServices } from './worker.lists';
+import { startRewardsExpiryJob } from './worker.rewards';
 
-// BullMQ worker process (doc 06). Processors: outbox publisher + webhook delivery (SA-4.5, IH-5 delivery part) and
-// export jobs (doc 09, D129). The retention / cleanup jobs register here as they are built.
+// BullMQ worker process (doc 06). Processors: outbox publisher + webhook delivery (SA-4.5, IH-5 delivery part), export
+// jobs for every list (doc 09, D129, D149), notification sends (M17), pre-order dispatch (D167), the support SLA sweep
+// (D139, D140) and the reward points expiry (D169). The retention / cleanup jobs register here as they are built.
 
 const env = loadEnvOrExit('worker');
 const prisma = createPrismaClient(env.DATABASE_URL);
@@ -57,23 +62,6 @@ const publisher = createOutboxPublisher({
   },
 });
 
-// Export jobs: the requester's context is rebuilt from the access tables (the same AccessService the API uses, with its
-// <= 60 s Redis cache), and rows are read through the orders service, so the file never holds more than GET /orders.
-const exportQueue = createExportQueue({ redisUrl: env.REDIS_URL });
-const exportsService = createExportsService({
-  prisma,
-  // list only: the worker never assigns, so the partner cap (D121) is never read here
-  orders: createOrdersModule({ prisma, appOrigin: env.APP_URL, maxConcurrentOrders: async () => 0 })
-    .service,
-  files: createS3ExportFileStore({
-    bucket: env.S3_BUCKET,
-    region: env.S3_REGION,
-    ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT } : {}),
-  }),
-  enqueue: (id) => exportQueue.enqueue(id),
-  contexts: createAccessService({ prisma, redis }),
-});
-
 // Notification sends (M17, D136): the worker side of the module. The settings reader (channels, each zone's promotion
 // window) caches 30 s, so a settings change reaches the worker within that; email goes through SMTP_URL like the API.
 const notificationQueue = createNotificationQueue({ redisUrl: env.REDIS_URL });
@@ -90,9 +78,57 @@ const notificationsService = createNotificationsModule({
     : noopMailer,
 }).service;
 
+// One settings reader (30 s cache) for support.sla, the loyalty rules and the list services below
+const workerSettings = new SettingsReader({
+  repo: new SettingsDatabase(prisma).repo,
+  now: () => Date.now(),
+});
+const accessService = createAccessService({ prisma, redis });
+
+// Support desk SLA sweep (D139, D140): escalations and the close after the reopen window, every minute
+const supportService = createSupportService({
+  prisma,
+  slaOf: (zoneId) => workerSettings.supportSla(zoneId),
+  access: accessService,
+});
+
+// D169 reward points: expiry at midnight India time (worker.rewards.ts); loyalty rules per zone from settings
+const rewardsService = createRewardsModule({
+  prisma,
+  appOrigin: env.APP_URL,
+  rules: (zoneId) => workerSettings.loyalty(zoneId),
+}).service;
+
+// Export jobs: the requester's context is rebuilt from the access tables (the same AccessService the API uses, with its
+// <= 60 s Redis cache), and rows are read through the orders service, so the file never holds more than GET /orders.
+const exportQueue = createExportQueue({ redisUrl: env.REDIS_URL });
+const exportsService = createExportsService({
+  prisma,
+  // list only: the worker never assigns, so the partner cap (D121) is never read here
+  orders: createOrdersModule({ prisma, appOrigin: env.APP_URL, maxConcurrentOrders: async () => 0 })
+    .service,
+  files: createS3ExportFileStore({
+    bucket: env.S3_BUCKET,
+    region: env.S3_REGION,
+    ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT } : {}),
+  }),
+  enqueue: (id) => exportQueue.enqueue(id),
+  lists: buildWorkerListServices({
+    prisma,
+    redis,
+    env,
+    settings: workerSettings,
+    notifications: notificationsService,
+    support: supportService,
+  }),
+  contexts: accessService,
+});
+
 let jobs: OutboxJobs | null = null;
 let exportJobs: { close(): Promise<void> } | null = null;
 let notificationJobs: { close(): Promise<void> } | null = null;
+let supportJobs: { close(): Promise<void> } | null = null;
+let rewardsJobs: { close(): Promise<void> } | null = null;
 // D167: the pre-order dispatch sweep (every 60 s) releases due pre-orders to the vendor and partner apps
 const preorderSettings = new SettingsReader({
   repo: new SettingsDatabase(prisma).repo,
@@ -113,6 +149,8 @@ async function shutdown(signal: string) {
   await notificationJobs?.close();
   await notificationQueue.close();
   await preorderJobs?.close();
+  await supportJobs?.close();
+  await rewardsJobs?.close();
   redis.disconnect();
   await prisma.$disconnect();
   process.exit(0);
@@ -132,10 +170,12 @@ assertDatabaseRole({
       service: notificationsService,
     });
     preorderJobs = await startPreorderJobs({ redisUrl: env.REDIS_URL, service: preordersService });
+    supportJobs = await startSupportJobs({ redisUrl: env.REDIS_URL, service: supportService });
+    rewardsJobs = await startRewardsExpiryJob({ redisUrl: env.REDIS_URL, service: rewardsService });
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
     process.once('SIGINT', () => void shutdown('SIGINT'));
     console.log(
-      `worker started (outbox publisher, webhook delivery: ${transport.name}, exports, notifications, pre-orders)`,
+      `worker started (outbox publisher, webhook delivery: ${transport.name}, exports, notifications, pre-orders, support SLA, reward expiry)`,
     );
   })
   .catch((err: unknown) => {

@@ -35,6 +35,9 @@ import { createDashboardModule } from '../../../src/modules/dashboard';
 import { createSearchModule } from '../../../src/modules/search';
 import { noopMailer } from '../../../src/lib/mailer';
 import { createVendorsModule } from '../../../src/modules/vendors';
+import { createExportsModule } from '../../../src/modules/exports';
+import { createSupportModule } from '../../../src/modules/support';
+import { createMemoryExportFiles } from '../../exports/fake-files';
 import { createFakeStorage } from '../../uploads/fake-storage';
 import {
   createZonesModule,
@@ -107,6 +110,11 @@ interface AppExtras {
   dashboardCache?: Parameters<typeof createDashboardModule>[0]['redis'];
   /** the M18 rate limiter (default: Redis-backed, as server.ts) */
   searchLimiter?: Parameters<typeof createSearchModule>[0]['limiter'];
+  /**
+   * Export jobs (D149): by default each job runs inside the request that queued it (files in memory), so a GET
+   * <list>/export is complete when it answers; `inline: false` only records the queued ids (tests run jobs themselves).
+   */
+  exports?: { inline?: boolean };
 }
 
 export interface TestUser {
@@ -232,6 +240,14 @@ export async function createAuthTestEnv() {
     zones: ReturnType<typeof createZonesModule>;
     routers: Router[];
     extraRouters: Router[];
+    /** D129/D149 export jobs of this app: the service, the files written (in memory) and the ids queued */
+    exports: {
+      service: ReturnType<typeof createExportsModule>['service'];
+      files: Map<string, { body: string; contentType: string }>;
+      queue: string[];
+    };
+    /** D139 support desk service of this app (tests drive the SLA sweep with it) */
+    support: ReturnType<typeof createSupportModule>['service'];
   } {
     let appRedis = redis;
     if (scope) {
@@ -366,25 +382,71 @@ export async function createAuthTestEnv() {
       rules: (zoneId) => settings.reader.preorderRules(zoneId),
       clock: clock.now,
     });
+    const orders = createOrdersModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+      clock: clock.now,
+    });
+    const customers = createCustomersModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      limiter: new RedisRateLimiter(appRedis),
+      clock: clock.now,
+    });
+    // M17: sends are not queued here; tests/notifications drive the send step on their own service
+    const notifications = createNotificationsModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      settings: settings.reader,
+      queue: { enqueue: async () => undefined },
+      mailer: noopMailer,
+      clock: clock.now,
+    });
+    // D139-D141 support desk, as server.ts (the SLA sweep is driven by tests/support)
+    const support = createSupportModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      slaOf: (zoneId) => settings.reader.supportSla(zoneId),
+      access,
+      clock: clock.now,
+    });
+    // D129/D149 export jobs, as server.ts but with files in memory; mounted before the list routers
+    const exportFiles = createMemoryExportFiles();
+    const exportQueue: string[] = [];
+    const exportGate: { run?: (id: string) => Promise<unknown> } = {};
+    const exportsModule = createExportsModule({
+      prisma,
+      orders: orders.service,
+      lists: {
+        vendors: vendors.service,
+        menu: menu.items,
+        partners: partners.service,
+        hotels: hotels.hotels,
+        bookings: hotels.bookings,
+        notifications: notifications.service,
+        support: support.service,
+        customers: customers.service,
+      },
+      files: exportFiles,
+      enqueue: async (id) => {
+        exportQueue.push(id);
+        if (extra.exports?.inline !== false) await exportGate.run?.(id);
+      },
+      contexts: access,
+      clock: clock.now,
+    });
+    exportGate.run = (id) => exportsModule.service.run(id, { finalAttempt: true });
     const moduleRouters = [
       auth.router,
+      exportsModule.router,
       createAuditModule({ prisma }).router,
       zones.router,
       accessControl.router,
       settings.router,
-      createOrdersModule({
-        prisma,
-        appOrigin: APP_ORIGIN,
-        maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
-        clock: clock.now,
-      }).router,
+      orders.router,
       vendors.router,
-      createCustomersModule({
-        prisma,
-        appOrigin: APP_ORIGIN,
-        limiter: new RedisRateLimiter(appRedis),
-        clock: clock.now,
-      }).router,
+      customers.router,
       createRewardsModule({
         prisma,
         appOrigin: APP_ORIGIN,
@@ -392,15 +454,7 @@ export async function createAuthTestEnv() {
         clock: clock.now,
       }).router,
       partners.router,
-      // M17: sends are not queued here; tests/notifications drive the send step on their own service
-      createNotificationsModule({
-        prisma,
-        appOrigin: APP_ORIGIN,
-        settings: settings.reader,
-        queue: { enqueue: async () => undefined },
-        mailer: noopMailer,
-        clock: clock.now,
-      }).router,
+      notifications.router,
       createDashboardModule({ prisma, redis: extra.dashboardCache ?? null, clock: clock.now })
         .router,
       createSearchModule({
@@ -411,6 +465,7 @@ export async function createAuthTestEnv() {
       menu.router,
       hotels.router,
       preorders.router,
+      support.router,
     ];
     const extraRouters = [
       ...(extra.routers ?? []),
@@ -425,7 +480,15 @@ export async function createAuthTestEnv() {
       },
       ...(extra.auditCoverage ? { auditCoverage: extra.auditCoverage } : {}),
     });
-    return { app, access, zones, routers: [...moduleRouters, ...extraRouters], extraRouters };
+    return {
+      app,
+      access,
+      zones,
+      routers: [...moduleRouters, ...extraRouters],
+      extraRouters,
+      exports: { service: exportsModule.service, files: exportFiles.files, queue: exportQueue },
+      support: support.service,
+    };
   }
   function makeApp(
     config: AuthConfig = TEST_CONFIG,

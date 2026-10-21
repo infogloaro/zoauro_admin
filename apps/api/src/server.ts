@@ -33,6 +33,10 @@ import { createSecretBox } from './modules/auth/mfa/secret-box';
 import { createIntakeModule } from './modules/intake';
 import { createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
+import { createS3ExportFileStore } from './lib/exports';
+import { startApiRealtime } from './lib/realtime';
+import { createExportQueue, createExportsModule } from './modules/exports';
+import { createSupportModule } from './modules/support';
 
 const env = loadEnvOrExit('api');
 
@@ -59,6 +63,9 @@ const mailer = env.SMTP_URL
 if (!env.SMTP_URL)
   console.warn('SMTP_URL is not set: auth emails (reset links, notices) are not sent');
 
+// D142: session evictions disconnect that session's sockets; the realtime server starts with the HTTP server below
+const realtimeGate: { sessionsEvicted?: (tokenHashes: string[]) => void } = {};
+
 const auth = createAuthModule({
   prisma,
   redis,
@@ -72,6 +79,7 @@ const auth = createAuthModule({
   smsSettings: { provider: env.SMS_PROVIDER, dltTemplateIdOtp: env.SMS_DLT_TEMPLATE_ID_OTP },
   sessionSecret: env.SESSION_SECRET,
   appOrigin: new URL(env.APP_URL).origin,
+  onSessionsEvicted: (tokenHashes) => realtimeGate.sessionsEvicted?.(tokenHashes),
 });
 
 // Platform settings (doc 59, D109): built first, because its reader gives the access context the zone refund caps (D110)
@@ -191,6 +199,50 @@ const notifications = createNotificationsModule({
   mailer,
 });
 
+const orders = createOrdersModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+});
+// M09 customers (D25, D26, D28, D63)
+const customers = createCustomersModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  limiter: new RedisRateLimiter(redis),
+});
+
+// Support desk (D93, D139-D141): SLA from settings support.sla (per zone); the worker runs the SLA sweep
+const support = createSupportModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  slaOf: (zoneId) => settings.reader.supportSla(zoneId),
+  access,
+});
+
+// Export jobs for every list (D129, D149): the API validates, scopes and queues; the worker writes the CSV to S3. The
+// exports router goes before the list routers, so `<list>/export` is never read as `<list>/{id}`.
+const exportQueue = createExportQueue({ redisUrl: env.REDIS_URL });
+const exportsModule = createExportsModule({
+  prisma,
+  orders: orders.service,
+  lists: {
+    vendors: vendors.service,
+    menu: menu.items,
+    partners: partners.service,
+    hotels: hotels.hotels,
+    bookings: hotels.bookings,
+    notifications: notifications.service,
+    support: support.service,
+    customers: customers.service,
+  },
+  files: createS3ExportFileStore({
+    bucket: env.S3_BUCKET,
+    region: env.S3_REGION,
+    ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT } : {}),
+  }),
+  enqueue: (id) => exportQueue.enqueue(id),
+});
+
 const app = createApp({
   trustProxyHops: env.TRUST_PROXY_HOPS,
   // M21 Integration API for the apps (doc 42, D147): HMAC-signed, outside the staff session stack
@@ -212,22 +264,14 @@ const app = createApp({
     authContextMiddleware: authContextMiddleware(access),
     routers: [
       auth.router,
+      exportsModule.router,
       createAuditModule({ prisma }).router,
       zones.router,
       accessControl.router,
       settings.router,
-      createOrdersModule({
-        prisma,
-        appOrigin: new URL(env.APP_URL).origin,
-        maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
-      }).router,
+      orders.router,
       vendors.router,
-      // M09 customers (D25, D26, D28, D63)
-      createCustomersModule({
-        prisma,
-        appOrigin: new URL(env.APP_URL).origin,
-        limiter: new RedisRateLimiter(redis),
-      }).router,
+      customers.router,
       // D169 reward points (the zone's loyalty values)
       createRewardsModule({
         prisma,
@@ -243,6 +287,7 @@ const app = createApp({
       menu.router,
       hotels.router,
       preorders.router,
+      support.router,
     ],
   },
 });
@@ -254,9 +299,24 @@ assertDatabaseRole({
   allowedRoles: env.DATABASE_ALLOWED_ROLES,
 })
   .then(() => {
-    app.listen(env.PORT, () => {
+    const server = app.listen(env.PORT, () => {
       console.log(`api listening on :${env.PORT}`);
     });
+    // Socket.IO on the same server (doc 06 section 6): session handshake, zone rooms, scope.changed, D142 evictions
+    startApiRealtime({
+      httpServer: server,
+      appOrigin: new URL(env.APP_URL).origin,
+      redisUrl: env.REDIS_URL,
+      sessionMiddleware: auth.sessionMiddleware,
+      access,
+    })
+      .then((rt) => {
+        realtimeGate.sessionsEvicted = rt.sessionsEvicted;
+      })
+      .catch((err: unknown) => {
+        // the panel falls back to 15 s polling (doc 06); the API keeps serving
+        console.error(`realtime not started (${err instanceof Error ? err.name : 'unknown'})`);
+      });
   })
   .catch((err: unknown) => {
     // A role mismatch names roles only; any other error (e.g. unreachable database) prints its class name, never its

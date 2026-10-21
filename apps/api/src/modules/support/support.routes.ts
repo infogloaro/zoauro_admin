@@ -26,14 +26,14 @@ function versionOf(req: Request): number {
 
 /**
  * Mounted at /api/v1 (doc 09 "Support", D139-D141). Reads: support:view, bounded by its zones. Writes: support:edit on
- * the ticket's zone (the service: 404 outside view scope, 403 without the action). Create names its zone through the
- * order or the body, so the route leaves 404-versus-403 to the service (zoneInRequest).
+ * the ticket's zone (the service: 404 outside view scope, 403 without the action). Create needs support:edit somewhere
+ * (403 otherwise); the service then checks it on the ticket's zone (from the order, else the body).
  */
 export function createSupportRoutes(service: SupportService, opts: { appOrigin: string }): Router {
   const router = Router();
-  const write = (zoneInRequest = false) => [
+  const write = () => [
     originCheck(opts.appOrigin),
-    requirePermission('support', 'edit', { zoneInRequest }),
+    requirePermission('support', 'edit'),
     requireCsrf,
     requireJsonBody,
   ];
@@ -84,7 +84,7 @@ export function createSupportRoutes(service: SupportService, opts: { appOrigin: 
 
   router.get('/support/tickets', requirePermission('support', 'view'), list);
   router.get('/support/tickets/:id', requirePermission('support', 'view'), detail);
-  router.post('/support/tickets', ...write(true), auditMeta(auditOf('createTicket')), create);
+  router.post('/support/tickets', ...write(), auditMeta(auditOf('createTicket')), create);
   router.post(
     '/support/tickets/:id/messages',
     ...write(),

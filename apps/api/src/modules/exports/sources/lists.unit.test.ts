@@ -2,6 +2,7 @@ import type { TicketListItem } from '@zoauro/shared';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import type { AuthContext } from '../../../lib/authz';
 import { EXPORT_PAGE_SIZE, type ExportSource } from '../../../lib/exports';
+import type { CustomersService } from '../../customers';
 import type { PartnersService } from '../../delivery-partners';
 import type { BookingsService, HotelsService } from '../../hotels';
 import type { MenuService } from '../../menu';
@@ -53,6 +54,7 @@ describe('list export sources (D149)', () => {
       bookings: BookingsService;
       notifications: NotificationsService;
       support: SupportService;
+      customers: CustomersService;
     }>().toMatchTypeOf<Required<ListServices>>();
     expect(listExportSources({}).map((s) => s.module)).toEqual([]);
     const all = listExportSources({

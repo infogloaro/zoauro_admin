@@ -185,6 +185,40 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         approveNotification: { ownObject: true },
         rejectNotification: { ownObject: true },
         cancelNotification: { ownObject: true },
+        // D139 support desk: one ticket per zone A, B, C; object routes use the zone A one (scope: tests/support/)
+        listTickets: {
+          listedZones: (body) => {
+            const ids = [
+              ...new Set((body as { data: { zoneId: string }[] }).data.map((t) => t.zoneId)),
+            ];
+            return Object.values(fixtures.zones).every((z) => ids.includes(z)) ? 'ALL' : ids;
+          },
+        },
+        getTicket: { ownObject: true },
+        // D129/D149 exports: a job names the zones it exports (null = every zone); jobs run inline in the test env.
+        // Fixture profiles hold no <module>:export, so Zonal Admins get 403 (positive cases: tests/exports/)
+        ...Object.fromEntries(
+          [
+            'exportOrders',
+            'exportRestaurants',
+            'exportHomemakers',
+            'exportMenuItems',
+            'exportPartners',
+            'exportCustomers',
+            'exportNotifications',
+            'exportTickets',
+            'exportHotels',
+            'exportRoomBookings',
+            'exportDiningReservations',
+          ].map((op) => [
+            op,
+            {
+              listedZones: (body: unknown) =>
+                (body as { zoneIds: string[] | null }).zoneIds ?? ('ALL' as const),
+            },
+          ]),
+        ),
+        getExport: { ownObject: true },
       },
     });
     publishReport('real-routes', report);
@@ -201,7 +235,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 4 Super Admins (D148)
     // + 1 pre-order reschedule (D167)
     // + 9 record claims (D174)
-    expect(report.coveredRoutes).toHaveLength(201);
+    // + 11 list exports and GET /exports/{id} (D129, D149) + 6 support desk (D139-D141)
+    expect(report.coveredRoutes).toHaveLength(219);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,
