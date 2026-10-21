@@ -1,6 +1,8 @@
 import {
   buildPage,
   isOrderTransitionAllowed,
+  ORDER_CANCELLABLE,
+  ORDER_TRANSITIONS,
   type AssignOrderInput,
   type AuditActionKey,
   type CancelOrderInput,
@@ -14,7 +16,7 @@ import {
   type TransitionOrderInput,
 } from '@zoauro/shared';
 import { maskEmail, maskPhone, record, uuidv7 } from '../../lib/audit';
-import { assertCanWrite, type AuthContext } from '../../lib/authz';
+import { assertCanWrite, can, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
 import { orderEventRows, type OrderEventExtra } from './orders.events';
 import type {
@@ -98,9 +100,46 @@ export function toListItem(row: OrderListRow): OrderListItem {
   };
 }
 
-function toDetail(row: OrderDetailRow): OrderDetail {
+/** One line from the address snapshot (ported from magaraj's dev_cb). */
+export function addressLine(snapshot: unknown): string | null {
+  if (typeof snapshot !== 'object' || snapshot === null) return null;
+  const s = snapshot as Record<string, unknown>;
+  const parts = ['line1', 'line2', 'landmark', 'area', 'city', 'pincode']
+    .map((k) => s[k])
+    .filter(
+      (v): v is string | number =>
+        (typeof v === 'string' && v.trim() !== '') || typeof v === 'number',
+    )
+    .map((v) => String(v).trim());
+  return parts.length === 0 ? null : parts.join(', ');
+}
+
+/**
+ * What the viewer may do with the order now: the doc 10 table and the viewer's actions IN THE ORDER'S ZONE (can, not
+ * "somewhere"), so a member who is read-only there sees no buttons. Ported from magaraj's dev_cb, plus assign and
+ * reschedule.
+ */
+export function actionsFor(ctx: AuthContext, row: OrderDetailRow): OrderDetail['actions'] {
+  const status = can(ctx, 'orders:status', row.zoneId);
+  const edit = can(ctx, 'orders:edit', row.zoneId);
+  return {
+    transitions: status
+      ? ORDER_TRANSITIONS[row.status].filter(
+          (t) => t !== 'CANCELLED' && t !== 'ASSIGNED' && t !== 'REFUNDED',
+        )
+      : [],
+    cancel: status && ORDER_CANCELLABLE.includes(row.status),
+    assign: edit && (row.status === 'READY' || row.status === 'ASSIGNED'),
+    reschedule:
+      edit && row.status === 'PLACED' && row.scheduledFor !== null && row.releasedAt === null,
+  };
+}
+
+function toDetail(ctx: AuthContext, row: OrderDetailRow): OrderDetail {
   return {
     ...toListItem(row),
+    addressLine: addressLine(row.addressSnapshotJson),
+    actions: actionsFor(ctx, row),
     subtotal: row.subtotal,
     tax: row.tax,
     deliveryCharge: row.deliveryCharge,
@@ -232,7 +271,7 @@ export class OrdersService {
   async get(ctx: AuthContext, id: string): Promise<OrderDetail> {
     const row = await this.deps.db.repo.detail(ctx, id);
     if (!row) throw notFound();
-    return toDetail(row);
+    return toDetail(ctx, row);
   }
 
   /** POST /orders/{id}/transition: every doc 10 move except cancel and assign (their own routes). */

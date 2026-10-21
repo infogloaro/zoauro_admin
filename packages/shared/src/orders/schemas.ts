@@ -225,6 +225,21 @@ export const orderDetailSchema = orderListItemSchema.extend({
   deliveredAt: iso.nullable(),
   cancelledAt: iso.nullable(),
   cancelReason: z.string().nullable(),
+  /** the delivery address as one line (from the address snapshot), for every order */
+  addressLine: z.string().nullable(),
+  /**
+   * What THIS viewer may do now, decided on the server from the state machine and the viewer's permissions in the
+   * order's zone (a member who is read-only there gets no actions). Ported from magaraj's dev_cb.
+   */
+  actions: z.object({
+    /** POST /orders/{id}/transition targets (cancel and assign have their own routes; REFUNDED is the refunds flow's) */
+    transitions: z.array(z.enum(ORDER_STATUSES)),
+    cancel: z.boolean(),
+    /** assign (READY) or reassign (ASSIGNED) a partner */
+    assign: z.boolean(),
+    /** a pre-order not yet released (D167) */
+    reschedule: z.boolean(),
+  }),
 });
 export type OrderDetail = z.infer<typeof orderDetailSchema>;
 

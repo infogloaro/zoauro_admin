@@ -69,6 +69,7 @@ const detailSelect = {
   deliveredAt: true,
   cancelledAt: true,
   cancelReason: true,
+  addressSnapshotJson: true,
 } satisfies Prisma.OrderSelect;
 export type OrderDetailRow = Prisma.OrderGetPayload<{ select: typeof detailSelect }>;
 

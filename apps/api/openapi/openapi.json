@@ -19816,6 +19816,49 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "addressLine": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "actions": {
+                      "type": "object",
+                      "properties": {
+                        "transitions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "PLACED",
+                              "ACCEPTED",
+                              "PREPARING",
+                              "READY",
+                              "ASSIGNED",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "CANCELLED",
+                              "REFUNDED"
+                            ]
+                          }
+                        },
+                        "cancel": {
+                          "type": "boolean"
+                        },
+                        "assign": {
+                          "type": "boolean"
+                        },
+                        "reschedule": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "transitions",
+                        "cancel",
+                        "assign",
+                        "reschedule"
+                      ]
                     }
                   },
                   "required": [
@@ -19849,7 +19892,9 @@
                     "readyAt",
                     "deliveredAt",
                     "cancelledAt",
-                    "cancelReason"
+                    "cancelReason",
+                    "addressLine",
+                    "actions"
                   ]
                 }
               }

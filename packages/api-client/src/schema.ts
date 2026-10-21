@@ -18644,6 +18644,13 @@ export interface operations {
                 content: {
                     "application/json": {
                         acceptedAt: string | null;
+                        actions: {
+                            assign: boolean;
+                            cancel: boolean;
+                            reschedule: boolean;
+                            transitions: ("PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED")[];
+                        };
+                        addressLine: string | null;
                         cancelledAt: string | null;
                         cancelReason: string | null;
                         customer: {
