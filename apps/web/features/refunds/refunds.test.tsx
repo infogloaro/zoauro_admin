@@ -13,7 +13,8 @@ import { RefundDetailPage } from './RefundDetailPage';
 import { RequestRefundDialog } from './RefundDialogs';
 import { RefundsPage } from './RefundsPage';
 
-// Refunds (D180, D187, D95): queues and actions per role, a request with an Idempotency-Key and the zone's rules, the
+// Refunds (D180, D187, D95): queues and actions per role, a request with an Idempotency-Key and the order's refund
+// options (the zone's reasons and targets, the balance, the member's limits), the
 // Super Admin's queue and the second approval, never approving one's own, a UPI payment recorded with its UTR.
 
 vi.mock('next/navigation', async () => {
@@ -242,35 +243,92 @@ describe('Refund page', () => {
 });
 
 describe('Request a refund', () => {
-  it('a Zonal Admin: the default reasons and the COD targets; sent with an Idempotency-Key', async () => {
-    const user = userEvent.setup();
-    const post = vi.fn(async () => detail({ status: 'APPROVED', target: 'WALLET' }));
+  /** GET /orders/{id}/refund-options (e488e23): the zone's own reasons, the COD targets, a part already refunded. */
+  const options = (over: Record<string, unknown> = {}) => ({
+    orderId: ORDER,
+    zoneId: zone.id,
+    paymentMethod: 'COD',
+    reasons: [
+      { code: 'LATE_DELIVERY', label: 'Arrived very late', bearer: 'PLATFORM' },
+      { code: 'WRONG_ITEM', label: 'Wrong item', bearer: 'VENDOR' },
+    ],
+    targets: ['WALLET', 'UPI'],
+    paidPaise: 45000,
+    refundedPaise: 5000,
+    maxRefundablePaise: 40000,
+    memberLimits: {
+      perRefundPaise: 30000,
+      dailyLimitPaise: 100000,
+      dailyRemainingPaise: 80000,
+      secondApproverAbovePaise: 1_000_000,
+    },
+    ...over,
+  });
+  const dialog = (get: ReturnType<typeof vi.fn>, post = vi.fn()) =>
     render(
       <RequestRefundDialog
-        order={{
-          id: ORDER,
-          orderNo: 'ZO-ANN-000123',
-          zoneId: zone.id,
-          paymentMethod: 'COD',
-          totalPaise: 45000,
-        }}
-        superAdmin={false}
+        order={{ id: ORDER, orderNo: 'ZO-ANN-000123', paymentMethod: 'COD', totalPaise: 45000 }}
         onClose={vi.fn()}
       />,
-      { wrapper: wrap(vi.fn(), post) },
+      { wrapper: wrap(get, post) },
     );
-    const dialog = screen.getByRole('dialog');
-    const target = within(dialog).getByLabelText('Refund to') as HTMLSelectElement;
+
+  it('the zone’s reasons and targets from the order’s options; the balance; sent with an Idempotency-Key', async () => {
+    const user = userEvent.setup();
+    const get = vi.fn(async () => options());
+    const post = vi.fn(async () => detail({ status: 'APPROVED', target: 'WALLET' }));
+    dialog(get, post);
+    const amount = (await screen.findByLabelText('Amount (₹)')) as HTMLInputElement;
+    expect(get).toHaveBeenCalledWith('/orders/{id}/refund-options', {
+      params: { id: ORDER },
+      signal: expect.any(AbortSignal),
+    });
+    // the still-refundable balance, not the order total
+    expect(amount.value).toBe('400');
+    expect(screen.getByText('Still refundable').nextElementSibling?.textContent).toBe('₹400.00');
+    const reason = screen.getByLabelText('Reason') as HTMLSelectElement;
+    expect([...reason.options].map((o) => o.value)).toEqual(['LATE_DELIVERY', 'WRONG_ITEM']);
+    const target = screen.getByLabelText('Refund to') as HTMLSelectElement;
     expect([...target.options].map((o) => o.value)).toEqual(['WALLET', 'UPI']);
-    await user.clear(within(dialog).getByLabelText('Amount (₹)'));
-    await user.type(within(dialog).getByLabelText('Amount (₹)'), '200');
-    await user.click(within(dialog).getByRole('button', { name: 'Request refund' }));
+    // 400 is above this member's 300 a refund: it will wait for a Super Admin
+    expect(screen.getByText(/Above your limit .*: it will wait for a Super Admin/)).toBeTruthy();
+    await user.clear(amount);
+    await user.type(amount, '200');
+    expect(screen.getByText(/Your limit: ₹300\.00 a refund, ₹800\.00 left today/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Request refund' }));
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith('/orders/{id}/refunds', {
         params: { id: ORDER },
-        body: { amountPaise: 20000, reasonCode: 'WRONG_ITEM', target: 'WALLET' },
+        body: { amountPaise: 20000, reasonCode: 'LATE_DELIVERY', target: 'WALLET' },
         idempotencyKey: expect.stringMatching(/^refund-/),
       }),
     );
+  });
+
+  it('more than the balance cannot be sent; nothing left says so; a refused zone is explained', async () => {
+    const user = userEvent.setup();
+    dialog(vi.fn(async () => options()));
+    const amount = await screen.findByLabelText('Amount (₹)');
+    await user.clear(amount);
+    await user.type(amount, '450');
+    expect(screen.getByText('At most ₹400.00 can still be refunded.')).toBeTruthy();
+    expect(
+      (screen.getByRole('button', { name: 'Request refund' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    cleanup();
+
+    dialog(vi.fn(async () => options({ refundedPaise: 45000, maxRefundablePaise: 0 })));
+    expect(await screen.findByText('Nothing is left to refund on this order.')).toBeTruthy();
+    expect(screen.queryByLabelText('Amount (₹)')).toBeNull();
+    cleanup();
+
+    dialog(
+      vi.fn(async () => {
+        throw new ApiError(403, 'FORBIDDEN', 'Forbidden');
+      }),
+    );
+    expect(
+      await screen.findByText('You cannot request refunds in this order’s zone.'),
+    ).toBeTruthy();
   });
 });

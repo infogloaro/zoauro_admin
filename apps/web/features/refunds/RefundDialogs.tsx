@@ -21,11 +21,12 @@ import { useApiClient } from '../../lib/api-client';
 import { formatPaise } from '../audit/format';
 import { ReauthCancelled, useReauthGuard } from '../account/useReauthGuard';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
-import { useInvalidateRefunds, useRefundRules } from './api';
-import { FAULT_LABEL, TARGET_LABEL, allowedTargets } from './labels';
+import { useInvalidateRefunds, useRefundOptions } from './api';
+import { FAULT_LABEL, TARGET_LABEL } from './labels';
 
-// Refund decisions (D180, D187, D95): request a refund on an order (Idempotency-Key, reason and target from the
-// refund rules, the member's limits decide whether it is approved at once or waits for a Super Admin), decide a
+// Refund decisions (D180, D187, D95): request a refund on an order (Idempotency-Key; reasons, targets, the refundable
+// balance and the member's own limits from the order's refund options; within the limits it is approved at once,
+// above them it waits for a Super Admin), decide a
 // customer's report (full, partial or reject, with fault), approve or reject (Super Admin, password; never one's own;
 // above the second-approver amount a different Super Admin approves again), record a UPI payment made by hand (UTR),
 // retry a failed one. Nothing is reported as done unless the API says so.
@@ -79,52 +80,70 @@ function Shell({
 
 // ---- request a refund on an order -------------------------------------------------------------------------------------
 
+const optionsProblem = (err: unknown): string =>
+  isApiError(err, 'FORBIDDEN')
+    ? 'You cannot request refunds in this order’s zone.'
+    : isApiError(err) && err.status === 404
+      ? 'This order is not in your zones.'
+      : 'The refund options for this order could not be loaded. Try again.';
+
 export function RequestRefundDialog({
   order,
-  superAdmin,
   onClose,
 }: {
   order: {
     id: string;
     orderNo: string;
-    zoneId: string;
     paymentMethod: 'ONLINE' | 'COD' | 'WALLET';
     totalPaise: number;
   };
-  superAdmin: boolean;
   onClose: () => void;
 }) {
   const client = useApiClient();
   const invalidate = useInvalidateRefunds();
   const { toast } = useToast();
-  const rules = useRefundRules(order.zoneId, superAdmin);
-  const targets = allowedTargets(rules.targets, order.paymentMethod);
+  const options = useRefundOptions(order.id);
+  const o = options.data;
   // one key per dialog: a double click or a retry after a network error never refunds twice
   const idempotencyKey = useMemo(() => `refund-${order.id}-${crypto.randomUUID()}`, [order.id]);
-  const [amount, setAmount] = useState(String(order.totalPaise / 100));
+  const [amount, setAmount] = useState('');
   const [reasonCode, setReasonCode] = useState('');
   const [target, setTarget] = useState<RefundTargetChoice | ''>('');
   const [fault, setFault] = useState<RefundFault | ''>('');
   const [note, setNote] = useState('');
   const [alert, setAlert] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [seeded, setSeeded] = useState(false);
 
+  // once the options arrive: the whole refundable balance, the first reason and target
   useEffect(() => {
-    if (!reasonCode && rules.reasons[0]) setReasonCode(rules.reasons[0].code);
-    if (!target && targets[0]) setTarget(targets[0]);
-  }, [rules, targets, reasonCode, target]);
+    if (!o || seeded) return;
+    setSeeded(true);
+    setAmount(String(o.maxRefundablePaise / 100));
+    if (o.reasons[0]) setReasonCode(o.reasons[0].code);
+    if (o.targets[0]) setTarget(o.targets[0]);
+  }, [o, seeded]);
 
-  const reason = rules.reasons.find((r) => r.code === reasonCode);
+  const amountPaise = amount.trim() === '' ? 0 : rupeesToPaise(Number(amount));
+  const reason = o?.reasons.find((r) => r.code === reasonCode);
   const parsed = refundCreateSchema.safeParse({
-    amountPaise: amount.trim() === '' ? 0 : rupeesToPaise(Number(amount)),
+    amountPaise,
     reasonCode,
     target: target || undefined,
     ...(fault ? { fault } : {}),
     ...(note.trim() ? { note: note.trim() } : {}),
   });
+  const limits = o?.memberLimits;
+  const nothingLeft = o !== undefined && o.maxRefundablePaise <= 0;
+  const noChoices = o !== undefined && (o.reasons.length === 0 || o.targets.length === 0);
+  const overBalance = o !== undefined && amountPaise > o.maxRefundablePaise;
+  const aboveLimit =
+    limits !== undefined &&
+    (amountPaise > limits.perRefundPaise || amountPaise > limits.dailyRemainingPaise);
+  const ready = o !== undefined && parsed.success && !nothingLeft && !noChoices && !overBalance;
 
   const run = async () => {
-    if (!parsed.success) return;
+    if (!ready || !parsed.success) return;
     setAlert(null);
     setBusy(true);
     try {
@@ -155,79 +174,130 @@ export function RequestRefundDialog({
   return (
     <Shell
       title={`Refund order ${order.orderNo}?`}
-      text={`Paid ${formatPaise(order.totalPaise)} by ${order.paymentMethod === 'COD' ? 'cash on delivery' : order.paymentMethod.toLowerCase()}. Within your limits it is approved at once; above them it waits for a Super Admin.`}
-      alert={alert}
+      text={`Order total ${formatPaise(order.totalPaise)}, paid by ${order.paymentMethod === 'COD' ? 'cash on delivery' : order.paymentMethod.toLowerCase()}. Within your limits it is approved at once; above them it waits for a Super Admin.`}
+      alert={alert ?? (options.isError ? optionsProblem(options.error) : null)}
       busy={busy}
       onClose={onClose}
       footer={
-        <Button onClick={() => void run()} disabled={busy || !parsed.success}>
+        <Button onClick={() => void run()} disabled={busy || !ready}>
           Request refund
         </Button>
       }
     >
-      <FormField label="Amount (₹)" hint="Less than the total is a partial refund">
-        <Input
-          type="number"
-          min={1}
-          step="0.01"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-      </FormField>
-      <FormField
-        label="Reason"
-        hint={reason ? `Who pays by default: ${FAULT_LABEL[reason.bearer]}` : undefined}
-      >
-        <select
-          className={inputClass()}
-          value={reasonCode}
-          onChange={(e) => setReasonCode(e.target.value)}
-        >
-          {rules.reasons.map((r) => (
-            <option key={r.code} value={r.code}>
-              {r.label}
-            </option>
-          ))}
-        </select>
-      </FormField>
-      <FormField label="Refund to">
-        <select
-          className={inputClass()}
-          value={target}
-          onChange={(e) => setTarget(e.target.value as RefundTargetChoice)}
-        >
-          {targets.map((t) => (
-            <option key={t} value={t}>
-              {TARGET_LABEL[t]}
-            </option>
-          ))}
-        </select>
-      </FormField>
-      <FormField
-        label="Who pays (optional)"
-        hint="Leave as the reason's default unless you know better"
-      >
-        <select
-          className={inputClass()}
-          value={fault}
-          onChange={(e) => setFault(e.target.value as RefundFault | '')}
-        >
-          <option value="">The reason's default</option>
-          {REFUND_FAULTS.map((f) => (
-            <option key={f} value={f}>
-              {FAULT_LABEL[f]}
-            </option>
-          ))}
-        </select>
-      </FormField>
-      <FormField label="Note (optional)">
-        <textarea
-          className={inputClass('min-h-16 py-2')}
-          maxLength={500}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </FormField>
+      {options.isError ? (
+        <div>
+          <Button variant="secondary" onClick={() => void options.refetch()}>
+            Try again
+          </Button>
+        </div>
+      ) : !o || !limits ? (
+        <p role="status" className="text-sm text-muted">
+          Loading the refund options for this order…
+        </p>
+      ) : (
+        <>
+          <dl className="grid grid-cols-3 gap-3 text-sm">
+            {(
+              [
+                ['Paid', o.paidPaise],
+                ['Already refunded', o.refundedPaise],
+                ['Still refundable', o.maxRefundablePaise],
+              ] as const
+            ).map(([label, paise]) => (
+              <div key={label} className="rounded-input bg-surface-muted p-3">
+                <dt className="text-xs text-muted">{label}</dt>
+                <dd className="mt-0.5 font-semibold tabular-nums">{formatPaise(paise)}</dd>
+              </div>
+            ))}
+          </dl>
+          {nothingLeft ? (
+            <p className="text-sm text-muted">Nothing is left to refund on this order.</p>
+          ) : noChoices ? (
+            <p className="text-sm text-muted">
+              No refund reason or target is set for this zone and payment method. A Super Admin sets
+              them in Platform Settings &gt; Refunds.
+            </p>
+          ) : (
+            <>
+              <FormField
+                label="Amount (₹)"
+                error={
+                  overBalance
+                    ? `At most ${formatPaise(o.maxRefundablePaise)} can still be refunded.`
+                    : undefined
+                }
+                hint={
+                  aboveLimit
+                    ? `Above your limit (${formatPaise(limits.perRefundPaise)} a refund, ${formatPaise(limits.dailyRemainingPaise)} left today): it will wait for a Super Admin.${amountPaise > limits.secondApproverAbovePaise ? ` Above ${formatPaise(limits.secondApproverAbovePaise)} a second Super Admin approves too.` : ''}`
+                    : `Your limit: ${formatPaise(limits.perRefundPaise)} a refund, ${formatPaise(limits.dailyRemainingPaise)} left today. Less than the balance is a partial refund.`
+                }
+              >
+                <Input
+                  type="number"
+                  min={1}
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </FormField>
+              <FormField
+                label="Reason"
+                hint={reason ? `Who pays by default: ${FAULT_LABEL[reason.bearer]}` : undefined}
+              >
+                <select
+                  className={inputClass()}
+                  value={reasonCode}
+                  onChange={(e) => setReasonCode(e.target.value)}
+                >
+                  {o.reasons.map((r) => (
+                    <option key={r.code} value={r.code}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField label="Refund to">
+                <select
+                  className={inputClass()}
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value as RefundTargetChoice)}
+                >
+                  {o.targets.map((t) => (
+                    <option key={t} value={t}>
+                      {TARGET_LABEL[t]}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField
+                label="Who pays (optional)"
+                hint="Leave as the reason's default unless you know better"
+              >
+                <select
+                  className={inputClass()}
+                  value={fault}
+                  onChange={(e) => setFault(e.target.value as RefundFault | '')}
+                >
+                  <option value="">The reason's default</option>
+                  {REFUND_FAULTS.map((f) => (
+                    <option key={f} value={f}>
+                      {FAULT_LABEL[f]}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField label="Note (optional)">
+                <textarea
+                  className={inputClass('min-h-16 py-2')}
+                  maxLength={500}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+              </FormField>
+            </>
+          )}
+        </>
+      )}
     </Shell>
   );
 }

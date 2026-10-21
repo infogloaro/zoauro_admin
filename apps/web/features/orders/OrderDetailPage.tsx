@@ -351,11 +351,9 @@ export function OrderDetailPage({
           order={{
             id: o.id,
             orderNo: o.orderNo,
-            zoneId: o.zoneId,
             paymentMethod: o.paymentMethod,
             totalPaise: o.total,
           }}
-          superAdmin={role === 'SUPER_ADMIN'}
           onClose={() => setRefunding(false)}
         />
       ) : null}

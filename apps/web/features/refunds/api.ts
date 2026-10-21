@@ -1,14 +1,7 @@
 'use client';
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  DEFAULT_REFUND_RULES,
-  refundRulesSchema,
-  type PaymentDisplayStatus,
-  type RefundFault,
-  type RefundRules,
-  type RefundStatus,
-} from '@zoauro/shared';
+import type { PaymentDisplayStatus, RefundFault, RefundStatus } from '@zoauro/shared';
 import { useCallback } from 'react';
 import { DEFAULT_LIST_PAGE_SIZE } from '../../components/shared/Pagination';
 import { useApiClient } from '../../lib/api-client';
@@ -113,27 +106,19 @@ export function usePayment(id: string) {
 }
 
 /**
- * The refund rules in an order's zone (reasons, who pays, targets per payment method). A Super Admin reads the zone's
- * effective value; a Zonal Admin cannot read settings, so the decided defaults are offered and the API refuses a
- * reason the Super Admin removed (422).
+ * What the Request-refund dialog may offer on an order (GET /orders/{id}/refund-options, e488e23, D187), for both roles
+ * and without reading settings: the zone's reasons with who pays, the targets for the payment method, the refundable
+ * balance and the caller's own limits in that zone. Under the refunds key, so a new refund refreshes the balance.
  */
-export function useRefundRules(zoneId: string | null, superAdmin: boolean): RefundRules {
+export function useRefundOptions(orderId: string) {
   const client = useApiClient();
-  const q = useQuery({
-    queryKey: ['settings', 'refunds', 'effective', zoneId],
-    enabled: superAdmin && zoneId !== null,
+  return useQuery({
+    queryKey: ['refunds', 'options', orderId],
     queryFn: ({ signal }) =>
-      client.get('/settings/{group}', {
-        params: { group: 'refunds' },
-        query: zoneId ? { zoneId } : {},
-        signal,
-      }),
-    staleTime: 60_000,
+      client.get('/orders/{id}/refund-options', { params: { id: orderId }, signal }),
+    staleTime: 0,
     retry: retryTransient,
   });
-  const effective = q.data?.data.find((s) => s.key === 'refunds.rules')?.effective;
-  const parsed = refundRulesSchema.safeParse(effective);
-  return parsed.success ? parsed.data : DEFAULT_REFUND_RULES;
 }
 
 export function useInvalidateRefunds() {
