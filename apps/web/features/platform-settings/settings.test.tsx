@@ -26,6 +26,28 @@ afterEach(cleanup);
 beforeEach(() => window.history.replaceState(null, '', '/super-admin/settings/platform'));
 
 describe('settings form model', () => {
+  it('cancel reasons (D190): who may use each reason survives an edit, in the options order', () => {
+    const def = settingDef('orders.cancelReasons');
+    const draft = toDraft('orders.cancelReasons', def?.default);
+    const rows = draft.fields['reasons'] as Record<string, unknown>[];
+    expect(rows.length).toBeGreaterThan(0);
+    rows.push({
+      code: 'rain',
+      label: 'Heavy rain',
+      usableBy: ['VENDOR', 'ADMIN'],
+      noteRequired: true,
+    });
+    const value = fromDraft('orders.cancelReasons', draft) as {
+      reasons: { code: string; usableBy: string[]; noteRequired: boolean }[];
+    };
+    expect(value.reasons.at(-1)).toMatchObject({
+      code: 'RAIN',
+      usableBy: ['ADMIN', 'VENDOR'],
+      noteRequired: true,
+    });
+    expect(validate('orders.cancelReasons', value)).toEqual({});
+  });
+
   it('money is typed in rupees and stored in paise; the registry schema validates', () => {
     const def = settingDef('refunds.limits');
     const draft = toDraft('refunds.limits', def?.default);

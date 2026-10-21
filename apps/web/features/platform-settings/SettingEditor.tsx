@@ -433,7 +433,7 @@ function RowsControl({
 }) {
   const rows = Array.isArray(value) ? (value as DraftRow[]) : null;
   const columns = f.columns ?? [];
-  const setCell = (i: number, key: string, cell: string | boolean) =>
+  const setCell = (i: number, key: string, cell: string | boolean | string[]) =>
     rows && onChange(rows.map((r, j) => (j === i ? { ...r, [key]: cell } : r)));
   return (
     <fieldset className="flex flex-col gap-2 sm:col-span-2">
@@ -472,7 +472,32 @@ function RowsControl({
                     const cell = r[c.key];
                     return (
                       <td key={c.key} className="px-2 py-1.5">
-                        {c.kind === 'bool' ? (
+                        {c.kind === 'checks' ? (
+                          <span className="flex flex-wrap gap-x-3 gap-y-1">
+                            {(c.options ?? []).map((o) => {
+                              const picked = Array.isArray(cell) ? cell : [];
+                              return (
+                                <label key={o} className="flex items-center gap-1 text-xs">
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`${OPTION_LABEL[o] ?? o}, ${cellLabel}`}
+                                    checked={picked.includes(o)}
+                                    onChange={(e) =>
+                                      setCell(
+                                        i,
+                                        c.key,
+                                        e.target.checked
+                                          ? [...picked, o]
+                                          : picked.filter((x) => x !== o),
+                                      )
+                                    }
+                                  />
+                                  {OPTION_LABEL[o] ?? o}
+                                </label>
+                              );
+                            })}
+                          </span>
+                        ) : c.kind === 'bool' ? (
                           <input
                             type="checkbox"
                             aria-label={cellLabel}

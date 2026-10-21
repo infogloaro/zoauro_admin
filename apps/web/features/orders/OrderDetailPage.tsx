@@ -1,5 +1,6 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import { PREORDER_ISSUES, type OrderStatus } from '@zoauro/shared';
 import { Ban, Bike, CalendarClock, RotateCcw, Undo2 } from 'lucide-react';
 import { useState } from 'react';
@@ -528,11 +529,19 @@ function CancelDialog({
 }) {
   const client = useApiClient();
   const { toast } = useToast();
+  // the zone's reasons an admin may use (D190); a free-text reason is refused by the API
+  const reasons = useQuery({
+    queryKey: ['orders', 'cancel-reasons', order.id],
+    queryFn: ({ signal }) =>
+      client.get('/orders/{id}/cancel-reasons', { params: { id: order.id }, signal }),
+    staleTime: 60_000,
+  });
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [alert, setAlert] = useState<string | null>(null);
-  const ok = reason.trim().length >= 1;
+  const picked = reasons.data?.reasons.find((r) => r.code === reason);
+  const ok = picked !== undefined && (!picked.noteRequired || note.trim().length > 0);
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent>
@@ -544,18 +553,28 @@ function CancelDialog({
           </DialogDescription>
         </div>
         {alert ? <FormAlert>{alert}</FormAlert> : null}
+        {reasons.isError ? (
+          <FormAlert>The cancel reasons could not be loaded. Close and try again.</FormAlert>
+        ) : (
+          <FormField label="Reason">
+            <select
+              className={inputClass()}
+              value={reason}
+              disabled={!reasons.data}
+              onChange={(e) => setReason(e.target.value)}
+            >
+              <option value="">{reasons.data ? 'Choose a reason' : 'Loading the reasons…'}</option>
+              {(reasons.data?.reasons ?? []).map((r) => (
+                <option key={r.code} value={r.code}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        )}
         <FormField
-          label="Reason"
-          hint="Short, e.g. vendor closed, customer request (up to 50 characters)"
+          label={picked?.noteRequired ? 'Note (required for this reason)' : 'Note (optional)'}
         >
-          <input
-            className={inputClass()}
-            maxLength={50}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-        </FormField>
-        <FormField label="Note (optional)">
           <textarea
             className={inputClass('min-h-20 py-2')}
             maxLength={500}
@@ -577,7 +596,7 @@ function CancelDialog({
                 await client.post('/orders/{id}/cancel', {
                   params: { id: order.id },
                   body: {
-                    reasonCode: reason.trim(),
+                    reasonCode: reason,
                     ...(note.trim() ? { note: note.trim() } : {}),
                   },
                   ifMatch: order.version,

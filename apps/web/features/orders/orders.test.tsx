@@ -242,7 +242,16 @@ describe('Order detail', () => {
   async function mountDetail(post: ReturnType<typeof vi.fn>, over: Record<string, unknown> = {}) {
     const { OrderDetailPage } = await import('./OrderDetailPage');
     const { ToastProvider } = await import('../../components/ui/toast');
-    const get = vi.fn(async () => order(over));
+    const get = vi.fn(async (path: string) =>
+      path === '/orders/{id}/cancel-reasons'
+        ? {
+            reasons: [
+              { code: 'VENDOR_CLOSED', label: 'Vendor closed', noteRequired: false },
+              { code: 'OTHER', label: 'Other', noteRequired: true },
+            ],
+          }
+        : order(over),
+    );
     const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queries}>
@@ -271,6 +280,29 @@ describe('Order detail', () => {
       expect(post).toHaveBeenCalledWith('/orders/{id}/transition', {
         params: { id: order().id },
         body: { to: 'ACCEPTED' },
+        ifMatch: 4,
+      }),
+    );
+  });
+
+  it('cancel picks one of the zone reasons (D190); a reason that needs a note waits for it', async () => {
+    const user = userEvent.setup();
+    const post = vi.fn(async () => ({ id: order().id, status: 'CANCELLED', version: 5 }));
+    await mountDetail(post);
+    await user.click(await screen.findByRole('button', { name: 'Cancel order' }));
+    const dialog = await screen.findByRole('dialog');
+    const confirm = within(dialog).getByRole('button', {
+      name: 'Cancel order',
+    }) as HTMLButtonElement;
+    await user.selectOptions(await within(dialog).findByLabelText('Reason'), 'OTHER');
+    expect(confirm.disabled).toBe(true);
+    await user.type(within(dialog).getByLabelText(/Note \(required/), 'Customer moved');
+    expect(confirm.disabled).toBe(false);
+    await user.click(confirm);
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/orders/{id}/cancel', {
+        params: { id: order().id },
+        body: { reasonCode: 'OTHER', note: 'Customer moved' },
         ifMatch: 4,
       }),
     );

@@ -27,11 +27,11 @@ export type FieldKind =
   | 'checks'
   | 'rows';
 
-/** A column of a "rows" field. A code column is upper case (A–Z, 0–9, _). */
+/** A column of a "rows" field. A code column is upper case (A–Z, 0–9, _); a checks column picks any of its options. */
 export interface ColumnSpec {
   key: string;
   label: string;
-  kind: 'text' | 'code' | 'select' | 'bool';
+  kind: 'text' | 'code' | 'select' | 'bool' | 'checks';
   options?: readonly string[];
 }
 
@@ -76,6 +76,8 @@ export const OPTION_LABEL: Record<string, string> = {
   SOURCE: 'Original payment method',
   WALLET: 'ZOAURO wallet',
   UPI: 'UPI',
+  ADMIN: 'Admins',
+  SYSTEM: 'System',
 };
 
 const REASON_COLUMNS: readonly ColumnSpec[] = [
@@ -204,6 +206,29 @@ export const KEY_SPECS: Record<string, KeySpec> = {
       },
     ],
   },
+  // D190 (2017b87): the reasons an order may be cancelled with, who may use each, and whether it needs a note
+  'orders.cancelReasons': {
+    fields: [
+      {
+        path: 'reasons',
+        label: 'Cancel reasons',
+        kind: 'rows',
+        columns: [
+          { key: 'code', label: 'Code', kind: 'code' },
+          { key: 'label', label: 'Reason', kind: 'text' },
+          {
+            key: 'usableBy',
+            label: 'Who may use it',
+            kind: 'checks',
+            options: ['ADMIN', 'VENDOR', 'CUSTOMER', 'SYSTEM'],
+          },
+          { key: 'noteRequired', label: 'Note required', kind: 'bool' },
+        ],
+        newRow: { code: '', label: '', usableBy: ['ADMIN'], noteRequired: false },
+        hint: 'Admins pick from the reasons they may use when they cancel an order',
+      },
+    ],
+  },
   'delivery.maxConcurrentOrders': {
     fields: [
       {
@@ -242,8 +267,8 @@ export const KEY_SPECS: Record<string, KeySpec> = {
   },
 };
 
-/** One row of a "rows" field: text cells and switches. */
-export type DraftRow = Record<string, string | boolean>;
+/** One row of a "rows" field: text cells, switches and picked options. */
+export type DraftRow = Record<string, string | boolean | string[]>;
 /** The form state: text for numbers and strings, booleans, picked options, table rows; null = "not configured". */
 export type DraftValue = string | boolean | string[] | DraftRow[] | null;
 export interface Draft {
@@ -300,7 +325,12 @@ export function toDraft(key: string, value: unknown): Draft {
               const r = record(row);
               const out: DraftRow = {};
               for (const c of f.columns ?? [])
-                out[c.key] = c.kind === 'bool' ? r[c.key] === true : String(r[c.key] ?? '');
+                out[c.key] =
+                  c.kind === 'bool'
+                    ? r[c.key] === true
+                    : c.kind === 'checks'
+                      ? (Array.isArray(r[c.key]) ? (r[c.key] as unknown[]) : []).map(String)
+                      : String(r[c.key] ?? '');
               return out;
             })
           : f.nullable
@@ -367,11 +397,13 @@ export function fromDraft(key: string, draft: Draft): unknown {
                   r[c.key] =
                     c.kind === 'bool'
                       ? cell === true
-                      : c.kind === 'code'
-                        ? String(cell ?? '')
-                            .trim()
-                            .toUpperCase()
-                        : String(cell ?? '').trim();
+                      : c.kind === 'checks'
+                        ? (c.options ?? []).filter((o) => Array.isArray(cell) && cell.includes(o))
+                        : c.kind === 'code'
+                          ? String(cell ?? '')
+                              .trim()
+                              .toUpperCase()
+                          : String(cell ?? '').trim();
                 }
                 return r;
               })
