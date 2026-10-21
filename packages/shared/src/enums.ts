@@ -71,3 +71,55 @@ export type MenuBulkAction = (typeof MENU_BULK_ACTIONS)[number];
 
 export const DIETARY_TYPES = ['VEGETARIAN', 'NON_VEG', 'EGG'] as const;
 export type DietaryType = (typeof DIETARY_TYPES)[number];
+
+/** Customer lifecycle (doc 08 `CustomerStatus`) — M09 Customers. */
+export const CUSTOMER_STATUSES = ['ACTIVE', 'INACTIVE', 'BLOCKED'] as const;
+export type CustomerStatus = (typeof CUSTOMER_STATUSES)[number];
+
+/** Registration source (doc 08 `customers.source`, Figma "Registration Source", D28). */
+export const CUSTOMER_SOURCES = ['APP', 'ADMIN', 'REFERRAL', 'OTHER'] as const;
+export type CustomerSource = (typeof CUSTOMER_SOURCES)[number];
+
+/** Doc 08 `user_type` — one value exists today. */
+export const USER_TYPES = ['CUSTOMER'] as const;
+export type UserType = (typeof USER_TYPES)[number];
+
+/**
+ * Delivery partner lifecycle (doc 10 §5): PENDING_VERIFICATION → VERIFIED →
+ * ACTIVE ↔ INACTIVE; SUSPENDED. The online flag (`is_online`) is separate.
+ */
+export const DELIVERY_PARTNER_STATUSES = [
+  'PENDING_VERIFICATION',
+  'VERIFIED',
+  'ACTIVE',
+  'INACTIVE',
+  'SUSPENDED',
+] as const;
+export type DeliveryPartnerStatus = (typeof DELIVERY_PARTNER_STATUSES)[number];
+
+/**
+ * Settlement cycle for a delivery partner's earnings/cash (task Figma
+ * "Settlement" column). PENDING = not settled, PARTIAL = part of the period
+ * paid out, SETTLED = fully settled. Real settlement runs land with M13
+ * (doc 16 `cash_settlements`); until then the column carries the seeded or
+ * admin-set state only.
+ */
+export const PARTNER_SETTLEMENT_STATUSES = ['PENDING', 'PARTIAL', 'SETTLED'] as const;
+export type PartnerSettlementStatus = (typeof PARTNER_SETTLEMENT_STATUSES)[number];
+
+/**
+ * Third-party delivery provider lifecycle (task: Third-Party Partners page).
+ * ACTIVE ⇄ INACTIVE is the enable/disable lever; SUSPENDED parks a provider
+ * after a problem, mirroring the vendor/partner lifecycle style (doc 10).
+ */
+export const THIRD_PARTY_PROVIDER_STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED'] as const;
+export type ThirdPartyProviderStatus = (typeof THIRD_PARTY_PROVIDER_STATUSES)[number];
+
+/**
+ * Integration configuration state — a status flag only. CONFIGURED means an
+ * admin marked the provider's integration setup complete; it never implies a
+ * live API connection (no credentials or connectivity exist yet — see the
+ * task constraint and the handoff gap note).
+ */
+export const INTEGRATION_STATUSES = ['NOT_CONFIGURED', 'CONFIGURED'] as const;
+export type IntegrationStatus = (typeof INTEGRATION_STATUSES)[number];

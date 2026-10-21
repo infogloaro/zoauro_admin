@@ -55,8 +55,8 @@ describe('Topbar', () => {
     expect(html).toContain('aria-label="Global search"');
   });
 
-  it('marks the notification dot danger red', () => {
+  it('renders the notification bell', () => {
     const html = renderToStaticMarkup(<Topbar user={user} />);
-    expect(html).toContain('bg-red-500');
+    expect(html).toContain('aria-label="Notifications"');
   });
 });

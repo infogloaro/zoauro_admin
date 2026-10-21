@@ -45,6 +45,16 @@ function stamp(): string {
   return `${Date.now()}-${seq}`;
 }
 
+/**
+ * One phone per vendor per zone (duplicate guard), so every factory-created
+ * record needs its own number; 10-digit India format, unique via `seq`.
+ */
+let phoneSeq = 0;
+function uniquePhone(): string {
+  phoneSeq += 1;
+  return `98${String(phoneSeq).padStart(8, '0')}`;
+}
+
 beforeAll(async () => {
   await ensureRoles();
 
@@ -107,7 +117,7 @@ const restaurantBody = (zoneId: string, name: string) => ({
   zoneId,
   name,
   ownerName: 'Ravi Kumar',
-  phone: '9876543210',
+  phone: uniquePhone(),
   address: '12 Anna Salai',
   area: 'T. Nagar',
   cuisineTags: ['North Indian', 'Chinese'],
@@ -118,7 +128,7 @@ const restaurantBody = (zoneId: string, name: string) => ({
 const homemakerBody = (zoneId: string, name: string) => ({
   zoneId,
   name,
-  phone: '9876501234',
+  phone: uniquePhone(),
   address: '4 Green Street',
   area: 'Adyar',
   specialityTags: ['Biryani'],
@@ -219,14 +229,14 @@ describe('list endpoints', () => {
     });
     expect(list.status).toBe(200);
     expect(list.body.data).toHaveLength(1);
-    expect(list.body.data[0].phone).toBe('98****3210');
+    expect(list.body.data[0].phone).toBe(vendorService.maskPhone(created.phone));
     expect(list.body.data[0].email).toBe('ow***@example.com');
 
     const detail = await call(app, 'get', `/api/v1/restaurants/${created.id}`, {
       session: superSession,
     });
     expect(detail.status).toBe(200);
-    expect(detail.body.data.phone).toBe('9876543210');
+    expect(detail.body.data.phone).toBe(created.phone);
     expect(detail.body.data.email).toBe('owner@example.com');
   });
 
@@ -318,6 +328,78 @@ describe('create endpoints', () => {
     });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+});
+
+describe('duplicate submissions (one phone per vendor per zone)', () => {
+  it('409 on a second restaurant with the same phone in the same zone, in any format', async () => {
+    const phone = `98${String(90_000_000 + seq).padStart(8, '0')}`;
+    const first = await call(app, 'post', '/api/v1/restaurants', {
+      session: superSession,
+      body: { ...restaurantBody(zoneAId, `Dup R1 ${stamp()}`), phone },
+    });
+    expect(first.status).toBe(201);
+    track(first.body.data.id, 'restaurant');
+
+    const sameFormat = await call(app, 'post', '/api/v1/restaurants', {
+      session: superSession,
+      body: { ...restaurantBody(zoneAId, `Dup R2 ${stamp()}`), phone },
+    });
+    expect(sameFormat.status).toBe(409);
+    expect(sameFormat.body.error.code).toBe('CONFLICT');
+
+    const otherFormat = await call(app, 'post', '/api/v1/restaurants', {
+      session: superSession,
+      body: {
+        ...restaurantBody(zoneAId, `Dup R3 ${stamp()}`),
+        phone: `+91${phone}`,
+      },
+    });
+    expect(otherFormat.status).toBe(409);
+
+    // The same number is free in another zone — the rule is per zone.
+    const otherZone = await call(app, 'post', '/api/v1/restaurants', {
+      session: superSession,
+      body: { ...restaurantBody(zoneBId, `Dup R4 ${stamp()}`), phone },
+    });
+    expect(otherZone.status).toBe(201);
+    track(otherZone.body.data.id, 'restaurant');
+  });
+
+  it('409 when a PATCH moves a vendor onto another vendor’s phone in the same zone', async () => {
+    const target = await createRestaurant(zoneAId, `Dup patch target ${stamp()}`);
+    const victim = await createRestaurant(zoneAId, `Dup patch victim ${stamp()}`);
+
+    const res = await call(app, 'patch', `/api/v1/restaurants/${victim.id}`, {
+      session: superSession,
+      body: { phone: target.phone },
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('CONFLICT');
+
+    // Patching to its own phone stays a no-op success.
+    const same = await call(app, 'patch', `/api/v1/restaurants/${victim.id}`, {
+      session: superSession,
+      body: { phone: victim.phone },
+    });
+    expect(same.status).toBe(200);
+  });
+
+  it('409 on a duplicate homemaker phone in the same zone', async () => {
+    const phone = `98${String(91_000_000 + seq).padStart(8, '0')}`;
+    const first = await call(app, 'post', '/api/v1/homemakers', {
+      session: superSession,
+      body: { ...homemakerBody(zoneAId, `Dup H1 ${stamp()}`), phone },
+    });
+    expect(first.status).toBe(201);
+    track(first.body.data.id, 'homemaker');
+
+    const second = await call(app, 'post', '/api/v1/homemakers', {
+      session: superSession,
+      body: { ...homemakerBody(zoneAId, `Dup H2 ${stamp()}`), phone },
+    });
+    expect(second.status).toBe(409);
+    expect(second.body.error.code).toBe('CONFLICT');
   });
 });
 

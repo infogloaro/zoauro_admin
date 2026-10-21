@@ -238,6 +238,25 @@ async function requireRow(kind: VendorKind, id: string): Promise<VendorRowWithZo
   return row;
 }
 
+/**
+ * Duplicate submissions: one phone per vendor per zone (digits compared, so
+ * +91/spacing variants of the same number count as the same vendor). Answer
+ * 409 CONFLICT so the form can toast instead of silently creating a twin.
+ */
+async function assertNoDuplicatePhone(
+  kind: VendorKind,
+  zoneId: string,
+  phone: string,
+  excludeId: string | null,
+): Promise<void> {
+  const existing = await repo.findVendorByZonePhone(kind, zoneId, phone, excludeId ?? undefined);
+  if (existing) {
+    throw errors.conflict(
+      `${kind === 'restaurant' ? 'A restaurant' : 'A home food provider'} with this phone number already exists in this zone (${existing.name}).`,
+    );
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Reads
  * ------------------------------------------------------------------ */
@@ -324,6 +343,7 @@ export async function createVendor(
   input: RestaurantCreateInput | HomemakerCreateInput,
 ): Promise<RestaurantDto | HomemakerDto> {
   const zone = await requireWritableZoneRef(input.zoneId);
+  await assertNoDuplicatePhone(kind, input.zoneId, input.phone, null);
 
   if (kind === 'restaurant') {
     const v = input as RestaurantCreateInput;
@@ -405,6 +425,11 @@ export async function updateVendor(
   // Commission is not grantable to a Zonal Admin (doc 04 §3).
   if ('commissionPct' in input && input.commissionPct !== undefined && !ctx.auth.isSuperAdmin) {
     throw errors.forbidden('Only a Super Admin can change commission rates');
+  }
+
+  // A phone edit keeps the one-phone-per-zone rule (doc: duplicate guard).
+  if ('phone' in input && input.phone !== undefined && input.phone !== before.phone) {
+    await assertNoDuplicatePhone(kind, before.zoneId, input.phone, id);
   }
 
   const hours = repo.openingHoursValue(input.openingHours);

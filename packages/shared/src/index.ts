@@ -6,3 +6,6 @@ export * from './vendor';
 export * from './uploads';
 export * from './hotels';
 export * from './menu';
+export * from './customers';
+export * from './delivery-partners';
+export * from './third-party-providers';

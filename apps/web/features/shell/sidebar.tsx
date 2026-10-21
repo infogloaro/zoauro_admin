@@ -83,13 +83,22 @@ const SECTIONS: NavSection[] = [
     id: 'orders',
     label: 'Orders & Customers',
     icon: Package,
-    children: [{ label: 'Orders' }, { label: 'Customers' }, { label: 'Payments' }],
+    openByDefault: true,
+    children: [
+      { label: 'Orders' },
+      { label: 'Customers', href: '/super-admin/customers' },
+      { label: 'Payments', href: '/super-admin/payments' },
+    ],
   },
   {
     id: 'partners',
     label: 'Delivery Partners',
     icon: Users,
-    children: [{ label: 'Delivery Partners' }],
+    openByDefault: true,
+    children: [
+      { label: 'Own Delivery Partners', href: '/super-admin/delivery-partners' },
+      { label: 'Third-Party Delivery Partners', href: '/super-admin/third-party-partners' },
+    ],
   },
   {
     id: 'support',

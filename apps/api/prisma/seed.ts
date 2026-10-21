@@ -1,5 +1,6 @@
-import { Prisma, PrismaClient, RoleKey } from '@prisma/client';
+﻿import { Prisma, PrismaClient, RoleKey } from '@prisma/client';
 import { hashPassword } from '../src/lib/passwords';
+import { seedDeliveryDemo } from './demo/seed-delivery-demo';
 
 /**
  * Seed (doc 08/F1.7): identity roles, first Super Admin from env, and demo
@@ -7,12 +8,12 @@ import { hashPassword } from '../src/lib/passwords';
  * Extended (task: realistic data & global search F1.1): restaurant, homemaker,
  * hotel and menu-item records for Chennai & Tamil Nadu.
  *
- * Vendors carry the free-text `area` column from doc 08/20/22 — there is no
+ * Vendors carry the free-text `area` column from doc 08/20/22 â€” there is no
  * separate areas table in the shipped schema.
  */
 const prisma = new PrismaClient();
 
-const MIN_PASSWORD_LENGTH = 12; // doc 14 §2
+const MIN_PASSWORD_LENGTH = 12; // doc 14 Â§2
 
 // ---- Locality pools per demo zone (stored in the free-text `area` column) ----
 const LOCALITIES: Record<string, string[]> = {
@@ -504,7 +505,7 @@ function randItem<T>(arr: readonly T[]): T {
   return value;
 }
 
-/** Generic TN business contact format — demo fixture data, never real PII. */
+/** Generic TN business contact format â€” demo fixture data, never real PII. */
 function makePhone(): string {
   return '+916' + Math.random().toString().substring(2, 10);
 }
@@ -566,10 +567,10 @@ async function main(): Promise<void> {
       console.log(`[seed] super admin ready (${email})`);
     }
   } else {
-    console.log('[seed] INITIAL_SUPERADMIN_EMAIL/PASSWORD not set — skipped admin account');
+    console.log('[seed] INITIAL_SUPERADMIN_EMAIL/PASSWORD not set â€” skipped admin account');
   }
 
-  // Zones — idempotent: only districts whose name is missing are added, so an
+  // Zones â€” idempotent: only districts whose name is missing are added, so an
   // already-configured dev database keeps its rows.
   const existingZoneNames = new Set(
     await prisma.zone.findMany({ select: { name: true } }).then((rows) => rows.map((z) => z.name)),
@@ -580,7 +581,7 @@ async function main(): Promise<void> {
     await prisma.zone.createMany({ data: zonesToAdd, skipDuplicates: true });
     console.log(`[seed] added ${zonesToAdd.length} district zones (out of 38 total)`);
   } else {
-    console.log('[seed] all 38 Tamil Nadu districts already present — no new zones added');
+    console.log('[seed] all 38 Tamil Nadu districts already present â€” no new zones added');
   }
 
   const zoneChennai = await prisma.zone.findUniqueOrThrow({ where: { name: 'Chennai' } });
@@ -707,7 +708,7 @@ async function main(): Promise<void> {
     await prisma.restaurant.createMany({ data: restaurants, skipDuplicates: true });
     console.log(`[seed] added ${restaurants.length} restaurant records`);
   } else {
-    console.log(`[seed] ${restaurantCount} restaurant records already present — skipped`);
+    console.log(`[seed] ${restaurantCount} restaurant records already present â€” skipped`);
   }
 
   // ---- Homemakers (doc 08: `food_category` + `speciality_tags`) ----
@@ -823,7 +824,7 @@ async function main(): Promise<void> {
     await prisma.homemaker.createMany({ data: homemakers, skipDuplicates: true });
     console.log(`[seed] added ${homemakers.length} homemaker records`);
   } else {
-    console.log(`[seed] ${homemakerCount} homemaker records already present — skipped`);
+    console.log(`[seed] ${homemakerCount} homemaker records already present â€” skipped`);
   }
 
   // ---- Hotels (doc 08: zone-owned like restaurants; `phone`/`address` required) ----
@@ -930,7 +931,7 @@ async function main(): Promise<void> {
     await prisma.hotel.createMany({ data: hotels, skipDuplicates: true });
     console.log(`[seed] added ${hotels.length} hotel records`);
   } else {
-    console.log(`[seed] ${hotelCount} hotel records already present — skipped`);
+    console.log(`[seed] ${hotelCount} hotel records already present â€” skipped`);
   }
 
   // ---- Menu items (doc 08: exactly one owning provider, `vendor_id` NOT NULL) ----
@@ -1069,7 +1070,7 @@ async function main(): Promise<void> {
           ? hotelByName.get(link.hotel)
           : undefined;
       if (!owner) {
-        console.warn(`[seed] menu item owner missing — skipped "${link.item.name}"`);
+        console.warn(`[seed] menu item owner missing â€” skipped "${link.item.name}"`);
         continue;
       }
       menuItems.push({ ...link.item, zoneId: owner.zoneId, vendorId: owner.id });
@@ -1079,13 +1080,19 @@ async function main(): Promise<void> {
       await prisma.menuItem.createMany({ data: menuItems, skipDuplicates: true });
       console.log(`[seed] added ${menuItems.length} menu item records`);
     } else {
-      console.log('[seed] no menu item owners found — skipped');
+      console.log('[seed] no menu item owners found â€” skipped');
     }
   } else {
-    console.log(`[seed] ${menuCount} menu item records already present — skipped`);
+    console.log(`[seed] ${menuCount} menu item records already present â€” skipped`);
   }
 
-  console.log('[seed] done — all records idempotent / upsert-safe');
+  // ---- Delivery partners + third-party providers (demo, deterministic) ----
+  // Idempotent by count===0, matching the other fixtures. The demo rows and the
+  // seeding logic live in a separate module so the seed test can run it against
+  // a database of its choosing without executing this script's Prisma client.
+  await seedDeliveryDemo(prisma);
+
+  console.log('[seed] done â€” all records idempotent / upsert-safe');
 }
 
 main()

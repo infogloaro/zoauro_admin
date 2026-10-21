@@ -86,6 +86,9 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | PATCH | /delivery-partners/{id} | delivery:edit | |
 | POST | /delivery-partners/{id}/verification | delivery:status | |
 | POST | /delivery-partners/{id}/force-offline | delivery:status | |
+| GET/POST | /third-party-providers | providers:* | separate provider companies — never mixed with own `delivery-partners` |
+| PATCH | /third-party-providers/{id} | providers:edit | zone coverage is many-to-many (doc 36) |
+| POST | /third-party-providers/{id}/status | providers:status | `{ status }`; integration status is a flag, never credentials |
 | GET/POST | /cash-settlements | settlements:* | COD settlement per partner |
 | GET | /payments, /payments/{id} | payments:view | |
 | POST | /orders/{id}/refunds | refunds:create | idempotent; limits read from the member's assignment for the order's zone (per refund, per day) |

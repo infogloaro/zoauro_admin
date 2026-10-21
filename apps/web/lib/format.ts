@@ -25,3 +25,15 @@ const dateFmt = new Intl.DateTimeFormat('en-IN', {
 export function formatDateTime(iso: string): string {
   return dateFmt.format(new Date(iso)).replace(',', ',');
 }
+
+const dayFmt = new Intl.DateTimeFormat('en-IN', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+/** ISO → "21 Sep 2026" (compact date-only, e.g. the Joined column). */
+export function formatDate(iso: string): string {
+  return dayFmt.format(new Date(iso));
+}

@@ -1,6 +1,7 @@
-// ZOAURO Admin — schema for SA-1.1 (Zone Management) + session auth + the
-// vendor tables of SA-2 (M06 Restaurants, M07 Homemakers).
-// Source of truth: docs 08 (schema), 09 (API), 10 §4 (vendor state machine),
+// ZOAURO Admin — schema for SA-1.1 (Zone Management) + session auth, the
+// vendor tables of SA-2 (M06 Restaurants, M07 Homemakers) and the people
+// tables of SA-3 (M09 Customers, M10 Delivery Partners).
+// Source of truth: docs 08 (schema), 09 (API), 10 §4/§5 (state machines),
 // 14 (auth). Remaining operational tables (menu, orders, …) arrive later.
 
 generator client {
@@ -30,6 +31,55 @@ enum UserStatus {
   INACTIVE
 }
 
+enum PartnerSettlementStatus {
+  PENDING
+  PARTIAL
+  SETTLED
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+/// Integration posture of a third-party provider, tracked as a configuration
+/// flag only. CONFIGURED never implies a live integration — nothing in this
+/// module opens a network connection to a provider (task constraint: do not
+/// claim an integration is operational). No credential field exists on the
+/// model; connectivity and secrets are deliberately out of scope.
+enum IntegrationStatus {
+  NOT_CONFIGURED
+  CONFIGURED
+}
+
+/// Provider operating status (doc 10 §4-style targets for this module).
+enum ThirdPartyProviderStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Payment {
+  id                String                   @id @default(uuid()) @db.Uuid
+  paymentRef        String                   @unique @map("payment_ref")
+  orderRef          String                   @map("order_ref")
+  customerName      String                   @map("customer_name")
+  method            String
+  amountPaise       Int                      @map("amount_paise")
+  refundAmountPaise Int                      @default(0) @map("refund_amount_paise")
+  currency          String                   @default("INR")
+  status            PaymentTransactionStatus @default(PENDING)
+  demo              Boolean                  @default(false)
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("payments")
+}
 model Role {
   id        String   @id @default(uuid()) @db.Uuid
   name      RoleKey  @unique
@@ -58,9 +108,10 @@ model User {
   createdAt          DateTime   @default(now()) @map("created_at")
   updatedAt          DateTime   @updatedAt @map("updated_at")
 
-  sessions     Session[]
-  loginHistory LoginHistory[]
-  auditLogs    AuditLog[]     @relation("AuditActor")
+  sessions      Session[]
+  loginHistory  LoginHistory[]
+  auditLogs     AuditLog[]     @relation("AuditActor")
+  notifications Notification[]
 
   // Partial unique (email where deleted_at is null) is created in the SQL
   // migration — Prisma cannot express WHERE clauses on indexes.
@@ -121,14 +172,17 @@ model Zone {
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
 
-  serviceablePincodes ServiceablePincode[]
-  auditLogs           AuditLog[]
-  restaurants         Restaurant[]
-  homemakers          Homemaker[]
-  hotels              Hotel[]
-  roomBookings        RoomBooking[]
-  diningReservations  DiningReservation[]
-  menuItems           MenuItem[]
+  serviceablePincodes     ServiceablePincode[]
+  auditLogs               AuditLog[]
+  restaurants             Restaurant[]
+  homemakers              Homemaker[]
+  hotels                  Hotel[]
+  roomBookings            RoomBooking[]
+  diningReservations      DiningReservation[]
+  menuItems               MenuItem[]
+  customerAddresses       CustomerAddress[]
+  deliveryPartners        DeliveryPartner[]
+  thirdPartyProviderZones ThirdPartyProviderZone[]
 
   @@index([status])
   @@index([city])
@@ -450,4 +504,192 @@ model MenuItem {
   @@index([vendorType, vendorId])
   @@index([approvalStatus])
   @@map("menu_items")
+}
+
+/// doc 08 People row — CustomerStatus/Source/UserType (doc 08 enums).
+/// Not zone-owned (D14): a customer belongs to zones through addresses
+/// (D25 visibility = address or order in an in-scope zone). Soft-deleted.
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum CustomerSource {
+  APP
+  ADMIN
+  REFERRAL
+  OTHER
+}
+
+enum UserType {
+  CUSTOMER
+}
+
+/// M09 Customers (doc 08 "People", doc 09 `/customers`). Phone is unique
+/// (doc 08 "phone (unique)"); the digits-compare guard lives in the service
+/// because +91/spacing variants are stored verbatim. Wallet and spend are
+/// integer paise.
+model Customer {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  phone         String         @unique
+  email         String?
+  status        CustomerStatus @default(ACTIVE)
+  source        CustomerSource @default(APP)
+  userType      UserType       @default(CUSTOMER) @map("user_type")
+  walletBalance Int            @default(0) @map("wallet_balance")
+  deletedAt     DateTime?      @map("deleted_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  addresses CustomerAddress[]
+
+  @@index([status])
+  @@index([source])
+  @@index([createdAt])
+  @@map("customers")
+}
+
+/// doc 08 `customer_addresses` — the customer's zone footprint (D25).
+model CustomerAddress {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id])
+  label      String?  @db.VarChar(40)
+  address    String   @db.VarChar(240)
+  area       String?  @db.VarChar(80)
+  lat        Float?
+  lng        Float?
+  pincode    String?  @db.VarChar(6)
+  zoneId     String   @map("zone_id") @db.Uuid
+  zone       Zone     @relation(fields: [zoneId], references: [id])
+  isDefault  Boolean  @default(true) @map("is_default")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([customerId])
+  @@index([zoneId])
+  @@index([zoneId, area])
+  @@map("customer_addresses")
+}
+
+/// doc 08 DeliveryPartnerStatus (doc 10 §5): PENDING_VERIFICATION → VERIFIED
+/// → ACTIVE ⇄ INACTIVE; SUSPENDED. Availability (`isOnline`) is separate from
+/// status (doc 10 §5) and is toggled by the partner app; the admin force
+/// offline writes `force_offline_until` (doc 08 v2.0 column). Money is
+/// integer paise; `ratingAvg` is a 0–5 average (not money).
+enum DeliveryPartnerStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+/// M10 Delivery Partners (doc 08, doc 09 `/delivery-partners`). Exactly one
+/// zone (doc 36 §4, R-DEL-2); soft-deleted by default.
+model DeliveryPartner {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  zoneId             String                  @map("zone_id") @db.Uuid
+  zone               Zone                    @relation(fields: [zoneId], references: [id])
+  name               String
+  phone              String
+  vehicleType        String                  @map("vehicle_type") @db.VarChar(40)
+  vehicleNo          String?                 @map("vehicle_no") @db.VarChar(20)
+  area               String?                 @db.VarChar(80)
+  status             DeliveryPartnerStatus   @default(PENDING_VERIFICATION)
+  isOnline           Boolean                 @default(false) @map("is_online")
+  forceOfflineUntil  DateTime?               @map("force_offline_until")
+  verifiedAt         DateTime?               @map("verified_at")
+  currentOrders      Int                     @default(0) @map("current_orders")
+  cashInHand         Int                     @default(0) @map("cash_in_hand")
+  ratingAvg          Float?                  @map("rating_avg")
+  deliveriesCount    Int                     @default(0) @map("deliveries_count")
+  /**
+   * Task-authorized performance columns (Own Delivery Partners page). Seeded
+   * in dev/test; maintained by the orders pipeline once M11 lands.
+   */
+  ordersAssigned     Int                     @default(0) @map("orders_assigned")
+  failedDeliveries   Int                     @default(0) @map("failed_deliveries")
+  avgDeliveryMinutes Int?                    @map("avg_delivery_minutes")
+  onTimePct          Int?                    @map("on_time_pct")
+  earningsPaise      Int                     @default(0) @map("earnings_paise")
+  settlementStatus   PartnerSettlementStatus @default(PENDING) @map("settlement_status")
+  deletedAt          DateTime?               @map("deleted_at")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+
+  @@index([zoneId, status])
+  @@index([zoneId, createdAt])
+  @@index([status])
+  @@index([isOnline])
+  @@index([createdAt])
+  @@map("delivery_partners")
+}
+
+/// Third-Party Partners (task: `/super-admin/third-party-partners`). A provider
+/// is an external delivery **company**, not an individual, and its rows are
+/// never mixed with `DeliveryPartner` (M10) — the two modules keep separate
+/// tables, routes and screens. Coverage is many-to-many with zones (doc 36)
+/// through `ThirdPartyProviderZone`, so there is no single `zone_id`.
+/// Metric columns are seeded in dev/test and maintained by the orders
+/// pipeline once M11 lands. Soft-deleted by default (AGENTS.md).
+model ThirdPartyProvider {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  name                 String
+  providerType         String                   @map("provider_type") @db.VarChar(40)
+  contactPerson        String                   @map("contact_person")
+  contactEmail         String                   @map("contact_email")
+  contactPhone         String                   @map("contact_phone")
+  status               ThirdPartyProviderStatus @default(ACTIVE)
+  integrationStatus    IntegrationStatus        @default(NOT_CONFIGURED) @map("integration_status")
+  deliveriesCount      Int                      @default(0) @map("deliveries_count")
+  successfulDeliveries Int                      @default(0) @map("successful_deliveries")
+  failedDeliveries     Int                      @default(0) @map("failed_deliveries")
+  avgDeliveryMinutes   Int?                     @map("avg_delivery_minutes")
+  providerCostPaise    Int                      @default(0) @map("provider_cost_paise")
+  settlementStatus     PartnerSettlementStatus  @default(PENDING) @map("settlement_status")
+  zones                ThirdPartyProviderZone[]
+  deletedAt            DateTime?                @map("deleted_at")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("third_party_providers")
+}
+
+/// Coverage link: which zones a third-party provider operates in. Many-to-many
+/// (doc 36); the unique pair keeps a zone listed once per provider.
+model ThirdPartyProviderZone {
+  id         String             @id @default(uuid()) @db.Uuid
+  providerId String             @map("provider_id") @db.Uuid
+  provider   ThirdPartyProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  zoneId     String             @map("zone_id") @db.Uuid
+  zone       Zone               @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  @@unique([providerId, zoneId])
+  @@index([zoneId])
+  @@map("third_party_provider_zones")
+}
+
+model Notification {
+  id               String    @id @default(uuid()) @db.Uuid
+  recipientId      String    @map("recipient_id") @db.Uuid
+  recipient        User      @relation(fields: [recipientId], references: [id])
+  eventType        String    @map("event_type")
+  title            String
+  message          String
+  relatedType      String?   @map("related_type")
+  relatedId        String?   @map("related_id") @db.Uuid
+  navigationTarget String?   @map("navigation_target")
+  idempotencyKey   String?   @map("idempotency_key")
+  readAt           DateTime? @map("read_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@unique([recipientId, idempotencyKey])
+  @@index([recipientId, createdAt])
+  @@index([recipientId, readAt])
+  @@map("notifications")
 }

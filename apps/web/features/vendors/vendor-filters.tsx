@@ -48,6 +48,7 @@ export function VendorToolbar({
   kind,
   value,
   zones,
+  areas,
   onChange,
   onExport,
   exportBusy,
@@ -55,6 +56,8 @@ export function VendorToolbar({
   kind: VendorKind;
   value: Pick<FilterValues, 'q' | 'status' | 'zoneId' | 'area'>;
   zones: ZoneOption[];
+  /** Real areas stored for this kind (list facets, doc 20). */
+  areas: string[];
   onChange: (patch: Partial<FilterValues>) => void;
   onExport: () => void;
   exportBusy?: boolean;
@@ -87,41 +90,8 @@ export function VendorToolbar({
 
   const isRestaurant = kind === 'restaurant';
 
-  // Compute area options based on selected zone from URL params
-  const [areaOptions, setAreaOptions] = useState<Array<{ id: string; name: string }>>([]);
-  const zoneId = value.zoneId;
-
-  useEffect(() => {
-    // Map zone names to their areas based on the seed data
-    const zoneToAreas: Record<string, string[]> = {
-      // Chennai zone areas
-      chennai: [
-        'T Nagar',
-        'Anna Nagar',
-        'Velachery',
-        'OMR',
-        'Kotturpuram',
-        'West Mambalam',
-        'Sholinganallur',
-        'Tambaram',
-      ],
-      // Coimbatore zone areas
-      coimbatore: ['RS Puram', 'Gandhipuram', 'Saibaba Colony', 'R.S. Puram'],
-      // Madurai zone areas
-      madurai: ['Anna Nagar', 'West Perumal Street', 'K K Nagar', 'Thoppur'],
-    };
-
-    if (zoneId) {
-      const areas = zoneToAreas[zoneId.toLowerCase()] ?? [];
-      const options = areas.map((name) => ({ id: name, name }));
-      setAreaOptions(options);
-    } else {
-      setAreaOptions([]);
-    }
-  }, [zoneId]);
-
-  const filteredAreaOptions =
-    areaOptions.length > 0 ? areaOptions : [{ id: value.area ?? '', name: value.area ?? '' }];
+  // Keep a deep-linked area visible even when it dropped out of the facets.
+  const areaOptions = value.area && !areas.includes(value.area) ? [value.area, ...areas] : areas;
 
   return (
     <div className="flex flex-row items-center gap-3">
@@ -160,22 +130,17 @@ export function VendorToolbar({
         <Select
           value={value.area || 'ALL'}
           onValueChange={(v) => onChange({ area: v === 'ALL' ? '' : v })}
-          disabled={!zoneId}
         >
           <SelectTrigger className="h-12 min-w-[150px]" aria-label="Filter by area">
             <SelectValue placeholder="All areas" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All areas</SelectItem>
-            {filteredAreaOptions.length > 0 ? (
-              filteredAreaOptions.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.name}
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="">No areas available</SelectItem>
-            )}
+            {areaOptions.map((area) => (
+              <SelectItem key={area} value={area}>
+                {area}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

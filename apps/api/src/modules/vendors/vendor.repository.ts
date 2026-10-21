@@ -254,6 +254,44 @@ export async function findVendor(kind: VendorKind, id: string): Promise<VendorRo
   });
 }
 
+/**
+ * Duplicate guard: an existing vendor in the same zone whose phone matches
+ * this one ignoring formatting (+91/spacing variants). `endsWith` narrows the
+ * candidates; the digits-only comparison happens in JS so stored format
+ * variants still match.
+ */
+export async function findVendorByZonePhone(
+  kind: VendorKind,
+  zoneId: string,
+  phone: string,
+  excludeId?: string,
+): Promise<{ id: string; name: string } | null> {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 10) return null;
+  const last10 = digits.slice(-10);
+  const where = {
+    zoneId,
+    ...NOT_DELETED,
+    ...(excludeId ? { id: { not: excludeId } } : {}),
+    phone: { endsWith: last10 },
+  } as const;
+
+  if (kind === 'restaurant') {
+    const rows = await prisma.restaurant.findMany({
+      where,
+      select: { id: true, name: true, phone: true },
+    });
+    const hit = rows.find((r) => r.phone.replace(/\D/g, '').slice(-10) === last10);
+    return hit ? { id: hit.id, name: hit.name } : null;
+  }
+  const rows = await prisma.homemaker.findMany({
+    where,
+    select: { id: true, name: true, phone: true },
+  });
+  const hit = rows.find((r) => r.phone.replace(/\D/g, '').slice(-10) === last10);
+  return hit ? { id: hit.id, name: hit.name } : null;
+}
+
 export type RestaurantCreateData = Omit<
   Prisma.RestaurantUncheckedCreateInput,
   'status' | 'verificationStatus'

@@ -3,7 +3,7 @@
 import { BarChart3, Check, House, Plus, Square } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
   ListVendorsResponse,
@@ -26,13 +26,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
 import { apiFetch, ApiError } from '../../lib/api';
 import { cn } from '../../lib/cn';
 import { useZonesList } from '../zones/api';
@@ -52,20 +45,11 @@ import {
   type VendorFilters,
 } from './api';
 import {
-  kpiSpec,
-  REFERENCE_ROWS,
-  TOP_PERFORMERS,
-  TREND_LABELS,
-  TREND_POINTS,
-  type ReferenceRow,
-} from './demo-data';
-import {
   PREVIEW_ZONE_OPTIONS,
   isVendorPreview,
   mockVendorsList,
   setVendorPreview,
 } from './preview';
-import { RevenueTrend } from './revenue-trend';
 import { ConfirmDialog, VerificationDialog } from './vendor-actions';
 import {
   VendorDetailDialog,
@@ -100,14 +84,6 @@ const SECTION_EMPTY: Record<Exclude<SectionId, 'overview'>, string> = {
   activity: 'No activity recorded yet.',
 };
 
-/** Revenue-trend periods; only `monthly` has (simulated) data today. */
-type TrendPeriod = 'monthly' | 'weekly' | 'quarterly';
-const TREND_PERIODS: Array<{ value: TrendPeriod; label: string }> = [
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'quarterly', label: 'Quarterly' },
-];
-
 const STATUS_TEXT: Record<string, string> = {
   PENDING: 'Pending',
   ACTIVE: 'Active',
@@ -132,13 +108,13 @@ interface ConfirmRequest {
 
 /**
  * M06/M07 list screen (doc 18: one screen per canonical route, doc 20/22:
- * KPI cards, filters and dialogs all sync to the URL), rebuilt to the Figma
- * reference "Restaurant Management": reference demo KPIs/banner, section
- * tabs (Overview chart + top performers), and the reference records table
- * with pinned demo rows above the real records.
- * `defaultTab` pins the kind for the dedicated `/super-admin/homemakers`
- * route from the doc 18 §5 route map; the tab query param still wins when
- * present so either route can show either kind.
+ * KPI cards, filters and dialogs all sync to the URL). KPIs use the real
+ * scoped counts from the list API; the Overview/other sections show honest
+ * empty states until live order and settlement data exists (no demo rows in
+ * the production path — clearly-labelled mock data is only reachable through
+ * the dev-only `?preview=1` mode). `defaultTab` pins the kind for the
+ * dedicated `/super-admin/homemakers` route from the doc 18 §5 route map; the
+ * tab query param still wins when present so either route can show either kind.
  */
 export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'homemakers' }) {
   const router = useRouter();
@@ -175,9 +151,6 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
   const section: SectionId = SECTIONS.some((entry) => entry.id === sectionParam)
     ? (sectionParam as SectionId)
     : 'overview';
-  const periodParam = searchParams.get('period');
-  const period: TrendPeriod =
-    periodParam === 'weekly' || periodParam === 'quarterly' ? periodParam : 'monthly';
 
   const filters: VendorFilters = {
     q,
@@ -200,8 +173,8 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
         name: zone.name,
       }));
   // Doc 36 §3: a deactivated zone accepts no new vendors, so create and
-  // move-zone only offer assignable zones; the filter and the disabled edit
-  // select keep the full list so an existing assignment still renders.
+  // move-zone only offer assignable zones; the filter keeps the full list so
+  // an existing assignment still renders.
   const assignableZones = preview
     ? PREVIEW_ZONE_OPTIONS
     : (zonesList.data?.data ?? [])
@@ -244,7 +217,7 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
    */
   const livePathname = useRef(pathname);
   livePathname.current = pathname;
-  const liveParams = useRef(searchParams);
+  const liveParams = useRef<URLSearchParams>(searchParams);
   liveParams.current = searchParams;
 
   function setParams(
@@ -258,6 +231,10 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
     }
     if (resetPage) next.delete('page');
     const qs = next.toString();
+    // Update the snapshot synchronously: two setParams calls in the same tick
+    // (e.g. a debounced search and a row action) must compose, not clobber
+    // each other's params from a stale URL.
+    liveParams.current = new URLSearchParams(qs);
     router.replace(qs ? `${livePathname.current}?${qs}` : livePathname.current, { scroll: false });
   }
 
@@ -276,28 +253,9 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
   );
   const vendors = list.data?.data ?? [];
   const facets = list.data?.meta.facets;
+  const counts = list.data?.meta.counts;
+  const areaSuggestions = facets?.areas ?? [];
   const showZoneChip = (facets?.zones.length ?? 0) > 1;
-
-  // Reference demo rows are pinned above the real records on page 1 and are
-  // filtered client-side by the visible search / zone / status controls.
-  // Deep-linked advanced filters (verification, area, tag, food category)
-  // have no reference counterpart, so they hide the demo rows entirely.
-  const zoneNameForRef = zoneId
-    ? (zoneOptions.find((option) => option.id === zoneId)?.name ?? null)
-    : null;
-  const filteredReferenceRows: ReferenceRow[] = useMemo(() => {
-    if (verification || area || tag || foodCategory) return [];
-    const needle = q.trim().toLowerCase();
-    return REFERENCE_ROWS[kind].filter((row) => {
-      if (status && row.status !== status) return false;
-      if (zoneId && (!zoneNameForRef || row.zone !== zoneNameForRef)) return false;
-      if (!needle) return true;
-      return [row.name, row.id, row.ownerName, row.phone, row.zone, row.admin].some((field) =>
-        field.toLowerCase().includes(needle),
-      );
-    });
-  }, [kind, q, status, zoneId, zoneNameForRef, verification, area, tag, foodCategory]);
-  const referenceRowsOnPage = page === 1 ? filteredReferenceRows : [];
 
   function toastError(error: unknown, fallback: string) {
     toast.error(error instanceof ApiError ? error.message : fallback);
@@ -483,30 +441,13 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
 
   /**
    * Client-side CSV export (doc 22 exports): walks every filtered page of the
-   * real records and prefixes the matching reference demo rows, so the file
-   * mirrors exactly what the list shows under the current filters.
+   * real records, so the file mirrors exactly what the list shows.
    */
   async function exportCsv() {
     if (exporting) return;
     setExporting(true);
     try {
       const rows: Array<Array<string | number>> = [];
-      for (const row of filteredReferenceRows) {
-        rows.push([
-          row.id,
-          row.name,
-          row.ownerName,
-          row.phone,
-          row.zone,
-          row.admin,
-          row.orders,
-          row.gross,
-          row.commission,
-          row.refunds,
-          row.payout,
-          STATUS_TEXT[row.status] ?? row.status,
-        ]);
-      }
       const perPage = 100;
       for (let pageNumber = 1; pageNumber <= 50; pageNumber += 1) {
         const response: ListVendorsResponse = isVendorPreview()
@@ -581,8 +522,39 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
       : 'Home kitchen operations, financials and performance.';
   const kpiIcons =
     kind === 'restaurant'
-      ? [Square, Check, BarChart3, BarChart3, BarChart3, BarChart3]
-      : [House, Check, BarChart3, BarChart3, BarChart3, BarChart3];
+      ? [Square, Check, BarChart3, BarChart3]
+      : [House, Check, BarChart3, BarChart3];
+  const kpis: Array<{
+    label: string;
+    value: string;
+    caption: string;
+    captionTone: 'success' | 'muted';
+  }> = [
+    {
+      label: kind === 'restaurant' ? 'Registered Restaurants' : 'Registered Providers',
+      value: String(counts?.total ?? 0),
+      caption: list.isPending ? 'Loading…' : 'Across every zone',
+      captionTone: 'muted',
+    },
+    {
+      label: 'Pending verification',
+      value: String(counts?.pendingVerification ?? 0),
+      caption: 'Awaiting review',
+      captionTone: 'muted',
+    },
+    {
+      label: 'Active',
+      value: String(counts?.active ?? 0),
+      caption: 'Verified and live',
+      captionTone: 'success',
+    },
+    {
+      label: 'Suspended',
+      value: String(counts?.suspended ?? 0),
+      caption: 'Blocked from orders',
+      captionTone: 'muted',
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-[1400px]">
@@ -622,13 +594,8 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
         </div>
       )}
 
-      <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
-        Simulated operational data · Financial values distinguish transaction value from platform
-        revenue.
-      </div>
-
-      <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {kpiSpec(kind).map((kpi, index) => {
+      <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {kpis.map((kpi, index) => {
           const Icon = kpiIcons[index] ?? BarChart3;
           return (
             <StatCard
@@ -670,72 +637,51 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
       </div>
 
       {section === 'overview' ? (
-        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="mb-6">
           <Card className="p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-[15px] font-semibold text-text">
-                  {kind === 'restaurant' ? 'Restaurant revenue trend' : 'Home food revenue trend'}
-                </h2>
-                <p className="mt-1 text-[13px] text-muted">
-                  Gross value, commission and net platform revenue
-                </p>
-              </div>
-              <Select
-                value={period}
-                onValueChange={(value) =>
-                  setParams({ period: value === 'monthly' ? null : value }, { resetPage: false })
-                }
-              >
-                <SelectTrigger className="h-9 w-32 shrink-0" aria-label="Revenue trend period">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TREND_PERIODS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <h2 className="text-[15px] font-semibold text-text">
+              {kind === 'restaurant' ? 'Restaurant performance' : 'Home food performance'}
+            </h2>
+            <p className="mt-1 text-[13px] text-muted">
+              Revenue trend and top performers accrue with live order data.
+            </p>
             <div className="mt-4">
-              {period === 'monthly' ? (
-                <RevenueTrend points={TREND_POINTS} labels={TREND_LABELS} />
-              ) : (
-                <EmptyState
-                  message={`No ${period} revenue data yet — the simulated trend is monthly only.`}
+              {list.isPending ? (
+                <TableSkeleton />
+              ) : list.isError ? (
+                <ErrorState
+                  message={
+                    list.error instanceof ApiError
+                      ? list.error.message
+                      : 'Could not load performance data.'
+                  }
+                  requestId={list.error instanceof ApiError ? list.error.requestId : undefined}
+                  onRetry={() => void list.refetch()}
                 />
+              ) : (
+                <EmptyState message="No order-backed revenue or performance data yet." />
               )}
             </div>
-          </Card>
-          <Card className="p-5">
-            <h2 className="text-[15px] font-semibold text-text">Top performers</h2>
-            <p className="mt-1 text-[13px] text-muted">Current filtered period</p>
-            <ul className="mt-2">
-              {TOP_PERFORMERS[kind].map((performer, index) => (
-                <li key={performer.name} className="flex items-center gap-3 py-2.5">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#fff1eb] text-xs font-semibold text-primary">
-                    {index + 1}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-semibold text-text">
-                      {performer.name}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-muted">{performer.meta}</span>
-                  </span>
-                  <span className="shrink-0 text-sm font-semibold text-text">
-                    {performer.value}
-                  </span>
-                </li>
-              ))}
-            </ul>
           </Card>
         </div>
       ) : (
         <div className="mb-6">
           <Card>
-            <EmptyState message={SECTION_EMPTY[section]} />
+            {list.isPending ? (
+              <TableSkeleton />
+            ) : list.isError ? (
+              <ErrorState
+                message={
+                  list.error instanceof ApiError
+                    ? list.error.message
+                    : 'Could not load this section.'
+                }
+                requestId={list.error instanceof ApiError ? list.error.requestId : undefined}
+                onRetry={() => void list.refetch()}
+              />
+            ) : (
+              <EmptyState message={SECTION_EMPTY[section]} />
+            )}
           </Card>
         </div>
       )}
@@ -746,6 +692,7 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
             kind={kind}
             value={{ q, status, zoneId, area }}
             zones={zoneOptions}
+            areas={areaSuggestions}
             onChange={(patch) => setParams({ ...patch, vendor: null, edit: null, action: null })}
             onExport={() => void exportCsv()}
             exportBusy={exporting}
@@ -761,7 +708,7 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
             requestId={list.error instanceof ApiError ? list.error.requestId : undefined}
             onRetry={() => void list.refetch()}
           />
-        ) : vendors.length === 0 && referenceRowsOnPage.length === 0 ? (
+        ) : vendors.length === 0 ? (
           hasAnyFilters ? (
             <EmptyState
               message="No matches. Try different search or filters."
@@ -806,17 +753,8 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
           <>
             <VendorsTable
               kind={kind}
-              referenceRows={referenceRowsOnPage}
               vendors={vendors}
               onAction={onRowAction}
-              onDemoAction={(action, row) => {
-                if (!row) return;
-                if (action === 'view') {
-                  setParams({ vendor: row.id, edit: null }, { resetPage: false });
-                } else if (action === 'edit') {
-                  setParams({ edit: row.id, vendor: null }, { resetPage: false });
-                }
-              }}
               showZoneChip={showZoneChip}
             />
             <Pagination
@@ -824,7 +762,6 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
               pageSize={pageSize}
               total={list.data?.meta.total ?? 0}
               entity={{ one: 'record', many: 'records' }}
-              leadingCount={referenceRowsOnPage.length}
               onPage={(next) => setParams({ page: String(next) }, { resetPage: false })}
             />
           </>
@@ -836,6 +773,7 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
           kind={kind}
           vendor={null}
           zones={assignableZones}
+          areaSuggestions={areaSuggestions}
           onClose={() => setParams({ action: null }, { resetPage: false })}
         />
       )}
@@ -858,6 +796,7 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
           kind={kind}
           vendor={detail.data.data}
           zones={zoneOptions}
+          areaSuggestions={areaSuggestions}
           onClose={() => setParams({ edit: null }, { resetPage: false })}
         />
       )}

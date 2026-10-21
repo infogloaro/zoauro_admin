@@ -10,7 +10,11 @@ import { homemakersRouter } from './modules/homemakers';
 import { uploadsRouter } from './modules/uploads';
 import { hotelsRouter } from './modules/hotels';
 import { menuItemsRouter } from './modules/menu';
-
+import { notificationsRouter } from './modules/notifications';
+import { paymentsRouter } from './modules/payments';
+import { customersRouter } from './modules/customers';
+import { deliveryPartnersRouter } from './modules/delivery-partners';
+import { thirdPartyProvidersRouter } from './modules/third-party-providers';
 export function createApp(): Express {
   const app = express();
   app.disable('x-powered-by');
@@ -41,6 +45,11 @@ export function createApp(): Express {
   v1.use('/uploads', uploadsRouter);
   v1.use('/hotels', hotelsRouter);
   v1.use('/menu-items', menuItemsRouter);
+  v1.use('/notifications', notificationsRouter);
+  v1.use('/payments', paymentsRouter);
+  v1.use('/customers', customersRouter);
+  v1.use('/delivery-partners', deliveryPartnersRouter);
+  v1.use('/third-party-providers', thirdPartyProvidersRouter);
   app.use('/api/v1', v1);
 
   app.use('/api', apiNotFound);

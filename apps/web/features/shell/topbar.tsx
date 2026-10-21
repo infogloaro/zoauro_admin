@@ -1,12 +1,14 @@
 'use client';
 
-import { Activity, Bell, ChevronLeft, LogOut, Search, User } from 'lucide-react';
+import { Activity, ChevronLeft, LogOut, Search, User } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import type { Me } from '@zoauro/shared';
 import { apiFetch } from '../../lib/api';
 import { cn } from '../../lib/cn';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { NotificationBell } from '../notifications/notification-bell';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,7 +78,6 @@ export function Topbar({ user }: { user: Me }) {
   const router = useRouter();
   const pathname = usePathname();
   const [search, setSearch] = useState('');
-
   const pageLabel =
     PAGE_LABELS.find(([prefix]) => pathname.startsWith(prefix))?.[1] ?? 'Super Admin';
 
@@ -126,14 +127,9 @@ export function Topbar({ user }: { user: Me }) {
           <option value="home-food-admin">Home Food Admin</option>
         </select>
 
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative flex size-9 items-center justify-center rounded-lg border border-border bg-surface text-text transition-colors hover:bg-bg"
-        >
-          <Bell className="size-5" />
-          <span className="absolute right-2 top-2 size-1.5 rounded-full bg-red-500" />
-        </button>
+        <QueryClientProvider client={new QueryClient()}>
+          <NotificationBell />
+        </QueryClientProvider>
 
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-bg focus:outline-none">

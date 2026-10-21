@@ -13,11 +13,9 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { cn } from '../../lib/cn';
-import type { ReferenceRow } from './demo-data';
 
 export type VendorRowAction =
   'view' | 'edit' | 'verify' | 'reject' | 'activate' | 'deactivate' | 'suspend' | 'delete';
-export type DemoRowAction = 'view' | 'edit' | 'deactivate' | 'activate';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Pending',
@@ -36,6 +34,18 @@ const STATUS_PILLS: Record<string, string> = {
   SUSPENDED: 'bg-red-50 text-red-700',
 };
 
+const VERIFICATION_LABELS: Record<string, string> = {
+  PENDING: 'Pending',
+  VERIFIED: 'Verified',
+  REJECTED: 'Rejected',
+};
+
+const VERIFICATION_PILLS: Record<string, string> = {
+  VERIFIED: 'bg-green-50 text-green-700',
+  REJECTED: 'bg-red-50 text-red-700',
+  PENDING: 'bg-amber-100 text-amber-700',
+};
+
 function StatusPill({ status }: { status: string }) {
   return (
     <span
@@ -45,6 +55,20 @@ function StatusPill({ status }: { status: string }) {
       )}
     >
       {STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
+
+/** Doc 10 §4: rejected vendors stay status PENDING and show Rejected here. */
+function VerificationPill({ status }: { status: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold',
+        VERIFICATION_PILLS[status] ?? 'bg-slate-100 text-slate-600',
+      )}
+    >
+      {VERIFICATION_LABELS[status] ?? status}
     </span>
   );
 }
@@ -85,71 +109,36 @@ function TooltipIcon({
   );
 }
 
-function ToggleStatus({ isActive, onToggle }: { isActive: boolean; onToggle: () => void }) {
+/**
+ * On/off shortcut mirroring the doc 10 §4 machine: ACTIVE deactivates;
+ * a verified INACTIVE/SUSPENDED vendor can be activated; anything else needs
+ * verification first, so the toggle is disabled with the reason as its title.
+ */
+function ToggleStatus({ vendor, onToggle }: { vendor: Vendor; onToggle: () => void }) {
+  const isActive = vendor.status === 'ACTIVE';
+  const canToggle =
+    isActive || vendor.status === 'INACTIVE' || vendor.verificationStatus === 'VERIFIED';
+  const title = !canToggle
+    ? 'Verify the vendor before activating'
+    : isActive
+      ? 'Deactivate'
+      : 'Activate';
   return (
     <button
       type="button"
       onClick={onToggle}
+      disabled={!canToggle}
       className={cn(
-        'flex size-9 items-center justify-center rounded-md hover:bg-orange-50 hover:text-orange-600 transition-colors',
+        'flex size-9 items-center justify-center rounded-md transition-colors',
+        canToggle ? 'hover:bg-orange-50 hover:text-orange-600' : 'cursor-not-allowed opacity-40',
         isActive
           ? 'bg-green-100 text-green-800 font-medium'
           : 'bg-slate-100 text-slate-600 font-medium',
       )}
-      title={isActive ? 'Deactivate' : 'Activate'}
+      title={title}
     >
       {isActive ? 'ON' : 'OFF'}
     </button>
-  );
-}
-
-function ReferenceCells({
-  row,
-  onDemoAction,
-}: {
-  row: ReferenceRow;
-  onDemoAction: (action: DemoRowAction, row?: ReferenceRow) => void;
-}) {
-  return (
-    <>
-      <TableCell>
-        <span className="block text-[14px] font-semibold text-slate-900">{row.name}</span>
-        <span className="mt-0.5 block text-[11px] text-slate-400">{row.id}</span>
-      </TableCell>
-      <TableCell>
-        <span className="block text-[13px] text-text">{row.ownerName}</span>
-        <span className="mt-0.5 block text-[11px] text-slate-400">{row.phone}</span>
-      </TableCell>
-      <TableCell>
-        <span className="block text-[13px] text-text">{row.zone}</span>
-        <span className="mt-0.5 block text-[11px] text-slate-400">{row.admin}</span>
-      </TableCell>
-      <TableCell>
-        <span className="block text-[13px] text-slate-700">{row.orders}</span>
-        <span className="mt-0.5 block text-[11px] text-slate-400">completed orders</span>
-      </TableCell>
-      <TableCell className="text-[13px] text-slate-700">{row.gross}</TableCell>
-      <TableCell className="text-[13px] text-slate-700">{row.commission}</TableCell>
-      <TableCell className="text-[13px] text-slate-700">{row.refunds}</TableCell>
-      <TableCell className="text-[13px] text-slate-700">{row.payout}</TableCell>
-      <TableCell>
-        <StatusPill status={row.status} />
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <TooltipIcon title="View" onClick={() => onDemoAction('view', row)}>
-            <Eye className="size-4" />
-          </TooltipIcon>
-          <TooltipIcon title="Edit" onClick={() => onDemoAction('edit', row)}>
-            <Edit className="size-4" />
-          </TooltipIcon>
-          <ToggleStatus
-            isActive={row.status === 'ACTIVE'}
-            onToggle={() => onDemoAction(row.status === 'ACTIVE' ? 'deactivate' : 'activate', row)}
-          />
-        </div>
-      </TableCell>
-    </>
   );
 }
 
@@ -183,7 +172,7 @@ function VendorCells({
         <span className="block text-[13px] text-text">
           {showZoneChip ? <Badge>{vendor.zone.name}</Badge> : vendor.zone.name}
         </span>
-        <span className="mt-0.5 block text-[11px] text-slate-400">—</span>
+        <span className="mt-0.5 block text-[11px] text-slate-400">{vendor.area ?? '—'}</span>
       </TableCell>
       <TableCell className="text-[13px] text-slate-400">—</TableCell>
       <TableCell className="text-[13px] text-slate-400">—</TableCell>
@@ -194,6 +183,9 @@ function VendorCells({
         <StatusPill status={vendor.status} />
       </TableCell>
       <TableCell>
+        <VerificationPill status={vendor.verificationStatus} />
+      </TableCell>
+      <TableCell>
         <div className="flex items-center justify-end gap-4">
           <TooltipIcon title="View" onClick={() => onAction(vendor, 'view')}>
             <Eye className="size-4" />
@@ -202,7 +194,7 @@ function VendorCells({
             <Edit className="size-4" />
           </TooltipIcon>
           <ToggleStatus
-            isActive={vendor.status === 'ACTIVE'}
+            vendor={vendor}
             onToggle={() =>
               onAction(vendor, vendor.status === 'ACTIVE' ? 'deactivate' : 'activate')
             }
@@ -214,26 +206,21 @@ function VendorCells({
 }
 
 /**
- * Vendor records table (Figma frame "Restaurant records"): reference demo
- * rows pinned above the real records. Real rows use plain View / Edit /
- * Deactivate-Activate links (Figma action column — the old kebab menu is
- * gone; verify/reject/suspend/delete live in the detail dialog opened by
- * View). Financial columns have no backend yet — reference rows carry the
- * simulated values, real rows show "—".
+ * Vendor records table (Figma frame "Restaurant records"): real records only.
+ * Rows carry View / Edit / Activate-Deactivate (Figma action column; the old
+ * kebab menu is gone — verify/reject/suspend/delete live in the detail dialog
+ * opened by View). Financial columns have no backend yet, so they show "—".
+ * The Verification column follows doc 10 §4 (rejected vendors show Rejected).
  */
 export function VendorsTable({
   kind,
-  referenceRows,
   vendors,
   onAction,
-  onDemoAction,
   showZoneChip,
 }: {
   kind: VendorKind;
-  referenceRows: ReferenceRow[];
   vendors: Vendor[];
   onAction: (vendor: Vendor, action: VendorRowAction) => void;
-  onDemoAction: (action: DemoRowAction, row?: ReferenceRow) => void;
   showZoneChip: boolean;
 }) {
   const isRestaurant = kind === 'restaurant';
@@ -244,23 +231,18 @@ export function VendorsTable({
         <TableRow className="hover:bg-transparent">
           <Th>{isRestaurant ? 'Restaurant' : 'Provider'}</Th>
           <Th>Owner & contact</Th>
-          <Th>Zone / admin</Th>
+          <Th>Zone / area</Th>
           <Th>Orders</Th>
           <Th>Gross value</Th>
           <Th>Commission</Th>
           <Th>Refunds</Th>
           <Th>Payout</Th>
           <Th>Status</Th>
+          <Th>Verification</Th>
           <Th>Actions</Th>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {referenceRows.map((row) => (
-          <TableRow key={row.id} className="h-[72px] border-b border-slate-200">
-            <ReferenceCells row={row} onDemoAction={onDemoAction} />
-            <TableCell />
-          </TableRow>
-        ))}
         {vendors.map((vendor) => (
           <TableRow key={vendor.id} className="h-[72px] border-b border-slate-200">
             <VendorCells
@@ -269,7 +251,6 @@ export function VendorsTable({
               showZoneChip={showZoneChip}
               onAction={onAction}
             />
-            <TableCell />
           </TableRow>
         ))}
       </TableBody>

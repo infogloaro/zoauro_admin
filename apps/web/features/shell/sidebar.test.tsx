@@ -62,6 +62,12 @@ describe('Sidebar', () => {
     expect(html).toContain('href="/super-admin/menu-items"');
   });
 
+  it('links Customers and Delivery Partners to their routes (no dead placeholders)', () => {
+    const html = renderToStaticMarkup(<Sidebar />);
+    expect(html).toContain('href="/super-admin/customers"');
+    expect(html).toContain('href="/super-admin/delivery-partners"');
+  });
+
   it('offers the collapse toggle', () => {
     const html = renderToStaticMarkup(<Sidebar />);
     expect(html).toContain('aria-label="Collapse sidebar"');
