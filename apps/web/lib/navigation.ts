@@ -101,8 +101,11 @@ export interface NavModule {
   /** Zonal Admin entry (doc 18 section 3); absent = never shown to a Zonal Admin */
   zonal?: {
     href?: string;
-    /** shown only when the member may view this module in at least one zone; absent = always shown */
-    permission?: PermissionModule;
+    /**
+     * shown only when the member may view this module in at least one zone (a list: any one of them, for a page that
+     * gathers several modules); absent = always shown
+     */
+    permission?: PermissionModule | readonly PermissionModule[];
   };
   /**
    * D178: the Control Panel area a non-primary Super Admin needs to see this entry ('settings' = any settings group).
@@ -150,7 +153,11 @@ export const NAV_MODULES: readonly NavModule[] = [
       'One queue for restaurant, shop, Home Food and hotel applications: start a review, ask for more information, decide (D170).',
     status: 'live',
     superAdminHref: '/super-admin/vendor-onboarding',
-    zonal: { href: '/zone/vendor-onboarding', permission: 'restaurants' },
+    // the queue holds restaurants, Home Food and hotels: any one of them viewable opens it
+    zonal: {
+      href: '/zone/vendor-onboarding',
+      permission: ['restaurants', 'homemakers', 'hotels'],
+    },
   },
   {
     id: 'R09',
@@ -225,7 +232,8 @@ export const NAV_MODULES: readonly NavModule[] = [
       'Hotels, room bookings and table bookings (D91, D118, D127): verification, status, stays and tables.',
     status: 'live',
     superAdminHref: '/super-admin/hotels',
-    zonal: { href: '/zone/hotels', permission: 'hotels' },
+    // hotels, room bookings and table bookings are tabs of one page: any one of them viewable opens it
+    zonal: { href: '/zone/hotels', permission: ['hotels', 'bookings', 'dining'] },
   },
   {
     id: 'NEW-PLANS',
@@ -691,7 +699,8 @@ export function visibleModules(
     if (!m.zonal) return false;
     const needed = m.zonal.permission;
     if (!needed) return true;
-    return zones.some((z) => z.permissions.includes(`${needed}:view`));
+    const any: readonly PermissionModule[] = typeof needed === 'string' ? [needed] : needed;
+    return zones.some((z) => any.some((p) => z.permissions.includes(`${p}:view`)));
   });
 }
 

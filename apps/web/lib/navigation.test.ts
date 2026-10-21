@@ -204,6 +204,17 @@ describe('menu by role', () => {
     for (const id of ['M13', 'M14', 'M20-SUP', 'M17']) expect(none).not.toContain(id);
   });
 
+  it('pages that gather modules open with any one of them: Vendor Onboarding (restaurants, Home Food, hotels) and Hotels (hotels, room or table bookings)', () => {
+    const ids = (perms: PermissionKey[]) =>
+      menuFor('ZONAL_ADMIN', [zone('A', perms)]).map((m) => m.id);
+    expect(ids(['homemakers:view'])).toContain('R01');
+    expect(ids(['hotels:view'])).toContain('R01');
+    expect(ids(['orders:view'])).not.toContain('R01');
+    expect(ids(['bookings:view'])).toContain('NEW-HOTEL');
+    expect(ids(['dining:view'])).toContain('NEW-HOTEL');
+    expect(ids(['restaurants:view'])).not.toContain('NEW-HOTEL');
+  });
+
   it('COD settlement and payouts (6a5f9b9) are live pages, each behind its own view grant', () => {
     const items = menuFor('ZONAL_ADMIN', [zone('A', ['settlements:view', 'payouts:view'])]);
     expect(items.find((m) => m.id === 'M14')).toMatchObject({
