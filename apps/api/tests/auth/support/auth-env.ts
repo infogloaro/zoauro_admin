@@ -404,6 +404,7 @@ export async function createAuthTestEnv() {
       prisma,
       appOrigin: APP_ORIGIN,
       maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+      codFloatLimit: (zoneId) => settings.reader.codFloatLimit(zoneId),
       clock: clock.now,
     });
     const customers = createCustomersModule({
@@ -491,7 +492,10 @@ export async function createAuthTestEnv() {
       createPaymentsModule({ prisma }).router,
       createSettlementsModule({
         prisma,
+        appOrigin: APP_ORIGIN,
         cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
+        floatLimit: (zoneId) => settings.reader.codFloatLimit(zoneId),
+        clock: clock.now,
       }).router,
       partners.router,
       notifications.router,

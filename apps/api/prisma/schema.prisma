@@ -1048,24 +1048,40 @@ model DeliveryPartner {
   @@map("delivery_partners")
 }
 
+enum CashSettlementStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
 model CashSettlement {
-  id                String   @id @db.Uuid
-  deliveryPartnerId String   @map("delivery_partner_id") @db.Uuid
-  zoneId            String   @map("zone_id") @db.Uuid
-  expectedAmount    Int      @map("expected_amount") // paise
-  handedInAmount    Int      @map("handed_in_amount") // paise
+  id                String               @id @db.Uuid
+  deliveryPartnerId String               @map("delivery_partner_id") @db.Uuid
+  zoneId            String               @map("zone_id") @db.Uuid
+  expectedAmount    Int                  @map("expected_amount") // paise
+  handedInAmount    Int                  @map("handed_in_amount") // paise
   variance          Int // paise, handed_in - expected
-  settledBy         String   @map("settled_by") @db.Uuid
-  settledAt         DateTime @map("settled_at") @db.Timestamptz
+  settledBy         String?              @map("settled_by") @db.Uuid // null while PENDING
+  settledAt         DateTime?            @map("settled_at") @db.Timestamptz // null while PENDING
   note              String?
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  /// M14: PENDING = reported by the partner app, waiting for the count; CONFIRMED moves the cash; REJECTED does not
+  status            CashSettlementStatus @default(CONFIRMED)
+  source            RecordSource         @default(ADMIN)
+  /// what the partner app reported (doc 42 cash-handover amountPaise); handed_in is what the admin counted
+  reportedAmount    Int?                 @map("reported_amount") // paise
+  reportedAt        DateTime?            @map("reported_at") @db.Timestamptz
+  reference         String?
+  idempotencyKey    String?              @unique @map("idempotency_key")
+  version           Int                  @default(1)
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz
 
   deliveryPartner DeliveryPartner @relation(fields: [deliveryPartnerId], references: [id], onDelete: Restrict)
   zone            Zone            @relation(fields: [zoneId], references: [id], onDelete: Restrict)
-  settler         User            @relation(fields: [settledBy], references: [id], onDelete: Restrict)
+  settler         User?           @relation(fields: [settledBy], references: [id], onDelete: Restrict)
 
   @@index([zoneId, settledAt(sort: Desc)])
   @@index([deliveryPartnerId])
+  @@index([zoneId, status, createdAt(sort: Desc)])
   @@map("cash_settlements")
 }
 

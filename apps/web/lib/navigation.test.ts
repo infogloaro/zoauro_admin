@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Customers, Support Tickets, Global Search, Payments, Refunds, Vendor Onboarding, Order overview and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Customers, Support Tickets, Global Search, Payments, Refunds, COD Cash Settlement, Vendor Onboarding, Order overview and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -69,6 +69,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M11-OV',
       'M12',
       'M13',
+      'M14',
       'M16',
       'M17',
       'M18',
@@ -188,8 +189,9 @@ describe('menu by role', () => {
     const zones = [zone('A', ['orders:view'])];
     expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)).toBeNull(); // live
     expect(
-      comingSoonModule('cod-settlement', 'ZONAL_ADMIN', [zone('A', ['settlements:view'])])?.id,
-    ).toBe('M14');
+      comingSoonModule('cod-settlement', 'ZONAL_ADMIN', [zone('A', ['settlements:view'])]),
+    ).toBeNull(); // live (M14)
+    expect(comingSoonModule('payouts', 'SUPER_ADMIN', [])?.id).toBe('M15');
     expect(
       comingSoonModule('restaurant-requests', 'ZONAL_ADMIN', [zone('A', ['restaurants:view'])]),
     ).toBeNull(); // live as Vendor Onboarding (D170)

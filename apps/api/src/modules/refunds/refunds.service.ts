@@ -436,6 +436,7 @@ export class RefundsService {
     amount: number,
   ): Promise<void> {
     if (order.paidPaise <= 0) throw conflict('Nothing has been paid for this order yet');
+    await tx.repo.lockOrder(order.id);
     const left = order.paidPaise - (await tx.repo.activeSum(order.id));
     if (amount > left)
       throw conflict(
@@ -456,6 +457,7 @@ export class RefundsService {
     const day = istDay(this.deps.clock());
     if (ctx.isSuperAdmin) {
       if (amount > caps.perRefundPaise) return false;
+      await tx.repo.lockUser(ctx.userId);
       const used = await tx.repo.superAdminUsedToday(ctx.userId, new Date(day.getTime() - IST_MS));
       return used + amount <= caps.perDayPaise;
     }
@@ -463,6 +465,7 @@ export class RefundsService {
     if (!limits || amount > limits.perRefund) return false;
     const assignment = await tx.repo.assignmentId(ctx.userId, zoneId);
     if (!assignment) return false;
+    await tx.repo.lockUsage(assignment, day);
     return (await tx.repo.usedToday(assignment, day)) + amount <= limits.dailyRefund;
   }
 
@@ -559,12 +562,20 @@ export class RefundsService {
     await tx.repo.insertLedger(ledger);
     const order = await tx.repo.order(r.orderId);
     const processed = await tx.repo.processedSum(r.orderId);
-    if (order)
+    if (order) {
+      const full = processed >= order.paidPaise;
       await tx.repo.setPaymentStatus(
         r.orderId,
         order.paymentId,
-        processed >= order.paidPaise ? 'REFUNDED' : 'PARTIALLY_REFUNDED',
+        full ? 'REFUNDED' : 'PARTIALLY_REFUNDED',
       );
+      // D40 / D160: refunded in full -> the order itself becomes REFUNDED (doc 10), partial keeps its status
+      if (full) {
+        const version = await tx.repo.markOrderRefunded(r.orderId, actorId, uuidv7());
+        if (version !== null)
+          await this.emitOrderRefunded(tx, r.orderId, order.zoneId, version, actorId);
+      }
+    }
     const after = await this.reload(tx, r.id);
     await record(tx.audit, {
       module: 'refunds',
@@ -636,6 +647,34 @@ export class RefundsService {
       after,
       ...(note ? { note } : {}),
     });
+  }
+
+  /** order.status_changed DELIVERED -> REFUNDED for the apps (contracts/events.catalog.json, same shape as orders). */
+  private async emitOrderRefunded(
+    tx: RefundsTx,
+    orderId: string,
+    zoneId: string,
+    version: number,
+    actorId: string | null,
+  ): Promise<void> {
+    const id = uuidv7();
+    await tx.repo.insertOutbox([
+      {
+        id,
+        eventType: 'order.status_changed',
+        zoneId,
+        payload: {
+          eventId: id,
+          type: 'order.status_changed',
+          schemaVersion: 1,
+          occurredAt: this.deps.clock().toISOString(),
+          aggregate: { type: 'order', id: orderId, version },
+          audience: { zoneId, orderId },
+          actor: actorId ? { type: 'ADMIN', id: actorId } : { type: 'SYSTEM' },
+          data: { from: 'DELIVERED', to: 'REFUNDED' },
+        },
+      },
+    ]);
   }
 
   /** refund.updated for the customer app (contracts/events.catalog.json). */

@@ -578,3 +578,87 @@ describe('refund options (the Request-refund dialog)', () => {
     expect((await opts(sa1)).body.targets).toEqual(['SOURCE', 'WALLET']);
   });
 });
+
+describe('refund money correctness (D40, D160, R-REF-2, D20)', () => {
+  it('a delivered order refunded in full becomes REFUNDED, with its history row and event', async () => {
+    const { orderId } = await paidOrder(zoneA, 40_000);
+    const half = await ask(sa1, orderId, {
+      amountPaise: 20_000,
+      reasonCode: 'GOODWILL',
+      target: 'WALLET',
+    });
+    expect(half.body.status).toBe('PROCESSED');
+    expect(await one(`SELECT status, payment_status FROM orders WHERE id = $1`, [orderId])).toEqual(
+      {
+        status: 'DELIVERED',
+        payment_status: 'PARTIALLY_REFUNDED',
+      },
+    );
+    const rest = await ask(sa1, orderId, {
+      amountPaise: 20_000,
+      reasonCode: 'GOODWILL',
+      target: 'WALLET',
+    });
+    expect(rest.body.status).toBe('PROCESSED');
+    expect(await one(`SELECT status, payment_status FROM orders WHERE id = $1`, [orderId])).toEqual(
+      {
+        status: 'REFUNDED',
+        payment_status: 'REFUNDED',
+      },
+    );
+    expect(
+      await one(
+        `SELECT from_status, to_status, actor_type FROM order_status_history WHERE order_id = $1 AND to_status = 'REFUNDED'`,
+        [orderId],
+      ),
+    ).toEqual({ from_status: 'DELIVERED', to_status: 'REFUNDED', actor_type: 'ADMIN' });
+    const ev = await one(
+      `SELECT payload_json->'data'->>'to' AS "to" FROM outbox
+       WHERE event_type = 'order.status_changed' AND payload_json->'aggregate'->>'id' = $1`,
+      [orderId],
+    );
+    expect(ev).toEqual({ to: 'REFUNDED' });
+  });
+
+  it('two refunds at the same moment never pass what was paid', async () => {
+    const { orderId } = await paidOrder(zoneA, 50_000);
+    const body = { amountPaise: 40_000, reasonCode: 'GOODWILL', target: 'WALLET' };
+    const results = await Promise.all([ask(sa1, orderId, body), ask(sa2, orderId, body)]);
+    expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+    expect(
+      (
+        await one(`SELECT coalesce(sum(amount), 0)::int AS s FROM refunds WHERE order_id = $1`, [
+          orderId,
+        ])
+      ).s,
+    ).toBe(40_000);
+  });
+
+  it('two refunds by one member at the same moment never pass the daily limit', async () => {
+    const m = await env.createUser('ZONAL_ADMIN', { emailPrefix: 'rf-race' });
+    const agent = await env.createProfile(
+      { refunds: ['view', 'add'] },
+      { perRefund: 500_00, dailyRefund: 600_00 },
+    );
+    await env.assignZone(m.id, zoneA, sa1Id, { profileId: agent });
+    const s = await signIn(m);
+    const [o1, o2] = [await paidOrder(zoneA, 60_000), await paidOrder(zoneA, 60_000)];
+    const body = { amountPaise: 40_000, reasonCode: 'GOODWILL', target: 'WALLET' };
+    const results = await Promise.all([ask(s, o1.orderId, body), ask(s, o2.orderId, body)]);
+    expect(results.map((r) => r.body.status).sort()).toEqual(['PENDING_APPROVAL', 'PROCESSED']);
+  });
+
+  it('?overdue=true lists refunds still waiting after their decide-by time', async () => {
+    const { orderId } = await paidOrder(zoneA, 90_000);
+    const r = await ask(adminA, orderId, {
+      amountPaise: 70_000,
+      reasonCode: 'GOODWILL',
+      target: 'WALLET',
+    });
+    expect(r.body.status).toBe('PENDING_APPROVAL');
+    await q(`UPDATE refunds SET decide_by = now() - interval '1 hour' WHERE id = $1`, [r.body.id]);
+    const list = await client(sa1, app).get('/refunds?overdue=true');
+    expect(list.status).toBe(200);
+    expect(list.body.data.map((x: { id: string }) => x.id)).toContain(r.body.id);
+  });
+});

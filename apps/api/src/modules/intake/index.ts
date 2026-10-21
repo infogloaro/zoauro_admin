@@ -1,7 +1,9 @@
 import {
+  cashHandoverSchema,
   intakePartnerRegisterSchema,
   intakeVendorRegisterSchema,
   intakeZoneResolveQuerySchema,
+  type CashHandoverInput,
   type IntakePing,
 } from '@zoauro/shared';
 import { Router } from 'express';
@@ -21,7 +23,7 @@ import {
   requireScope,
   writeIdempotency,
 } from './intake.middleware';
-import { RegistrationsDatabase } from './registrations.repository';
+import { RegistrationsDatabase, RegistrationsRepository } from './registrations.repository';
 import { RegistrationsService } from './registrations.service';
 
 // Integration API (M21, D147; doc 42, contract docs/G-integration/contracts/intake.openapi.yaml). Server-to-server from
@@ -40,6 +42,12 @@ export function createIntakeModule(deps: {
   limiter: RateLimiter;
   resolver: ZoneResolver;
   clock: Clock;
+  /** M14: the settlements service's reportFromApp (partner cash hand-over, doc 42) */
+  cashHandover?: (
+    partnerId: string,
+    input: CashHandoverInput,
+    key: string,
+  ) => Promise<{ id: string; replayed: boolean }>;
 }): { path: string; router: Router } {
   const repo = () => new IntakeRepository(deps.prisma);
   const router = Router();
@@ -89,6 +97,34 @@ export function createIntakeModule(deps: {
     noteIntakeEntity(res, { type: 'partner', id: r.ref.id, zoneId: r.zoneId });
     res.status(r.httpStatus).json({ data: r.ref });
   });
+
+  // doc 42 section 5.4: the partner reports cash handed over; a PENDING settlement for the Zonal Admin to count (M14)
+  const handover = deps.cashHandover;
+  if (handover)
+    router.post(
+      '/partners/:partnerId/cash-handover',
+      requireScope('cash:handover'),
+      async (req, res) => {
+        const client = intakeClientOf(res);
+        const input = parseBody(cashHandoverSchema, req.body);
+        const externalId = String(req.params['partnerId'] ?? '');
+        const partnerId = await new RegistrationsRepository(deps.prisma).internalIdOf(
+          client.id,
+          'partner',
+          externalId,
+        );
+        if (!partnerId) throw new AppError('NOT_FOUND', 'No such partner for this app');
+        const r = await handover(
+          partnerId,
+          input,
+          `${client.id}:${req.get('idempotency-key') ?? ''}`,
+        );
+        noteIntakeEntity(res, { type: 'cod_settlement', id: r.id, zoneId: null });
+        res
+          .status(r.replayed ? 200 : 201)
+          .json({ data: { id: r.id, externalId, applied: !r.replayed } });
+      },
+    );
 
   // An unknown intake path ends here, never in the staff API mounted behind it.
   router.use(() => {

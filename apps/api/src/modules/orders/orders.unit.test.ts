@@ -18,6 +18,7 @@ const partner = (over: Partial<PartnerLockRow> = {}): PartnerLockRow => ({
   current_orders: 0,
   deleted_at: null,
   force_offline_until: null,
+  cash_in_hand: 0,
   ...over,
 });
 const issue = (p: PartnerLockRow | null, cap = 1) =>

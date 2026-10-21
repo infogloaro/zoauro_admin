@@ -120,6 +120,11 @@ export const refundListQuerySchema = z.object({
     .enum(['true', 'false'])
     .optional()
     .transform((v) => v === 'true'),
+  /** only refunds waiting for a decision past their decide-by time (D180 decision time limit) */
+  overdue: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
   from: iso.optional(),
   to: iso.optional(),
   q: z.string().trim().min(1).max(40).optional(),

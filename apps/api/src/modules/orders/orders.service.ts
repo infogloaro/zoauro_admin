@@ -214,6 +214,8 @@ export class OrdersService {
        * transaction, idempotent per order; nothing when loyalty is off, D101). A failure never undoes the delivery.
        */
       onDelivered?: (orderId: string) => Promise<unknown>;
+      /** D173: the zone's COD float limit (settings cod.floatLimit); absent = no check */
+      codFloatLimit?: (zoneId: string) => Promise<{ enabled: boolean; limitPaise: number }>;
       /** D179 section 3: ids of the caller's delayed open orders (GET /orders?delayed=true) */
       delayedIds?: (ctx: AuthContext) => Promise<string[]>;
     },
@@ -363,6 +365,16 @@ export class OrdersService {
         if (p.issue === 'NOT_FOUND' || p.issue === 'PARTNER_OTHER_ZONE')
           throw new AppError('VALIDATION_ERROR', p.message, [{ field: p.field, issue: p.issue }]);
         throw guard(p.field, p.issue, p.message);
+      }
+      // D173: a partner holding COD cash above the zone's float limit gets no new COD order until settled
+      if (order.paymentMethod === 'COD' && this.deps.codFloatLimit) {
+        const float = await this.deps.codFloatLimit(order.zoneId);
+        if (float.enabled && partner.cash_in_hand >= float.limitPaise)
+          throw guard(
+            'deliveryPartnerId',
+            'PARTNER_COD_FLOAT_FULL',
+            `The delivery partner holds ₹${(partner.cash_in_hand / 100).toFixed(2)} of COD cash (limit ₹${(float.limitPaise / 100).toFixed(2)}); settle it before giving them a COD order`,
+          );
       }
       await tx.repo.adjustPartnerLoad(partner.id, 1);
       if (reassign && order.deliveryPartnerId)

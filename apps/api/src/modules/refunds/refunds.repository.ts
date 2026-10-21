@@ -133,6 +133,63 @@ export class RefundsRepository {
     };
   }
 
+  /**
+   * Row lock on the order for the refund's transaction: two refunds on one order are checked against the ceiling one
+   * after the other (R-REF-2), never side by side.
+   */
+  async lockOrder(orderId: string): Promise<void> {
+    await this.db.$queryRaw`SELECT id FROM orders WHERE id = ${orderId}::uuid FOR UPDATE`;
+  }
+
+  /**
+   * Row lock on the member's usage row for the day (created at 0 when missing), so two refunds by one member cannot
+   * both pass the daily limit (D20, D110).
+   */
+  async lockUsage(assignmentId: string, day: Date): Promise<void> {
+    await this.db.$executeRaw`
+      INSERT INTO refund_daily_usage (assignment_id, usage_date, amount_total)
+      VALUES (${assignmentId}::uuid, ${day}::date, 0)
+      ON CONFLICT (assignment_id, usage_date) DO NOTHING`;
+    await this.db.$queryRaw`
+      SELECT amount_total FROM refund_daily_usage
+      WHERE assignment_id = ${assignmentId}::uuid AND usage_date = ${day}::date FOR UPDATE`;
+  }
+
+  /** A Super Admin's daily usage has no row of its own: the user row is the lock. */
+  async lockUser(userId: string): Promise<void> {
+    await this.db.$queryRaw`SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+  }
+
+  /**
+   * D40 / D160: a delivered order refunded in full moves DELIVERED -> REFUNDED (doc 10), with its history row and a new
+   * version. Returns the new version, or null when the order is not DELIVERED (a cancelled order keeps its status).
+   */
+  async markOrderRefunded(
+    orderId: string,
+    actorId: string | null,
+    historyId: string,
+  ): Promise<number | null> {
+    const r = await this.db.order.updateMany({
+      where: { id: orderId, status: 'DELIVERED' },
+      data: { status: 'REFUNDED', version: { increment: 1 } },
+    });
+    if (r.count !== 1) return null;
+    await this.db.orderStatusHistory.create({
+      data: {
+        id: historyId,
+        orderId,
+        fromStatus: 'DELIVERED',
+        toStatus: 'REFUNDED',
+        actorId,
+        actorType: actorId ? 'ADMIN' : 'SYSTEM',
+        note: 'Refunded in full',
+        sourceApp: null,
+      },
+    });
+    const o = await this.db.order.findUnique({ where: { id: orderId }, select: { version: true } });
+    return o?.version ?? null;
+  }
+
   /** Refunds that count against what was paid (doc 16: sum of refunds ≤ captured). */
   async activeSum(orderId: string, exceptId?: string): Promise<number> {
     const r = await this.db.refund.aggregate({
@@ -229,6 +286,8 @@ export class RefundsRepository {
     if (q.q) and.push({ order: { orderNo: { contains: q.q, mode: 'insensitive' } } });
     if (q.awaitingSecondApproval)
       and.push({ status: 'PENDING_APPROVAL', approvedBy: { not: null }, secondApprovedBy: null });
+    if (q.overdue)
+      and.push({ status: 'PENDING_APPROVAL', decideBy: { not: null, lt: new Date() } });
     return { AND: and };
   }
 

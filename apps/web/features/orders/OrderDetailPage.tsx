@@ -1,7 +1,7 @@
 'use client';
 
 import { PREORDER_ISSUES, type OrderStatus } from '@zoauro/shared';
-import { Ban, Bike, CalendarClock, RotateCcw, Undo2 } from 'lucide-react';
+import { Ban, Banknote, Bike, CalendarClock, RotateCcw, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Badge } from '../../components/ui/badge';
@@ -104,6 +104,32 @@ export function OrderDetailPage({
     }
   };
 
+  // doc 16 §2: a COD order is delivered only after the partner has the cash (POST /orders/{id}/cod-collection, M14)
+  const codDue =
+    o.paymentMethod === 'COD' &&
+    o.paymentStatus === 'PENDING' &&
+    (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY');
+  const collectCash = async () => {
+    setAlert(null);
+    setBusy(true);
+    try {
+      const r = await client.post('/orders/{id}/cod-collection', {
+        params: { id: o.id },
+        body: {},
+        ifMatch: o.version,
+      });
+      toast({
+        title: `${formatPaise(r.collectedPaise)} collected by ${r.partner.name}`,
+        description: `Cash in hand now ${formatPaise(r.partner.cashInHandPaise)}`,
+      });
+    } catch (err) {
+      setAlert(failure(err));
+    } finally {
+      await invalidate();
+      setBusy(false);
+    }
+  };
+
   const amounts: [string, number][] = [
     ['Items', o.subtotal],
     ['Tax', o.tax],
@@ -185,6 +211,12 @@ export function OrderDetailPage({
           {alert ? <FormAlert>{alert}</FormAlert> : null}
           {can.status && (acts.moves.length > 0 || acts.canCancel || acts.canUnassign) ? (
             <div className="flex flex-wrap gap-2">
+              {codDue ? (
+                <Button disabled={busy} onClick={() => void collectCash()}>
+                  <Banknote aria-hidden className="size-4" /> Confirm cash collected (
+                  {formatPaise(o.total)})
+                </Button>
+              ) : null}
               {acts.moves.map((m) => (
                 <Button key={m.to} disabled={busy} onClick={() => void move(m.to)}>
                   {m.label}

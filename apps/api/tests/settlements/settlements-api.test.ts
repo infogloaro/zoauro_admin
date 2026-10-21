@@ -175,6 +175,7 @@ describe('COD settlement (D173)', () => {
       expectedPaise: 140_000,
       handedInPaise: 135_000,
       variancePaise: -5_000,
+      pending: 0,
     });
     const short = await client(sa, app).get(`/cash-settlements?zoneId=${zoneA}&varianceOnly=true`);
     expect(short.body.data.map((s: { variancePaise: number }) => s.variancePaise)).toEqual([

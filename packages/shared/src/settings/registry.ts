@@ -347,6 +347,18 @@ export const deliveryAutoAssignSchema = z
 /** D152 */
 export const payoutCycleSchema = z.object({ days: z.number().int().min(1).max(31) }).strict();
 
+/**
+ * D173: a delivery partner's COD float. Above `limitPaise` of cash in hand the partner gets no new COD orders until a
+ * settlement brings it down; `enabled: false` switches the check off for the zone.
+ */
+export const codFloatLimitSchema = z
+  .object({
+    enabled: z.boolean(),
+    limitPaise: z.number().int().min(0).max(10_000_000),
+  })
+  .strict();
+export type CodFloatLimit = z.infer<typeof codFloatLimitSchema>;
+
 /** D165 (D86): the most a zone's delivery charge may be; the zones module checks every create and edit against it. */
 /** At most the database ceiling (₹1 000) until a migration raises it. */
 export const zoneDeliveryChargeCapSchema = z
@@ -745,6 +757,20 @@ export const SETTINGS: readonly SettingDef[] = [
     editable: true,
     appsRead: false,
     effect: pending('Payouts'),
+  },
+  {
+    key: 'cod.floatLimit',
+    group: 'payouts',
+    label: 'COD float limit',
+    description:
+      'The most COD cash a delivery partner may hold. Above it the partner is given no new COD orders until the cash is settled.',
+    schema: codFloatLimitSchema,
+    default: { enabled: true, limitPaise: 5_000_00 },
+    zoneOverride: true,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'zones.deliveryChargeCapPaise',

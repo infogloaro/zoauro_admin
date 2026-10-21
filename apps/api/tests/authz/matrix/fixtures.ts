@@ -303,13 +303,13 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     const orderId = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000f0${i}0`;
     await env.db.owner.query(
       `INSERT INTO payments (id, order_id, provider, amount, status, idempotency_key, updated_at)
-       VALUES ($1, $2, 'razorpay', 100, 'PAID', $1, now())`,
+       VALUES ($1::uuid, $2, 'razorpay', 100, 'PAID', $1::text, now())`,
       [id, orderId],
     );
     await env.db.owner.query(
       `INSERT INTO refunds (id, order_id, payment_id, zone_id, amount, type, reason_code, status, target, source,
          idempotency_key, updated_at)
-       VALUES ($1, $2, $1, $3, 50, 'PARTIAL', 'MISSING_ITEM', 'REQUESTED', 'WALLET', 'APP', $1, now())`,
+       VALUES ($1::uuid, $2, $1::uuid, $3, 50, 'PARTIAL', 'MISSING_ITEM', 'REQUESTED', 'WALLET', 'APP', $1::text, now())`,
       [id, orderId, zones[z]],
     );
   }

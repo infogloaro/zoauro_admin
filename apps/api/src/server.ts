@@ -219,6 +219,7 @@ const orders = createOrdersModule({
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+  codFloatLimit: (zoneId) => settings.reader.codFloatLimit(zoneId),
   // D182 O1: orders.sla of the zone ('' = the platform value when the overview spans zones)
   sla: (zoneId) => settings.reader.orderSla(zoneId ?? ''),
   // D169: a delivered order earns reward points (rewards is created below; called at request time)
@@ -283,6 +284,14 @@ const exportsModule = createExportsModule({
   enqueue: (id) => exportQueue.enqueue(id),
 });
 
+// D173 COD settlement (M14) and D152 payouts: the cycle from settings payouts.cycleDays, the float from cod.floatLimit
+const settlements = createSettlementsModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
+  floatLimit: (zoneId) => settings.reader.codFloatLimit(zoneId),
+});
+
 const app = createApp({
   trustProxyHops: env.TRUST_PROXY_HOPS,
   // M21 Integration API for the apps (doc 42, D147): HMAC-signed, outside the staff session stack
@@ -296,6 +305,8 @@ const app = createApp({
       limiter: new RedisRateLimiter(redis),
       resolver: zones.resolver,
       clock: () => new Date(),
+      cashHandover: (partnerId, input, key) =>
+        settlements.service.reportFromApp(partnerId, input, key),
     }),
   ],
   readiness: createReadinessChecks({ databaseUrl: env.DATABASE_URL, redisUrl: env.REDIS_URL }),
@@ -318,11 +329,7 @@ const app = createApp({
       refunds.router,
       // D159 payments, read only until the gateway (D6)
       createPaymentsModule({ prisma }).router,
-      // D173 COD settlement and D152 payouts, read only (the cycle from settings payouts.cycleDays)
-      createSettlementsModule({
-        prisma,
-        cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
-      }).router,
+      settlements.router,
       partners.router,
       notifications.router,
       // M16: tiles cached 30 s in Redis by scope hash; M18: 60 searches a minute per member

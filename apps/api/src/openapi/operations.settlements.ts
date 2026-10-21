@@ -1,4 +1,12 @@
 import {
+  cashSettlementConfirmSchema,
+  cashSettlementCreateSchema,
+  cashSettlementDetailSchema,
+  cashSettlementIdParamsSchema,
+  cashSettlementRejectSchema,
+  codCollectionResponseSchema,
+  codCollectionSchema,
+  orderIdParamsSchema,
   cashSettlementListQuerySchema,
   cashSettlementListResponseSchema,
   codBalanceListResponseSchema,
@@ -8,7 +16,7 @@ import {
 } from '@zoauro/shared';
 import type { OperationDef } from './operations';
 
-// COD settlement (doc 16 §2, D173) and payouts (doc 16 §5, D152), read only until the settlement form and the payout job.
+// COD settlement (doc 16 §2, doc 42, D173: M14) and payouts (doc 16 §5, D152; read only until the payout job, M15).
 
 export const SETTLEMENT_OPERATIONS: OperationDef[] = [
   {
@@ -17,7 +25,7 @@ export const SETTLEMENT_OPERATIONS: OperationDef[] = [
     path: '/cash-settlements',
     tags: ['settlements'],
     summary:
-      'COD settlement history: per partner the amount expected, handed in and the variance (?varianceOnly=true), who settled it and when; totals for the filters',
+      'COD settlement history: per partner the amount expected, handed in and the variance (?varianceOnly=true), PENDING hand-overs reported by the partner app (?status=PENDING), who settled it and when; totals of confirmed hand-ins for the filters',
     access: { kind: 'permission', permission: 'settlements:view', zone: 'query' },
     query: cashSettlementListQuerySchema,
     response: { status: 200, schema: cashSettlementListResponseSchema, description: 'One page' },
@@ -32,6 +40,62 @@ export const SETTLEMENT_OPERATIONS: OperationDef[] = [
     access: { kind: 'permission', permission: 'settlements:view', zone: 'query' },
     query: codBalanceQuerySchema,
     response: { status: 200, schema: codBalanceListResponseSchema, description: 'One page' },
+  },
+  {
+    operationId: 'recordCashSettlement',
+    method: 'post',
+    path: '/cash-settlements',
+    tags: ['settlements'],
+    summary:
+      'Record cash an admin counted from a delivery partner (Idempotency-Key): CONFIRMED at once; expected = the cash in hand now, variance = counted − expected; the counted amount leaves the cash in hand, a shortfall stays on it',
+    access: { kind: 'permission', permission: 'settlements:add', zone: 'none' },
+    audit: { module: 'settlements', action: 'cod_settlement.recorded' },
+    body: cashSettlementCreateSchema,
+    idempotent: true,
+    response: { status: 201, schema: cashSettlementDetailSchema, description: 'Recorded' },
+    errors: ['NOT_FOUND'],
+  },
+  {
+    operationId: 'confirmCashSettlement',
+    method: 'post',
+    path: '/cash-settlements/{id}/confirm',
+    tags: ['settlements'],
+    summary:
+      'Confirm a PENDING hand-over the partner app reported, with the amount actually counted (version from the row); 409 when it is no longer pending or was changed meanwhile',
+    access: { kind: 'permission', permission: 'settlements:edit', zone: 'none' },
+    audit: { module: 'settlements', action: 'cod_settlement.confirmed' },
+    params: cashSettlementIdParamsSchema,
+    body: cashSettlementConfirmSchema,
+    response: { status: 200, schema: cashSettlementDetailSchema, description: 'Confirmed' },
+    errors: ['NOT_FOUND', 'INVALID_STATE_TRANSITION', 'STALE_VERSION'],
+  },
+  {
+    operationId: 'rejectCashSettlement',
+    method: 'post',
+    path: '/cash-settlements/{id}/reject',
+    tags: ['settlements'],
+    summary: 'Reject a PENDING hand-over with a reason: no cash moves',
+    access: { kind: 'permission', permission: 'settlements:edit', zone: 'none' },
+    audit: { module: 'settlements', action: 'cod_settlement.rejected' },
+    params: cashSettlementIdParamsSchema,
+    body: cashSettlementRejectSchema,
+    response: { status: 200, schema: cashSettlementDetailSchema, description: 'Rejected' },
+    errors: ['NOT_FOUND', 'INVALID_STATE_TRANSITION', 'STALE_VERSION'],
+  },
+  {
+    operationId: 'collectCodCash',
+    method: 'post',
+    path: '/orders/{id}/cod-collection',
+    tags: ['orders'],
+    summary:
+      'The customer paid the assigned partner in cash (If-Match): the COD payment becomes PAID, so the order can be delivered, and the total joins the partner’s cash in hand (doc 16 §2, R-PAY-3)',
+    access: { kind: 'permission', permission: 'orders:status', zone: 'none' },
+    audit: { module: 'settlements', action: 'cod.collected' },
+    params: orderIdParamsSchema,
+    body: codCollectionSchema,
+    ifMatch: true,
+    response: { status: 200, schema: codCollectionResponseSchema, description: 'Collected' },
+    errors: ['NOT_FOUND', 'INVALID_STATE_TRANSITION', 'STALE_VERSION'],
   },
   {
     operationId: 'listPayouts',

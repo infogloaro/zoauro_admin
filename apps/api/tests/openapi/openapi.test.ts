@@ -236,6 +236,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /orders/{id}/transition',
         'POST /orders/{id}/cancel',
         'POST /orders/{id}/assign',
+        'POST /orders/{id}/cod-collection',
         'POST /orders/{id}/reschedule',
         'GET /orders/overview',
         // D170 onboarding queue
@@ -270,6 +271,9 @@ describe('the committed API contract is current (this is the CI check)', () => {
         // D173 COD settlement and D152 payouts (read only)
         'GET /cash-settlements',
         'GET /cash-settlements/balances',
+        'POST /cash-settlements',
+        'POST /cash-settlements/{id}/confirm',
+        'POST /cash-settlements/{id}/reject',
         'GET /payouts',
         // M10 delivery partners + R12 (doc 09, D130–D133)
         'GET /delivery-partners',

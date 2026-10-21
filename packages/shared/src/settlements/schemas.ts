@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, pageMetaSchema, sortSchema } from '../pagination';
 
-// COD settlement (doc 16 §2, D173) and payouts (doc 16 §5, D152), read only until the payout job and the settlement form
-// exist. A delivery partner's cash in hand grows with every COD delivery; the Zonal Admin records what was handed in
-// (cash_settlements: expected, handed in, variance). Payouts are per payee (restaurant, homemaker, delivery partner) and
+// COD settlement (doc 16 §2, doc 42, D173) and payouts (doc 16 §5, D152). A delivery partner's cash in hand grows with
+// every confirmed COD collection; a hand-over is either reported by the partner app (PENDING until a Zonal Admin counts
+// it and confirms or rejects it) or recorded by an admin who counted the cash (CONFIRMED at once). Confirming moves the
+// counted amount off the partner's cash in hand; a shortfall stays on it for the next settlement (variance flagged). Payouts are per payee (restaurant, homemaker, delivery partner) and
 // cycle (settings payouts.cycleDays per zone); vendor-fault refunds are deducted in the cycle in which they are decided.
 
 const zoneIdsParam = z.preprocess(
@@ -24,7 +25,9 @@ const userRef = z.object({ id: z.uuid(), name: z.string() });
 
 // ---- cash settlements ------------------------------------------------------------------------------------------------
 
-export const CASH_SETTLEMENT_SORT_FIELDS = ['settledAt', 'variance'] as const;
+export const CASH_SETTLEMENT_SORT_FIELDS = ['settledAt', 'variance', 'createdAt'] as const;
+export const CASH_SETTLEMENT_STATUSES = ['PENDING', 'CONFIRMED', 'REJECTED'] as const;
+export type CashSettlementStatus = (typeof CASH_SETTLEMENT_STATUSES)[number];
 
 /** GET /cash-settlements (doc 09): the settlement history; varianceOnly = handed in ≠ expected. */
 export const cashSettlementListQuerySchema = z.object({
@@ -33,6 +36,7 @@ export const cashSettlementListQuerySchema = z.object({
   sort: sortSchema(CASH_SETTLEMENT_SORT_FIELDS, { field: 'settledAt', direction: 'desc' }),
   zoneId: zoneIdsParam,
   deliveryPartnerId: z.uuid().optional(),
+  status: z.enum(CASH_SETTLEMENT_STATUSES).optional(),
   varianceOnly: flag,
   from: iso.optional(),
   to: iso.optional(),
@@ -47,9 +51,18 @@ export const cashSettlementRowSchema = z.object({
   handedInPaise: paise,
   /** handed in − expected: negative = short */
   variancePaise: paise,
-  settledBy: userRef,
-  settledAt: isoOut,
+  status: z.enum(CASH_SETTLEMENT_STATUSES),
+  source: z.enum(['APP', 'ADMIN', 'IMPORT']),
+  /** what the partner app reported (null for an admin-recorded hand-in) */
+  reportedPaise: paise.nullable(),
+  reportedAt: isoOut.nullable(),
+  reference: z.string().nullable(),
+  /** null while PENDING */
+  settledBy: userRef.nullable(),
+  settledAt: isoOut.nullable(),
   note: z.string().nullable(),
+  createdAt: isoOut,
+  version: z.number().int(),
 });
 export type CashSettlementRow = z.infer<typeof cashSettlementRowSchema>;
 
@@ -62,10 +75,61 @@ export const cashSettlementListResponseSchema = z.object({
       expectedPaise: paise,
       handedInPaise: paise,
       variancePaise: paise,
+      pending: count,
     }),
   }),
 });
 export type CashSettlementListResponse = z.infer<typeof cashSettlementListResponseSchema>;
+
+const note = z.string().trim().min(1).max(500);
+const reference = z.string().trim().min(1).max(80);
+/** at most ₹1,00,000 in one hand-in */
+const handIn = z.number().int().min(0).max(10_000_000);
+
+/** POST /cash-settlements (settlements:add): an admin counted the cash; CONFIRMED at once. Idempotency-Key required. */
+export const cashSettlementCreateSchema = z
+  .object({
+    deliveryPartnerId: z.uuid(),
+    handedInPaise: handIn,
+    reference: reference.optional(),
+    note: note.optional(),
+  })
+  .strict();
+export type CashSettlementCreateInput = z.infer<typeof cashSettlementCreateSchema>;
+
+/** POST /cash-settlements/{id}/confirm (settlements:edit): the counted amount of a PENDING hand-over. */
+export const cashSettlementConfirmSchema = z
+  .object({ handedInPaise: handIn, note: note.optional(), version: z.number().int().min(1) })
+  .strict();
+export type CashSettlementConfirmInput = z.infer<typeof cashSettlementConfirmSchema>;
+
+/** POST /cash-settlements/{id}/reject (settlements:edit): no cash moves; a reason is required. */
+export const cashSettlementRejectSchema = z
+  .object({ reason: note, version: z.number().int().min(1) })
+  .strict();
+export type CashSettlementRejectInput = z.infer<typeof cashSettlementRejectSchema>;
+
+/** Intake POST /partners/{partnerId}/cash-handover (doc 42, contracts/intake.openapi.yaml CashHandover). */
+export const cashHandoverSchema = z
+  .object({
+    amountPaise: z.number().int().min(1).max(10_000_000),
+    at: iso,
+    reference: reference.optional(),
+  })
+  .strict();
+export type CashHandoverInput = z.infer<typeof cashHandoverSchema>;
+
+/**
+ * POST /orders/{id}/cod-collection (orders:status, If-Match): the customer paid the partner in cash. Marks the COD payment PAID
+ * and adds the amount to the partner's cash in hand (doc 16 §2, R-PAY-3).
+ */
+export const codCollectionSchema = z
+  .object({
+    /** defaults to the order total; must equal it (part payments are not supported) */
+    collectedPaise: z.number().int().min(1).optional(),
+  })
+  .strict();
+export type CodCollectionInput = z.infer<typeof codCollectionSchema>;
 
 // ---- COD balances (D173) ---------------------------------------------------------------------------------------------
 
@@ -90,6 +154,13 @@ export const codBalanceRowSchema = z.object({
   lastSettlement: z
     .object({ settledAt: isoOut, handedInPaise: paise, variancePaise: paise })
     .nullable(),
+  /** a hand-over reported by the partner app that waits for the count */
+  pendingHandover: z
+    .object({ id: z.uuid(), reportedPaise: paise, reportedAt: isoOut.nullable() })
+    .nullable(),
+  /** D173: the zone's float limit, and whether this partner is over it (no new COD orders) */
+  floatLimitPaise: paise.nullable(),
+  overFloatLimit: z.boolean(),
 });
 export type CodBalanceRow = z.infer<typeof codBalanceRowSchema>;
 
@@ -159,3 +230,23 @@ export const payoutListResponseSchema = z.object({
   }),
 });
 export type PayoutListResponse = z.infer<typeof payoutListResponseSchema>;
+
+export const cashSettlementIdParamsSchema = z.object({ id: z.uuid() });
+
+/** POST /cash-settlements, /confirm, /reject: the settlement after the write. */
+export const cashSettlementDetailSchema = cashSettlementRowSchema.extend({
+  /** the partner's cash in hand after this write */
+  partnerCashInHandPaise: paise,
+});
+export type CashSettlementDetail = z.infer<typeof cashSettlementDetailSchema>;
+
+/** POST /orders/{id}/cod-collection */
+export const codCollectionResponseSchema = z.object({
+  orderId: z.uuid(),
+  paymentId: z.uuid(),
+  paymentStatus: z.literal('PAID'),
+  collectedPaise: paise,
+  partner: z.object({ id: z.uuid(), name: z.string(), cashInHandPaise: paise }),
+  version: z.number().int(),
+});
+export type CodCollectionResponse = z.infer<typeof codCollectionResponseSchema>;

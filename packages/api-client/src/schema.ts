@@ -402,10 +402,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** COD settlement history: per partner the amount expected, handed in and the variance (?varianceOnly=true), who settled it and when; totals for the filters */
+        /** COD settlement history: per partner the amount expected, handed in and the variance (?varianceOnly=true), PENDING hand-overs reported by the partner app (?status=PENDING), who settled it and when; totals of confirmed hand-ins for the filters */
         get: operations["listCashSettlements"];
         put?: never;
-        post?: never;
+        /** Record cash an admin counted from a delivery partner (Idempotency-Key): CONFIRMED at once; expected = the cash in hand now, variance = counted − expected; the counted amount leaves the cash in hand, a shortfall stays on it */
+        post: operations["recordCashSettlement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cash-settlements/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a PENDING hand-over the partner app reported, with the amount actually counted (version from the row); 409 when it is no longer pending or was changed meanwhile */
+        post: operations["confirmCashSettlement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cash-settlements/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a PENDING hand-over with a reason: no cash moves */
+        post: operations["rejectCashSettlement"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2281,6 +2316,23 @@ export interface paths {
         put?: never;
         /** Cancel with a reason (If-Match: version); a captured payment sets refundExpected */
         post: operations["cancelOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/cod-collection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The customer paid the assigned partner in cash (If-Match): the COD payment becomes PAID, so the order can be delivered, and the total joins the partner’s cash in hand (doc 16 §2, R-PAY-3) */
+        post: operations["collectCodCash"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5696,6 +5748,7 @@ export interface operations {
                 page?: number;
                 pageSize?: number;
                 sort?: string;
+                status?: "PENDING" | "CONFIRMED" | "REJECTED";
                 to?: string;
                 varianceOnly?: "true" | "false";
                 zoneId?: string[];
@@ -5714,6 +5767,8 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: {
+                            /** Format: date-time */
+                            createdAt: string;
                             expectedPaise: number;
                             handedInPaise: number;
                             /** Format: uuid */
@@ -5724,14 +5779,23 @@ export interface operations {
                                 id: string;
                                 name: string;
                             };
+                            reference: string | null;
                             /** Format: date-time */
-                            settledAt: string;
+                            reportedAt: string | null;
+                            reportedPaise: number | null;
+                            /** Format: date-time */
+                            settledAt: string | null;
                             settledBy: {
                                 /** Format: uuid */
                                 id: string;
                                 name: string;
-                            };
+                            } | null;
+                            /** @enum {string} */
+                            source: "APP" | "ADMIN" | "IMPORT";
+                            /** @enum {string} */
+                            status: "PENDING" | "CONFIRMED" | "REJECTED";
                             variancePaise: number;
+                            version: number;
                             zone: {
                                 code: string;
                                 /** Format: uuid */
@@ -5743,6 +5807,7 @@ export interface operations {
                             counts: {
                                 expectedPaise: number;
                                 handedInPaise: number;
+                                pending: number;
                                 total: number;
                                 variancePaise: number;
                                 withVariance: number;
@@ -5792,6 +5857,343 @@ export interface operations {
             };
         };
     };
+    recordCashSettlement: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    deliveryPartnerId: string;
+                    handedInPaise: number;
+                    note?: string;
+                    reference?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Recorded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        expectedPaise: number;
+                        handedInPaise: number;
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        partner: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        partnerCashInHandPaise: number;
+                        reference: string | null;
+                        /** Format: date-time */
+                        reportedAt: string | null;
+                        reportedPaise: number | null;
+                        /** Format: date-time */
+                        settledAt: string | null;
+                        settledBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** @enum {string} */
+                        status: "PENDING" | "CONFIRMED" | "REJECTED";
+                        variancePaise: number;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    confirmCashSettlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    handedInPaise: number;
+                    note?: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Confirmed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        expectedPaise: number;
+                        handedInPaise: number;
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        partner: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        partnerCashInHandPaise: number;
+                        reference: string | null;
+                        /** Format: date-time */
+                        reportedAt: string | null;
+                        reportedPaise: number | null;
+                        /** Format: date-time */
+                        settledAt: string | null;
+                        settledBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** @enum {string} */
+                        status: "PENDING" | "CONFIRMED" | "REJECTED";
+                        variancePaise: number;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rejectCashSettlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        expectedPaise: number;
+                        handedInPaise: number;
+                        /** Format: uuid */
+                        id: string;
+                        note: string | null;
+                        partner: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        partnerCashInHandPaise: number;
+                        reference: string | null;
+                        /** Format: date-time */
+                        reportedAt: string | null;
+                        reportedPaise: number | null;
+                        /** Format: date-time */
+                        settledAt: string | null;
+                        settledBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** @enum {string} */
+                        source: "APP" | "ADMIN" | "IMPORT";
+                        /** @enum {string} */
+                        status: "PENDING" | "CONFIRMED" | "REJECTED";
+                        variancePaise: number;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     listCodBalances: {
         parameters: {
             query?: {
@@ -5817,12 +6219,14 @@ export interface operations {
                     "application/json": {
                         data: {
                             cashInHandPaise: number;
+                            floatLimitPaise: number | null;
                             lastSettlement: {
                                 handedInPaise: number;
                                 /** Format: date-time */
                                 settledAt: string;
                                 variancePaise: number;
                             } | null;
+                            overFloatLimit: boolean;
                             partner: {
                                 /** Format: uuid */
                                 id: string;
@@ -5830,6 +6234,13 @@ export interface operations {
                                 name: string;
                                 status: string;
                             };
+                            pendingHandover: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: date-time */
+                                reportedAt: string | null;
+                                reportedPaise: number;
+                            } | null;
                             zone: {
                                 code: string;
                                 /** Format: uuid */
@@ -18939,6 +19350,96 @@ export interface operations {
             };
         };
     };
+    collectCodCash: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    collectedPaise?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Collected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        collectedPaise: number;
+                        /** Format: uuid */
+                        orderId: string;
+                        partner: {
+                            cashInHandPaise: number;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: uuid */
+                        paymentId: string;
+                        /** @enum {string} */
+                        paymentStatus: "PAID";
+                        version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     getRefundOptions: {
         parameters: {
             query?: never;
@@ -19935,6 +20436,7 @@ export interface operations {
                 awaitingSecondApproval?: "true" | "false";
                 fault?: "VENDOR" | "PLATFORM" | "CUSTOMER";
                 from?: string;
+                overdue?: "true" | "false";
                 page?: number;
                 pageSize?: number;
                 q?: string;

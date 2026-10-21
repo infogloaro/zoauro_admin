@@ -334,13 +334,9 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'delivery',
     icon: 'banknote',
     description: 'Delivery partners’ cash in hand against cash handed in, with variances.',
-    status: 'coming-soon',
-    zonal: { permission: 'settlements' },
-    blueprint: {
-      phase: 'Phase 1',
-      screens: ['Cash in hand by partner', 'Settlement entry and variance report'],
-      rules: ['COD cash is kept separate from Razorpay and wallet transactions'],
-    },
+    status: 'live',
+    superAdminHref: '/super-admin/cod-settlement',
+    zonal: { href: '/zone/cod-settlement', permission: 'settlements' },
   },
 
   // ---- Payments & Finance ------------------------------------------------------------------------------------------

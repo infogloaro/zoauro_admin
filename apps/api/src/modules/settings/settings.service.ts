@@ -7,6 +7,7 @@ import {
   orderPreorderSchema,
   orderUnpaidTimeoutSchema,
   payoutCycleSchema,
+  codFloatLimitSchema,
   sessionRememberSchema,
   supportSlaSchema,
   claimTimingSchema,
@@ -552,6 +553,11 @@ export class SettingsReader {
   /** D152 */
   async payoutCycleDays(zoneId: string): Promise<number> {
     return (await this.effective('payouts.cycleDays', payoutCycleSchema, zoneId)).days;
+  }
+
+  /** D173: the COD float limit of a zone. */
+  codFloatLimit(zoneId: string) {
+    return this.effective('cod.floatLimit', codFloatLimitSchema, zoneId);
   }
 
   /** D165: the highest delivery charge any zone may have (platform-wide). */
