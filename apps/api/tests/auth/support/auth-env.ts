@@ -364,6 +364,7 @@ export async function createAuthTestEnv() {
       appOrigin: APP_ORIGIN,
       requireReauth: auth.requireReauth,
       maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+      codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
       checklist: settings.reader,
       storage,
       uploads: {
@@ -406,6 +407,7 @@ export async function createAuthTestEnv() {
       prisma,
       appOrigin: APP_ORIGIN,
       maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+      codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
       clock: clock.now,
     });
     const customers = createCustomersModule({

@@ -85,6 +85,11 @@ export interface PartnerUploadsGate {
   assertUploaded(ctx: AuthContext, fileKey: string): Promise<unknown>;
 }
 
+interface ZoneCaps {
+  cap: number;
+  codLimit: number | null;
+}
+
 export class PartnersService {
   constructor(
     private readonly deps: {
@@ -92,6 +97,8 @@ export class PartnersService {
       clock: () => Date;
       /** D121: effective delivery.maxConcurrentOrders of a zone */
       maxConcurrentOrders: (zoneId: string) => Promise<number>;
+      /** D173: effective delivery.codLimitPaise of a zone (absent: no COD limit shown) */
+      codLimit?: (zoneId: string) => Promise<number>;
       checklist: PartnerChecklistSource;
       storage: ObjectStorage;
       uploads: PartnerUploadsGate;
@@ -505,13 +512,21 @@ export class PartnersService {
     };
   }
 
-  private async capsOf(rows: readonly PartnerRecord[]): Promise<Map<string, number>> {
+  /** Per zone: the D121 cap and the D173 COD limit. */
+  private async capsOf(rows: readonly PartnerRecord[]): Promise<Map<string, ZoneCaps>> {
     const zones = [...new Set(rows.map((r) => r.zoneId).filter((z): z is string => z !== null))];
-    const caps = await Promise.all(zones.map((z) => this.deps.maxConcurrentOrders(z)));
-    return new Map(zones.map((z, i) => [z, caps[i] ?? 1]));
+    const codLimit = this.deps.codLimit;
+    const caps = await Promise.all(
+      zones.map(async (z) => ({
+        cap: await this.deps.maxConcurrentOrders(z),
+        codLimit: codLimit ? await codLimit(z) : null,
+      })),
+    );
+    return new Map(zones.map((z, i) => [z, caps[i] ?? { cap: 1, codLimit: null }]));
   }
 
-  private toListItem(p: PartnerRecord, caps: Map<string, number>, now: Date): PartnerListItem {
+  private toListItem(p: PartnerRecord, caps: Map<string, ZoneCaps>, now: Date): PartnerListItem {
+    const zc = p.zoneId ? caps.get(p.zoneId) : undefined;
     return {
       id: p.id,
       zone: p.zone,
@@ -528,8 +543,10 @@ export class PartnersService {
       forceOfflineUntil: iso(p.forceOfflineUntil),
       assignable: isAssignable(p, now),
       currentOrders: p.currentOrders,
-      maxConcurrentOrders: p.zoneId ? (caps.get(p.zoneId) ?? null) : null,
+      maxConcurrentOrders: zc?.cap ?? null,
       cashInHand: p.cashInHand,
+      codLimitPaise: zc?.codLimit ?? null,
+      codBlocked: zc?.codLimit !== undefined && zc.codLimit !== null && p.cashInHand >= zc.codLimit,
       ratingAvg: p.ratingAvg === null ? null : Number(p.ratingAvg),
       deliveriesCount: p.deliveriesCount,
       source: p.source,

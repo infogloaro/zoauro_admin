@@ -197,8 +197,12 @@ export const partnerListItemSchema = z.object({
   currentOrders: count,
   /** D121: delivery.maxConcurrentOrders of the partner's zone; null while unzoned */
   maxConcurrentOrders: z.number().int().nullable(),
-  /** paise; read-only until COD settlement (M14) */
+  /** paise of COD cash held; settled through POST /cash-settlements (D173) */
   cashInHand: z.number().int(),
+  /** D173: the zone's delivery.codLimitPaise; null while unzoned */
+  codLimitPaise: z.number().int().nullable(),
+  /** D173: cash in hand at or above the limit: no new COD orders until settled */
+  codBlocked: z.boolean(),
   ratingAvg: z.number().nullable(),
   deliveriesCount: count,
   source: z.enum(RECORD_SOURCES),

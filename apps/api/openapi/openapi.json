@@ -32799,6 +32799,15 @@
                           "cashInHand": {
                             "type": "integer"
                           },
+                          "codLimitPaise": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "codBlocked": {
+                            "type": "boolean"
+                          },
                           "ratingAvg": {
                             "type": [
                               "number",
@@ -32847,6 +32856,8 @@
                           "currentOrders",
                           "maxConcurrentOrders",
                           "cashInHand",
+                          "codLimitPaise",
+                          "codBlocked",
                           "ratingAvg",
                           "deliveriesCount",
                           "source",
@@ -33153,6 +33164,15 @@
                     "cashInHand": {
                       "type": "integer"
                     },
+                    "codLimitPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "codBlocked": {
+                      "type": "boolean"
+                    },
                     "ratingAvg": {
                       "type": [
                         "number",
@@ -33370,6 +33390,8 @@
                     "currentOrders",
                     "maxConcurrentOrders",
                     "cashInHand",
+                    "codLimitPaise",
+                    "codBlocked",
                     "ratingAvg",
                     "deliveriesCount",
                     "source",
@@ -33592,6 +33614,15 @@
                     "cashInHand": {
                       "type": "integer"
                     },
+                    "codLimitPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "codBlocked": {
+                      "type": "boolean"
+                    },
                     "ratingAvg": {
                       "type": [
                         "number",
@@ -33809,6 +33840,8 @@
                     "currentOrders",
                     "maxConcurrentOrders",
                     "cashInHand",
+                    "codLimitPaise",
+                    "codBlocked",
                     "ratingAvg",
                     "deliveriesCount",
                     "source",
@@ -34074,6 +34107,15 @@
                     "cashInHand": {
                       "type": "integer"
                     },
+                    "codLimitPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "codBlocked": {
+                      "type": "boolean"
+                    },
                     "ratingAvg": {
                       "type": [
                         "number",
@@ -34291,6 +34333,8 @@
                     "currentOrders",
                     "maxConcurrentOrders",
                     "cashInHand",
+                    "codLimitPaise",
+                    "codBlocked",
                     "ratingAvg",
                     "deliveriesCount",
                     "source",
@@ -34632,6 +34676,15 @@
                     "cashInHand": {
                       "type": "integer"
                     },
+                    "codLimitPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "codBlocked": {
+                      "type": "boolean"
+                    },
                     "ratingAvg": {
                       "type": [
                         "number",
@@ -34849,6 +34902,8 @@
                     "currentOrders",
                     "maxConcurrentOrders",
                     "cashInHand",
+                    "codLimitPaise",
+                    "codBlocked",
                     "ratingAvg",
                     "deliveriesCount",
                     "source",
@@ -35100,6 +35155,15 @@
                     "cashInHand": {
                       "type": "integer"
                     },
+                    "codLimitPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "codBlocked": {
+                      "type": "boolean"
+                    },
                     "ratingAvg": {
                       "type": [
                         "number",
@@ -35317,6 +35381,8 @@
                     "currentOrders",
                     "maxConcurrentOrders",
                     "cashInHand",
+                    "codLimitPaise",
+                    "codBlocked",
                     "ratingAvg",
                     "deliveriesCount",
                     "source",
@@ -35566,6 +35632,15 @@
                     "cashInHand": {
                       "type": "integer"
                     },
+                    "codLimitPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "codBlocked": {
+                      "type": "boolean"
+                    },
                     "ratingAvg": {
                       "type": [
                         "number",
@@ -35783,6 +35858,8 @@
                     "currentOrders",
                     "maxConcurrentOrders",
                     "cashInHand",
+                    "codLimitPaise",
+                    "codBlocked",
                     "ratingAvg",
                     "deliveriesCount",
                     "source",
@@ -36032,6 +36109,15 @@
                     "cashInHand": {
                       "type": "integer"
                     },
+                    "codLimitPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "codBlocked": {
+                      "type": "boolean"
+                    },
                     "ratingAvg": {
                       "type": [
                         "number",
@@ -36249,6 +36335,8 @@
                     "currentOrders",
                     "maxConcurrentOrders",
                     "cashInHand",
+                    "codLimitPaise",
+                    "codBlocked",
                     "ratingAvg",
                     "deliveriesCount",
                     "source",
@@ -36614,6 +36702,15 @@
                     "cashInHand": {
                       "type": "integer"
                     },
+                    "codLimitPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "codBlocked": {
+                      "type": "boolean"
+                    },
                     "ratingAvg": {
                       "type": [
                         "number",
@@ -36831,6 +36928,8 @@
                     "currentOrders",
                     "maxConcurrentOrders",
                     "cashInHand",
+                    "codLimitPaise",
+                    "codBlocked",
                     "ratingAvg",
                     "deliveriesCount",
                     "source",
@@ -37204,6 +37303,15 @@
                     "cashInHand": {
                       "type": "integer"
                     },
+                    "codLimitPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "codBlocked": {
+                      "type": "boolean"
+                    },
                     "ratingAvg": {
                       "type": [
                         "number",
@@ -37421,6 +37529,8 @@
                     "currentOrders",
                     "maxConcurrentOrders",
                     "cashInHand",
+                    "codLimitPaise",
+                    "codBlocked",
                     "ratingAvg",
                     "deliveriesCount",
                     "source",

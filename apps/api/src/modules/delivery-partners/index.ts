@@ -21,6 +21,8 @@ export function createPartnersModule(deps: {
   requireReauth: (level: ReauthLevel) => RequestHandler;
   /** D121: the effective delivery.maxConcurrentOrders of a zone (settings reader) */
   maxConcurrentOrders: (zoneId: string) => Promise<number>;
+  /** D173: the effective delivery.codLimitPaise of a zone (settings reader) */
+  codLimit?: (zoneId: string) => Promise<number>;
   /** D97: settings onboarding.documents (settings reader) */
   checklist: PartnerChecklistSource;
   storage: ObjectStorage;
@@ -41,6 +43,7 @@ export function createPartnersModule(deps: {
     db,
     clock: deps.clock ?? (() => new Date()),
     maxConcurrentOrders: deps.maxConcurrentOrders,
+    ...(deps.codLimit ? { codLimit: deps.codLimit } : {}),
     checklist: deps.checklist,
     storage: deps.storage,
     uploads: deps.uploads,

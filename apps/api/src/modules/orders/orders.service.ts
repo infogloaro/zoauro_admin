@@ -248,6 +248,8 @@ export class OrdersService {
       clock: () => Date;
       /** D121: effective `delivery.maxConcurrentOrders` for the zone */
       maxConcurrentOrders: (zoneId: string) => Promise<number>;
+      /** D173: effective `delivery.codLimitPaise` for the zone (absent: no COD gate) */
+      codLimit?: (zoneId: string) => Promise<number>;
       /**
        * D169: after an order moved to DELIVERED (committed): the rewards module credits the points (its own
        * transaction, idempotent per order; nothing when loyalty is off, D101). A failure never undoes the delivery.
@@ -402,6 +404,18 @@ export class OrdersService {
         if (p.issue === 'NOT_FOUND' || p.issue === 'PARTNER_OTHER_ZONE')
           throw new AppError('VALIDATION_ERROR', p.message, [{ field: p.field, issue: p.issue }]);
         throw guard(p.field, p.issue, p.message);
+      }
+      // D173: a partner holding COD cash at or above the zone's limit gets no new COD order until settled
+      if (order.paymentMethod === 'COD' && this.deps.codLimit) {
+        const limit = await this.deps.codLimit(order.zoneId);
+        if (partner.cash_in_hand >= limit)
+          throw new AppError(
+            'INVALID_STATE_TRANSITION',
+            'The delivery partner holds too much cash on delivery money; settle it before a new COD order',
+            [{ field: 'deliveryPartnerId', issue: 'PARTNER_COD_LIMIT' }],
+            undefined,
+            { cashInHandPaise: partner.cash_in_hand, limitPaise: limit },
+          );
       }
       await tx.repo.adjustPartnerLoad(partner.id, 1);
       if (reassign && order.deliveryPartnerId)

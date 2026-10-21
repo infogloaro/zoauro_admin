@@ -8873,6 +8873,8 @@ export interface operations {
                             /** @enum {string} */
                             assignment: "ASSIGNED" | "UNASSIGNED";
                             cashInHand: number;
+                            codBlocked: boolean;
+                            codLimitPaise: number | null;
                             /** Format: date-time */
                             createdAt: string;
                             currentOrders: number;
@@ -9002,6 +9004,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -9148,6 +9152,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -9363,6 +9369,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -9516,6 +9524,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -9742,6 +9752,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -9896,6 +9908,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -10050,6 +10064,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -10274,6 +10290,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -10428,6 +10446,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;

@@ -192,6 +192,7 @@ const partners = createPartnersModule({
   appOrigin: new URL(env.APP_URL).origin,
   requireReauth: auth.requireReauth,
   maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+  codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
   checklist: settings.reader,
   storage,
   uploads: {
@@ -246,6 +247,7 @@ const orders = createOrdersModule({
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+  codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
   // D182 O1: orders.sla of the zone ('' = the platform value when the overview spans zones)
   sla: (zoneId) => settings.reader.orderSla(zoneId ?? ''),
   // D169: a delivered order earns reward points (rewards is created below; called at request time)

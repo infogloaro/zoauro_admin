@@ -17,6 +17,8 @@ export function createOrdersModule(deps: {
   appOrigin: string;
   /** D121: the effective `delivery.maxConcurrentOrders` of a zone (settings reader) */
   maxConcurrentOrders: (zoneId: string) => Promise<number>;
+  /** D173: the effective `delivery.codLimitPaise` of a zone (absent: no COD gate) */
+  codLimit?: (zoneId: string) => Promise<number>;
   /** D169: the rewards module's earnForDeliveredOrder */
   onDelivered?: (orderId: string) => Promise<unknown>;
   /** D179 section 3: settings orders.sla of a zone (null = platform); absent: the defaults */
@@ -33,6 +35,7 @@ export function createOrdersModule(deps: {
     db: new OrdersDatabase(deps.prisma),
     clock,
     maxConcurrentOrders: deps.maxConcurrentOrders,
+    ...(deps.codLimit ? { codLimit: deps.codLimit } : {}),
     ...(deps.onDelivered ? { onDelivered: deps.onDelivered } : {}),
     delayedIds: (ctx) => overview.delayedIds(ctx),
   });
