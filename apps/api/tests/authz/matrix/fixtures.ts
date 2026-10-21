@@ -295,6 +295,25 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     );
   }
 
+  // D159 payments and D180/D187 refunds: per zone A, B, C a PAID payment of that zone's order and a refund the customer
+  // reported (REQUESTED), so GET /payments and /refunds show which zones an actor reached. Neither has the placeholder
+  // id, so the object routes answer 404 to whoever passes the guard (scope per actor: tests/refunds/)
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = `0192f1d2-0000-7000-8000-00000000a0${i}0`;
+    const orderId = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000f0${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO payments (id, order_id, provider, amount, status, idempotency_key, updated_at)
+       VALUES ($1, $2, 'razorpay', 100, 'PAID', $1, now())`,
+      [id, orderId],
+    );
+    await env.db.owner.query(
+      `INSERT INTO refunds (id, order_id, payment_id, zone_id, amount, type, reason_code, status, target, source,
+         idempotency_key, updated_at)
+       VALUES ($1, $2, $1, $3, 50, 'PARTIAL', 'MISSING_ITEM', 'REQUESTED', 'WALLET', 'APP', $1, now())`,
+      [id, orderId, zones[z]],
+    );
+  }
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,

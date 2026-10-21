@@ -130,6 +130,7 @@ import { CLAIM_OPERATIONS } from './operations.claims';
 import { CUSTOMER_OPERATIONS } from './operations.customers';
 import { EXPORT_OPERATIONS } from './operations.exports';
 import { REWARD_OPERATIONS } from './operations.rewards';
+import { REFUND_OPERATIONS } from './operations.refunds';
 import { HOTEL_OPERATIONS } from './operations.hotels';
 import { PREORDER_OPERATIONS } from './operations.preorders';
 import { MENU_OPERATIONS } from './operations.menu';
@@ -1462,6 +1463,8 @@ export const OPERATIONS: OperationDef[] = [
   ...CUSTOMER_OPERATIONS,
   // D169 reward points in the customer tab (operations.rewards.ts)
   ...REWARD_OPERATIONS,
+  // D159 payments and D180/D187 refunds (operations.refunds.ts)
+  ...REFUND_OPERATIONS,
   // export jobs for every list (D129, D149; operations.exports.ts) and the support desk (D139-D141)
   ...EXPORT_OPERATIONS,
   ...SUPPORT_OPERATIONS,

@@ -37,6 +37,8 @@ import { createS3ExportFileStore } from './lib/exports';
 import { startApiRealtime } from './lib/realtime';
 import { createExportQueue, createExportsModule } from './modules/exports';
 import { createSupportModule } from './modules/support';
+import { createPaymentsModule } from './modules/payments';
+import { createRefundsModule } from './modules/refunds';
 
 const env = loadEnvOrExit('api');
 
@@ -222,6 +224,26 @@ const support = createSupportModule({
   access,
 });
 
+// D169 reward points (the zone's loyalty values)
+const rewards = createRewardsModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  rules: (zoneId) => settings.reader.loyalty(zoneId),
+});
+// Refunds (D180, D187): settings refunds.rules and refunds.limits per zone; a full refund takes back the points (D169)
+const refunds = createRefundsModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  requireReauth: auth.requireReauth,
+  rules: (zoneId) => settings.reader.refundRules(zoneId),
+  caps: async (zoneId) => {
+    const caps = (await settings.reader.refundCaps([zoneId])).get(zoneId);
+    if (!caps) throw new Error(`no refund caps for zone ${zoneId}`);
+    return caps;
+  },
+  onFullyRefunded: (orderId) => rewards.service.reverseForRefundedOrder(orderId),
+});
+
 // Export jobs for every list (D129, D149): the API validates, scopes and queues; the worker writes the CSV to S3. The
 // exports router goes before the list routers, so `<list>/export` is never read as `<list>/{id}`.
 const exportQueue = createExportQueue({ redisUrl: env.REDIS_URL });
@@ -275,12 +297,10 @@ const app = createApp({
       orders.router,
       vendors.router,
       customers.router,
-      // D169 reward points (the zone's loyalty values)
-      createRewardsModule({
-        prisma,
-        appOrigin: new URL(env.APP_URL).origin,
-        rules: (zoneId) => settings.reader.loyalty(zoneId),
-      }).router,
+      rewards.router,
+      refunds.router,
+      // D159 payments, read only until the gateway (D6)
+      createPaymentsModule({ prisma }).router,
       partners.router,
       notifications.router,
       // M16: tiles cached 30 s in Redis by scope hash; M18: 60 searches a minute per member

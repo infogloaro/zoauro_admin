@@ -37,6 +37,15 @@ const customerZones = (body: unknown): string[] | 'ALL' => {
   ];
   return Object.values(fixtures.zones).every((z) => ids.includes(z)) ? 'ALL' : ids;
 };
+/** GET /payments and /refunds: the zones of the listed rows' orders. */
+const orderZones = (body: unknown): string[] | 'ALL' => {
+  const ids = [
+    ...new Set(
+      (body as { data: { order: { zone: { id: string } } }[] }).data.map((r) => r.order.zone.id),
+    ),
+  ];
+  return Object.values(fixtures.zones).every((z) => ids.includes(z)) ? 'ALL' : ids;
+};
 
 beforeAll(async () => {
   env = await createAuthTestEnv();
@@ -195,6 +204,14 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
           },
         },
         getTicket: { ownObject: true },
+        // D159/D180: one payment and one reported refund per zone A, B, C; the placeholder id is neither, so object
+        // routes are 404 for whoever passes the guard (scope per actor: tests/refunds/refunds-api.test.ts)
+        listPayments: { listedZones: orderZones },
+        listRefunds: { listedZones: orderZones },
+        getPayment: { ownObject: true },
+        getRefund: { ownObject: true },
+        decideRefund: { ownObject: true },
+        retryRefund: { ownObject: true },
         // D129/D149 exports: a job names the zones it exports (null = every zone); jobs run inline in the test env.
         // Fixture profiles hold no <module>:export, so Zonal Admins get 403 (positive cases: tests/exports/)
         ...Object.fromEntries(
@@ -236,7 +253,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 1 pre-order reschedule (D167)
     // + 9 record claims (D174)
     // + 11 list exports and GET /exports/{id} (D129, D149) + 6 support desk (D139-D141)
-    expect(report.coveredRoutes).toHaveLength(219);
+    // + 2 payments and 8 refunds (D159, D180, D187)
+    expect(report.coveredRoutes).toHaveLength(229);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

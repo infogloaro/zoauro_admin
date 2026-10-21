@@ -28,6 +28,8 @@ import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
 import { createCustomersModule } from '../../../src/modules/customers';
 import { createRewardsModule } from '../../../src/modules/rewards';
+import { createRefundsModule } from '../../../src/modules/refunds';
+import { createPaymentsModule } from '../../../src/modules/payments';
 import { createUploadsModule } from '../../../src/modules/uploads';
 import { createPartnersModule } from '../../../src/modules/delivery-partners';
 import { createNotificationsModule } from '../../../src/modules/notifications';
@@ -414,6 +416,26 @@ export async function createAuthTestEnv() {
       access,
       clock: clock.now,
     });
+    // D169 reward points and D180/D187 refunds, as server.ts
+    const rewards = createRewardsModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      rules: (zoneId) => settings.reader.loyalty(zoneId),
+      clock: clock.now,
+    });
+    const refunds = createRefundsModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      requireReauth: auth.requireReauth,
+      rules: (zoneId) => settings.reader.refundRules(zoneId),
+      caps: async (zoneId) => {
+        const caps = (await settings.reader.refundCaps([zoneId])).get(zoneId);
+        if (!caps) throw new Error(`no refund caps for zone ${zoneId}`);
+        return caps;
+      },
+      onFullyRefunded: (orderId) => rewards.service.reverseForRefundedOrder(orderId),
+      clock: clock.now,
+    });
     // D129/D149 export jobs, as server.ts but with files in memory; mounted before the list routers
     const exportFiles = createMemoryExportFiles();
     const exportQueue: string[] = [];
@@ -450,12 +472,9 @@ export async function createAuthTestEnv() {
       orders.router,
       vendors.router,
       customers.router,
-      createRewardsModule({
-        prisma,
-        appOrigin: APP_ORIGIN,
-        rules: (zoneId) => settings.reader.loyalty(zoneId),
-        clock: clock.now,
-      }).router,
+      rewards.router,
+      refunds.router,
+      createPaymentsModule({ prisma }).router,
       partners.router,
       notifications.router,
       createDashboardModule({ prisma, redis: extra.dashboardCache ?? null, clock: clock.now })
