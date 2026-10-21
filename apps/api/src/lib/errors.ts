@@ -66,6 +66,32 @@ export const notFoundHandler: RequestHandler = (_req, res) => {
   });
 };
 
+/**
+ * A database connection problem that a retry can fix (Prisma P1001 cannot reach the server, P1002 timed out, P1017 the
+ * server closed the connection, P2024 no connection free in the pool; the pg driver's refused/reset sockets, admin
+ * shutdown and too many connections). Answered 503 with Retry-After instead of 500. Duck-typed: no Prisma import here.
+ */
+const TRANSIENT_DB_CODES = new Set([
+  'P1001',
+  'P1002',
+  'P1017',
+  'P2024',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ETIMEDOUT',
+  '57P01',
+  '57P03',
+  '53300',
+]);
+export function isTransientDbError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false;
+  const o = err as { code?: unknown; errorCode?: unknown; cause?: unknown };
+  for (const c of [o.code, o.errorCode])
+    if (typeof c === 'string' && TRANSIENT_DB_CODES.has(c)) return true;
+  return o.cause !== undefined && o.cause !== err ? isTransientDbError(o.cause) : false;
+}
+export const TRANSIENT_RETRY_AFTER_SEC = 5;
+
 export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, next) => {
   if (res.headersSent) {
     if (isResponseCommitted(res)) {
@@ -98,6 +124,20 @@ export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, next)
     res
       .status(422)
       .json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid input', requestId } });
+    return;
+  }
+  if (isTransientDbError(err)) {
+    console.error(
+      `transient database error ${err instanceof Error ? err.name : 'unknown'} requestId=${requestId ?? '-'}`,
+    );
+    res.setHeader('Retry-After', String(TRANSIENT_RETRY_AFTER_SEC));
+    res.status(503).json({
+      error: {
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'The service is busy. Try again in a few seconds',
+        requestId,
+      },
+    });
     return;
   }
   // Only the error class name is logged: messages can carry SQL fragments or personal data.
