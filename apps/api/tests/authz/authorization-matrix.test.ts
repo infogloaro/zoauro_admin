@@ -234,6 +234,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         retryRefund: { ownObject: true },
         // the placeholder order is in zone A: whoever holds refunds:add there gets its options
         getRefundOptions: { ownObject: true },
+        // D190: the placeholder order is in zone A
+        getOrderCancelReasons: { ownObject: true },
         // D173/D152: one settlement, one partner and one payout per zone A, B, C; a row names its zone
         listCashSettlements: { listedZones: vendorZones },
         listCodBalances: { listedZones: vendorZones },
@@ -287,7 +289,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 2 COD settlement and 1 payouts (D152, D173)
     // + 8 vendor plans (D188)
     // + 1 COD hand-in (POST /cash-settlements, D173)
-    expect(report.coveredRoutes).toHaveLength(254);
+    // + 1 order cancel reasons (D190)
+    expect(report.coveredRoutes).toHaveLength(255);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

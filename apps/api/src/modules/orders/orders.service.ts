@@ -9,6 +9,7 @@ import {
   type OrderDetail,
   type OrderListItem,
   type OrderListQuery,
+  type OrderCancelReasonsResponse,
   type OrderListResponse,
   type OrderStatus,
   type OrderWriteResponse,
@@ -241,6 +242,14 @@ interface Plan {
   statusChange: boolean;
 }
 
+/** One D190 cancel reason (settings orders.cancelReasons). */
+interface CancelReasonDef {
+  code: string;
+  label: string;
+  usableBy: readonly string[];
+  noteRequired: boolean;
+}
+
 export class OrdersService {
   constructor(
     private readonly deps: {
@@ -250,6 +259,8 @@ export class OrdersService {
       maxConcurrentOrders: (zoneId: string) => Promise<number>;
       /** D173: effective `delivery.codLimitPaise` for the zone (absent: no COD gate) */
       codLimit?: (zoneId: string) => Promise<number>;
+      /** D190: the zone's orders.cancelReasons (absent: any reason code is accepted) */
+      cancelReasons?: (zoneId: string) => Promise<CancelReasonDef[]>;
       /**
        * D169: after an order moved to DELIVERED (committed): the rewards module credits the points (its own
        * transaction, idempotent per order; nothing when loyalty is off, D101). A failure never undoes the delivery.
@@ -343,6 +354,22 @@ export class OrdersService {
     });
   }
 
+  /** GET /orders/{id}/cancel-reasons (D190): what the cancel dialog offers; scoped like a cancellation. */
+  async cancelReasons(ctx: AuthContext, id: string): Promise<OrderCancelReasonsResponse> {
+    const order = await this.deps.db.repo.forWrite(ctx, id);
+    if (!order) throw notFound();
+    assertCanWrite(ctx, 'orders:status', order.zoneId);
+    const reasons = await this.adminCancelReasons(order.zoneId);
+    return {
+      reasons: reasons.map((r) => ({ code: r.code, label: r.label, noteRequired: r.noteRequired })),
+    };
+  }
+
+  private async adminCancelReasons(zoneId: string): Promise<CancelReasonDef[]> {
+    const all = (await this.deps.cancelReasons?.(zoneId)) ?? [];
+    return all.filter((r) => r.usableBy.includes('ADMIN'));
+  }
+
   /** POST /orders/{id}/cancel: a reason is required (doc 10); a captured payment means a refund is expected. */
   cancel(
     ctx: AuthContext,
@@ -353,6 +380,19 @@ export class OrdersService {
     return this.write(ctx, id, version, 'orders:status', async (_tx, order) => {
       if (!isOrderTransitionAllowed(order.status, 'CANCELLED'))
         throw invalid(order.status, 'CANCELLED');
+      if (this.deps.cancelReasons) {
+        const reason = (await this.adminCancelReasons(order.zoneId)).find(
+          (r) => r.code === input.reasonCode,
+        );
+        if (!reason)
+          throw new AppError('VALIDATION_ERROR', 'Not a cancel reason of this zone', [
+            { field: 'reasonCode', issue: 'unknown_reason' },
+          ]);
+        if (reason.noteRequired && !input.note)
+          throw new AppError('VALIDATION_ERROR', 'This reason needs a note', [
+            { field: 'note', issue: 'required' },
+          ]);
+      }
       const now = this.deps.clock();
       return {
         to: 'CANCELLED',

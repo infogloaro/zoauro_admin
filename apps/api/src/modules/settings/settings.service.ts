@@ -8,6 +8,7 @@ import {
   orderUnpaidTimeoutSchema,
   payoutCycleSchema,
   deliveryCodLimitSchema,
+  orderCancelReasonsSchema,
   sessionRememberSchema,
   supportSlaSchema,
   claimTimingSchema,
@@ -553,6 +554,11 @@ export class SettingsReader {
   /** D152 */
   async payoutCycleDays(zoneId: string): Promise<number> {
     return (await this.effective('payouts.cycleDays', payoutCycleSchema, zoneId)).days;
+  }
+
+  /** D190: the zone's order cancel reasons. */
+  async cancelReasons(zoneId: string) {
+    return (await this.effective('orders.cancelReasons', orderCancelReasonsSchema, zoneId)).reasons;
   }
 
   /** D173: the COD cash a delivery partner may hold in the zone before new COD orders stop. */

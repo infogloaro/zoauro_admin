@@ -2288,6 +2288,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/orders/{id}/cancel-reasons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** D190: the reasons the cancel dialog offers for this order (the zone’s orders.cancelReasons an admin may use, and whether each needs a note); scoped like a cancellation */
+        get: operations["getOrderCancelReasons"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/orders/{id}/refund-options": {
         parameters: {
             query?: never;
@@ -19060,6 +19077,70 @@ export interface operations {
                 };
             };
             /** @description A reason is required; Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getOrderCancelReasons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reasons */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        reasons: {
+                            code: string;
+                            label: string;
+                            noteRequired: boolean;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
             422: {
                 headers: {
                     [name: string]: unknown;

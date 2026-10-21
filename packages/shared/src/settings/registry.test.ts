@@ -38,6 +38,7 @@ describe('settings registry', () => {
       'delivery.autoAssign',
       'payouts.cycleDays',
       'delivery.codLimitPaise',
+      'orders.cancelReasons',
     ])
       expect(settingDef(k), k).toMatchObject({ zoneOverride: true, reauth: 'PASSWORD' });
   });

@@ -273,28 +273,44 @@ describe('POST /orders/{id}/cancel', () => {
     const none = await write(adminA, `/orders/${o.orderId}/cancel`, 1, { note: 'x' });
     expect(none.status).toBe(422);
     expect(none.body.error.code).toBe('REASON_REQUIRED');
+    // D190: only the zone's orders.cancelReasons an admin may use; OTHER needs a note
+    const unknown = await write(adminA, `/orders/${o.orderId}/cancel`, 1, { reasonCode: 'LATE' });
+    expect(unknown.status).toBe(422);
+    expect(unknown.body.error.details).toEqual([{ field: 'reasonCode', issue: 'unknown_reason' }]);
+    const bare = await write(adminA, `/orders/${o.orderId}/cancel`, 1, { reasonCode: 'OTHER' });
+    expect(bare.body.error.details).toEqual([{ field: 'note', issue: 'required' }]);
+    const offered = await client(adminA, app).get(`/orders/${o.orderId}/cancel-reasons`);
+    expect(offered.status, JSON.stringify(offered.body)).toBe(200);
+    expect(offered.body.reasons).toContainEqual({
+      code: 'OTHER',
+      label: 'Other',
+      noteRequired: true,
+    });
+    expect(offered.body.reasons.map((x: { code: string }) => x.code)).toContain('FRAUD_SUSPECTED');
 
     const r = await write(adminA, `/orders/${o.orderId}/cancel`, 1, {
-      reasonCode: 'CUSTOMER_UNREACHABLE',
+      reasonCode: 'CUSTOMER_REQUESTED',
       note: 'Called three times',
     });
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     expect(await orderRow(env, o.orderId)).toMatchObject({
       status: 'CANCELLED',
-      cancel_reason: 'CUSTOMER_UNREACHABLE',
+      cancel_reason: 'CUSTOMER_REQUESTED',
     });
     expect(await partnerLoad(env, partner)).toBe(0);
     expect((await orderAudit(env, o.orderId))[0]?.action).toBe('order.cancelled_by_admin');
     const events = await orderOutbox(env, o.orderId);
     expect(events.map((e) => e.event_type)).toEqual(['order.status_changed', 'order.cancelled']);
     expect(events[1]?.payload_json).toMatchObject({
-      data: { reasonCode: 'CUSTOMER_UNREACHABLE', cancelledBy: 'ADMIN', refundExpected: true },
+      data: { reasonCode: 'CUSTOMER_REQUESTED', cancelledBy: 'ADMIN', refundExpected: true },
     });
   });
 
   it('an assigned or delivered order cannot be cancelled (doc 10)', async () => {
     const o = await seedOrder(env, zoneA, { status: 'DELIVERED' });
-    const r = await write(adminA, `/orders/${o.orderId}/cancel`, 1, { reasonCode: 'LATE' });
+    const r = await write(adminA, `/orders/${o.orderId}/cancel`, 1, {
+      reasonCode: 'CUSTOMER_REQUESTED',
+    });
     expect(r.status).toBe(409);
     expect(r.body.error.code).toBe('INVALID_STATE_TRANSITION');
   });

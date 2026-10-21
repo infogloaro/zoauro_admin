@@ -72,5 +72,9 @@ export function createOrdersController(service: OrdersService) {
     );
   };
 
-  return { list, detail, transition, cancel, assign };
+  const cancelReasons: RequestHandler = async (req, res) => {
+    res.json(await service.cancelReasons(authContextOf(res), id(req.params)));
+  };
+
+  return { list, detail, transition, cancel, assign, cancelReasons };
 }

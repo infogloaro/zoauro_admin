@@ -29,6 +29,8 @@ export function createOrdersRoutes(
   if (opts.overview)
     router.get('/orders/overview', requirePermission('orders', 'view'), opts.overview);
   router.get('/orders/:id', requirePermission('orders', 'view'), c.detail);
+  // D190: the reasons the cancel dialog offers (the zone's orders.cancelReasons usable by an admin)
+  router.get('/orders/:id/cancel-reasons', requirePermission('orders', 'status'), c.cancelReasons);
   router.post(
     '/orders/:id/transition',
     ...write('status'),

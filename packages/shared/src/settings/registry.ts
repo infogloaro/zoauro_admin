@@ -480,6 +480,52 @@ export const deliveryMaxConcurrentOrdersSchema = z
   .object({ perPartner: z.number().int().min(1).max(MAX_ORDERS_PER_PARTNER) })
   .strict();
 
+/** D190: order cancel reasons, who may use each one, and whether it needs a note. */
+export const CANCEL_REASON_USERS = ['ADMIN', 'VENDOR', 'CUSTOMER', 'SYSTEM'] as const;
+export const orderCancelReasonsSchema = z
+  .object({
+    reasons: z
+      .array(
+        z
+          .object({
+            code: z.string().regex(/^[A-Z][A-Z0-9_]{1,39}$/, 'capital letters, digits and _'),
+            label: z.string().trim().min(2).max(60),
+            usableBy: z
+              .array(z.enum(CANCEL_REASON_USERS))
+              .min(1)
+              .max(CANCEL_REASON_USERS.length)
+              .refine((l) => new Set(l).size === l.length, 'must not repeat a user'),
+            noteRequired: z.boolean(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(40)
+      .refine((l) => new Set(l.map((r) => r.code)).size === l.length, 'must not repeat a reason'),
+  })
+  .strict();
+export type OrderCancelReasons = z.infer<typeof orderCancelReasonsSchema>;
+const cancelReason = (
+  code: string,
+  label: string,
+  usableBy: (typeof CANCEL_REASON_USERS)[number][],
+  noteRequired = false,
+) => ({ code, label, usableBy, noteRequired });
+/** D190 defaults until the Super Admin changes them. */
+export const DEFAULT_CANCEL_REASONS: OrderCancelReasons = {
+  reasons: [
+    cancelReason('CUSTOMER_REQUESTED', 'Customer asked to cancel', ['ADMIN', 'CUSTOMER']),
+    cancelReason('ITEM_UNAVAILABLE', 'Item unavailable', ['ADMIN', 'VENDOR']),
+    cancelReason('VENDOR_CLOSED', 'Vendor closed', ['ADMIN', 'VENDOR', 'SYSTEM']),
+    cancelReason('NO_PARTNER_AVAILABLE', 'No delivery partner available', ['ADMIN', 'SYSTEM']),
+    cancelReason('PAYMENT_FAILED', 'Payment failed', ['ADMIN', 'SYSTEM']),
+    cancelReason('DUPLICATE_ORDER', 'Duplicate order', ['ADMIN', 'CUSTOMER']),
+    cancelReason('ADDRESS_UNSERVICEABLE', 'Address not serviceable', ['ADMIN', 'SYSTEM']),
+    cancelReason('FRAUD_SUSPECTED', 'Suspected fraud', ['ADMIN']),
+    cancelReason('OTHER', 'Other', ['ADMIN', 'VENDOR', 'CUSTOMER'], true),
+  ],
+};
+
 /** D173: the COD cash a delivery partner may hold; at or above it the partner gets no new COD orders until settled. */
 export const MAX_COD_LIMIT_PAISE = 1_00_000_00;
 export const deliveryCodLimitSchema = z
@@ -669,6 +715,20 @@ export const SETTINGS: readonly SettingDef[] = [
     editable: true,
     appsRead: false,
     effect: pending('Orders'),
+  },
+  {
+    key: 'orders.cancelReasons',
+    group: 'orders',
+    label: 'Order cancel reasons',
+    description:
+      'The reasons an order may be cancelled with, who may use each one (admin, vendor, customer, system) and whether a note is required.',
+    schema: orderCancelReasonsSchema,
+    default: DEFAULT_CANCEL_REASONS,
+    zoneOverride: true,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'delivery.codLimitPaise',

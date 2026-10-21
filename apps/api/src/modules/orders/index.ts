@@ -19,6 +19,12 @@ export function createOrdersModule(deps: {
   maxConcurrentOrders: (zoneId: string) => Promise<number>;
   /** D173: the effective `delivery.codLimitPaise` of a zone (absent: no COD gate) */
   codLimit?: (zoneId: string) => Promise<number>;
+  /** D190: settings orders.cancelReasons of a zone (SettingsReader.cancelReasons) */
+  cancelReasons?: (
+    zoneId: string,
+  ) => Promise<
+    { code: string; label: string; usableBy: readonly string[]; noteRequired: boolean }[]
+  >;
   /** D169: the rewards module's earnForDeliveredOrder */
   onDelivered?: (orderId: string) => Promise<unknown>;
   /** D179 section 3: settings orders.sla of a zone (null = platform); absent: the defaults */
@@ -36,6 +42,7 @@ export function createOrdersModule(deps: {
     clock,
     maxConcurrentOrders: deps.maxConcurrentOrders,
     ...(deps.codLimit ? { codLimit: deps.codLimit } : {}),
+    ...(deps.cancelReasons ? { cancelReasons: deps.cancelReasons } : {}),
     ...(deps.onDelivered ? { onDelivered: deps.onDelivered } : {}),
     delayedIds: (ctx) => overview.delayedIds(ctx),
   });

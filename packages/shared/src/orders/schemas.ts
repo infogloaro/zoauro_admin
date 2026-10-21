@@ -140,6 +140,12 @@ export const cancelOrderSchema = z
   .strict();
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
 
+/** GET /orders/{id}/cancel-reasons (D190): the zone's reasons an admin may cancel this order with. */
+export const orderCancelReasonsResponseSchema = z.object({
+  reasons: z.array(z.object({ code: z.string(), label: z.string(), noteRequired: z.boolean() })),
+});
+export type OrderCancelReasonsResponse = z.infer<typeof orderCancelReasonsResponseSchema>;
+
 /** POST /orders/{id}/assign: the partner must be in the order's zone, verified, online and under the cap. */
 export const assignOrderSchema = z.object({ deliveryPartnerId: z.uuid() }).strict();
 export type AssignOrderInput = z.infer<typeof assignOrderSchema>;

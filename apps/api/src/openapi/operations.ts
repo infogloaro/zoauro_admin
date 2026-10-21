@@ -116,6 +116,7 @@ import {
   zoneScopeResponseSchema,
   assignOrderSchema,
   cancelOrderSchema,
+  orderCancelReasonsResponseSchema,
   orderDetailSchema,
   orderIdParamsSchema,
   orderListQuerySchema,
@@ -1433,6 +1434,18 @@ export const OPERATIONS: OperationDef[] = [
     ifMatch: true,
     response: { status: 200, schema: orderWriteResponseSchema, description: 'Cancelled' },
     errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION', 'REASON_REQUIRED'],
+  },
+  {
+    operationId: 'getOrderCancelReasons',
+    method: 'get',
+    path: '/orders/{id}/cancel-reasons',
+    tags: ['orders'],
+    summary:
+      'D190: the reasons the cancel dialog offers for this order (the zone’s orders.cancelReasons an admin may use, and whether each needs a note); scoped like a cancellation',
+    access: { kind: 'permission', permission: 'orders:status', zone: 'none' },
+    params: orderIdParamsSchema,
+    response: { status: 200, schema: orderCancelReasonsResponseSchema, description: 'The reasons' },
+    errors: ['NOT_FOUND'],
   },
   {
     operationId: 'assignOrder',

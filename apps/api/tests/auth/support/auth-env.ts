@@ -408,6 +408,7 @@ export async function createAuthTestEnv() {
       appOrigin: APP_ORIGIN,
       maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
       codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
+      cancelReasons: (zoneId) => settings.reader.cancelReasons(zoneId), // D190
       clock: clock.now,
     });
     const customers = createCustomersModule({
