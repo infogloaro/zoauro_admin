@@ -427,23 +427,9 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'headset',
     description:
       'Administrative ticket workspace: queues, ticket detail with customer context, assignment, SLA and escalation.',
-    status: 'coming-soon',
-    zonal: { permission: 'support' },
-    blueprint: {
-      phase: 'Phase 1',
-      roadmap: ['R17', 'R18', 'R19'],
-      screens: [
-        'Support dashboard',
-        'Ticket queue: New, Open, Pending Customer, Pending Internal Team, Escalated, Resolved, Reopened',
-        'Ticket detail: linked customer, order, vendor, partner, payment and refund; internal notes and customer replies',
-      ],
-      flow: ['New', 'Open', 'Pending', 'Escalated', 'Resolved', 'Reopened'],
-      rules: [
-        'Internal notes are never sent to customers',
-        'Handling a ticket does not grant refund authority',
-        'SLA targets are business decisions still to be confirmed',
-      ],
-    },
+    status: 'live',
+    superAdminHref: '/super-admin/support',
+    zonal: { href: '/zone/support', permission: 'support' },
   },
   {
     id: 'M17',

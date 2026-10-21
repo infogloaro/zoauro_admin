@@ -49,10 +49,11 @@ export function useCustomerList(f: CustomerListFilters, enabled = true) {
   });
 }
 
-export function useCustomerDetail(id: string) {
+export function useCustomerDetail(id: string, enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: customerKeys.detail(id),
+    enabled: enabled && id !== '',
     queryFn: ({ signal }) => client.get('/customers/{id}', { params: { id }, signal }),
     staleTime: 15_000,
     retry: retryTransient,
