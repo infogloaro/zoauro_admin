@@ -131,7 +131,8 @@ try {
     });
   // Only the packages the commit can affect: shared feeds everything, api-client
   // feeds web, tests/e2e is part of the api project, root config affects all.
-  const affected = new Set();
+  // TYPECHECK_ALL=1 checks every package (e.g. to verify HEAD before a push).
+  const affected = new Set(process.env.TYPECHECK_ALL === '1' ? PACKAGES : []);
   for (const file of changed) {
     if (file.startsWith('packages/shared/')) PACKAGES.forEach((pkg) => affected.add(pkg));
     else if (file.startsWith('packages/api-client/'))
