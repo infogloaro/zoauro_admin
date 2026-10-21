@@ -397,6 +397,8 @@ export async function createAuthTestEnv() {
       clock: clock.now,
     });
     const orders = createOrdersModule({
+      sla: (zoneId) => settings.reader.orderSla(zoneId ?? ''),
+      onDelivered: (orderId) => rewards.service.earnForDeliveredOrder(orderId),
       prisma,
       appOrigin: APP_ORIGIN,
       maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),

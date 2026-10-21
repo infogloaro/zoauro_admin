@@ -60238,6 +60238,14 @@
             "required": false,
             "name": "scheduled",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "required": false,
+            "name": "delayed",
+            "in": "query"
           }
         ],
         "responses": {

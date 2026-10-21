@@ -18933,6 +18933,7 @@ export interface operations {
         parameters: {
             query?: {
                 customerId?: string;
+                delayed?: boolean;
                 deliveryPartnerId?: string;
                 from?: string;
                 homemakerId?: string;

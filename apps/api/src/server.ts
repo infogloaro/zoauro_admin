@@ -217,6 +217,10 @@ const orders = createOrdersModule({
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+  // D182 O1: orders.sla of the zone ('' = the platform value when the overview spans zones)
+  sla: (zoneId) => settings.reader.orderSla(zoneId ?? ''),
+  // D169: a delivered order earns reward points (rewards is created below; called at request time)
+  onDelivered: (orderId) => rewards.service.earnForDeliveredOrder(orderId),
 });
 // M09 customers (D25, D26, D28, D63)
 const customers = createCustomersModule({
