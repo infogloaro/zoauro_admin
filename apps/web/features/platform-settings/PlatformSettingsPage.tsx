@@ -47,7 +47,12 @@ export function effectBadge(s: SettingItem): { label: string; tone: BadgeTone } 
   return { label: `Applies when ${s.effect.module ?? 'its module'} ships`, tone: 'neutral' };
 }
 
-export function PlatformSettingsPage() {
+export function PlatformSettingsPage({
+  areas = null,
+}: {
+  /** D178: a non-primary Super Admin's granted areas; only the settings groups granted are shown (null = all) */
+  areas?: readonly string[] | null;
+} = {}) {
   const url = useUrlState();
   const zoneCode = url.params.get('zone');
   const zones = useZoneOptions();
@@ -60,7 +65,9 @@ export function PlatformSettingsPage() {
   const query = zone ? zoneView : platform;
   const settings: SettingItem[] | undefined = zone ? zoneView.data : platform.data?.data;
   const unknownZone = Boolean(zoneCode && zones.data && !zone);
-  const groups = [...new Set((settings ?? []).map((s) => s.group))];
+  const groups = [...new Set((settings ?? []).map((s) => s.group))].filter(
+    (g) => areas === null || areas.includes(`settings.${g}`),
+  );
   const target = (s: SettingItem): EditTarget => ({
     setting: s,
     zone: zone ? { id: zone.id, name: zone.name, code: zone.code } : null,

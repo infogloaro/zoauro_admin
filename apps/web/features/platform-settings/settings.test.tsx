@@ -132,7 +132,7 @@ const view = (key: string, over: Record<string, unknown> = {}) => {
   };
 };
 
-function setup() {
+function setup(areas: string[] | null = null) {
   const post = vi.fn(async (path: string, init?: { body?: unknown }) => {
     void init;
     if (path === '/settings/{group}/preview')
@@ -175,7 +175,7 @@ function setup() {
       </ApiClientProvider>
     </QueryClientProvider>
   );
-  render(<PlatformSettingsPage />, { wrapper: wrap });
+  render(<PlatformSettingsPage areas={areas} />, { wrapper: wrap });
   return { post, put };
 }
 
@@ -187,6 +187,13 @@ const row = async (name: string) => {
 };
 
 describe('Platform Settings page', () => {
+  it('D178: a non-primary Super Admin sees only the settings groups granted', async () => {
+    setup(['settings.refunds', 'zones']);
+    expect(await screen.findByRole('heading', { name: 'Refunds', level: 2 })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Support', level: 2 })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Security', level: 2 })).toBeNull();
+  });
+
   it('shows where each value comes from and whether it works yet', async () => {
     setup();
     const limits = await row('Refund limits (zone caps)');

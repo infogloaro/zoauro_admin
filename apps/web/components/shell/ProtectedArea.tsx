@@ -24,7 +24,7 @@ export async function ProtectedArea({ area, children }: { area: Area; children: 
   return (
     <AppShell
       user={{ name: me.user.name, email: me.user.email, role }}
-      menu={menuFor(role, zones)}
+      menu={menuFor(role, zones, me.controlAreas)}
       zones={zones.map(({ zoneId, name, code, colorHex, status }) => ({
         zoneId,
         name,

@@ -284,3 +284,34 @@ describe('protected areas (owner decision P14: 404 for /super-admin, 403 for /zo
     expect(loginUrl('//evil.example')).toBe('/login');
   });
 });
+
+describe('D178 Control Panel areas', () => {
+  const ids = (areas: { isPrimary: boolean; areas: string[] } | null) =>
+    menuFor('SUPER_ADMIN', [], areas).map((m) => m.id);
+
+  it('a primary (or no data) sees every entry', () => {
+    expect(ids({ isPrimary: true, areas: [] })).toEqual(ids(null));
+    expect(ids(null)).toEqual(expect.arrayContaining(['M03', 'M03-ACC', 'M19', 'M04', 'CP']));
+  });
+
+  it('a non-primary sees only the areas granted; operations and Super Admins stay', () => {
+    const meena = ids({
+      isPrimary: false,
+      areas: ['zones', 'settings.refunds', 'settings.onboarding', 'settings.loyalty'],
+    });
+    for (const hidden of [
+      'M03',
+      'M03-ACC',
+      'M03-HIST',
+      'M03-TEAM',
+      'R13',
+      'M04',
+      'M04-ACT',
+      'M19-SEC',
+    ])
+      expect(meena).not.toContain(hidden);
+    for (const shown of ['CP', 'M19', 'M19-HIST', 'M03-SA', 'M11', 'M06', 'M02'])
+      expect(meena).toContain(shown);
+    expect(ids({ isPrimary: false, areas: [] })).not.toContain('M19');
+  });
+});

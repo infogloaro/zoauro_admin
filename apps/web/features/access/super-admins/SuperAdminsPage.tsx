@@ -1,7 +1,7 @@
 'use client';
 
 import type { SuperAdmin } from '@zoauro/shared';
-import { Plus, ShieldCheck } from 'lucide-react';
+import { Crown, Plus, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { DataTable, type Column } from '../../../components/shared/DataTable';
 import { PageHeader } from '../../../components/shared/PageHeader';
@@ -10,31 +10,44 @@ import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
 import { CardError, EmptyState } from '../../dashboard/parts';
 import { relativeTime } from '../../dashboard/time';
-import { useSuperAdmins } from './api';
+import { useControlAreaCatalogue, useSuperAdmins } from './api';
+import { AreasDialog, PrimaryDialog } from './AreaDialogs';
 import {
   AddSuperAdminDialog,
   SuperAdminActionDialog,
   type SuperAdminAction,
 } from './SuperAdminDialogs';
 
-// Super Admins (B10, D148; Control Panel): every live Super Admin with status, 2-step and last sign-in; add one with a
-// temporary password; suspend, reactivate or remove another. Oneself and the last active Super Admin are locked here
-// and refused by the API. Primary Super Admins and their Control Panel areas (D178) join this page when that API lands.
+// Super Admins (B10, D148, D178; Control Panel): every live Super Admin with Primary badge, Control Panel areas,
+// status, 2-step and last sign-in. Only a PRIMARY Super Admin manages them (owner's final D178): add one with a
+// temporary password and areas, change areas, make or remove primary, suspend, reactivate, remove. A non-primary sees
+// the list read only. Oneself, the last active Super Admin and the last primary are locked here and refused by the API.
 
 /** Why a row's suspend/remove is locked, or null when it is allowed. */
-export function lockReason(row: SuperAdmin, activeCount: number): string | null {
+export function lockReason(
+  row: SuperAdmin,
+  activeCount: number,
+  primaryCount = Number.POSITIVE_INFINITY,
+): string | null {
   if (row.isSelf) return 'This is you';
   if (row.status === 'ACTIVE' && activeCount <= 1) return 'The last active Super Admin';
+  if (row.isPrimary && primaryCount <= 1) return 'The last primary Super Admin';
   return null;
 }
 
-export function SuperAdminsPage() {
+type Pending =
+  { row: SuperAdmin; action: SuperAdminAction } | { row: SuperAdmin; action: 'areas' | 'primary' };
+
+export function SuperAdminsPage({ meIsPrimary }: { meIsPrimary: boolean }) {
   const list = useSuperAdmins();
+  const catalogue = useControlAreaCatalogue();
   const [adding, setAdding] = useState(false);
-  const [pending, setPending] = useState<{ row: SuperAdmin; action: SuperAdminAction } | null>(
-    null,
-  );
+  const [pending, setPending] = useState<Pending | null>(null);
+  const rows = list.data?.data ?? [];
   const activeCount = list.data?.meta.activeCount ?? 0;
+  const primaryCount = rows.filter((r) => r.isPrimary && r.status === 'ACTIVE').length;
+  const areas = catalogue.data?.data ?? [];
+  const labelOf = (key: string) => areas.find((a) => a.key === key)?.label ?? key;
 
   const columns: Column<SuperAdmin>[] = [
     {
@@ -42,13 +55,36 @@ export function SuperAdminsPage() {
       header: 'Super Admin',
       cell: (r) => (
         <div className="min-w-48">
-          <p className="flex items-center gap-2 font-semibold">
+          <p className="flex flex-wrap items-center gap-2 font-semibold">
             {r.name}
-            {r.isSelf ? <Badge tone="brand">You</Badge> : null}
+            {r.isPrimary ? (
+              <Badge tone="brand">
+                <Crown aria-hidden className="size-3" /> Primary
+              </Badge>
+            ) : null}
+            {r.isSelf ? <Badge tone="neutral">You</Badge> : null}
           </p>
           <p className="text-xs text-muted">{r.email}</p>
         </div>
       ),
+    },
+    {
+      id: 'areas',
+      header: 'Control Panel areas',
+      cell: (r) =>
+        r.isPrimary ? (
+          <span className="text-sm">Every area</span>
+        ) : r.areas.length === 0 ? (
+          <span className="text-sm text-muted">None: operations only</span>
+        ) : (
+          <div className="flex max-w-80 flex-wrap gap-1">
+            {r.areas.map((a) => (
+              <Badge key={a} tone="neutral">
+                {labelOf(a)}
+              </Badge>
+            ))}
+          </div>
+        ),
     },
     {
       id: 'status',
@@ -59,18 +95,11 @@ export function SuperAdminsPage() {
             {r.status === 'ACTIVE' ? 'Active' : 'Suspended'}
           </Badge>
           {r.mustChangePassword ? <Badge tone="warning">Temporary password</Badge> : null}
+          <Badge tone={r.mfaEnabled ? 'success' : 'warning'}>
+            {r.mfaEnabled ? '2-step on' : '2-step not set up'}
+          </Badge>
         </div>
       ),
-    },
-    {
-      id: 'mfa',
-      header: '2-step',
-      cell: (r) =>
-        r.mfaEnabled ? (
-          <Badge tone="success">On</Badge>
-        ) : (
-          <Badge tone="warning">Not set up yet</Badge>
-        ),
     },
     {
       id: 'last',
@@ -84,36 +113,68 @@ export function SuperAdminsPage() {
           <span className="text-xs text-muted">Never</span>
         ),
     },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: (r) => {
-        const locked = lockReason(r, activeCount);
-        if (locked) return <span className="text-xs text-muted">{locked}</span>;
-        return (
-          <div className="flex flex-wrap gap-1.5">
-            <Button
-              size="sm"
-              variant="secondary"
-              aria-label={`${r.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'} ${r.name}`}
-              onClick={() =>
-                setPending({ row: r, action: r.status === 'ACTIVE' ? 'suspend' : 'reactivate' })
-              }
-            >
-              {r.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label={`Remove ${r.name}`}
-              onClick={() => setPending({ row: r, action: 'delete' })}
-            >
-              Remove
-            </Button>
-          </div>
-        );
-      },
-    },
+    ...(meIsPrimary
+      ? [
+          {
+            id: 'actions',
+            header: 'Actions',
+            cell: (r: SuperAdmin) => {
+              const locked = lockReason(r, activeCount, primaryCount);
+              return (
+                <div className="flex flex-wrap gap-1.5">
+                  {!r.isPrimary ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      aria-label={`Change the areas of ${r.name}`}
+                      onClick={() => setPending({ row: r, action: 'areas' })}
+                    >
+                      Areas
+                    </Button>
+                  ) : null}
+                  {!r.isSelf && (!r.isPrimary || primaryCount > 1) ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      aria-label={`${r.isPrimary ? 'Remove the primary role of' : 'Make primary'} ${r.name}`}
+                      onClick={() => setPending({ row: r, action: 'primary' })}
+                    >
+                      {r.isPrimary ? 'Remove primary' : 'Make primary'}
+                    </Button>
+                  ) : null}
+                  {locked ? (
+                    <span className="self-center text-xs text-muted">{locked}</span>
+                  ) : (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        aria-label={`${r.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'} ${r.name}`}
+                        onClick={() =>
+                          setPending({
+                            row: r,
+                            action: r.status === 'ACTIVE' ? 'suspend' : 'reactivate',
+                          })
+                        }
+                      >
+                        {r.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`Remove ${r.name}`}
+                        onClick={() => setPending({ row: r, action: 'delete' })}
+                      >
+                        Remove
+                      </Button>
+                    </>
+                  )}
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -125,18 +186,24 @@ export function SuperAdminsPage() {
           { label: 'Control Panel', href: '/super-admin/control-panel' },
           { label: 'Super Admins' },
         ]}
-        description="Accounts that run every zone. Each change asks for your password and a code, needs a reason, and is recorded in the audit log."
+        description={
+          meIsPrimary
+            ? 'Accounts that run every zone. A primary holds every Control Panel area; the others only the areas you grant. Each change asks for your password and a code, needs a reason, and is recorded in the audit log.'
+            : 'Accounts that run every zone. Only a primary Super Admin adds, removes or changes them; you can see the list.'
+        }
         actions={
-          <Button onClick={() => setAdding(true)}>
-            <Plus aria-hidden className="size-4" /> Add Super Admin
-          </Button>
+          meIsPrimary ? (
+            <Button onClick={() => setAdding(true)}>
+              <Plus aria-hidden className="size-4" /> Add Super Admin
+            </Button>
+          ) : undefined
         }
       />
       <Card>
         <DataTable
           caption="Super Admins"
           columns={columns}
-          rows={list.data?.data ?? []}
+          rows={rows}
           getRowId={(r) => r.id}
           status={list.isError ? 'error' : list.data ? 'ready' : 'loading'}
           error={<CardError what="Super Admins" onRetry={() => void list.refetch()} />}
@@ -150,8 +217,14 @@ export function SuperAdminsPage() {
           }
         />
       </Card>
-      <AddSuperAdminDialog open={adding} onClose={() => setAdding(false)} />
-      {pending ? (
+      {meIsPrimary ? (
+        <AddSuperAdminDialog open={adding} catalogue={areas} onClose={() => setAdding(false)} />
+      ) : null}
+      {pending?.action === 'areas' ? (
+        <AreasDialog target={pending.row} catalogue={areas} onClose={() => setPending(null)} />
+      ) : pending?.action === 'primary' ? (
+        <PrimaryDialog target={pending.row} onClose={() => setPending(null)} />
+      ) : pending ? (
         <SuperAdminActionDialog
           target={pending.row}
           action={pending.action}

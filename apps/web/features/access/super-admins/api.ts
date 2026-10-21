@@ -20,6 +20,17 @@ export function useSuperAdmins() {
   });
 }
 
+/** D178: the Control Panel areas a primary can grant, in display order, with their labels. */
+export function useControlAreaCatalogue() {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: ['super-admins', 'areas'],
+    queryFn: ({ signal }) => client.get('/super-admins/areas', { signal }),
+    staleTime: 10 * 60_000,
+    retry: retryTransient,
+  });
+}
+
 export function useInvalidateSuperAdmins() {
   const qc = useQueryClient();
   return useCallback(() => qc.invalidateQueries({ queryKey: superAdminKeys.all }), [qc]);

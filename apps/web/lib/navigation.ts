@@ -104,6 +104,11 @@ export interface NavModule {
     /** shown only when the member may view this module in at least one zone; absent = always shown */
     permission?: PermissionModule;
   };
+  /**
+   * D178: the Control Panel area a non-primary Super Admin needs to see this entry ('settings' = any settings group).
+   * Absent = every Super Admin. The API refuses an ungranted area anyway (403 AREA_NOT_GRANTED).
+   */
+  area?: string;
   /** the plan shown on the module's Coming Soon page */
   blueprint?: ModuleBlueprint;
 }
@@ -130,6 +135,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Organisation-wide activity feed from the audit trail: who changed what, and when.',
     status: 'live',
+    area: 'audit',
     superAdminHref: '/super-admin/activity',
   },
 
@@ -195,6 +201,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Zonal Admins ask for another zone or an extra permission; the Super Admin decides with a reason.',
     status: 'live',
+    area: 'access',
     superAdminHref: '/super-admin/access/requests',
     zonal: { href: '/zone/access-requests' },
   },
@@ -468,6 +475,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Which services run in each zone, and every control the Super Admin allocates: accounts, access, teams, settings.',
     status: 'live',
+    area: 'zones',
     superAdminHref: '/super-admin/control-panel',
   },
   {
@@ -490,6 +498,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Zonal Admin accounts: create, edit, suspend or reactivate, reset password or 2-step, sign out everywhere, delete.',
     status: 'live',
+    area: 'access',
     superAdminHref: '/super-admin/zonal-admins',
   },
   {
@@ -501,6 +510,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Reusable permission templates: module × View / Add / Edit / Delete / Status and default refund limits.',
     status: 'live',
+    area: 'access',
     superAdminHref: '/super-admin/access/profiles',
   },
   {
@@ -512,6 +522,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Who runs each zone, with their profile and limits; add or remove members per zone.',
     status: 'live',
+    area: 'access',
     superAdminHref: '/super-admin/access/teams',
   },
   {
@@ -522,6 +533,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'activity',
     description: 'Every access change: who changed whose access, in which zone, before and after.',
     status: 'live',
+    area: 'access',
     superAdminHref: '/super-admin/access/history',
   },
   {
@@ -532,6 +544,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'lock',
     description: 'The 2-step verification policy, security status and the SMS circuit breaker.',
     status: 'live',
+    area: 'settings.security',
     superAdminHref: '/super-admin/settings/security',
   },
   {
@@ -543,6 +556,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     description:
       'Refund caps, refund rules, onboarding documents, support times, notifications, order numbers, SMS and loyalty: the default rule until you change it, per zone where allowed.',
     status: 'live',
+    area: 'settings',
     superAdminHref: '/super-admin/settings/platform',
   },
   {
@@ -553,6 +567,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'activity',
     description: 'Every setting change: before and after, platform or zone, who, why and when.',
     status: 'live',
+    area: 'settings',
     superAdminHref: '/super-admin/settings/history',
   },
   {
@@ -563,6 +578,7 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'logs',
     description: 'System logs and sign-in history: who did what, when and where.',
     status: 'live',
+    area: 'audit',
     superAdminHref: '/super-admin/settings/logs',
   },
   {
@@ -651,8 +667,23 @@ export interface MenuGroup {
 export const comingSoonHref = (slug: string): string => `/coming-soon/${slug}`;
 
 /** The modules this person may see at all (Super Admin: all; Zonal Admin: doc 18 section 3, filtered by /me). */
-export function visibleModules(role: ShellRole, zones: readonly MeZone[]): NavModule[] {
-  if (role === 'SUPER_ADMIN') return NAV_MODULES.filter((m) => m.superAdmin !== false);
+/** D178: may this Super Admin see an entry gated by a Control Panel area? A primary (or no data yet) sees all. */
+export function areaAllows(
+  area: string | undefined,
+  controlAreas: { isPrimary: boolean; areas: readonly string[] } | null | undefined,
+): boolean {
+  if (!area || !controlAreas || controlAreas.isPrimary) return true;
+  if (area === 'settings') return controlAreas.areas.some((a) => a.startsWith('settings.'));
+  return controlAreas.areas.includes(area);
+}
+
+export function visibleModules(
+  role: ShellRole,
+  zones: readonly MeZone[],
+  controlAreas?: { isPrimary: boolean; areas: readonly string[] } | null,
+): NavModule[] {
+  if (role === 'SUPER_ADMIN')
+    return NAV_MODULES.filter((m) => m.superAdmin !== false && areaAllows(m.area, controlAreas));
   return NAV_MODULES.filter((m) => {
     if (!m.zonal) return false;
     const needed = m.zonal.permission;
@@ -662,8 +693,12 @@ export function visibleModules(role: ShellRole, zones: readonly MeZone[]): NavMo
 }
 
 /** Sidebar entries: live modules link to their page, the others to their Coming Soon page. */
-export function menuFor(role: ShellRole, zones: readonly MeZone[]): MenuItem[] {
-  return visibleModules(role, zones).map((m) => {
+export function menuFor(
+  role: ShellRole,
+  zones: readonly MeZone[],
+  controlAreas?: { isPrimary: boolean; areas: readonly string[] } | null,
+): MenuItem[] {
+  return visibleModules(role, zones, controlAreas).map((m) => {
     const live = role === 'SUPER_ADMIN' ? m.superAdminHref : m.zonal?.href;
     const isLive = m.status === 'live' && live !== undefined;
     return {

@@ -51,6 +51,9 @@ describe('super admin rules', () => {
     expect(lockReason(row({}), 1)).toBe('The last active Super Admin');
     expect(lockReason(row({ status: 'SUSPENDED' }), 1)).toBeNull();
     expect(lockReason(row({}), 2)).toBeNull();
+    // D178: the last primary is locked too
+    expect(lockReason(row({ isPrimary: true }), 3, 1)).toBe('The last primary Super Admin');
+    expect(lockReason(row({ isPrimary: true }), 3, 2)).toBeNull();
   });
 
   it("the API's refusals read plainly", () => {
@@ -63,17 +66,63 @@ describe('super admin rules', () => {
     expect(superAdminProblem(last)).toMatch(/last active Super Admin/);
     expect(superAdminProblem(self)).toMatch(/your own account/);
     expect(superAdminProblem(new ApiError(409, 'CONFLICT', 'x'))).toMatch(/already exists/);
+    const primaryOnly = new ApiError(403, 'FORBIDDEN', 'x', [
+      { field: 'id', issue: 'PRIMARY_ONLY' },
+    ]);
+    expect(superAdminProblem(primaryOnly)).toMatch(/Only a primary/);
+    const lastPrimary = new ApiError(409, 'CONFLICT', 'x', [
+      { field: 'id', issue: 'LAST_PRIMARY' },
+    ]);
+    expect(superAdminProblem(lastPrimary)).toMatch(/last primary/);
   });
 });
 
+const AREAS = [
+  { key: 'zones', label: 'Zones', description: 'Create and edit zones.' },
+  { key: 'settings.refunds', label: 'Settings: Refunds', description: 'Refund settings.' },
+];
+
 describe('Super Admins page', () => {
+  it('D178: a non-primary sees the list read only, with Primary badges and areas', async () => {
+    const get = vi.fn(async (path: string) => {
+      if (path === '/super-admins')
+        return {
+          data: [
+            row({ id: '0192f1d2-9999-7000-8000-000000000001', name: 'Arun', isPrimary: true }),
+            row({
+              id: '0192f1d2-9999-7000-8000-000000000002',
+              name: 'Meena',
+              isSelf: true,
+              areas: ['zones', 'settings.refunds'],
+            }),
+          ],
+          meta: { activeCount: 2 },
+        };
+      if (path === '/super-admins/areas') return { data: AREAS };
+      throw new Error(`unexpected ${path}`);
+    });
+    render(<SuperAdminsPage meIsPrimary={false} />, { wrapper: wrap(get) });
+    const table = await screen.findByRole('table', { name: 'Super Admins' });
+    expect(await within(table).findByText('Settings: Refunds')).toBeTruthy();
+    expect(within(table).getByText('Primary')).toBeTruthy();
+    expect(within(table).getByText('Every area')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Add Super Admin/ })).toBeNull();
+    expect(within(table).queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: 'Actions' })).toBeNull();
+  });
+
   it('lists accounts and suspends another with a reason', async () => {
     const user = userEvent.setup();
     const get = vi.fn(async (path: string) => {
       if (path === '/super-admins')
         return {
           data: [
-            row({ id: '0192f1d2-9999-7000-8000-000000000001', name: 'Asha', isSelf: true }),
+            row({
+              id: '0192f1d2-9999-7000-8000-000000000001',
+              name: 'Asha',
+              isSelf: true,
+              isPrimary: true,
+            }),
             row({
               id: '0192f1d2-9999-7000-8000-000000000002',
               name: 'Bala',
@@ -85,10 +134,11 @@ describe('Super Admins page', () => {
           ],
           meta: { activeCount: 2 },
         };
+      if (path === '/super-admins/areas') return { data: AREAS };
       throw new Error(`unexpected ${path}`);
     });
     const patch = vi.fn(async () => ({}));
-    render(<SuperAdminsPage />, { wrapper: wrap(get, patch) });
+    render(<SuperAdminsPage meIsPrimary />, { wrapper: wrap(get, patch) });
     const table = await screen.findByRole('table', { name: 'Super Admins' });
     expect(await within(table).findByText('Bala')).toBeTruthy();
     expect(within(table).getByText('This is you')).toBeTruthy();
