@@ -353,6 +353,38 @@ export const zoneDeliveryChargeCapSchema = z
   .object({ capPaise: z.number().int().min(0).max(MAX_DELIVERY_CHARGE_PAISE) })
   .strict();
 
+/** D182 (O1): target minutes per order stage; the Order overview flags an order past its stage's target. */
+const stageMinutes = z.number().int().min(1).max(240);
+export const orderSlaSchema = z
+  .object({
+    acceptMinutes: stageMinutes,
+    prepareMinutes: stageMinutes,
+    readyToAssignMinutes: stageMinutes,
+    assignedToPickupMinutes: stageMinutes,
+    outForDeliveryMinutes: stageMinutes,
+  })
+  .strict();
+
+/** D170: the onboarding queue marks an application amber after warnHours and red after lateHours without a decision. */
+export const onboardingAgeWarningsSchema = z
+  .object({
+    warnHours: z
+      .number()
+      .int()
+      .min(1)
+      .max(30 * 24),
+    lateHours: z
+      .number()
+      .int()
+      .min(1)
+      .max(60 * 24),
+  })
+  .strict()
+  .refine((v) => v.lateHours > v.warnHours, {
+    path: ['lateHours'],
+    message: 'late must come after the warning',
+  });
+
 /** D174: how long a record claim lasts without activity, and how long a takeover request waits for the claimer. */
 export const claimTimingSchema = z
   .object({
@@ -741,6 +773,40 @@ export const SETTINGS: readonly SettingDef[] = [
     editable: true,
     appsRead: false,
     effect: { state: 'ENFORCED' },
+  },
+  {
+    key: 'orders.sla',
+    group: 'orders',
+    label: 'Order stage targets',
+    description:
+      'Target minutes per stage: accept, prepare, ready to assignment, assignment to pick-up, and on the way. The order overview flags orders past their stage target.',
+    schema: orderSlaSchema,
+    default: {
+      acceptMinutes: 5,
+      prepareMinutes: 30,
+      readyToAssignMinutes: 10,
+      assignedToPickupMinutes: 15,
+      outForDeliveryMinutes: 40,
+    },
+    zoneOverride: true,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: pending('Order overview'),
+  },
+  {
+    key: 'onboarding.ageWarnings',
+    group: 'onboarding',
+    label: 'Onboarding queue age warnings',
+    description:
+      'An application without a decision is marked as waiting long after the warning hours and late after the late hours.',
+    schema: onboardingAgeWarningsSchema,
+    default: { warnHours: 24, lateHours: 48 },
+    zoneOverride: false,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: pending('Onboarding queue'),
   },
   {
     key: 'claims.timing',

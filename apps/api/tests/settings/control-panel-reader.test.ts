@@ -65,6 +65,32 @@ describe('Control Panel settings reader', () => {
     ).toBe(60);
   });
 
+  it('order stage targets and onboarding age warnings (D182, D170)', async () => {
+    const r = reader(
+      {},
+      {
+        'orders.sla': {
+          [Z]: {
+            acceptMinutes: 3,
+            prepareMinutes: 20,
+            readyToAssignMinutes: 5,
+            assignedToPickupMinutes: 10,
+            outForDeliveryMinutes: 30,
+          },
+        },
+      },
+    );
+    expect((await r.orderSla(Z)).acceptMinutes).toBe(3);
+    expect(await r.orderSla(Y)).toEqual({
+      acceptMinutes: 5,
+      prepareMinutes: 30,
+      readyToAssignMinutes: 10,
+      assignedToPickupMinutes: 15,
+      outForDeliveryMinutes: 40,
+    });
+    expect(await r.onboardingAgeWarnings()).toEqual({ warnHours: 24, lateHours: 48 });
+  });
+
   it('support SLA: default, then a zone override', async () => {
     expect(await reader({}).supportSla(Z)).toEqual({
       firstResponseMinutes: 120,

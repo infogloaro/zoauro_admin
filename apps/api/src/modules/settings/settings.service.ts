@@ -10,6 +10,8 @@ import {
   sessionRememberSchema,
   supportSlaSchema,
   claimTimingSchema,
+  orderSlaSchema,
+  onboardingAgeWarningsSchema,
   refundRulesSchema,
   loyaltyValuesSchema,
   zoneDeliveryChargeCapSchema,
@@ -577,6 +579,16 @@ export class SettingsReader {
   /** D146, D180, D187: a zone's refund rules (zone value ?? platform ?? the D146 defaults). */
   refundRules(zoneId: string) {
     return this.effective('refunds.rules', refundRulesSchema, zoneId);
+  }
+
+  /** D182 (O1): a zone's order stage targets in minutes */
+  orderSla(zoneId: string) {
+    return this.effective('orders.sla', orderSlaSchema, zoneId);
+  }
+
+  /** D170: the onboarding queue's age marks (platform-wide) */
+  onboardingAgeWarnings() {
+    return this.effective('onboarding.ageWarnings', onboardingAgeWarningsSchema);
   }
 
   /** D174 */
