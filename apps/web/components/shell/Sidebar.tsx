@@ -8,8 +8,8 @@ import { NavIconGlyph } from './icons';
 
 // One sidebar for both roles (doc 18 section 6), built from lib/navigation and grouped like the owner's prototype:
 // dark navy, section headings that fold, an orange bar on the active entry. Every entry is a plain link in the tab
-// order; a module that is not built yet carries a "Soon" tag and opens its plan page. Collapsed (icon rail) the labels
-// stay available to assistive technology and as tooltips.
+// order; a module that is not built yet carries a "Soon" tag and opens its plan page; an entry with work waiting (A9)
+// carries its count. Collapsed (icon rail) the labels stay available to assistive technology and as tooltips.
 
 export function isActive(href: string, activePath: string): boolean {
   return activePath === href || activePath.startsWith(`${href}/`);
@@ -22,11 +22,14 @@ export function Sidebar({
   userRole: role,
   activePath,
   collapsed = false,
+  counts = {},
 }: {
   items: MenuItem[];
   userRole: ShellRole;
   activePath: string;
   collapsed?: boolean;
+  /** work waiting per entry id (A9); absent or 0 = no badge */
+  counts?: Readonly<Record<string, number>>;
 }) {
   const groups = groupedMenu(items);
   const [folded, setFolded] = useState<ReadonlySet<NavGroupId>>(new Set());
@@ -105,12 +108,19 @@ export function Sidebar({
                   {g.items.map((item) => {
                     const isCurrent = item === active;
                     const soon = item.status === 'coming-soon';
+                    const waiting = counts[item.id] ?? 0;
                     return (
                       <li key={item.id}>
                         <a
                           href={item.href}
                           aria-current={isCurrent ? 'page' : undefined}
-                          aria-label={soon ? `${item.label} (coming soon)` : undefined}
+                          aria-label={
+                            soon
+                              ? `${item.label} (coming soon)`
+                              : waiting > 0
+                                ? `${item.label}, ${waiting} waiting`
+                                : undefined
+                          }
                           title={collapsed ? item.label : undefined}
                           data-status={item.status}
                           className={cn(
@@ -133,9 +143,23 @@ export function Sidebar({
                             />
                           ) : null}
                           <NavIconGlyph icon={item.icon} className="size-[18px] shrink-0" />
+                          {collapsed && waiting > 0 ? (
+                            <span
+                              aria-hidden
+                              className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary"
+                            />
+                          ) : null}
                           {collapsed ? null : (
                             <>
                               <span className="flex-1 truncate">{item.label}</span>
+                              {waiting > 0 ? (
+                                <span
+                                  aria-hidden
+                                  className="min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[11px] font-semibold text-white tabular-nums"
+                                >
+                                  {waiting > 99 ? '99+' : waiting}
+                                </span>
+                              ) : null}
                               {soon ? (
                                 <span
                                   aria-hidden

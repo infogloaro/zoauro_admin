@@ -26,6 +26,8 @@ vi.mock('next/navigation', () => ({
 vi.mock('./PageSearch', () => ({
   PageSearch: ({ userRole }: { userRole: string }) => <span>{`search:${userRole}`}</span>,
 }));
+// the menu badges call the API (their own test below uses the Sidebar's counts prop)
+vi.mock('./usePendingCounts', () => ({ usePendingCounts: () => ({}) }));
 // "My reviews" calls the API (claims tests); here only that the shell mounts it
 vi.mock('../../features/claims/MyReviews', () => ({
   MyReviews: ({ userRole }: { userRole: string }) => <span>{`reviews:${userRole}`}</span>,
@@ -167,6 +169,21 @@ describe('sidebar', () => {
       />,
     );
     expect(html).toContain('bg-accent-orange');
+  });
+
+  it('A9: an entry with work waiting shows its count (and says it to screen readers); none shows nothing', () => {
+    const items = menuFor('SUPER_ADMIN', []);
+    const html = renderToStaticMarkup(
+      <Sidebar
+        items={items}
+        userRole="SUPER_ADMIN"
+        activePath="/super-admin/dashboard"
+        counts={{ R13: 3, R12: 120, R09: 0 }}
+      />,
+    );
+    expect(html).toContain('aria-label="Access Requests, 3 waiting"');
+    expect(html).toContain('>99+<');
+    expect(html).not.toContain('Food Item Requests, 0 waiting');
   });
 });
 

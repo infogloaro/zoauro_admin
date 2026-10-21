@@ -9,6 +9,7 @@ import { activeItem, comingSoonHref, type MenuItem, type ShellRole } from '../..
 import { cn } from '../../lib/utils';
 import { PageSearch } from './PageSearch';
 import { Sidebar } from './Sidebar';
+import { usePendingCounts } from './usePendingCounts';
 import { UserMenu } from './UserMenu';
 import type { ShellZone } from './ZoneChip';
 import { ZoneSwitcher } from './ZoneSwitcher';
@@ -53,6 +54,7 @@ export function AppShell({
   const [rail, setRail] = useState(false);
   const pathname = usePathname();
   const current = activeItem(menu, pathname);
+  const pending = usePendingCounts(menu.filter((m) => m.status === 'live').map((m) => m.id));
   // the session's CSRF token for the pages' state-changing calls (lib/csrf.ts)
   useEffect(() => setCsrfToken(csrfToken), [csrfToken]);
   useEffect(() => setRail(readRail()), []);
@@ -111,6 +113,7 @@ export function AppShell({
           userRole={user.role}
           activePath={pathname}
           collapsed={rail && !drawerOpen}
+          counts={pending}
         />
         {drawerOpen ? (
           <button
