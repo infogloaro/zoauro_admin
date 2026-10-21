@@ -87,8 +87,10 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET | /orders | orders:view | filters, search, scope |
 | GET | /orders/{id} | orders:view | items, timeline, payment panel |
 | POST | /orders/{id}/transition | orders:status | `{ to, note }` |
-| POST | /orders/{id}/assign | orders:edit | `{ deliveryPartnerId }`; partner must be in the order's zone |
-| POST | /orders/{id}/cancel | orders:status | `{ reasonCode, note }` |
+| POST | /orders/{id}/assign | orders:edit | `{ deliveryPartnerId }`; partner must be in the order's zone; D173: a COD order for a partner whose cash in hand ≥ the zone's `delivery.codLimitPaise` is 409 INVALID_STATE_TRANSITION, issue `PARTNER_COD_LIMIT`, meta `{cashInHandPaise, limitPaise}` (partner rows carry `codLimitPaise`, `codBlocked`) |
+| POST | /orders/{id}/cancel | orders:status | `{ reasonCode, note }`; D190: reasonCode must be one of the zone's `orders.cancelReasons` usable by ADMIN (422 `unknown_reason`), note required where the reason says so (422) |
+| GET | /orders/{id}/cancel-reasons | orders:status | D190: `{reasons: [{code, label, noteRequired}]}` for the cancel dialog; scoped like a cancellation |
+| GET | /orders/{id}/refund-options | refunds:add | D187: the zone's refund reasons with bearers, the targets for the payment method, paid / refunded / refundable amounts and the caller's own limits (per refund, per day, left today, second-approver amount) |
 | GET | /orders/export | orders:view | async export job (24 h link) |
 | GET | /customers, /customers/{id} | customers:view | scope rule D25 |
 | POST | /customers | customers:add | `source=ADMIN` (D28) |

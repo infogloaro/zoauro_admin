@@ -84,7 +84,7 @@ export class SettlementsService {
         module: 'settlements',
         action: 'cod_settlement.confirmed',
         entity: {
-          type: 'cash_settlement',
+          type: 'cod_settlement', // doc 50 entity type
           id,
           label: `COD hand-in of ${p.name}`,
           zoneId: p.zoneId,
