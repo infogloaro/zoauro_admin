@@ -126,6 +126,29 @@ body {
   color: var(--text);
 }
 
+/* DataTable: a row opens through a link or button stretched over it (after:absolute after:inset-0 on a relative row).
+   Every other control in that row sits just above the stretched layer, or a click on "Decide" opens the record instead
+   (QA, rows as links). In the components layer, so a control's own position utilities (absolute, sr-only) still win;
+   z-index 1 stays under the sticky table header (z-10). */
+@layer components {
+  tr[data-row-link]
+    :is(
+      a,
+      button,
+      input,
+      select,
+      textarea,
+      label,
+      summary,
+      [role='button'],
+      [role='switch'],
+      [role='checkbox']
+    ):not([data-row-activate]) {
+    position: relative;
+    z-index: 1;
+  }
+}
+
 /* the sidebar's own thin scrollbar */
 .scrollbar-thin {
   scrollbar-width: thin;

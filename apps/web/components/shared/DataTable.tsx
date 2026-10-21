@@ -9,6 +9,8 @@ import { cn } from '../../lib/utils';
 //
 // Row activation: the activator is a real <button> inside the row (keyboard and screen-reader reachable) stretched over
 // the whole row with a pseudo-element, so a mouse click anywhere on the row opens it without a click handler on <tr>.
+// Such a row carries data-row-link: app/globals.css lifts every other control in it (buttons, links, toggles, fields)
+// above the stretched layer, so "Decide" in a row does its own job instead of opening the record.
 
 export interface RowContext {
   /** spread on the <button> that opens the row (usually the first column's text) */
@@ -154,6 +156,7 @@ export function DataTable<T>({
                   return (
                     <tr
                       key={id}
+                      data-row-link={onActivate || rowHref ? '' : undefined}
                       className={cn(
                         'relative border-b border-neutral-100 align-top dark:border-neutral-900',
                         onActivate && 'hover:bg-neutral-50 dark:hover:bg-neutral-900',
