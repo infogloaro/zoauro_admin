@@ -72,7 +72,7 @@ Doc 61 is the technical runbook (start commands, data reset, QA status of each s
 9. Menus and food item requests (4 min)
 10. Hotels and bookings (3 min)
 11. Vendor plans (packages) (3 min)
-12. Orders (8 min)
+12. Orders (10 min)
 13. Delivery partners and cash on delivery (4 min)
 14. Customers and reward points (3 min)
 15. Money: refunds, payments, payouts (8 min)
@@ -275,7 +275,7 @@ The settings, in plain words:
 |---|---|
 | Money | Refund limits (zone caps), refund rules (reasons, who pays), payout cycle in days, cash-on-delivery limit per partner, delivery charge cap |
 | Orders | Cancel reasons, cancellation rules, unpaid online order timeout, pre-order timing, order number format, stage time targets |
-| Delivery | Orders a partner carries at once, automatic assignment (switched off) |
+| Delivery | Orders a partner carries at once, automatic assignment (off by default; Tiruppur is ready for the pilot) |
 | Vendors | Onboarding documents per vendor type (required or optional), waiting-time colours |
 | People | Whether commission editing can be given to Zonal Admins, record lock timing, remember-me, 2-step policy |
 | Customers | Reward points (earn rate, value, expiry, limits) |
@@ -494,7 +494,7 @@ flowchart LR
 
 ---
 
-## 12. Orders (8 min)
+## 12. Orders (10 min)
 
 **Do:** **Orders & Customers → Orders**.
 
@@ -536,6 +536,30 @@ flowchart LR
 
 **Do:** pick a partner and assign.
 
+**Automatic assignment (new in the evening build of 2026-10-22; rehearse it once before showing it)**
+
+**Do:**
+
+1. In the top bar, pick **Tiruppur**.
+2. Go to **Administration → Platform Settings**, find **Automatic assignment** and click **Edit**.
+3. Switch it on and click **Review change**.
+4. Write a reason, click **Save** and enter your password.
+5. Open a **Ready** order from a Tiruppur vendor such as Tiruppur Kongu Kitchen.
+
+**They see:** the order page's auto-assign card shows the partner the system picked and how far away they are. In the sample data, Murugan Velu is about 1 km away and Ravi Shankar about 4 km, so Murugan is picked.
+
+**Say:**
+> "Each zone can let the system assign partners. It picks the nearest partner within the radius who is online, verified, has a fresh location, is under their order limit and, for a cash order, under the cash limit. If nobody fits, the order falls back to manual assignment with an alert, and we can press 'Try auto-assign again'. Every automatic assignment is in the audit log, done by 'system'. Tiruppur is the pilot. Other zones keep manual assignment until we switch them on."
+
+```mermaid
+flowchart LR
+  R[Order Ready] --> Z{Zone has<br/>auto-assign on?}
+  Z -->|no| M[Manual: admin<br/>clicks Assign partner]
+  Z -->|yes| F[Find partners within the radius:<br/>online, verified, fresh location,<br/>under order cap and COD limit]
+  F -->|found| A[Nearest one assigned<br/>audited as 'system']
+  F -->|none after the set tries| FB[Fallback banner:<br/>assign by hand or try again]
+```
+
 **Do:** open an order that is still **New**, **Accepted** or **Preparing**, and click **Cancel order**. Show the reasons list, then close the dialog without cancelling (or cancel it if you want to show the result).
 
 **Say:**
@@ -558,7 +582,7 @@ flowchart LR
 - **Two admins on one order:** if two admins change the same order at once, the second one is told "This record changed. Reload" instead of overwriting the first.
 - **Hidden unpaid orders:** an online order that is not paid yet stays hidden from the vendor and the admin lists until the payment arrives.
 - **Pre-orders:** a customer orders for a chosen time. The order is sent to the kitchen at the right moment, and admins can reschedule or cancel it.
-- **Automatic partner assignment:** the nearest-partner rule is designed and has its settings, but assignment is manual today. Plan only.
+- **Automatic partner assignment:** it assigns directly, because the partner app cannot yet accept or decline offers. The "offer, wait, then the next partner" mode switches on once the partner app is connected. It is off by default in every zone.
 
 ---
 
@@ -780,7 +804,7 @@ sequenceDiagram
 > 1. **Connect the three apps**, so real sign-ups, orders and menu changes flow in. The secure connection for the apps is already built.
 > 2. **Razorpay payments and refunds**, as soon as management shares the keys. The keys will be entered in the Control Panel; until then the demo gateway stands in.
 > 3. **Emails from our own domain** through Amazon SES, and **SMS codes** once the company is registered for SMS (DLT).
-> 4. **Maps and automatic partner assignment**, then ordering from several restaurants in one checkout.
+> 4. **Maps for zone areas**, the offer-and-accept mode for automatic assignment once the partner app is connected, then ordering from several restaurants in one checkout.
 > 5. **Offers and coupons, reviews and ratings, analytics, zone and admin performance, advertising, customer meal plans.**
 > 6. **Production on AWS**, and a review of splitting the system into separate services once real traffic shows where it is needed."
 
@@ -827,7 +851,7 @@ sequenceDiagram
 | 9 | Menus, food item requests | Arun | Approve a food item request | 4 |
 | 10 | Hotels | Arun | — | 3 |
 | 11 | Vendor plans | Arun | — | 3 |
-| 12 | Orders | Arun | Assign a partner to a Ready order | 8 |
+| 12 | Orders | Arun | Assign a partner to a Ready order; switch on automatic assignment in Tiruppur | 10 |
 | 13 | Partners, COD | Arun | — | 4 |
 | 14 | Customers | Arun | — | 3 |
 | 15 | Money | Arun | Approve the waiting refund; Mark paid | 8 |
@@ -836,9 +860,9 @@ sequenceDiagram
 | 18 | Admin view | Meena | — | 3 |
 | 19 | Audit trail | Arun | — | 2 |
 | 20 | What comes next | — | — | 3 |
-| | **Total** | | | **about 95** |
+| | **Total** | | | **about 97** |
 
-**For a 60-minute slot,** keep Parts 2, 3, 4, 6, 7, 8, 12, 15, 17 and 20 (about 65 minutes). Mention the rest in one sentence each.
+**For a 60-minute slot,** keep Parts 2, 3, 4, 6, 7, 8, 12, 15, 17 and 20 (about 67 minutes; skip automatic assignment in Part 12 to save 2). Mention the rest in one sentence each.
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>

@@ -141,7 +141,8 @@ Talking point: management can change prices, limits and rules any time, per zone
 1. **Orders** — Ready. Status tabs with counts, filters (payment method, vendor type, date), zone column.
 2. Open an order — Ready. Items, payment, customer, timeline with who did each step; move the status; **Assign partner** (only partners in the same zone, under their limit; on a cash-on-delivery order a partner holding more cash than the COD limit is shown as blocked, "settle first": in the demo data this is Arjun Selvam, D173); **Cancel** an order that is still New, Accepted or Preparing, with a reason picked from the zone's list of cancel reasons, a Control Panel setting (D190; "Other" needs a note). Talking point: the Control Panel decides up to which stage each actor may cancel; out for delivery is blocked by default, so an out-for-delivery order shows no Cancel button (D156, fe3b909). A second admin changing the same order gets "This record changed. Reload".
 3. **Order overview** — Ready. Open, delayed and unassigned orders, cancellations and average times.
-4. **Delivery partners** and **Delivery partner requests** — Ready. Verify documents, activate, force offline; cash in hand. Partner requests have **Verify** and **Reject** only (no Start review or Ask for more info), so show Verify.
+4. **Automatic assignment** (D154, D199) — Today, rehearse once. Tiruppur is seeded ready but off. Pick Tiruppur, go to Platform settings → Automatic assignment, switch it on (reason, password), then open a Ready Tiruppur Kongu Kitchen order. The auto-assign card shows the partner picked and the distance: Murugan Velu (about 1 km) before Ravi Shankar (about 4 km). If nobody fits, the order falls back to manual assignment with a banner and **Try auto-assign again**. It is audited as "system". Doc 64 Part 12 has the script.
+5. **Delivery partners** and **Delivery partner requests** — Ready. Verify documents, activate, force offline; cash in hand. Partner requests have **Verify** and **Reject** only (no Start review or Ask for more info), so show Verify.
 
 ### Act 7. Customers (4 min)
 1. **Customers** — Ready. List and detail for both roles; addresses, orders, masked contact with audited reveal; block or unblock.
@@ -233,3 +234,24 @@ The walk now also times each page (budget: main content under 2 s, each API call
   - slow first loads of Payments, Security Settings, Orders and Notifications, mostly from many calls at once;
   - the menu badges are counted again on every page.
 - **Demo stack:** it stopped twice without an error (13:18 and about 14:00) because it ran inside a build session's shell. Since 14:19 it runs under Windows Task Scheduler, where closing a session cannot stop it.
+
+### Checkpoint 2: 2026-10-22, 18:28, demo build `00b4ecf`
+
+Page timings tonight are **not valid**: the laptop had 0.27–0.95 GB of memory free while the build sessions ran. The timing run is on the final build, after the build sessions stop.
+
+- **Passed:**
+  - the fixes from checkpoint 1:
+    - the dashboard follows the top-bar zone (151 orders in all zones; 86, 43 and 22 in Coimbatore Central, Coimbatore North and Tiruppur);
+    - table headers stay light when Windows is in dark mode;
+    - the "Asked: …" note stays in its column (no overlaps found on 55 pages at 1440 and 1280 pixels wide);
+  - Cancel is shown on a preparing order and hidden on an out-for-delivery one;
+  - the payout-cycle save for one zone, and Account security re-auth;
+  - **Mark paid**:
+    - three Coimbatore Central restaurant payouts were paid, and each row shows its bank reference;
+    - Sree Krishna Sweets is held back with "1 refund for this vendor is still open";
+    - delivery-partner payouts have no Mark paid;
+    - Meena does not see Mark paid;
+  - zone isolation, 12 of 12;
+  - the primary Super Admin's 55 pages show no errors;
+  - list headers are tinted and hovered rows coloured, as the owner asked.
+- **Sample data:** reset after these live actions, before the owner's evening look.
