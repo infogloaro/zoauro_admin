@@ -625,7 +625,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Refunds'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'onboarding.documents',
@@ -659,7 +659,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Support desk'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'notifications.timing',
@@ -673,7 +673,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Notifications'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'notifications.channels',
@@ -686,7 +686,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Notifications'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'orders.numberFormat',
@@ -714,7 +714,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Orders'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'orders.cancelReasons',
@@ -742,7 +742,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Order assignment'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'orders.unpaidTimeoutMinutes',
@@ -796,7 +796,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Pre-orders'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'delivery.autoAssign',
@@ -824,7 +824,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Payouts'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'zones.deliveryChargeCapPaise',
@@ -872,7 +872,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Order overview'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'onboarding.ageWarnings',
@@ -886,7 +886,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Onboarding queue'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'claims.timing',
@@ -900,7 +900,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Record claims'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'sessions.remember',
@@ -943,7 +943,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Reward points'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'security.mfa',

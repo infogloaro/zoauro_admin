@@ -78,13 +78,14 @@ describe('registry and the default rule (D109)', () => {
     // D146/D180/D187: refund rules have decided defaults now
     expect(byKey(r.body, 'refunds.rules')).toMatchObject({
       source: 'DEFAULT',
-      effect: { state: 'PENDING_MODULE' },
+      effect: { state: 'ENFORCED' }, // the refunds module reads it
       effective: { decisionTimeLimitMinutes: 240, targets: { COD: ['WALLET', 'UPI'] } },
     });
     expect(byKey(r.body, 'loyalty.values')?.effect.state).toBe('NOT_CONFIGURED');
-    expect(byKey(r.body, 'support.sla')?.effect).toMatchObject({
+    expect(byKey(r.body, 'support.sla')?.effect).toMatchObject({ state: 'ENFORCED' });
+    // nothing applies the payment timeout yet
+    expect(byKey(r.body, 'orders.unpaidTimeoutMinutes')?.effect).toMatchObject({
       state: 'PENDING_MODULE',
-      module: 'Support desk',
     });
     expect(byKey(r.body, 'onboarding.documents')?.effective).toMatchObject({ HOTEL: null }); // D145
     expect(

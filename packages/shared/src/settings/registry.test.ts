@@ -44,6 +44,24 @@ describe('settings registry', () => {
   });
 });
 
+describe('effect badges', () => {
+  it('only the keys nothing applies yet are pending; every other key has a reader in the API', () => {
+    // a key moves to ENFORCED in the same change that makes server.ts, worker.ts or a service read it
+    expect(
+      SETTINGS.filter((s) => s.effect.state !== 'ENFORCED')
+        .map((s) => s.key)
+        .sort(),
+    ).toEqual([
+      'delivery.autoAssign',
+      'orders.cancellationRules',
+      'orders.numberFormat',
+      'orders.unpaidTimeoutMinutes',
+      'sessions.remember',
+      'sms.provider',
+    ]);
+  });
+});
+
 describe('onboarding document catalogue (D145)', () => {
   const ok = (v: unknown) => onboardingDocumentsSchema.safeParse(v).success;
   const base = DEFAULT_ONBOARDING_DOCUMENTS;
