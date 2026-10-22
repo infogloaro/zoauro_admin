@@ -50,7 +50,7 @@ Owner request (2026-10-21): analyse the colleagues' pushed work, decide what is 
 
 **Fit:** not mergeable (72 conflicting files; 7 migrations would recreate tables we already have; a parallel auth/zones/shell; no zone scoping, against doc 36). Our core already covers every module she built, with zone scope.
 
-**Security and quality:** the branch tip has no secrets, but the Neon `neondb_owner` password is still readable in the pushed commit 3031d16, so it **must be rotated**. Junk files at the tip (a 204 KB `package-lock.json`, test and lint output that leaks a local Windows path, `check-db.js` that dumps rows); hard-coded demo payments; e2e clean-up that deletes audit rows; SSE instead of Socket.IO; invented tables and fields.
+**Security and quality:** the branch tip has no secrets, but the Neon `neondb_owner` password is still readable in the pushed commit 3031d16, so it **must be rotated** (rotated by the owner on 2026-10-22). Junk files at the tip (a 204 KB `package-lock.json`, test and lint output that leaks a local Windows path, `check-db.js` that dumps rows); hard-coded demo payments; e2e clean-up that deletes audit rows; SSE instead of Socket.IO; invented tables and fields.
 
 **Ported:** the 11 reference design images (`docs/reference_images/`). **Ideas for after the demo (owner to define):** a customer KPI row (registered, new, returning, lifetime spend, AOV, satisfaction) and partner performance figures (on-time %, average delivery minutes, failed deliveries) computed from orders. **Owner question:** third-party delivery providers (doc 11 says not in v1).
 
