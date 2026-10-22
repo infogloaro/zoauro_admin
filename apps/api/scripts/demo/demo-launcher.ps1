@@ -3,6 +3,9 @@
 # zoauro_demo with apps/api/.env.demo; it never builds, resets or seeds, and never touches the dev servers (:4000, :3000).
 #
 #   demo-launcher.ps1 start          Docker + infrastructure, demo API + worker + web, warm-up, browser
+#   demo-launcher.ps1 start <url>    the same, with the API's APP_URL set to an https://*.trycloudflare.com tunnel (owner,
+#                                    10-22: a shareable demo link); kept in <demo build>\app-url.txt, so the watchdog's
+#                                    restarts keep it. `start local` goes back to http://127.0.0.1:3100. Restart to apply.
 #   demo-launcher.ps1 stop [/all]    ends only the demo processes; /all also stops the four infrastructure containers
 #   demo-launcher.ps1 ensure         the watchdog (scheduled every 5 min): starts the demo only when its processes are
 #                                    missing, without a browser; never touches a running demo; logs to starts.log
@@ -21,6 +24,7 @@ $ApiDir = Join-Path $Repo 'apps\api'
 $EnvDemo = Join-Path $ApiDir '.env.demo'
 $Build = Join-Path (Split-Path $Repo -Parent) 'zoauro-demo-build'
 $Logs = Join-Path $Build 'logs'
+$AppUrlFile = Join-Path $Build 'app-url.txt'
 $ApiPort = 4100
 $WebPort = 3100
 $WebUrl = "http://127.0.0.1:$WebPort"
@@ -70,6 +74,19 @@ function Wait-Http([string]$Url, [int]$Seconds) {
     Start-Sleep -Seconds 2
   }
   return $false
+}
+
+# One demo process outside every job object (see step 4 of Start-Demo): cmd.exe runs it hidden with its output appended
+# to logs\<name>.log and logs\<name>.err.log.
+function Start-Detached([string]$Dir, [string]$Command, [string]$Name) {
+  $out = Join-Path $Logs "$Name.log"
+  $err = Join-Path $Logs "$Name.err.log"
+  $line = "cmd.exe /s /c `"$Command >> `"$out`" 2>> `"$err`"`""
+  $startup = New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly -Property @{ ShowWindow = [uint16]0 }
+  $r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
+    CommandLine = $line; CurrentDirectory = $Dir; ProcessStartupInformation = $startup
+  }
+  if ($r.ReturnValue -ne 0) { Fail "could not start the demo $Name (Win32_Process.Create returned $($r.ReturnValue))" }
 }
 
 function Stop-Demo([switch]$All) {
@@ -151,8 +168,11 @@ function Start-Demo([switch]$Quiet) {
     Start-Sleep -Seconds 2
   }
 
-  # 4. API, worker and web, each in its own minimized window, logs to files. The previous run's logs are kept as
-  #    *.prev.log (why did it stop?), and each process gets a heap cap so none can take this laptop's last memory.
+  # 4. API, worker and web, hidden, logs to files. The previous run's logs are kept as *.prev.log (why did it stop?),
+  #    and each process gets a heap cap so none can take this laptop's last memory. They are created through WMI
+  #    (Win32_Process.Create, parent WmiPrvSE), so they belong to no job object: a job ends every process in it at once
+  #    and silently, which killed the demo four times on 10-22 (a Claude tool shell's job, then Task Scheduler's
+  #    15-minute task limit). No environment is inherited this way, so the web's two variables are set in its command.
   $apiDir = Join-Path $Build 'apps\api'
   $webDir = Join-Path $Build 'apps\web'
   foreach ($name in 'api', 'api.err', 'worker', 'worker.err', 'web', 'web.err') {
@@ -161,16 +181,16 @@ function Start-Demo([switch]$Quiet) {
   }
   Add-Content (Join-Path $Logs 'starts.log') "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') start, build $commit"
   Step 'starting the demo API (:4100) and worker'
-  Start-Process -FilePath $node -ArgumentList '--max-old-space-size=768', "`"--env-file=$EnvDemo`"", 'dist/server.js' -WorkingDirectory $apiDir `
-    -WindowStyle Minimized -RedirectStandardOutput (Join-Path $Logs 'api.log') -RedirectStandardError (Join-Path $Logs 'api.err.log') | Out-Null
-  Start-Process -FilePath $node -ArgumentList '--max-old-space-size=384', "`"--env-file=$EnvDemo`"", 'dist/worker.js' -WorkingDirectory $apiDir `
-    -WindowStyle Minimized -RedirectStandardOutput (Join-Path $Logs 'worker.log') -RedirectStandardError (Join-Path $Logs 'worker.err.log') | Out-Null
+  # a tunnel origin (app-url.txt) overrides .env.demo's APP_URL: node's --env-file never replaces a set variable
+  $appUrl = if (Test-Path $AppUrlFile) { (Get-Content $AppUrlFile -Raw).Trim() } else { '' }
+  $setUrl = if ($appUrl) { "set APP_URL=$appUrl&& " } else { '' }
+  if ($appUrl) { Step "APP_URL for this run: $appUrl" }
+  Start-Detached $apiDir "$setUrl`"$node`" --max-old-space-size=768 `"--env-file=$EnvDemo`" dist/server.js" 'api'
+  Start-Detached $apiDir "$setUrl`"$node`" --max-old-space-size=384 `"--env-file=$EnvDemo`" dist/worker.js" 'worker'
   Step 'starting the demo web (:3100)'
-  $env:WEB_INTERNAL_API_URL = "http://127.0.0.1:$ApiPort"
-  $env:NEXT_TELEMETRY_DISABLED = '1'
   $next = Join-Path $webDir 'node_modules\next\dist\bin\next'
-  Start-Process -FilePath $node -ArgumentList '--max-old-space-size=1024', "`"$next`"", 'start', '-p', "$WebPort", '-H', '127.0.0.1' -WorkingDirectory $webDir `
-    -WindowStyle Minimized -RedirectStandardOutput (Join-Path $Logs 'web.log') -RedirectStandardError (Join-Path $Logs 'web.err.log') | Out-Null
+  Start-Detached $webDir ("set WEB_INTERNAL_API_URL=http://127.0.0.1:$ApiPort&& set NEXT_TELEMETRY_DISABLED=1&& " +
+    "`"$node`" --max-old-space-size=1024 `"$next`" start -p $WebPort -H 127.0.0.1") 'web'
 
   # 5. ready checks
   if (-not (Wait-Http "http://127.0.0.1:$ApiPort/api/ready" 120)) { Fail "the demo API did not become ready (see $Logs\api.err.log)" }
@@ -210,6 +230,25 @@ function Confirm-Demo {
   Start-Demo -Quiet
 }
 
+# `start <url>` / `start local`: the tunnel origin for APP_URL, remembered for later starts and the watchdog
+function Set-AppUrl([string]$Value) {
+  New-Item -ItemType Directory -Force -Path $Logs | Out-Null
+  $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+  if ($Value -eq 'local') {
+    if (Test-Path $AppUrlFile) { Remove-Item $AppUrlFile }
+    Add-Content (Join-Path $Logs 'starts.log') "$stamp APP_URL back to the local address"
+    return
+  }
+  if ($Value -notmatch '^https://[a-z0-9-]+\.trycloudflare\.com$') {
+    Fail "not a Cloudflare quick-tunnel origin (https://<name>.trycloudflare.com, no path): $Value"
+  }
+  Set-Content -Path $AppUrlFile -Value $Value -Encoding ascii
+  Add-Content (Join-Path $Logs 'starts.log') "$stamp APP_URL set to $Value"
+}
+
 if ($Command -eq 'stop') { Stop-Demo -All:($Option -eq '/all' -or $Option -eq '-all') }
 elseif ($Command -eq 'ensure') { Confirm-Demo }
-else { Start-Demo }
+else {
+  if ($Option) { Set-AppUrl $Option }
+  Start-Demo
+}
