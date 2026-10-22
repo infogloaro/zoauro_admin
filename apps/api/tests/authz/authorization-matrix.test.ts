@@ -175,6 +175,9 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         setDiningReservationStatus: { ownObject: true },
         // D167: the placeholder order is not a pre-order, so the reschedule of it is 404 for whoever passes the guard
         rescheduleOrder: { ownObject: true },
+        // D154, D199: the placeholder order id is not found for whoever passes the guard (scope: auto-assign-api.test.ts)
+        getOrderAutoAssign: { ownObject: true },
+        runOrderAutoAssign: { ownObject: true },
         // D179 section 3: the overview names the zones it covers ('ALL' for a Super Admin without ?zoneId)
         getOrderOverview: {
           listedZones: (body) => (body as { zones: string[] | 'ALL' }).zones,
@@ -291,7 +294,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 1 COD hand-in (POST /cash-settlements, D173)
     // + 1 order cancel reasons (D190)
     // + 1 payout mark-paid (F4a)
-    expect(report.coveredRoutes).toHaveLength(256);
+    // + 2 order auto-assign (D154, D199)
+    expect(report.coveredRoutes).toHaveLength(258);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

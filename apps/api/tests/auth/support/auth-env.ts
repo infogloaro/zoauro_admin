@@ -25,6 +25,7 @@ import {
 import { createAuditModule } from '../../../src/modules/audit';
 import { createHotelsModule } from '../../../src/modules/hotels';
 import { createPreordersModule } from '../../../src/modules/orders/preorders.routes';
+import { createAutoAssignModule } from '../../../src/modules/orders/auto-assign.routes';
 import { createMenuModule } from '../../../src/modules/menu';
 import { createOnboardingModule } from '../../../src/modules/onboarding';
 import { createPlansModule } from '../../../src/modules/plans';
@@ -407,6 +408,14 @@ export async function createAuthTestEnv() {
       rules: (zoneId) => settings.reader.preorderRules(zoneId),
       clock: clock.now,
     });
+    const autoAssign = createAutoAssignModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      setting: (zoneId) => settings.reader.autoAssign(zoneId),
+      maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+      codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+      clock: clock.now,
+    });
     const orders = createOrdersModule({
       sla: (zoneId) => settings.reader.orderSla(zoneId ?? ''),
       onDelivered: (orderId) => rewards.service.earnForDeliveredOrder(orderId),
@@ -522,6 +531,7 @@ export async function createAuthTestEnv() {
       menu.router,
       hotels.router,
       preorders.router,
+      autoAssign.router,
       createOnboardingModule({
         prisma,
         appOrigin: APP_ORIGIN,
