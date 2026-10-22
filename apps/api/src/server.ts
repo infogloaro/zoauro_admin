@@ -273,6 +273,7 @@ const orders = createOrdersModule({
   codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
   cancelReasons: (zoneId) => settings.reader.cancelReasons(zoneId), // D190
   preorderRules: (zoneId) => settings.reader.preorderRules(zoneId), // D167
+  cancellationRules: (zoneId) => settings.reader.cancellationRules(zoneId), // D156
   // D182 O1: orders.sla of the zone ('' = the platform value when the overview spans zones)
   sla: (zoneId) => settings.reader.orderSla(zoneId ?? ''),
   // D169: a delivered order earns reward points (rewards is created below; called at request time)

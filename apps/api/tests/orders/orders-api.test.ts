@@ -279,7 +279,16 @@ describe('POST /orders/{id}/transition (doc 10, If-Match)', () => {
 describe('POST /orders/{id}/cancel', () => {
   it('needs a reason; records it, releases the partner, and tells the apps a refund is expected', async () => {
     const partner = await seedPartner(env, zoneA, { currentOrders: 1 });
-    const o = await seedOrder(env, zoneA, { status: 'OUT_FOR_DELIVERY', partnerId: partner });
+    // D156: past the zone's ADMIN cancel stage (default: before OUT_FOR_DELIVERY) an admin cannot cancel
+    const out = await seedOrder(env, zoneA, { status: 'OUT_FOR_DELIVERY' });
+    const late = await write(adminA, `/orders/${out.orderId}/cancel`, 1, {
+      reasonCode: 'CUSTOMER_REQUESTED',
+    });
+    expect(late.status).toBe(409);
+    expect(late.body.error.details).toEqual([{ field: 'status', issue: 'PAST_CANCEL_WINDOW' }]);
+    expect((await as(adminA).get(`/orders/${out.orderId}`)).body.actions.cancel).toBe(false);
+
+    const o = await seedOrder(env, zoneA, { status: 'READY', partnerId: partner });
     const none = await write(adminA, `/orders/${o.orderId}/cancel`, 1, { note: 'x' });
     expect(none.status).toBe(422);
     expect(none.body.error.code).toBe('REASON_REQUIRED');

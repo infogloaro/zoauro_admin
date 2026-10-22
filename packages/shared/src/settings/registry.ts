@@ -780,7 +780,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Orders (cancellation)'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'orders.preorder',

@@ -51,12 +51,7 @@ describe('effect badges', () => {
       SETTINGS.filter((s) => s.effect.state !== 'ENFORCED')
         .map((s) => s.key)
         .sort(),
-    ).toEqual([
-      'orders.cancellationRules',
-      'orders.numberFormat',
-      'orders.unpaidTimeoutMinutes',
-      'sms.provider',
-    ]);
+    ).toEqual(['orders.numberFormat', 'orders.unpaidTimeoutMinutes', 'sms.provider']);
   });
 });
 

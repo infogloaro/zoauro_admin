@@ -11,6 +11,7 @@ import {
   type OrderListQuery,
   type OrderCancelReasonsResponse,
   type OrderListResponse,
+  ORDER_STATUSES,
   type OrderStatus,
   type OrderWriteResponse,
   type PermissionKey,
@@ -267,6 +268,8 @@ export class OrdersService {
       codLimit?: (zoneId: string) => Promise<number>;
       /** D167: settings orders.preorder of the zone (absent: no cancel cut-off) */
       preorderRules?: (zoneId: string) => Promise<PreorderRules>;
+      /** D156: settings orders.cancellationRules of the zone (absent: only the doc 10 table) */
+      cancellationRules?: (zoneId: string) => Promise<{ ADMIN: { allowedBefore: OrderStatus } }>;
       /** D190: the zone's orders.cancelReasons (absent: any reason code is accepted) */
       cancelReasons?: (zoneId: string) => Promise<CancelReasonDef[]>;
       /**
@@ -299,7 +302,8 @@ export class OrdersService {
   async get(ctx: AuthContext, id: string): Promise<OrderDetail> {
     const row = await this.deps.db.repo.detail(ctx, id);
     if (!row) throw notFound();
-    return toDetail(ctx, row, (await this.preorderBlocker(row)) !== null);
+    const locked = (await this.preorderBlocker(row)) !== null || (await this.pastAdminWindow(row));
+    return toDetail(ctx, row, locked);
   }
 
   /** POST /orders/{id}/transition: every doc 10 move except cancel and assign (their own routes). */
@@ -399,6 +403,13 @@ export class OrdersService {
     );
   }
 
+  /** D156: the order is at or past the zone's ADMIN.allowedBefore stage (no rules wired: never). */
+  private async pastAdminWindow(o: { zoneId: string; status: OrderStatus }): Promise<boolean> {
+    if (!this.deps.cancellationRules) return false;
+    const rules = await this.deps.cancellationRules(o.zoneId);
+    return ORDER_STATUSES.indexOf(o.status) >= ORDER_STATUSES.indexOf(rules.ADMIN.allowedBefore);
+  }
+
   private async adminCancelReasons(zoneId: string): Promise<CancelReasonDef[]> {
     const all = (await this.deps.cancelReasons?.(zoneId)) ?? [];
     return all.filter((r) => r.usableBy.includes('ADMIN'));
@@ -418,6 +429,13 @@ export class OrdersService {
       const blocker = await this.preorderBlocker(order);
       if (blocker)
         throw guard('status', blocker, 'Too close to the pre-order dispatch time to cancel');
+      // D156: an admin cancels only before the zone's orders.cancellationRules ADMIN stage
+      if (await this.pastAdminWindow(order))
+        throw guard(
+          'status',
+          'PAST_CANCEL_WINDOW',
+          'This order is past the stage where an admin may cancel it',
+        );
       if (this.deps.cancelReasons) {
         const reason = (await this.adminCancelReasons(order.zoneId)).find(
           (r) => r.code === input.reasonCode,

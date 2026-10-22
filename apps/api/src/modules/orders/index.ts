@@ -1,6 +1,6 @@
 import type { PreorderRules } from './preorder.rules';
 import type { Router } from 'express';
-import { orderOverviewQuerySchema, type OrderSla } from '@zoauro/shared';
+import { orderOverviewQuerySchema, type OrderSla, type OrderStatus } from '@zoauro/shared';
 import { authContextOf } from '../../lib/authz';
 import { parseBody } from '../../lib/errors';
 import { createOrdersController } from './orders.controller';
@@ -22,6 +22,8 @@ export function createOrdersModule(deps: {
   codLimit?: (zoneId: string) => Promise<number>;
   /** D167: settings orders.preorder of a zone (SettingsReader.preorderRules) */
   preorderRules?: (zoneId: string) => Promise<PreorderRules>;
+  /** D156: settings orders.cancellationRules of a zone (SettingsReader.cancellationRules) */
+  cancellationRules?: (zoneId: string) => Promise<{ ADMIN: { allowedBefore: OrderStatus } }>;
   /** D190: settings orders.cancelReasons of a zone (SettingsReader.cancelReasons) */
   cancelReasons?: (
     zoneId: string,
@@ -47,6 +49,7 @@ export function createOrdersModule(deps: {
     ...(deps.codLimit ? { codLimit: deps.codLimit } : {}),
     ...(deps.cancelReasons ? { cancelReasons: deps.cancelReasons } : {}),
     ...(deps.preorderRules ? { preorderRules: deps.preorderRules } : {}),
+    ...(deps.cancellationRules ? { cancellationRules: deps.cancellationRules } : {}),
     ...(deps.onDelivered ? { onDelivered: deps.onDelivered } : {}),
     delayedIds: (ctx) => overview.delayedIds(ctx),
   });
