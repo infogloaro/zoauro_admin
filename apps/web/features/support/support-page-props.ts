@@ -1,4 +1,5 @@
 import type { MeResponse } from '@zoauro/shared';
+import { superAdminExports } from '../../lib/export-access';
 import type { ScopeZone } from '../../lib/zone-scope';
 
 // What the support pages show a member, from /me (server side): their zones and which buttons to offer. A convenience
@@ -19,7 +20,7 @@ export function supportPageProps(me: MeResponse): SupportPageProps {
       role: 'SUPER_ADMIN',
       meId: me.user.id,
       myZones: [],
-      can: { edit: true, export: true },
+      can: { edit: true, export: superAdminExports(me) },
     };
   const zones = me.permissions.zones.filter((z) => z.permissions.includes('support:view'));
   return {

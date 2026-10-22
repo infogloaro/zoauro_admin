@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  type ControlAreas,
   ZONE_SERVICES,
   ZONE_SERVICE_DEFAULTS,
   ZONE_SERVICE_LABELS,
@@ -28,6 +29,7 @@ import { Button } from '../../components/ui/button';
 import { Card, CardBody, CardHeader } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
 import { Switch } from '../../components/ui/switch';
+import { areaAllows } from '../../lib/navigation';
 import { cn } from '../../lib/utils';
 import { CardError, CardSkeleton, EmptyState } from '../dashboard/parts';
 import { usePlatformSettings } from '../platform-settings/api';
@@ -41,7 +43,8 @@ import { useSwitchService } from './useZoneServices';
 // each zone (switch per zone × service, PASSWORD re-auth, confirmation before switching off), and one place to reach
 // every control the Super Admin allocates: Zonal Admin accounts, access profiles, zone teams, access history, zones and
 // security. The Platform settings card lists every setting with whether it was changed and whether it is enforced yet;
-// they are edited on /super-admin/settings/platform (doc 59).
+// they are edited on /super-admin/settings/platform (doc 59). D178: a non-primary Super Admin sees only the controls of
+// the areas granted (the menu's check); the service switches are zone writes and need the zones area.
 
 const SERVICE_ICON: Record<ZoneServiceKind, LucideIcon> = {
   RESTAURANTS: Store,
@@ -49,48 +52,56 @@ const SERVICE_ICON: Record<ZoneServiceKind, LucideIcon> = {
   HOTEL_BOOKING: BedDouble,
 };
 
-const CONTROLS: { href: string; title: string; text: string; icon: LucideIcon }[] = [
+const CONTROLS: { href: string; title: string; text: string; icon: LucideIcon; area: string }[] = [
   {
     href: '/super-admin/zonal-admins',
     title: 'Zonal Admins',
     text: 'Accounts, status, passwords, 2-step, sessions',
     icon: UserCog,
+    area: 'access',
   },
   {
     href: '/super-admin/access/profiles',
     title: 'Access profiles',
     text: 'Permission templates and default refund limits',
     icon: ShieldCheck,
+    area: 'access',
   },
   {
     href: '/super-admin/access/teams',
     title: 'Zone teams',
     text: 'Who runs each zone, with which profile',
     icon: UsersRound,
+    area: 'access',
   },
   {
     href: '/super-admin/access/history',
     title: 'Access history',
     text: 'Every access change, before and after',
     icon: History,
+    area: 'access',
   },
   {
     href: '/super-admin/zones',
     title: 'Zones',
     text: 'Pincodes, delivery charge, activate or pause',
     icon: Map,
+    area: 'zones',
   },
   {
     href: '/super-admin/settings/security',
     title: 'Security',
     text: '2-step policy, codes, SMS provider',
     icon: Lock,
+    area: 'settings.security',
   },
 ];
 
-export function ControlPanelPage() {
+export function ControlPanelPage({ areas }: { areas?: ControlAreas | null }) {
+  const can = (area: string) => areaAllows(area, areas);
+  const controls = CONTROLS.filter((c) => can(c.area));
   const [q, setQ] = useState('');
-  const settings = usePlatformSettings();
+  const settings = usePlatformSettings(can('settings'));
   const zones = useZoneList(q.trim() ? { q: q.trim() } : {});
   const { switchService, dialog } = useSwitchService();
   const [confirm, setConfirm] = useState<{
@@ -150,7 +161,11 @@ export function ControlPanelPage() {
               zone
             </span>
           }
-          subtitle="Switch a service off to stop new onboarding and new orders for it in that zone. Each change asks for your password and is audited."
+          subtitle={
+            can('zones')
+              ? 'Switch a service off to stop new onboarding and new orders for it in that zone. Each change asks for your password and is audited.'
+              : 'Which services run in each zone. Switching them needs the Zones area of the Control Panel.'
+          }
           actions={
             <div className="relative w-64">
               <Search
@@ -235,7 +250,7 @@ export function ControlPanelPage() {
                             <span className="inline-flex">
                               <Switch
                                 checked={on}
-                                disabled={busy !== null}
+                                disabled={busy !== null || !can('zones')}
                                 label={`${ZONE_SERVICE_LABELS[s]} in ${z.name}`}
                                 onChange={(next) => {
                                   if (next) void run(z, s, true);
@@ -268,78 +283,82 @@ export function ControlPanelPage() {
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card aria-labelledby="controls-title">
-          <CardHeader
-            id="controls-title"
-            title="People and access"
-            subtitle="Allocated by the Super Admin only"
-          />
-          <CardBody>
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {CONTROLS.map((c) => (
-                <li key={c.href}>
-                  <a
-                    href={c.href}
-                    className="flex h-full items-start gap-3 rounded-input border border-line p-3 hover:border-orange-200 hover:bg-primary-soft/40 focus-visible:outline-2 focus-visible:outline-primary"
-                  >
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong">
-                      <c.icon aria-hidden className="size-4" />
-                    </span>
-                    <span>
-                      <span className="block text-sm font-semibold">{c.title}</span>
-                      <span className="block text-xs text-muted">{c.text}</span>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </CardBody>
-        </Card>
-
-        <Card aria-labelledby="defaults-title">
-          <CardHeader
-            id="defaults-title"
-            title="Platform settings"
-            subtitle="The default rule applies until you save a value (D109)."
-            actions={
-              <a
-                href="/super-admin/settings/platform"
-                className="text-sm font-medium text-primary-strong hover:underline"
-              >
-                Open
-              </a>
-            }
-          />
-          <CardBody>
-            {settings.isError ? (
-              <CardError what="Settings" onRetry={() => void settings.refetch()} />
-            ) : !settings.data ? (
-              <CardSkeleton rows={4} />
-            ) : (
-              <ul className="divide-y divide-line text-sm">
-                {settings.data.data
-                  .filter((s) => s.editable)
-                  .map((s) => {
-                    const effect = effectBadge(s);
-                    return (
-                      <li
-                        key={s.key}
-                        className="flex flex-wrap items-center justify-between gap-2 py-2.5"
-                      >
-                        <span>{s.label}</span>
-                        <span className="flex gap-1.5">
-                          {s.source !== 'DEFAULT' ? <Badge tone="brand">Changed</Badge> : null}
-                          <Badge tone={effect.tone} dot>
-                            {effect.label}
-                          </Badge>
-                        </span>
-                      </li>
-                    );
-                  })}
+        {controls.length > 0 ? (
+          <Card aria-labelledby="controls-title">
+            <CardHeader
+              id="controls-title"
+              title="People and access"
+              subtitle="Allocated by the Super Admin only"
+            />
+            <CardBody>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {controls.map((c) => (
+                  <li key={c.href}>
+                    <a
+                      href={c.href}
+                      className="flex h-full items-start gap-3 rounded-input border border-line p-3 hover:border-orange-200 hover:bg-primary-soft/40 focus-visible:outline-2 focus-visible:outline-primary"
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong">
+                        <c.icon aria-hidden className="size-4" />
+                      </span>
+                      <span>
+                        <span className="block text-sm font-semibold">{c.title}</span>
+                        <span className="block text-xs text-muted">{c.text}</span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
               </ul>
-            )}
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {can('settings') ? (
+          <Card aria-labelledby="defaults-title">
+            <CardHeader
+              id="defaults-title"
+              title="Platform settings"
+              subtitle="The default rule applies until you save a value (D109)."
+              actions={
+                <a
+                  href="/super-admin/settings/platform"
+                  className="text-sm font-medium text-primary-strong hover:underline"
+                >
+                  Open
+                </a>
+              }
+            />
+            <CardBody>
+              {settings.isError ? (
+                <CardError what="Settings" onRetry={() => void settings.refetch()} />
+              ) : !settings.data ? (
+                <CardSkeleton rows={4} />
+              ) : (
+                <ul className="divide-y divide-line text-sm">
+                  {settings.data.data
+                    .filter((s) => s.editable)
+                    .map((s) => {
+                      const effect = effectBadge(s);
+                      return (
+                        <li
+                          key={s.key}
+                          className="flex flex-wrap items-center justify-between gap-2 py-2.5"
+                        >
+                          <span>{s.label}</span>
+                          <span className="flex gap-1.5">
+                            {s.source !== 'DEFAULT' ? <Badge tone="brand">Changed</Badge> : null}
+                            <Badge tone={effect.tone} dot>
+                              {effect.label}
+                            </Badge>
+                          </span>
+                        </li>
+                      );
+                    })}
+                </ul>
+              )}
+            </CardBody>
+          </Card>
+        ) : null}
       </div>
 
       <ServiceSwitchConfirm

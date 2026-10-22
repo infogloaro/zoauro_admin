@@ -47,10 +47,20 @@ import { ImpactTable, ZoneStatusDialog, type ZoneAction } from './ZoneStatusDial
 const TABS = ['overview', 'pincodes', 'services', 'team', 'activity'] as const;
 type Tab = (typeof TABS)[number];
 
-export function ZoneDetailPage({ id }: { id: string }) {
+export function ZoneDetailPage({
+  id,
+  canTeam = true,
+}: {
+  id: string;
+  /** D178: the Team tab reads and manages the zone team, which is the access area */
+  canTeam?: boolean;
+}) {
   const url = useUrlState();
   const raw = url.params.get('tab');
-  const tab: Tab = (TABS as readonly string[]).includes(raw ?? '') ? (raw as Tab) : 'overview';
+  const tab: Tab =
+    (TABS as readonly string[]).includes(raw ?? '') && (raw !== 'team' || canTeam)
+      ? (raw as Tab)
+      : 'overview';
   const zone = useZone(id);
   const [editing, setEditing] = useState(false);
   const [action, setAction] = useState<ZoneAction | null>(null);
@@ -150,7 +160,7 @@ export function ZoneDetailPage({ id }: { id: string }) {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="pincodes">Pincodes</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
+          {canTeam ? <TabsTrigger value="team">Team</TabsTrigger> : null}
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
@@ -162,9 +172,11 @@ export function ZoneDetailPage({ id }: { id: string }) {
         <TabsContent value="services">
           <ServicesTab zone={{ id: z.id, name: z.name }} />
         </TabsContent>
-        <TabsContent value="team">
-          <TeamTab zoneId={z.id} />
-        </TabsContent>
+        {canTeam ? (
+          <TabsContent value="team">
+            <TeamTab zoneId={z.id} zoneCode={z.code} />
+          </TabsContent>
+        ) : null}
         <TabsContent value="activity">
           <Card>
             <CardHeader title="Activity" subtitle="Every change to this zone, newest first." />
@@ -335,7 +347,7 @@ function Fact({ icon, label, value }: { icon: ReactNode; label: string; value: s
   );
 }
 
-function TeamTab({ zoneId }: { zoneId: string }) {
+function TeamTab({ zoneId, zoneCode }: { zoneId: string; zoneCode: string }) {
   const team = useZoneTeam(zoneId);
   if (team.isError) return <CardError what="The team" onRetry={() => void team.refetch()} />;
   if (!team.data) return <CardSkeleton rows={3} />;
@@ -346,7 +358,7 @@ function TeamTab({ zoneId }: { zoneId: string }) {
         subtitle="Zonal Admins assigned to this zone, with their access profile and limits."
         actions={
           <a
-            href={`/super-admin/access/teams?zone=${zoneId}`}
+            href={`/super-admin/access/teams?zone=${zoneCode}`}
             className="text-sm font-medium text-primary-strong hover:underline"
           >
             Manage team

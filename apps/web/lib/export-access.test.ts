@@ -20,6 +20,14 @@ const me = (global: boolean, zones: ReturnType<typeof zone>[]) =>
 describe('canExportList', () => {
   it('Super Admin: always; Zonal Admin: the module export and the zone switch, in the same zone', () => {
     expect(canExportList(me(true, []), 'orders')).toBe(true);
+    // D178: a non-primary Super Admin only with the exports area
+    const sa = (areas: string[]) =>
+      ({
+        permissions: { global: true, zones: [] },
+        controlAreas: { isPrimary: false, areas },
+      }) as unknown as MeResponse;
+    expect(canExportList(sa(['settings.refunds']), 'orders')).toBe(false);
+    expect(canExportList(sa(['exports']), 'orders')).toBe(true);
     expect(canExportList(me(false, [zone(['orders:view', 'orders:export'], true)]), 'orders')).toBe(
       true,
     );

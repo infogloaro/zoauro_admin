@@ -58,7 +58,7 @@ export function PlatformSettingsPage({
   const zones = useZoneOptions();
   const zone = zoneCode ? (zones.data?.data.find((z) => z.code === zoneCode) ?? null) : null;
   const platform = usePlatformSettings();
-  const zoneView = useZoneSettings(zone?.id ?? null);
+  const zoneView = useZoneSettings(zone?.id ?? null, areas);
   const [editing, setEditing] = useState<EditTarget | null>(null);
   const [resetting, setResetting] = useState<EditTarget | null>(null);
 

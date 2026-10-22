@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '@zoauro/api-client';
 import { SETTING_GROUPS, SETTINGS, type SettingGroup } from '@zoauro/shared';
 import { useCallback } from 'react';
 import { useApiClient } from '../../lib/api-client';
@@ -24,24 +25,31 @@ export type SettingItem = NonNullable<
   ReturnType<typeof usePlatformSettings>['data']
 >['data'][number];
 
-export function usePlatformSettings() {
+/** `enabled` false: the member holds no settings area (D178), so GET /settings would answer 403. */
+export function usePlatformSettings(enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: settingKeys.all,
+    enabled,
     queryFn: ({ signal }) => client.get('/settings', { signal }),
     staleTime: 15_000,
     retry: retryTransient,
   });
 }
 
-export function useZoneSettings(zoneId: string | null) {
+/**
+ * A zone's effective values. D178: a non-primary Super Admin reads only the settings groups granted (`areas`, null =
+ * every group); a group refused anyway (403) is left out rather than failing the whole view.
+ */
+export function useZoneSettings(zoneId: string | null, areas: readonly string[] | null = null) {
   const client = useApiClient();
+  const groups = ZONE_GROUPS.filter((g) => areas === null || areas.includes(`settings.${g}`));
   return useQuery({
-    queryKey: settingKeys.zone(zoneId ?? ''),
+    queryKey: [...settingKeys.zone(zoneId ?? ''), groups],
     enabled: zoneId !== null,
     queryFn: async ({ signal }) => {
-      const groups = await Promise.all(
-        ZONE_GROUPS.map((group) =>
+      const answers = await Promise.allSettled(
+        groups.map((group) =>
           client.get('/settings/{group}', {
             params: { group },
             query: { zoneId: zoneId ?? '' },
@@ -49,7 +57,14 @@ export function useZoneSettings(zoneId: string | null) {
           }),
         ),
       );
-      return groups.flatMap((g) => g.data).filter((s) => s.zoneOverride);
+      const failed = answers.find(
+        (a): a is PromiseRejectedResult =>
+          a.status === 'rejected' && !(a.reason instanceof ApiError && a.reason.status === 403),
+      );
+      if (failed) throw failed.reason;
+      return answers
+        .flatMap((a) => (a.status === 'fulfilled' ? a.value.data : []))
+        .filter((s) => s.zoneOverride);
     },
     staleTime: 15_000,
     retry: retryTransient,

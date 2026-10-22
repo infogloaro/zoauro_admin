@@ -38,7 +38,7 @@ const zone = (over: Record<string, unknown>) => ({
   ...over,
 });
 
-function setup() {
+function setup(areas?: { isPrimary: boolean; areas: string[] }) {
   const put = vi.fn(async (path: string, init?: unknown) => {
     void path;
     void init;
@@ -69,9 +69,24 @@ function setup() {
       <ApiClientProvider client={client}>{children}</ApiClientProvider>
     </QueryClientProvider>
   );
-  render(<ControlPanelPage />, { wrapper: wrap });
-  return { put };
+  render(<ControlPanelPage areas={areas} />, { wrapper: wrap });
+  return { put, get };
 }
+
+describe('Control Panel: D178 areas (W2)', () => {
+  it('a non-primary Super Admin sees only the controls of the granted areas; no settings call without one', async () => {
+    const { get } = setup({ isPrimary: false, areas: ['access'] });
+    expect(await screen.findByRole('link', { name: /Zonal Admins/ })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Zone teams/ })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /^Zones/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Security/ })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Platform settings' })).toBeNull();
+    expect(get.mock.calls.map(([p]) => p)).not.toContain('/settings');
+    // the service switches are zone writes: off without the zones area
+    const sw = await screen.findAllByRole('switch');
+    expect(sw.every((x) => (x as HTMLButtonElement).disabled)).toBe(true);
+  });
+});
 
 describe('Control Panel: services by zone', () => {
   it('shows one switch per zone and service with the current state, and counts per service', async () => {
