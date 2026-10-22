@@ -25,11 +25,13 @@ export function createOnboardingModule(deps: {
   prisma: ConstructorParameters<typeof OnboardingDatabase>[0];
   appOrigin: string;
   claims: OnboardingDeps['claims'];
+  ageWarnings?: OnboardingDeps['ageWarnings'];
   clock?: () => Date;
 }): { router: Router; service: OnboardingService } {
   const service = new OnboardingService({
     db: new OnboardingDatabase(deps.prisma),
     claims: deps.claims,
+    ...(deps.ageWarnings ? { ageWarnings: deps.ageWarnings } : {}),
     clock: deps.clock ?? (() => new Date()),
   });
   const router = Router();

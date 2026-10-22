@@ -1,6 +1,5 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
 import {
-  ONBOARDING_AGE_WARNINGS,
   type OnboardingListQuery,
   type OnboardingModule,
   type OnboardingStage,
@@ -84,6 +83,12 @@ const TABLE: Record<OnboardingModule, Prisma.Sql> = {
   hotels: Prisma.sql`hotels`,
 };
 
+/** settings onboarding.ageWarnings (D170): hours after which a stage shows as WARN and LATE */
+export interface AgeWarnings {
+  warnHours: number;
+  lateHours: number;
+}
+
 export class OnboardingRepository {
   constructor(private readonly db: Prisma.TransactionClient) {}
 
@@ -120,9 +125,9 @@ export class OnboardingRepository {
       WHERE t.deleted_at IS NULL AND ${this.scope(ctx, 'hotels', t)}`;
   }
 
-  private ageLevel(now: Date): Prisma.Sql {
-    const warn = new Date(now.getTime() - ONBOARDING_AGE_WARNINGS.warnHours * 3_600_000);
-    const late = new Date(now.getTime() - ONBOARDING_AGE_WARNINGS.lateHours * 3_600_000);
+  private ageLevel(now: Date, w: AgeWarnings): Prisma.Sql {
+    const warn = new Date(now.getTime() - w.warnHours * 3_600_000);
+    const late = new Date(now.getTime() - w.lateHours * 3_600_000);
     return Prisma.sql`CASE WHEN q.stage_at <= ${late} THEN 'LATE' WHEN q.stage_at <= ${warn} THEN 'WARN' ELSE 'OK' END`;
   }
 
@@ -130,11 +135,12 @@ export class OnboardingRepository {
     ctx: AuthContext,
     query: OnboardingListQuery,
     now: Date,
+    w: AgeWarnings,
   ): Promise<{ rows: OnboardingRow[]; total: number }> {
     const and: Prisma.Sql[] = [Prisma.sql`TRUE`];
     if (query.type) and.push(Prisma.sql`q.type = ${query.type}`);
     and.push(query.stage ? Prisma.sql`q.stage = ${query.stage}` : Prisma.sql`q.stage <> 'DECIDED'`);
-    if (query.age) and.push(Prisma.sql`${this.ageLevel(now)} = ${query.age}`);
+    if (query.age) and.push(Prisma.sql`${this.ageLevel(now, w)} = ${query.age}`);
     if (query.q)
       and.push(Prisma.sql`q.name ILIKE ${`%${query.q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`}`);
     const where = Prisma.join(and, ' AND ');
@@ -159,12 +165,13 @@ export class OnboardingRepository {
     ctx: AuthContext,
     q: string | undefined,
     now: Date,
+    w: AgeWarnings,
   ): Promise<{ stage: string; type: string; age: string; n: number }[]> {
     const search = q
       ? Prisma.sql`q.name ILIKE ${`%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`}`
       : Prisma.sql`TRUE`;
     const rows = await this.db.$queryRaw<{ stage: string; type: string; age: string; n: bigint }[]>`
-      SELECT q.stage, q.type, ${this.ageLevel(now)} AS age, count(*) AS n FROM (${this.union(ctx)}) q
+      SELECT q.stage, q.type, ${this.ageLevel(now, w)} AS age, count(*) AS n FROM (${this.union(ctx)}) q
       WHERE ${search} GROUP BY 1, 2, 3`;
     return rows.map((r) => ({ stage: r.stage, type: r.type, age: r.age, n: Number(r.n) }));
   }

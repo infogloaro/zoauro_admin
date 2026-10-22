@@ -1,5 +1,6 @@
 import {
   ONBOARDING_AGE_LEVELS,
+  ONBOARDING_AGE_WARNINGS,
   ONBOARDING_STAGES,
   ONBOARDING_TYPES,
   onboardingAgeLevel,
@@ -19,7 +20,7 @@ import {
 import { record, uuidv7 } from '../../lib/audit';
 import { assertCanWrite, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
-import type { OnboardingDatabase, OnboardingRow } from './onboarding.repository';
+import type { AgeWarnings, OnboardingDatabase, OnboardingRow } from './onboarding.repository';
 
 // Onboarding queue (D170, D174). Start review: the reviewer claims the record (D174 claims service; someone else's
 // live claim is 409 RECORD_CLAIMED) and the stage moves to UNDER_REVIEW. More info: UNDER_REVIEW → MORE_INFO_REQUIRED
@@ -38,6 +39,8 @@ const ENTITY: Record<
 const HOUR = 3_600_000;
 
 export interface OnboardingDeps {
+  /** settings onboarding.ageWarnings (SettingsReader.onboardingAgeWarnings) */
+  ageWarnings?: () => Promise<AgeWarnings>;
   db: OnboardingDatabase;
   /** the access module's claims service (D174) */
   claims: {
@@ -50,17 +53,23 @@ export interface OnboardingDeps {
 export class OnboardingService {
   constructor(private readonly deps: OnboardingDeps) {}
 
+  /** settings onboarding.ageWarnings, or the D170 defaults when no reader is wired (tests) */
+  private async warnings(): Promise<AgeWarnings> {
+    return (await this.deps.ageWarnings?.()) ?? ONBOARDING_AGE_WARNINGS;
+  }
+
   async list(ctx: AuthContext, q: OnboardingListQuery): Promise<OnboardingListResponse> {
+    const w = await this.warnings();
     const now = this.deps.clock();
     const [{ rows, total }, groups] = await Promise.all([
-      this.deps.db.repo.list(ctx, q, now),
-      this.deps.db.repo.counts(ctx, q.q, now),
+      this.deps.db.repo.list(ctx, q, now, w),
+      this.deps.db.repo.counts(ctx, q.q, now, w),
     ]);
     const messages = await this.deps.db.repo.lastMessages(
       rows.filter((r) => r.stage === 'MORE_INFO_REQUIRED').map((r) => r.id),
     );
     return {
-      data: rows.map((r) => item(r, now, messages.get(r.id) ?? null)),
+      data: rows.map((r) => item(r, now, messages.get(r.id) ?? null, w)),
       meta: { page: q.page, pageSize: q.pageSize, total, counts: counts(groups) },
     };
   }
@@ -174,14 +183,19 @@ export class OnboardingService {
     });
     const after = await this.deps.db.repo.one(ctx, module, seen.id);
     if (!after) throw notFound();
-    return item(after, now, message ?? null);
+    return item(after, now, message ?? null, await this.warnings());
   }
 }
 
 const label = (m: OnboardingModule) => (m === 'hotels' ? 'hotel' : 'vendor');
 const words = (s: string) => s.replace(/_/g, ' ').toLowerCase();
 
-function item(r: OnboardingRow, now: Date, moreInfoMessage: string | null): OnboardingItem {
+function item(
+  r: OnboardingRow,
+  now: Date,
+  moreInfoMessage: string | null,
+  w: AgeWarnings,
+): OnboardingItem {
   const ageHours = Math.max(0, Math.floor((now.getTime() - r.stageAt.getTime()) / HOUR));
   return {
     module: r.module,
@@ -196,7 +210,7 @@ function item(r: OnboardingRow, now: Date, moreInfoMessage: string | null): Onbo
     stage: r.stage,
     stageAt: r.stageAt.toISOString(),
     ageHours,
-    ageLevel: onboardingAgeLevel(ageHours),
+    ageLevel: onboardingAgeLevel(ageHours, w),
     status: r.status as VendorStatus,
     verificationStatus: r.verificationStatus as VerificationStatus,
     moreInfoMessage: r.stage === 'MORE_INFO_REQUIRED' ? moreInfoMessage : null,

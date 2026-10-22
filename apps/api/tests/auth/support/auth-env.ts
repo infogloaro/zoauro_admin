@@ -517,6 +517,7 @@ export async function createAuthTestEnv() {
         prisma,
         appOrigin: APP_ORIGIN,
         claims: accessControl.claims,
+        ageWarnings: () => settings.reader.onboardingAgeWarnings(),
         clock: clock.now,
       }).router,
       createPlansModule({ prisma, appOrigin: APP_ORIGIN, clock: clock.now }).router,

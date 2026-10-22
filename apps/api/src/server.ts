@@ -369,6 +369,7 @@ const app = createApp({
         prisma,
         appOrigin: new URL(env.APP_URL).origin,
         claims: accessControl.claims,
+        ageWarnings: () => settings.reader.onboardingAgeWarnings(), // D170
       }).router,
       // D188 vendor plans (catalogue writes Super Admin only)
       createPlansModule({ prisma, appOrigin: new URL(env.APP_URL).origin }).router,
