@@ -165,12 +165,54 @@ export const payoutRowSchema = z.object({
   netPaise: paise,
   /** D152: the vendor share of vendor-fault refunds decided within the period (0 for delivery partners) */
   vendorRefundsPaise: paise,
+  /** PAYOUT_STATUSES (a text column: older rows may hold another code) */
   status: z.string(),
   paidAt: isoOut.nullable(),
   paidBy: userRef.nullable(),
+  /** F4: the bank / UPI reference and note given when marked paid */
+  paidReference: z.string().nullable(),
+  paidNote: z.string().nullable(),
+  /** F4: the amount paid (net minus vendor-fault refunds, a snapshot); null on rows paid before F4 */
+  paidPaise: paise.nullable(),
+  /** If-Match for POST /payouts/{id}/mark-paid */
+  version: z.number().int(),
   createdAt: isoOut,
 });
 export type PayoutRow = z.infer<typeof payoutRowSchema>;
+
+/** F4: payout status values (handoff #1 settled for payouts; the column stays text). */
+export const PAYOUT_STATUSES = ['PENDING', 'PAID'] as const;
+export type PayoutStatus = (typeof PAYOUT_STATUSES)[number];
+
+export const payoutIdParamsSchema = z.object({ id: z.uuid() });
+
+/**
+ * POST /payouts/{id}/mark-paid (doc 09, doc 16 §5): a manual payout recorded by a Super Admin. paidOn is the IST day it
+ * was paid, not before the period's end nor after today.
+ */
+export const payoutMarkPaidSchema = z
+  .object({
+    reference: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z0-9-]{6,40}$/, 'the UTR, NEFT or UPI reference'),
+    paidOn: day,
+    note: z.string().trim().min(3).max(300).optional(),
+  })
+  .strict();
+export type PayoutMarkPaidInput = z.infer<typeof payoutMarkPaidSchema>;
+
+/** `If-Match: <version>` of a payout write; a weak or quoted value is accepted. */
+export const payoutIfMatchSchema = z.preprocess(
+  (v) =>
+    typeof v === 'string'
+      ? v
+          .trim()
+          .replace(/^W\//, '')
+          .replace(/^"(.*)"$/, '$1')
+      : v,
+  z.coerce.number().int().min(1),
+);
 
 export const payoutListResponseSchema = z.object({
   data: z.array(payoutRowSchema),

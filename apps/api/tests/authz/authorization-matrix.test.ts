@@ -290,7 +290,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 8 vendor plans (D188)
     // + 1 COD hand-in (POST /cash-settlements, D173)
     // + 1 order cancel reasons (D190)
-    expect(report.coveredRoutes).toHaveLength(255);
+    // + 1 payout mark-paid (F4a)
+    expect(report.coveredRoutes).toHaveLength(256);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

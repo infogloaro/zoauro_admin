@@ -2458,6 +2458,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/payouts/{id}/mark-paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays net minus the vendor-fault refunds (kept as paidPaise); ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK */
+        post: operations["markPayoutPaid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/refunds": {
         parameters: {
             query?: never;
@@ -20061,6 +20078,9 @@ export interface operations {
                                 id: string;
                                 name: string;
                             } | null;
+                            paidNote: string | null;
+                            paidPaise: number | null;
+                            paidReference: string | null;
                             payee: {
                                 /** Format: uuid */
                                 id: string;
@@ -20074,6 +20094,7 @@ export interface operations {
                             periodTo: string;
                             status: string;
                             vendorRefundsPaise: number;
+                            version: number;
                             zone: {
                                 code: string;
                                 /** Format: uuid */
@@ -20123,6 +20144,122 @@ export interface operations {
             };
             /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    markPayoutPaid: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                    /** Format: date */
+                    paidOn: string;
+                    reference: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Paid */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        commissionPaise: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        grossPaise: number;
+                        /** Format: uuid */
+                        id: string;
+                        netPaise: number;
+                        /** Format: date-time */
+                        paidAt: string | null;
+                        paidBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        paidNote: string | null;
+                        paidPaise: number | null;
+                        paidReference: string | null;
+                        payee: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        };
+                        /** Format: date */
+                        periodFrom: string;
+                        /** Format: date */
+                        periodTo: string;
+                        status: string;
+                        vendorRefundsPaise: number;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

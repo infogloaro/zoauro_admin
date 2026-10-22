@@ -52,6 +52,10 @@ const payoutSelect = {
   net: true,
   status: true,
   paidAt: true,
+  paidReference: true,
+  paidNote: true,
+  paidAmount: true,
+  version: true,
   createdAt: true,
   zone: zoneSelect,
   payer: { select: { id: true, name: true } },
@@ -222,6 +226,90 @@ export class SettlementsRepository {
       this.db.deliveryPartner.count({ where: { AND: [base, { cashInHand: { gt: 0 } }] } }),
     ]);
     return { partners: sums._count._all, withCash, cashInHand: sums._sum.cashInHand ?? 0 };
+  }
+
+  // ---- marking a payout paid (F4) ------------------------------------------------------------------------------------
+
+  /** The payout under a row lock. */
+  async lockPayout(id: string) {
+    const rows = await this.db.$queryRaw<
+      {
+        id: string;
+        status: string;
+        version: number;
+        zone_id: string;
+        payee_type: 'RESTAURANT' | 'HOMEMAKER' | 'DELIVERY_PARTNER';
+        payee_id: string;
+        period_from: Date;
+        period_to: Date;
+        net: number;
+      }[]
+    >`SELECT id, status, version, zone_id, payee_type::text AS payee_type, payee_id, period_from, period_to, net
+      FROM payouts WHERE id = ${id}::uuid FOR UPDATE`;
+    const p = rows[0];
+    return p
+      ? {
+          id: p.id,
+          status: p.status,
+          version: p.version,
+          zoneId: p.zone_id,
+          payeeType: p.payee_type,
+          payeeId: p.payee_id,
+          periodFrom: p.period_from,
+          periodTo: p.period_to,
+          net: p.net,
+        }
+      : null;
+  }
+
+  async payoutById(id: string): Promise<PayoutRecord | null> {
+    return this.db.payout.findUnique({ where: { id }, select: payoutSelect });
+  }
+
+  /**
+   * Refunds of the vendor in the payout's zone that would still change what it is owed for the period (doc 16 §7
+   * freeze), in the same window as the D152 deduction: approved vendor-fault refunds decided in the window, and refunds
+   * not decided yet that were requested in it.
+   */
+  async openVendorRefunds(vendorId: string, zoneId: string, from: Date, to: Date): Promise<number> {
+    return this.db.refund.count({
+      where: {
+        zoneId,
+        order: { OR: [{ restaurantId: vendorId }, { homemakerId: vendorId }] },
+        OR: [
+          {
+            status: 'APPROVED',
+            fault: 'VENDOR',
+            vendorSharePaise: { gt: 0 },
+            decidedAt: { gte: from, lt: to },
+          },
+          {
+            status: { in: ['REQUESTED', 'PENDING_APPROVAL'] },
+            decidedAt: null,
+            requestedAt: { gte: from, lt: to },
+          },
+        ],
+      },
+    });
+  }
+
+  /** PENDING -> PAID at the expected version; false when another write got there first. */
+  async markPaid(
+    id: string,
+    version: number,
+    data: {
+      paidAt: Date;
+      paidBy: string;
+      paidReference: string;
+      paidNote: string | null;
+      paidAmount: number;
+    },
+  ): Promise<boolean> {
+    const r = await this.db.payout.updateMany({
+      where: { id, version, status: 'PENDING' },
+      data: { ...data, status: 'PAID', version: { increment: 1 } },
+    });
+    return r.count === 1;
   }
 
   // ---- payouts (D152) ------------------------------------------------------------------------------------------------

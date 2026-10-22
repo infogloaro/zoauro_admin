@@ -1247,20 +1247,25 @@ model Refund {
 }
 
 model Payout {
-  id         String    @id @db.Uuid
-  payeeType  PayeeType @map("payee_type")
-  payeeId    String    @map("payee_id") @db.Uuid // polymorphic with payee_type: no foreign key
-  zoneId     String    @map("zone_id") @db.Uuid
-  periodFrom DateTime  @map("period_from") @db.Date
-  periodTo   DateTime  @map("period_to") @db.Date
-  gross      Int // paise
-  commission Int
-  net        Int
-  status     String // values not given in doc 08 (see handoff)
-  paidAt     DateTime? @map("paid_at") @db.Timestamptz
-  paidBy     String?   @map("paid_by") @db.Uuid
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  id            String    @id @db.Uuid
+  payeeType     PayeeType @map("payee_type")
+  payeeId       String    @map("payee_id") @db.Uuid // polymorphic with payee_type: no foreign key
+  zoneId        String    @map("zone_id") @db.Uuid
+  periodFrom    DateTime  @map("period_from") @db.Date
+  periodTo      DateTime  @map("period_to") @db.Date
+  gross         Int // paise
+  commission    Int
+  net           Int
+  status        String // PENDING | PAID (PAYOUT_STATUSES, text column)
+  paidAt        DateTime? @map("paid_at") @db.Timestamptz
+  paidBy        String?   @map("paid_by") @db.Uuid
+  // F4 mark-paid: the bank / UPI reference, a note and the amount paid (net minus vendor-fault refunds, a snapshot)
+  paidReference String?   @map("paid_reference")
+  paidNote      String?   @map("paid_note")
+  paidAmount    Int?      @map("paid_amount") // paise
+  version       Int       @default(1)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   zone  Zone  @relation(fields: [zoneId], references: [id], onDelete: Restrict)
   payer User? @relation(fields: [paidBy], references: [id], onDelete: Restrict)

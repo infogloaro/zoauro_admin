@@ -5,7 +5,10 @@ import {
   cashSettlementListResponseSchema,
   codBalanceListResponseSchema,
   codBalanceQuerySchema,
+  payoutIdParamsSchema,
   payoutListQuerySchema,
+  payoutMarkPaidSchema,
+  payoutRowSchema,
   payoutListResponseSchema,
 } from '@zoauro/shared';
 import type { OperationDef } from './operations';
@@ -58,5 +61,21 @@ export const SETTLEMENT_OPERATIONS: OperationDef[] = [
     access: { kind: 'permission', permission: 'payouts:view', zone: 'query' },
     query: payoutListQuerySchema,
     response: { status: 200, schema: payoutListResponseSchema, description: 'One page' },
+  },
+  {
+    operationId: 'markPayoutPaid',
+    method: 'post',
+    path: '/payouts/{id}/mark-paid',
+    tags: ['payouts'],
+    summary:
+      'Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays net minus the vendor-fault refunds (kept as paidPaise); ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK',
+    access: { kind: 'permission', permission: 'payouts:edit', zone: 'none', reauth: 'PASSWORD' },
+    audit: { module: 'payouts', action: 'payout.marked_paid' },
+    params: payoutIdParamsSchema,
+    body: payoutMarkPaidSchema,
+    idempotent: true,
+    ifMatch: true,
+    response: { status: 200, schema: payoutRowSchema, description: 'Paid' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
   },
 ];

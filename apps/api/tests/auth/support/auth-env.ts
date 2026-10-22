@@ -506,6 +506,8 @@ export async function createAuthTestEnv() {
         appOrigin: APP_ORIGIN,
         cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
         codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+        requireReauth: auth.requireReauth, // F4 mark-paid
+        requireArea: (area) => controlAreas.require(area), // D178
         clock: clock.now,
       }).router,
       partners.router,

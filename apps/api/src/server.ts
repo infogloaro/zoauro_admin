@@ -361,6 +361,8 @@ const app = createApp({
         appOrigin: new URL(env.APP_URL).origin,
         cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
         codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+        requireReauth: auth.requireReauth, // F4 mark-paid
+        requireArea: (area) => controlAreas.require(area), // D178
       }).router,
       partners.router,
       notifications.router,

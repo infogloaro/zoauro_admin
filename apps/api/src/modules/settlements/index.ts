@@ -1,14 +1,19 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import {
   cashSettlementCreateSchema,
   cashSettlementListQuerySchema,
   codBalanceQuerySchema,
+  payoutIdParamsSchema,
+  payoutIfMatchSchema,
   payoutListQuerySchema,
+  payoutMarkPaidSchema,
 } from '@zoauro/shared';
 import { auditMeta } from '../../lib/audit';
 import { originCheck, requireCsrf, requireJsonBody } from '../../lib/auth/middleware';
+import type { ReauthLevel } from '../../lib/auth/session-store';
 import { authContextOf, requirePermission } from '../../lib/authz';
-import { parseBody } from '../../lib/errors';
+import { AppError, parseBody } from '../../lib/errors';
+import { idempotency, IdempotencyRepository } from '../../lib/idempotency';
 import { auditOf } from '../../openapi/operations';
 import { SettlementsDatabase } from './settlements.repository';
 import { SettlementsService } from './settlements.service';
@@ -27,6 +32,10 @@ export function createSettlementsModule(deps: {
   cycleDays: (zoneId: string) => Promise<number>;
   /** settings delivery.codLimitPaise (SettingsReader.codLimitPaise) */
   codLimit: (zoneId: string) => Promise<number>;
+  /** the step-up guard (POST /payouts/{id}/mark-paid needs PASSWORD); absent: the route is not mounted */
+  requireReauth?: (level: ReauthLevel) => RequestHandler;
+  /** D178: the Control Panel area guard (mark-paid needs settings.payouts for a non-primary) */
+  requireArea?: (area: string) => RequestHandler;
   clock?: () => Date;
 }): { router: Router; service: SettlementsService } {
   const service = new SettlementsService({
@@ -73,5 +82,39 @@ export function createSettlementsModule(deps: {
       await service.payouts(authContextOf(res), parseBody(payoutListQuerySchema, req.query)),
     );
   });
+  // F4: a Super Admin records a manual payout (payouts:edit is never grantable: Zonal Admins get 403)
+  if (deps.requireReauth)
+    router.post(
+      '/payouts/:id/mark-paid',
+      originCheck(deps.appOrigin),
+      requirePermission('payouts', 'edit'),
+      ...(deps.requireArea ? [deps.requireArea('settings.payouts')] : []),
+      requireCsrf,
+      deps.requireReauth('PASSWORD'),
+      requireJsonBody,
+      auditMeta(auditOf('markPayoutPaid')),
+      idempotency({
+        store: new IdempotencyRepository(deps.prisma),
+        clock: deps.clock ?? (() => new Date()),
+      }),
+      async (req, res) => {
+        const version = payoutIfMatchSchema.safeParse(req.get('If-Match'));
+        if (!version.success)
+          throw new AppError('VALIDATION_ERROR', 'Send the payout version in the If-Match header', [
+            {
+              field: 'If-Match',
+              issue: req.get('If-Match') === undefined ? 'required' : 'invalid',
+            },
+          ]);
+        res.json(
+          await service.markPaid(
+            authContextOf(res),
+            parseBody(payoutIdParamsSchema, req.params).id,
+            version.data,
+            parseBody(payoutMarkPaidSchema, req.body),
+          ),
+        );
+      },
+    );
   return { router, service };
 }

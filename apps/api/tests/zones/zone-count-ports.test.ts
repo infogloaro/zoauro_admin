@@ -87,8 +87,9 @@ beforeAll(async () => {
   const pay = (status: string) =>
     q(
       `INSERT INTO payouts (id, payee_type, payee_id, zone_id, period_from, period_to, gross, commission, net, status,
-         updated_at)
-       VALUES ($1, 'RESTAURANT', $2, $3, '2026-10-12', '2026-10-18', 1000, 100, 900, $4, now())`,
+         paid_at, updated_at)
+       VALUES ($1, 'RESTAURANT', $2, $3, '2026-10-12', '2026-10-18', 1000, 100, 900, $4,
+         CASE WHEN $4 = 'PAID' THEN now() END, now())`,
       [uuidv7(), k, zone, status],
     );
   await pay('PENDING');

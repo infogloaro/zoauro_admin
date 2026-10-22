@@ -76,8 +76,9 @@ async function payout(
   const id = uuidv7();
   await q(
     `INSERT INTO payouts (id, payee_type, payee_id, zone_id, period_from, period_to, gross, commission, net, status,
-       updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())`,
+       paid_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+       CASE WHEN $10 = 'PAID' THEN now() END, now())`,
     [id, payeeType, payeeId, zoneId, from, to, net + 1_000, 1_000, net, status],
   );
   return id;
