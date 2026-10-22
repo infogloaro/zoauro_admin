@@ -1,6 +1,6 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
 import type { SettingHistoryQuery } from '@zoauro/shared';
-import { cursorFetchSize, settingDef } from '@zoauro/shared';
+import { cursorFetchSize, settingDef, SETTINGS } from '@zoauro/shared';
 import type { AuditTx } from '../../lib/audit';
 import { can, type AuthContext } from '../../lib/authz';
 import { auditTx } from '../../lib/db';
@@ -204,7 +204,8 @@ export class SettingsRepository {
       ...(q.key
         ? { entityLabel: q.key }
         : q.group
-          ? { entityLabel: { startsWith: `${q.group}.` } }
+          ? // the keys of the group (a group holds keys of other prefixes: orders has delivery.*)
+            { entityLabel: { in: SETTINGS.filter((s) => s.group === q.group).map((s) => s.key) } }
           : {}),
       ...(q.zoneId ? { zoneId: q.zoneId } : {}),
       ...(q.actorId ? { actorId: q.actorId } : {}),

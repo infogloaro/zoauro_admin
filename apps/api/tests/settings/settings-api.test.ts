@@ -172,6 +172,23 @@ describe('saving, versions, reset and history', () => {
     ).toBe('settings.reset');
   });
 
+  it('the history of a group lists every key of the group, whatever its prefix (orders holds delivery.*)', async () => {
+    await reauth(env, sa);
+    const r = await api().put('/settings/orders', {
+      values: { 'delivery.maxConcurrentOrders': { perPartner: 2 } },
+      reason: REASON,
+    });
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    const history = await api().get('/settings/history?group=orders');
+    expect(history.body.data.map((h: { key: string }) => h.key)).toContain(
+      'delivery.maxConcurrentOrders',
+    );
+    const other = await api().get('/settings/history?group=notifications');
+    expect(other.body.data.map((h: { key: string }) => h.key)).not.toContain(
+      'delivery.maxConcurrentOrders',
+    );
+  });
+
   it('D112: refund limits and the SMS provider need STRONG; a password alone is refused', async () => {
     await reauth(env, sa);
     const body = {
