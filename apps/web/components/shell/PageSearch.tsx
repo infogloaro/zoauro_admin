@@ -60,7 +60,10 @@ export interface SearchOption {
   seeAll?: boolean;
 }
 
-/** Pages first, then each record group the member may view (null groups are left out), each closed by "see all". */
+/**
+ * Pages first, then each record group the member may view (null groups are left out), each closed by "see all"; for a
+ * Super Admin, last, every result on the Global Search page.
+ */
 export function searchOptions(
   pages: readonly MenuItem[],
   groups: Partial<Record<RecordGroup, SearchRow[] | null>> | undefined,
@@ -95,6 +98,15 @@ export function searchOptions(
       seeAll: true,
     });
   }
+  // a Super Admin's Global Search page (no sidebar entry since 2026-10-22): every group on one page
+  if (groups && role === 'SUPER_ADMIN')
+    out.push({
+      key: 'search:all',
+      section: 'Global Search',
+      label: `See all results for “${term}”`,
+      href: `/super-admin/search?q=${encodeURIComponent(term)}`,
+      seeAll: true,
+    });
   return out;
 }
 

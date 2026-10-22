@@ -57,7 +57,12 @@ describe('searchOptions', () => {
       'orders:all',
       `partners:${partner.id}`,
       'partners:all',
+      'search:all',
     ]);
+    expect(opts[4]?.href).toBe('/super-admin/search?q=ravi%20k');
+    expect(searchOptions([], groups, 'ZONAL_ADMIN', 'ravi').map((o) => o.key)).not.toContain(
+      'search:all',
+    );
     expect(opts[1]?.href).toBe('/super-admin/orders?q=ravi%20k');
     expect(opts[3]?.href).toBe('/super-admin/delivery-partners?q=ravi%20k');
     expect(searchOptions([], groups, 'ZONAL_ADMIN', 'ravi')[3]?.href).toBe(

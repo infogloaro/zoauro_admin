@@ -101,7 +101,8 @@ describe('module catalogue (doc 39 + roadmap)', () => {
 describe('menu by role', () => {
   it('Super Admin: every module; live ones link to their page, the rest to /coming-soon/<slug>', () => {
     const menu = menuFor('SUPER_ADMIN', []);
-    expect(menu).toHaveLength(NAV_MODULES.length);
+    // every module but Global Search, which has no sidebar entry (menu: false)
+    expect(menu).toHaveLength(NAV_MODULES.filter((m) => m.menu !== false).length);
     const byId = Object.fromEntries(menu.map((m) => [m.id, m]));
     expect(byId['M16']).toMatchObject({ status: 'live', href: '/super-admin/dashboard' });
     expect(byId['M04-ACT']).toMatchObject({ status: 'live', href: '/super-admin/activity' });
@@ -255,6 +256,30 @@ describe('menu by role', () => {
     expect(sa.map((g) => g.id)).toEqual(NAV_GROUPS.map((g) => g.id));
     const zonal = groupedMenu(menuFor('ZONAL_ADMIN', []));
     expect(zonal.map((g) => g.id)).toEqual(['overview', 'requests', 'account']);
+  });
+
+  it('Audit & Logs gathers every history; Global Search has no sidebar entry (owner, 2026-10-22)', () => {
+    const sa = groupedMenu(menuFor('SUPER_ADMIN', []));
+    expect(sa.find((g) => g.id === 'audit')?.items.map((i) => i.label)).toEqual([
+      'Audit & Logs',
+      'Recent Activities',
+      'Access History',
+      'Settings History',
+    ]);
+    expect(sa.find((g) => g.id === 'audit')?.label).toBe('Audit & Logs');
+    expect(menuFor('SUPER_ADMIN', []).map((i) => i.id)).not.toContain('M18');
+    // the areas still decide: a non-primary with none of audit, access or settings gets no group at all
+    const meena = groupedMenu(menuFor('SUPER_ADMIN', [], { isPrimary: false, areas: ['zones'] }));
+    expect(meena.map((g) => g.id)).not.toContain('audit');
+    const auditOnly = groupedMenu(
+      menuFor('SUPER_ADMIN', [], { isPrimary: false, areas: ['audit'] }),
+    );
+    expect(auditOnly.find((g) => g.id === 'audit')?.items.map((i) => i.id)).toEqual([
+      'M04',
+      'M04-ACT',
+    ]);
+    const zonal = groupedMenu(menuFor('ZONAL_ADMIN', [zone('A', ['orders:view', 'audit:view'])]));
+    expect(zonal.map((g) => g.id)).not.toContain('audit');
   });
 
   it('the active entry is the longest matching link', () => {

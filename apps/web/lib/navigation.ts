@@ -21,6 +21,7 @@ export type NavGroupId =
   | 'finance'
   | 'engagement'
   | 'administration'
+  | 'audit'
   | 'account';
 
 export const NAV_GROUPS: readonly { id: NavGroupId; label: string }[] = [
@@ -33,6 +34,7 @@ export const NAV_GROUPS: readonly { id: NavGroupId; label: string }[] = [
   { id: 'finance', label: 'Payments & Finance' },
   { id: 'engagement', label: 'Support & Engagement' },
   { id: 'administration', label: 'Administration' },
+  { id: 'audit', label: 'Audit & Logs' },
   { id: 'account', label: 'My Account' },
 ];
 
@@ -98,6 +100,8 @@ export interface NavModule {
   superAdminHref?: string;
   /** shown to a Super Admin (default true) */
   superAdmin?: boolean;
+  /** false: a module (and its page) with no sidebar entry, reached from elsewhere (Global Search: the top-bar search) */
+  menu?: false;
   /** Zonal Admin entry (doc 18 section 3); absent = never shown to a Zonal Admin */
   zonal?: {
     href?: string;
@@ -128,18 +132,6 @@ export const NAV_MODULES: readonly NavModule[] = [
     status: 'live',
     superAdminHref: '/super-admin/dashboard',
     zonal: { href: '/zone/dashboard' },
-  },
-  {
-    id: 'M04-ACT',
-    slug: 'recent-activity',
-    label: 'Recent Activities',
-    group: 'overview',
-    icon: 'activity',
-    description:
-      'Organisation-wide activity feed from the audit trail: who changed what, and when.',
-    status: 'live',
-    area: 'audit',
-    superAdminHref: '/super-admin/activity',
   },
 
   // ---- Requests & Approvals (roadmap Phase 1, P0) ----------------------------------------------------------------------
@@ -559,17 +551,6 @@ export const NAV_MODULES: readonly NavModule[] = [
     superAdminHref: '/super-admin/access/teams',
   },
   {
-    id: 'M03-HIST',
-    slug: 'access-history',
-    label: 'Access History',
-    group: 'administration',
-    icon: 'activity',
-    description: 'Every access change: who changed whose access, in which zone, before and after.',
-    status: 'live',
-    area: 'access',
-    superAdminHref: '/super-admin/access/history',
-  },
-  {
     id: 'M19-SEC',
     slug: 'security-settings',
     label: 'Security Settings',
@@ -591,28 +572,6 @@ export const NAV_MODULES: readonly NavModule[] = [
     status: 'live',
     area: 'settings',
     superAdminHref: '/super-admin/settings/platform',
-  },
-  {
-    id: 'M19-HIST',
-    slug: 'settings-history',
-    label: 'Settings History',
-    group: 'administration',
-    icon: 'activity',
-    description: 'Every setting change: before and after, platform or zone, who, why and when.',
-    status: 'live',
-    area: 'settings',
-    superAdminHref: '/super-admin/settings/history',
-  },
-  {
-    id: 'M04',
-    slug: 'system-logs',
-    label: 'Audit & Logs',
-    group: 'administration',
-    icon: 'logs',
-    description: 'System logs and sign-in history: who did what, when and where.',
-    status: 'live',
-    area: 'audit',
-    superAdminHref: '/super-admin/settings/logs',
   },
   {
     id: 'M21',
@@ -637,9 +596,58 @@ export const NAV_MODULES: readonly NavModule[] = [
     icon: 'search',
     description:
       'One search box across orders, vendors, partners and customers, limited to what you may see.',
-    // Zonal Admins search from the top bar (Ctrl+K); the page is the Super Admin's menu entry
+    // owner, 2026-10-22: no sidebar entry, as the top bar searches on every page (Ctrl+K); a Super Admin reaches the
+    // results page from there ("See all results" or Enter)
     status: 'live',
     superAdminHref: '/super-admin/search',
+    menu: false,
+  },
+
+  // ---- Audit & Logs (owner, 2026-10-22: every history in one place; areas, hrefs and visibility unchanged) --------------
+  {
+    id: 'M04',
+    slug: 'system-logs',
+    label: 'Audit & Logs',
+    group: 'audit',
+    icon: 'logs',
+    description: 'System logs and sign-in history: who did what, when and where.',
+    status: 'live',
+    area: 'audit',
+    superAdminHref: '/super-admin/settings/logs',
+  },
+  {
+    id: 'M04-ACT',
+    slug: 'recent-activity',
+    label: 'Recent Activities',
+    group: 'audit',
+    icon: 'activity',
+    description:
+      'Organisation-wide activity feed from the audit trail: who changed what, and when.',
+    status: 'live',
+    area: 'audit',
+    superAdminHref: '/super-admin/activity',
+  },
+  {
+    id: 'M03-HIST',
+    slug: 'access-history',
+    label: 'Access History',
+    group: 'audit',
+    icon: 'activity',
+    description: 'Every access change: who changed whose access, in which zone, before and after.',
+    status: 'live',
+    area: 'access',
+    superAdminHref: '/super-admin/access/history',
+  },
+  {
+    id: 'M19-HIST',
+    slug: 'settings-history',
+    label: 'Settings History',
+    group: 'audit',
+    icon: 'activity',
+    description: 'Every setting change: before and after, platform or zone, who, why and when.',
+    status: 'live',
+    area: 'settings',
+    superAdminHref: '/super-admin/settings/history',
   },
 
   // ---- My Account -----------------------------------------------------------------------------------------------------
@@ -732,18 +740,20 @@ export function menuFor(
   zones: readonly MeZone[],
   controlAreas?: { isPrimary: boolean; areas: readonly string[] } | null,
 ): MenuItem[] {
-  return visibleModules(role, zones, controlAreas).map((m) => {
-    const live = role === 'SUPER_ADMIN' ? m.superAdminHref : m.zonal?.href;
-    const isLive = m.status === 'live' && live !== undefined;
-    return {
-      id: m.id,
-      label: m.label,
-      group: m.group,
-      icon: m.icon,
-      status: isLive ? 'live' : 'coming-soon',
-      href: isLive ? live : comingSoonHref(m.slug),
-    };
-  });
+  return visibleModules(role, zones, controlAreas)
+    .filter((m) => m.menu !== false)
+    .map((m) => {
+      const live = role === 'SUPER_ADMIN' ? m.superAdminHref : m.zonal?.href;
+      const isLive = m.status === 'live' && live !== undefined;
+      return {
+        id: m.id,
+        label: m.label,
+        group: m.group,
+        icon: m.icon,
+        status: isLive ? 'live' : 'coming-soon',
+        href: isLive ? live : comingSoonHref(m.slug),
+      };
+    });
 }
 
 /** The menu in sidebar groups, in NAV_GROUPS order; empty groups are left out. */
