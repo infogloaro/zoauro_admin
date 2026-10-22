@@ -144,7 +144,10 @@ export async function seedMoney(
   paidBy: string,
   log: Log,
 ): Promise<void> {
-  if ((await db.cashSettlement.count()) > 0 || (await db.payout.count()) > 0) {
+  // each half on its own, so a run that stopped between them is completed by the next one
+  const haveSettlements = (await db.cashSettlement.count()) > 0;
+  const havePayouts = (await db.payout.count()) > 0;
+  if (haveSettlements && havePayouts) {
     log('settlements and payouts already seeded');
     return;
   }
@@ -218,9 +221,11 @@ export async function seedMoney(
       note: shortBy ? 'Partner says one customer paid ₹150 less; to be recovered next week.' : null,
     });
   }
-  await db.cashSettlement.createMany({ data: rows });
-  for (const [partnerId, amount] of cashInHand)
-    await db.deliveryPartner.update({ where: { id: partnerId }, data: { cashInHand: amount } });
+  if (!haveSettlements) {
+    await db.cashSettlement.createMany({ data: rows });
+    for (const [partnerId, amount] of cashInHand)
+      await db.deliveryPartner.update({ where: { id: partnerId }, data: { cashInHand: amount } });
+  }
 
   // payouts: weekly per vendor (food value less commission) and per partner (₹40 a delivery); last week still pending
   const payouts = new Map<
@@ -276,9 +281,9 @@ export async function seedMoney(
       ...(paid ? { paidAt: new Date(to.getTime() + 2 * DAY), paidBy } : {}),
     };
   });
-  await db.payout.createMany({ data: payoutRows });
+  if (!havePayouts) await db.payout.createMany({ data: payoutRows });
   log(
-    `money: ${rows.length} COD hand-overs (1 short), ${cashInHand.size} partners holding cash, ${payoutRows.length} payouts (${payoutRows.filter((p) => p.status === 'PENDING').length} pending)`,
+    `money: ${haveSettlements ? 'COD hand-overs kept' : `${rows.length} COD hand-overs (1 short), ${cashInHand.size} partners holding cash`}, ${havePayouts ? 'payouts kept' : `${payoutRows.length} payouts (${payoutRows.filter((p) => p.status === 'PENDING').length} pending)`}`,
   );
 }
 

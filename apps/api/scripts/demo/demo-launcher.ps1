@@ -24,6 +24,13 @@ $WebPort = 3100
 $WebUrl = "http://127.0.0.1:$WebPort"
 
 function Step([string]$Text) { Write-Host "  - $Text" }
+
+# Docker writes progress to stderr; under 'Stop', Windows PowerShell 5.1 turns that into a terminating error.
+# Run it with 'Continue' (local to this function) and judge it by $LASTEXITCODE only.
+function Invoke-Docker([string]$LogFile, [string[]]$DockerArgs) {
+  $ErrorActionPreference = 'Continue'
+  if ($LogFile) { & docker @DockerArgs *> $LogFile } else { & docker @DockerArgs *> $null }
+}
 function Fail([string]$Text) {
   Write-Host ''
   Write-Host "DEMO NOT READY: $Text" -ForegroundColor Red
@@ -74,7 +81,7 @@ function Stop-Demo([switch]$All) {
   if ($All) {
     Step 'stopping postgres, redis, minio, mailpit (Docker keeps running)'
     Push-Location $Repo
-    try { docker compose -f docker-compose.dev.yml stop postgres redis minio mailpit | Out-Null } finally { Pop-Location }
+    try { Invoke-Docker '' @('compose', '-f', 'docker-compose.dev.yml', 'stop', 'postgres', 'redis', 'minio', 'mailpit') } finally { Pop-Location }
   }
   Write-Host 'Demo stopped.' -ForegroundColor Green
 }
@@ -93,7 +100,7 @@ function Start-Demo {
   New-Item -ItemType Directory -Force -Path $Logs | Out-Null
 
   # 1. Docker
-  docker info *> $null
+  Invoke-Docker '' @('info')
   if ($LASTEXITCODE -ne 0) {
     Step 'starting Docker Desktop'
     $exe = @(
@@ -105,7 +112,7 @@ function Start-Demo {
     $deadline = (Get-Date).AddSeconds(240)
     do {
       Start-Sleep -Seconds 5
-      docker info *> $null
+      Invoke-Docker '' @('info')
     } while ($LASTEXITCODE -ne 0 -and (Get-Date) -lt $deadline)
     if ($LASTEXITCODE -ne 0) { Fail 'Docker Desktop did not start within 4 minutes' }
   }
@@ -115,7 +122,7 @@ function Start-Demo {
   Step 'starting postgres, redis, minio, mailpit'
   Push-Location $Repo
   try {
-    docker compose -f docker-compose.dev.yml up -d --wait postgres redis minio mailpit *> (Join-Path $Logs 'infra.log')
+    Invoke-Docker (Join-Path $Logs 'infra.log') @('compose', '-f', 'docker-compose.dev.yml', 'up', '-d', '--wait', 'postgres', 'redis', 'minio', 'mailpit')
     if ($LASTEXITCODE -ne 0) { Fail "the infrastructure containers did not become healthy (see $Logs\infra.log)" }
   } finally { Pop-Location }
 

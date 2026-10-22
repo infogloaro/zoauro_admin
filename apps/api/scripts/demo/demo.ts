@@ -7,7 +7,6 @@ import {
   readFileSync,
   rmdirSync,
   rmSync,
-  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
@@ -24,7 +23,7 @@ import { Pool } from 'pg';
 //                                                grants, migrations, base seed (roles, access profiles, settings)
 //   pnpm --filter @zoauro/api demo:api          the API on :4100 against zoauro_demo
 //   pnpm --filter @zoauro/api demo:web          the web on 127.0.0.1:3100 against the demo API
-//   pnpm --filter @zoauro/api demo:data         the sample data, through the running demo API (scripts/demo/seed.ts)
+//   pnpm --filter @zoauro/api demo:data         the sample data, through the running demo API (the build's scripts/demo/seed.ts)
 //
 // Safety: every command refuses a database not named exactly zoauro_demo and any host that is not this machine.
 
@@ -228,18 +227,7 @@ async function demoDb(reset: boolean): Promise<void> {
 const REPO = path.resolve(API_ROOT, '../..');
 /** Beside the repository, never inside it: other sessions' uncommitted work never reaches the demo. */
 const BUILD_DIR = path.resolve(REPO, '..', 'zoauro-demo-build');
-const PACKAGES = ['packages/shared', 'packages/api-client', 'apps/api', 'apps/web'];
-const WORKSPACE: Record<string, string> = {
-  '@zoauro/shared': 'packages/shared',
-  '@zoauro/api-client': 'packages/api-client',
-  '@zoauro/api': 'apps/api',
-  '@zoauro/web': 'apps/web',
-};
-
-const link = (target: string, at: string) =>
-  symlinkSync(target, at, process.platform === 'win32' ? 'junction' : 'dir');
-
-/** Removes a previous build without ever following a junction into the real node_modules. */
+/** Removes a previous build without ever following a link (older builds linked the repository's node_modules). */
 function removeBuild(dir: string): void {
   if (!existsSync(dir)) return;
   for (const entry of readdirSync(dir)) {
@@ -289,29 +277,14 @@ function demoBuild(commit = 'HEAD'): void {
     rmSync(tmpIndex, { force: true });
   }
 
-  // 2. installed dependencies, with the workspace packages pointing at the export (as scripts/typecheck-commit.mjs)
-  link(path.join(REPO, 'node_modules'), path.join(BUILD_DIR, 'node_modules'));
-  for (const pkg of PACKAGES) {
-    const realNm = path.join(REPO, pkg, 'node_modules');
-    if (!existsSync(realNm) || !existsSync(path.join(BUILD_DIR, pkg))) continue;
-    const buildNm = path.join(BUILD_DIR, pkg, 'node_modules');
-    mkdirSync(buildNm, { recursive: true });
-    for (const entry of readdirSync(realNm)) {
-      if (entry === '.bin') continue;
-      if (entry === '@zoauro') {
-        mkdirSync(path.join(buildNm, '@zoauro'), { recursive: true });
-        for (const name of readdirSync(path.join(realNm, '@zoauro'))) {
-          const own = WORKSPACE[`@zoauro/${name}`];
-          link(
-            own ? path.join(BUILD_DIR, own) : path.join(realNm, '@zoauro', name),
-            path.join(buildNm, '@zoauro', name),
-          );
-        }
-      } else {
-        link(path.join(realNm, entry), path.join(buildNm, entry));
-      }
-    }
-  }
+  // 2. its own dependencies from the pnpm store (no network). Its postinstall generates its own Prisma client from the
+  //    committed schema: a shared node_modules would hand the frozen demo whatever client dev last generated (10-22).
+  console.log('dependencies: pnpm install --offline ...');
+  execFileSync('pnpm', ['install', '--frozen-lockfile', '--offline'], {
+    cwd: BUILD_DIR,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
 
   // 3. the API and the worker, bundled as for production (tsup.config.ts)
   const apiDir = path.join(BUILD_DIR, 'apps/api');
@@ -368,6 +341,25 @@ function demoWeb(): void {
   });
 }
 
+/**
+ * demo:data: the build's own seed (scripts/demo/seed.ts as committed) with the build's Prisma client, so the seed's
+ * direct rows match the demo database's migrations. The credentials file stays in apps/api (git-ignored).
+ */
+function demoData(): void {
+  demoEnv();
+  const apiDir = builtDir('apps/api');
+  const tsx = createRequire(path.join(apiDir, 'package.json')).resolve('tsx/cli');
+  startChild(
+    apiDir,
+    [tsx, `--env-file=${path.join(API_ROOT, '.env.demo')}`, 'scripts/demo/seed.ts'],
+    {
+      ...process.env,
+      DEMO_CREDENTIALS:
+        process.env['DEMO_CREDENTIALS'] ?? path.join(API_ROOT, '.env.demo-credentials.json'),
+    },
+  );
+}
+
 async function main(argv: string[]): Promise<void> {
   const [command, ...rest] = argv;
   if (command === 'env') return writeDemoEnv();
@@ -379,7 +371,8 @@ async function main(argv: string[]): Promise<void> {
   if (command === 'api') return demoServer('server');
   if (command === 'worker') return demoServer('worker');
   if (command === 'web') return demoWeb();
-  throw new DemoError('usage: demo.ts env | db [--reset] | build | api | worker | web');
+  if (command === 'data') return demoData();
+  throw new DemoError('usage: demo.ts env | db [--reset] | build | api | worker | web | data');
 }
 
 main(process.argv.slice(2)).catch((err: unknown) => {
