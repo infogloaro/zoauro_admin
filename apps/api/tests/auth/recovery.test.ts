@@ -107,6 +107,39 @@ describe('TC-AUTH-31: a Super Admin resets a member’s 2-step', () => {
   });
 });
 
+describe('D178: only a primary resets a Super Admin’s 2-step', () => {
+  it('primary resets a non-primary; never itself; a non-primary cannot reset a primary or, without access, a Zonal Admin', async () => {
+    const primary = await env.createUser('SUPER_ADMIN');
+    const nonPrimary = await env.createUser('SUPER_ADMIN', { primary: false });
+    const zonal = await env.createUser('ZONAL_ADMIN');
+    const ps = await signedIn(primary);
+    const ns = await signedIn(nonPrimary);
+
+    await strong(ns, nonPrimary);
+    const up = await post(ns, `/members/${primary.id}/mfa/reset`, {
+      reason: 'Takes over the account',
+    });
+    expect(up.status).toBe(403);
+    expect(up.body.error.details).toEqual([{ field: 'actor', issue: 'PRIMARY_ONLY' }]);
+    await strong(ns, nonPrimary);
+    const zr = await post(ns, `/members/${zonal.id}/mfa/reset`, { reason: 'Lost phone, called' });
+    expect(zr.status).toBe(403);
+    expect(zr.body.error.details).toEqual([{ field: 'area', issue: 'AREA_NOT_GRANTED' }]);
+
+    await strong(ps, primary);
+    const self = await post(ps, `/members/${primary.id}/mfa/reset`, {
+      reason: 'Reset my own phone',
+    });
+    expect(self.status).toBe(409);
+    expect(self.body.error.details).toEqual([{ field: 'id', issue: 'SELF' }]);
+    await strong(ps, primary);
+    const ok = await post(ps, `/members/${nonPrimary.id}/mfa/reset`, {
+      reason: 'Lost phone, verified',
+    });
+    expect(ok.status, JSON.stringify(ok.body)).toBe(200);
+  });
+});
+
 describe('TC-AUTH-32: no reset without STRONG', () => {
   it('PASSWORD level or nothing: REAUTH_REQUIRED, nothing changes', async () => {
     const admin = await env.createUser('SUPER_ADMIN');

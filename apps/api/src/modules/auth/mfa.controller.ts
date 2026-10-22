@@ -74,7 +74,9 @@ export function createMfaController(enrolment: EnrolmentService) {
   const resetMember: RequestHandler = async (req, res) => {
     const { id } = parseBody(memberIdParamsSchema, req.params);
     const { reason } = parseBody(memberMfaResetSchema, req.body);
-    res.json(await enrolment.resetMember(id, reason));
+    const actor = getAuth(res);
+    if (!actor) throw new AppError('UNAUTHENTICATED', 'Authentication required');
+    res.json(await enrolment.resetMember(actor.userId, id, reason));
   };
 
   return {

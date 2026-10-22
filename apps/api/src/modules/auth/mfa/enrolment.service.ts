@@ -51,6 +51,8 @@ export class EnrolmentService {
       mailer: AuthMailer;
       clock: () => Date;
       issuer: string;
+      /** D178: a Super Admin's Control Panel areas (the access module); absent = deny resets of Super Admins */
+      controlAreas?: (userId: string) => Promise<{ isPrimary: boolean; areas: string[] } | null>;
     },
   ) {}
 
@@ -296,9 +298,30 @@ export class EnrolmentService {
    * POST /members/{id}/mfa/reset (Super Admin + STRONG, route guards; doc 52 section 8). Audited in the Super Admin's
    * request context as user.two_factor_reset (HIGH) with the reason.
    */
-  async resetMember(targetId: string, reason: string): Promise<ResetOutcome> {
+  /**
+   * POST /members/{id}/mfa/reset (D178): a Super Admin's 2-step only by an active primary, never one's own; a Zonal
+   * Admin's by a primary or a non-primary holding the `access` area.
+   */
+  async resetMember(actorId: string, targetId: string, reason: string): Promise<ResetOutcome> {
     const target = await this.deps.db.repo.findUserById(targetId);
     if (!target) throw new AppError('NOT_FOUND', 'Not found');
+    const mine = this.deps.controlAreas ? await this.deps.controlAreas(actorId) : null;
+    if (target.roleName === 'SUPER_ADMIN') {
+      if (target.id === actorId)
+        throw new AppError('CONFLICT', 'You cannot reset your own 2-step here', [
+          { field: 'id', issue: 'SELF' },
+        ]);
+      if (!mine?.isPrimary)
+        throw new AppError(
+          'FORBIDDEN',
+          'Only a primary Super Admin can reset a Super Admin’s 2-step',
+          [{ field: 'actor', issue: 'PRIMARY_ONLY' }],
+        );
+    } else if (!mine?.isPrimary && !mine?.areas.includes('access')) {
+      throw new AppError('FORBIDDEN', 'This Control Panel area is not granted to you', [
+        { field: 'area', issue: 'AREA_NOT_GRANTED' },
+      ]);
+    }
     return resetMfa(
       {
         db: this.deps.db,

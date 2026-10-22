@@ -148,6 +148,7 @@ export function createAuthModule(deps: {
     mailer,
     clock,
     issuer: deps.mfaIssuer ?? 'ZOAURO Admin',
+    ...(deps.controlAreas ? { controlAreas: deps.controlAreas } : {}),
   });
   const requireReauth = (level: ReauthLevel) => requireRecentReauth(sessions, level);
   return {
