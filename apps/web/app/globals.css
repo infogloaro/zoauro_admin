@@ -1,6 +1,12 @@
 @import 'tailwindcss';
 
 /*
+ * Light mode only (D33): `dark:` applies under a .dark class the app never sets, not the OS prefers-color-scheme. A
+ * Windows or Edge in dark mode turned table headers and hovered rows black under dark text.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
  * Design tokens (doc 19 section 2), ZOAURO theme from the owner's prototype and the Zoauro logo (navy + orange):
  * dark navy sidebar, light grey canvas, white rounded cards, orange primary actions. Contrast is checked for WCAG AA:
  * white on --primary 4.58:1, --primary-strong on the soft tint 5.9:1, --text-muted on --bg 5.5:1, sidebar text on the
