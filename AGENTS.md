@@ -58,6 +58,8 @@ Follow Figma, doc 19 and doc 37. Use shadcn components from `components/ui`. Eve
 
 See doc 25 and the gate line of the task's phase. Update docs/OpenAPI if contracts change; add a row to doc 32 for any decision or deviation.
 
+Demo docs (owner, 2026-10-22): whenever a feature, flow or module the owner can see is built, completed or changed, the demo flow documents are updated before the next demo build: `docs/F-execution/61_Demo_Script.md` (runbook and QA status), `docs/F-execution/64_Demo_Presenter_Guide.md` (script and flows) and `docs/FEATURES.md`. The building lane sends the docs lane a short note in the same hour: what changed, where it is in the menu, how to show it, and the commit.
+
 ## When unsure
 
 Stop and ask with a concrete question and a proposed default.
