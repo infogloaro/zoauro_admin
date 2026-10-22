@@ -704,6 +704,10 @@ model Zone {
   refunds            Refund[]
 
   vendorPlanSubscriptions VendorPlanSubscription[]
+  adRequests              AdRequest[]
+  adCampaigns             AdCampaign[]
+  adSlots                 AdSlot[]
+  adTerms                 AdTerms[]
 
   @@index([status])
   @@map("zones")
@@ -797,6 +801,8 @@ model Restaurant {
   diningReservations DiningReservation[]
 
   vendorPlanSubscriptions VendorPlanSubscription[]
+  adRequests              AdRequest[]
+  adCampaigns             AdCampaign[]
 
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
@@ -853,6 +859,8 @@ model Homemaker {
   menuChangeRequests MenuItemChangeRequest[]
 
   vendorPlanSubscriptions VendorPlanSubscription[]
+  adRequests              AdRequest[]
+  adCampaigns             AdCampaign[]
 
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
@@ -1803,6 +1811,8 @@ model Hotel {
   diningReservations DiningReservation[]
 
   vendorPlanSubscriptions VendorPlanSubscription[]
+  adRequests              AdRequest[]
+  adCampaigns             AdCampaign[]
 
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
@@ -2317,4 +2327,196 @@ model VendorPlanSubscription {
   @@index([homemakerId])
   @@index([hotelId])
   @@map("vendor_plan_subscriptions")
+}
+
+// ---- D179, D182, D201: advertising & commission ---------------------------------------------------------------------
+
+enum AdPage {
+  HOME
+  RESTAURANTS
+  HOME_FOOD
+  HOTELS
+}
+
+enum AdPlacement {
+  BANNER
+  TOP_LISTING
+  FEATURED
+}
+
+enum AdPricing {
+  FLAT_PER_DAY
+  COMMISSION
+}
+
+enum AdSlotStatus {
+  ACTIVE
+  PAUSED
+  RETIRED
+}
+
+enum AdRequestStatus {
+  SUBMITTED
+  QUOTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum AdCampaignStatus {
+  SCHEDULED
+  LIVE
+  PAUSED
+  ENDED
+  CANCELLED
+}
+
+enum AdBillingStatus {
+  PENDING
+  DEDUCTED
+  WAIVED
+}
+
+/// An ad slot of a zone, page and placement (position unique per zone, page and placement among live rows: SQL index).
+model AdSlot {
+  id               String       @id @db.Uuid
+  zoneId           String       @map("zone_id") @db.Uuid
+  page             AdPage
+  placement        AdPlacement
+  position         Int
+  capacity         Int          @default(1)
+  pricing          AdPricing
+  pricePerDayPaise Int?         @map("price_per_day_paise")
+  commissionPct    Decimal?     @map("commission_pct") @db.Decimal(5, 2)
+  minDays          Int          @default(1) @map("min_days")
+  maxDays          Int          @default(30) @map("max_days")
+  terms            String?
+  status           AdSlotStatus @default(ACTIVE)
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy        String?      @map("created_by") @db.Uuid
+  updatedBy        String?      @map("updated_by") @db.Uuid
+  deletedAt        DateTime?    @map("deleted_at") @db.Timestamptz
+
+  zone      Zone         @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  requests  AdRequest[]
+  campaigns AdCampaign[]
+
+  @@index([zoneId, status])
+  @@map("ad_slots")
+}
+
+/// Ad terms versions, insert only (zone null = platform; version unique per scope: SQL index).
+model AdTerms {
+  id        String   @id @db.Uuid
+  zoneId    String?  @map("zone_id") @db.Uuid
+  version   Int
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdBy String?  @map("created_by") @db.Uuid
+
+  zone      Zone?        @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  requests  AdRequest[]
+  campaigns AdCampaign[]
+
+  @@map("ad_terms")
+}
+
+/// A vendor's ad request (exactly one vendor: SQL CHECK); quoted on a slot, then accepted, rejected, withdrawn or expired.
+model AdRequest {
+  id                     String          @id @db.Uuid
+  zoneId                 String          @map("zone_id") @db.Uuid
+  restaurantId           String?         @map("restaurant_id") @db.Uuid
+  homemakerId            String?         @map("homemaker_id") @db.Uuid
+  hotelId                String?         @map("hotel_id") @db.Uuid
+  page                   AdPage
+  placement              AdPlacement
+  requestedStartDate     DateTime        @map("requested_start_date") @db.Date
+  requestedDays          Int             @map("requested_days")
+  creativeKey            String?         @map("creative_key")
+  vendorNote             String?         @map("vendor_note")
+  status                 AdRequestStatus @default(SUBMITTED)
+  slotId                 String?         @map("slot_id") @db.Uuid
+  quotedPricing          AdPricing?      @map("quoted_pricing")
+  quotedPricePerDayPaise Int?            @map("quoted_price_per_day_paise")
+  quotedCommissionPct    Decimal?        @map("quoted_commission_pct") @db.Decimal(5, 2)
+  quotedTotalPaise       Int?            @map("quoted_total_paise")
+  quoteNote              String?         @map("quote_note")
+  quoteExpiresAt         DateTime?       @map("quote_expires_at") @db.Timestamptz
+  termsId                String?         @map("terms_id") @db.Uuid
+  quotedBy               String?         @map("quoted_by") @db.Uuid
+  quotedAt               DateTime?       @map("quoted_at") @db.Timestamptz
+  decidedBy              String?         @map("decided_by") @db.Uuid
+  decidedAt              DateTime?       @map("decided_at") @db.Timestamptz
+  rejectReason           String?         @map("reject_reason")
+  acceptedAt             DateTime?       @map("accepted_at") @db.Timestamptz
+  acceptNote             String?         @map("accept_note")
+  source                 RecordSource
+  submittedAt            DateTime        @map("submitted_at") @db.Timestamptz
+  version                Int             @default(1)
+  createdAt              DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  zone       Zone        @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  homemaker  Homemaker?  @relation(fields: [homemakerId], references: [id], onDelete: Restrict)
+  hotel      Hotel?      @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  slot       AdSlot?     @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  adTerms    AdTerms?    @relation(fields: [termsId], references: [id], onDelete: Restrict)
+  campaign   AdCampaign?
+
+  @@index([zoneId, status, submittedAt(sort: Desc)])
+  @@index([status, quoteExpiresAt])
+  @@index([restaurantId])
+  @@index([homemakerId])
+  @@index([hotelId])
+  @@index([slotId])
+  @@map("ad_requests")
+}
+
+/// A booked campaign on a slot (exactly one vendor: SQL CHECK); billed per live day or as a ranking commission (D201).
+model AdCampaign {
+  id               String           @id @db.Uuid
+  zoneId           String           @map("zone_id") @db.Uuid
+  slotId           String           @map("slot_id") @db.Uuid
+  requestId        String?          @unique @map("request_id") @db.Uuid
+  restaurantId     String?          @map("restaurant_id") @db.Uuid
+  homemakerId      String?          @map("homemaker_id") @db.Uuid
+  hotelId          String?          @map("hotel_id") @db.Uuid
+  startAt          DateTime         @map("start_at") @db.Timestamptz
+  endAt            DateTime         @map("end_at") @db.Timestamptz
+  status           AdCampaignStatus @default(SCHEDULED)
+  pricing          AdPricing
+  pricePerDayPaise Int?             @map("price_per_day_paise")
+  commissionPct    Decimal?         @map("commission_pct") @db.Decimal(5, 2)
+  termsId          String?          @map("terms_id") @db.Uuid
+  creativeKey      String?          @map("creative_key")
+  billingStatus    AdBillingStatus  @default(PENDING) @map("billing_status")
+  pausesJson       Json             @default("[]") @map("pauses_json") // [{from, to|null}]
+  pausedAt         DateTime?        @map("paused_at") @db.Timestamptz
+  cancelledAt      DateTime?        @map("cancelled_at") @db.Timestamptz
+  cancelReason     String?          @map("cancel_reason")
+  endedAt          DateTime?        @map("ended_at") @db.Timestamptz
+  version          Int              @default(1)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy        String?          @map("created_by") @db.Uuid
+  updatedBy        String?          @map("updated_by") @db.Uuid
+
+  zone       Zone        @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  slot       AdSlot      @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  request    AdRequest?  @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  homemaker  Homemaker?  @relation(fields: [homemakerId], references: [id], onDelete: Restrict)
+  hotel      Hotel?      @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  adTerms    AdTerms?    @relation(fields: [termsId], references: [id], onDelete: Restrict)
+
+  @@index([slotId, status, startAt, endAt])
+  @@index([zoneId, status, startAt(sort: Desc)])
+  @@index([restaurantId, status])
+  @@index([homemakerId, status])
+  @@index([hotelId, status])
+  @@map("ad_campaigns")
 }
