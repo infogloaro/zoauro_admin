@@ -257,6 +257,7 @@ function Editor({
           drafts.map((d) => (
             <AssignmentCard
               key={d.zone.id}
+              memberId={memberId}
               draft={d}
               profiles={profiles}
               errors={errors.byZone[d.zone.id] ?? []}

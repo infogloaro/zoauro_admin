@@ -8,8 +8,11 @@ export interface VendorPageProps {
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   myZones: ScopeZone[];
   canAdd: boolean;
-  /** edit/status/delete: {module}:{action} somewhere; reveal: the reveal flag somewhere (D123) */
-  can: { edit: boolean; status: boolean; delete: boolean; reveal: boolean };
+  /**
+   * edit/status/delete: {module}:{action} somewhere; reveal: the reveal flag somewhere (D123); commission:
+   * commission:edit somewhere (D155, granted per member and zone while the Control Panel switch is on)
+   */
+  can: { edit: boolean; status: boolean; delete: boolean; reveal: boolean; commission: boolean };
 }
 
 export function vendorPageProps(me: MeResponse, module: VendorModule): VendorPageProps {
@@ -18,7 +21,7 @@ export function vendorPageProps(me: MeResponse, module: VendorModule): VendorPag
       role: 'SUPER_ADMIN',
       myZones: [],
       canAdd: true,
-      can: { edit: true, status: true, delete: true, reveal: true },
+      can: { edit: true, status: true, delete: true, reveal: true, commission: true },
     };
   const zones = me.permissions.zones;
   const holds = (action: 'add' | 'edit' | 'status' | 'delete') =>
@@ -34,6 +37,7 @@ export function vendorPageProps(me: MeResponse, module: VendorModule): VendorPag
       status: holds('status'),
       delete: holds('delete'),
       reveal: zones.some((z) => z.limits.canReveal),
+      commission: zones.some((z) => z.permissions.includes('commission:edit')),
     },
   };
 }

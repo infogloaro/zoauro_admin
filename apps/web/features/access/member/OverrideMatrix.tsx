@@ -17,11 +17,14 @@ import {
   TooltipTrigger,
 } from '../../../components/ui/tooltip';
 import { cn } from '../../../lib/utils';
+import { useAccessPreview } from './api';
 import { nextEffect } from './draft';
 import { ACTION_LABEL, moduleLabel, NEVER_GRANTABLE } from './labels';
 
 // The overrides of one assignment as a modules × actions table (D104): each grantable cell is a button cycling
-// Profile → Grant → Deny. Cells a Zonal Admin can never hold (doc 04 section 3) are disabled and say why.
+// Profile → Grant → Deny. Cells a Zonal Admin can never hold (doc 04 section 3) are disabled and say why. Which cells
+// are grantable comes from the API's access preview (its matrix applies the Control Panel switches, e.g. D155
+// commission:edit once access.commissionEditGrantable is on). A switch only ever adds cells to the static rule.
 
 type Overrides = Partial<Record<PermissionKey, OverrideEffect>>;
 
@@ -32,14 +35,22 @@ const STATE_TEXT = {
 } as const;
 
 export function OverrideMatrix({
+  memberId,
+  zoneId,
   zoneName,
   overrides,
   onChange,
 }: {
+  memberId: string;
+  zoneId: string;
   zoneName: string;
   overrides: Overrides;
   onChange: (key: PermissionKey, effect: OverrideEffect | undefined) => void;
 }) {
+  const preview = useAccessPreview(memberId, zoneId);
+  const grantable = preview.data
+    ? new Set(preview.data.matrix.filter((c) => c.grantable).map((c) => `${c.module}:${c.action}`))
+    : null;
   return (
     <TooltipProvider delayDuration={200}>
       <div className="overflow-x-auto">
@@ -68,6 +79,7 @@ export function OverrideMatrix({
                     <Cell
                       module={m}
                       action={a}
+                      grantable={isGrantable(m, a) || (grantable?.has(`${m}:${a}`) ?? false)}
                       effect={overrides[`${m}:${a}`]}
                       onCycle={(e) => onChange(`${m}:${a}`, e)}
                     />
@@ -87,15 +99,17 @@ const CELL = 'inline-flex h-7 w-full min-w-12 items-center justify-center gap-1 
 function Cell({
   module,
   action,
+  grantable,
   effect,
   onCycle,
 }: {
   module: PermissionModule;
   action: PermissionAction;
+  grantable: boolean;
   effect: OverrideEffect | undefined;
   onCycle: (next: OverrideEffect | undefined) => void;
 }) {
-  if (!isGrantable(module, action)) {
+  if (!grantable) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>

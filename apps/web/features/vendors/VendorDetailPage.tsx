@@ -81,7 +81,7 @@ export function VendorDetailPage({
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   myZones?: ScopeZone[];
   /** what the buttons offer (the API decides) */
-  can: { edit: boolean; status: boolean; delete: boolean; reveal: boolean };
+  can: { edit: boolean; status: boolean; delete: boolean; reveal: boolean; commission?: boolean };
 }) {
   const meta = VENDOR_META[module];
   const router = useRouter();
@@ -332,6 +332,7 @@ export function VendorDetailPage({
         <VendorFormDialog
           module={module}
           role={role}
+          canCommission={can.commission ?? role === 'SUPER_ADMIN'}
           open
           zones={zones}
           vendor={v}

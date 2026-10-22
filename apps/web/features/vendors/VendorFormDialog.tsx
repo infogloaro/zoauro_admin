@@ -109,6 +109,8 @@ export function vendorBody(
   f: Form,
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN',
   before?: Form,
+  /** commission:edit (D155); a Super Admin's by default */
+  withCommission: boolean = role === 'SUPER_ADMIN',
 ): Record<string, unknown> {
   const all: Record<string, unknown> = {
     name: f.name.trim(),
@@ -119,7 +121,7 @@ export function vendorBody(
     fssaiNo: f.fssaiNo.trim() || undefined,
     minOrderPaise:
       f.minOrderRupees.trim() === '' ? undefined : rupeesToPaise(Number(f.minOrderRupees)),
-    ...(role === 'SUPER_ADMIN' ? { commissionPct: num(f.commissionPct) } : {}),
+    ...(withCommission ? { commissionPct: num(f.commissionPct) } : {}),
     openingHours: f.hoursOn
       ? f.hours.map((d) => (d.isOpen ? d : { day: d.day, isOpen: false }))
       : undefined,
@@ -140,7 +142,10 @@ export function vendorBody(
   };
   const clean = Object.fromEntries(Object.entries(all).filter(([, v]) => v !== undefined));
   if (!before) return { zoneId: f.zoneId, ...clean };
-  const prev = vendorBody(module, before, role) as Record<string, unknown>;
+  const prev = vendorBody(module, before, role, undefined, withCommission) as Record<
+    string,
+    unknown
+  >;
   return Object.fromEntries(
     Object.entries(clean).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(prev[k])),
   );
@@ -154,9 +159,12 @@ export function VendorFormDialog({
   vendor,
   onClose,
   onSaved,
+  canCommission,
 }: {
   module: VendorModule;
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
+  /** commission:edit (D155); absent = the Super Admin's */
+  canCommission?: boolean;
   open: boolean;
   zones: ScopeZone[];
   /** edit this one; absent = add */
@@ -186,7 +194,13 @@ export function VendorFormDialog({
 
   const save = async () => {
     setAlert(null);
-    const body = vendorBody(module, form, role, editing ? fromDetail(vendor) : undefined);
+    const body = vendorBody(
+      module,
+      form,
+      role,
+      editing ? fromDetail(vendor) : undefined,
+      canCommission ?? role === 'SUPER_ADMIN',
+    );
     if (editing && Object.keys(body).length === 0) {
       setAlert('Nothing changed.');
       return;
@@ -369,7 +383,7 @@ export function VendorFormDialog({
           })}
           {module === 'restaurants' ? field('gstNo', 'GST number', { hint: 'Optional' }) : null}
           {field('minOrderRupees', 'Minimum order (₹)', { type: 'number', hint: 'Optional' })}
-          {role === 'SUPER_ADMIN'
+          {(canCommission ?? role === 'SUPER_ADMIN')
             ? field('commissionPct', 'Commission (%)', {
                 type: 'number',
                 hint: '0 to 50, up to two decimals',

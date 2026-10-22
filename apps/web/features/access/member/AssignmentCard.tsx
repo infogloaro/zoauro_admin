@@ -25,7 +25,9 @@ export function AssignmentCard({
   onChange,
   onRemove,
   onPreview,
+  memberId,
 }: {
+  memberId: string;
   draft: DraftAssignment;
   profiles: AccessProfileSummary[];
   errors: string[];
@@ -175,6 +177,8 @@ export function AssignmentCard({
           <div id={matrixId} hidden={!open} className="mt-3">
             {open ? (
               <OverrideMatrix
+                memberId={memberId}
+                zoneId={d.zone.id}
                 zoneName={d.zone.name}
                 overrides={d.overrides}
                 onChange={(key, effect) => {

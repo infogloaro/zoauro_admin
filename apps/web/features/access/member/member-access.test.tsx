@@ -95,6 +95,15 @@ function setup() {
               override: null,
               effective: true,
             },
+            // D155: the Control Panel switch is on, so the API marks commission:edit grantable
+            {
+              module: 'commission',
+              action: 'edit',
+              grantable: true,
+              fromProfile: false,
+              override: null,
+              effective: false,
+            },
           ],
           visibleModules: ['orders'],
         };
@@ -171,6 +180,11 @@ describe('member access editor', { timeout: 30_000 }, () => {
     expect(
       screen.getByRole('button', { name: 'refunds edit: never grantable to a zonal admin' }),
     ).toBeTruthy();
+    // W4: a cell the API marks grantable (the D155 switch) is offered, not locked
+    const commission = await screen.findByRole('button', {
+      name: 'commission edit: profile default',
+    });
+    expect(commission.hasAttribute('disabled')).toBe(false);
   });
 
   it('limits typed in rupees are sent as integer paise; an empty limit is null', async () => {

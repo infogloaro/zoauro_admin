@@ -98,7 +98,13 @@ describe('vendor screen rules', () => {
     const p = vendorPageProps(me, 'restaurants');
     expect(p.myZones.map((z) => z.code)).toEqual(['ANN']);
     expect(p.canAdd).toBe(false);
-    expect(p.can).toEqual({ edit: true, status: false, delete: false, reveal: true });
+    expect(p.can).toEqual({
+      edit: true,
+      status: false,
+      delete: false,
+      reveal: true,
+      commission: false,
+    });
     expect(vendorPageProps(me, 'homemakers').myZones).toEqual([]);
   });
 });
