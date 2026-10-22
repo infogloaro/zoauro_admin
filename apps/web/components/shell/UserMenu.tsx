@@ -2,19 +2,44 @@
 
 import { ChevronDown, LogOut, ShieldCheck } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
+import { useToast } from '../ui/toast';
 
 // Header user menu (doc 18 section 6): name, role, Account security, Sign out. A disclosure button: Escape or a click
 // outside closes it and focus returns to the button.
 
 const ROLE_LABEL = { SUPER_ADMIN: 'Super Admin', ZONAL_ADMIN: 'Zonal Admin' } as const;
 
-/** POST /auth/logout with the session's CSRF token (doc 52); the session cookie goes with it. */
-export async function signOut(csrfToken: string, fetchImpl: typeof fetch = fetch): Promise<void> {
-  await fetchImpl('/api/v1/auth/logout', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'X-CSRF-Token': csrfToken },
-  }).catch(() => undefined); // signed out or not, the next page asks the server
+/**
+ * POST /auth/logout with the session's CSRF token (doc 52); the session cookie goes with it. A refusal is reported, not
+ * swallowed (owner, 2026-10-22: a sign-out refused for its origin left the session and landed back on the same page); a
+ * 401 means the session had already ended, which counts as signed out.
+ */
+export async function signOut(
+  csrfToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  try {
+    const res = await fetchImpl('/api/v1/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRF-Token': csrfToken },
+    });
+    if (res.ok || res.status === 401) return { ok: true };
+    const body: unknown = await res.json().catch(() => null);
+    const message =
+      typeof body === 'object' &&
+      body !== null &&
+      'error' in body &&
+      typeof body.error === 'object' &&
+      body.error !== null &&
+      'message' in body.error &&
+      typeof body.error.message === 'string'
+        ? body.error.message
+        : `the server answered ${res.status}`;
+    return { ok: false, message };
+  } catch {
+    return { ok: false, message: 'the server could not be reached' };
+  }
 }
 
 /** Up to two initials for the avatar ("Asha Rao" → "AR"). */
@@ -34,6 +59,7 @@ export function UserMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const { toast } = useToast();
   const menuId = useId();
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -107,8 +133,14 @@ export function UserMenu({
             disabled={busy}
             onClick={async () => {
               setBusy(true);
-              await signOut(csrfToken);
-              window.location.assign('/login');
+              const out = await signOut(csrfToken);
+              if (out.ok) {
+                window.location.assign('/login');
+                return;
+              }
+              // the session is still on: say so and keep the menu open
+              setBusy(false);
+              toast({ tone: 'error', title: `Couldn't sign out: ${out.message}` });
             }}
             className="flex w-full items-center gap-2 rounded-input px-3 py-2 text-left text-sm text-danger hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60"
           >

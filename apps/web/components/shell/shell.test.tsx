@@ -190,11 +190,37 @@ describe('sidebar', () => {
 describe('header', () => {
   it('sign out posts to /auth/logout with the session CSRF token', async () => {
     const fetchImpl = vi.fn(async () => new Response(null, { status: 204 }));
-    await signOut('csrf-token', fetchImpl as unknown as typeof fetch);
+    expect(await signOut('csrf-token', fetchImpl as unknown as typeof fetch)).toEqual({ ok: true });
     expect(fetchImpl).toHaveBeenCalledWith('/api/v1/auth/logout', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'X-CSRF-Token': 'csrf-token' },
+    });
+  });
+
+  it('a refused sign out is reported with the API message, an ended session counts as signed out', async () => {
+    const refused = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ error: { code: 'FORBIDDEN', message: 'Origin not allowed' } }),
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+    );
+    expect(await signOut('t', refused as unknown as typeof fetch)).toEqual({
+      ok: false,
+      message: 'Origin not allowed',
+    });
+    const ended = vi.fn(async () => new Response(null, { status: 401 }));
+    expect(await signOut('t', ended as unknown as typeof fetch)).toEqual({ ok: true });
+    const down = vi.fn(async () => {
+      throw new TypeError('network');
+    });
+    expect(await signOut('t', down as unknown as typeof fetch)).toEqual({
+      ok: false,
+      message: 'the server could not be reached',
     });
   });
 
