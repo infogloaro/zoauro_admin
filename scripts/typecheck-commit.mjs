@@ -104,7 +104,8 @@ try {
     'eslint',
   );
 
-  // 4. tsc per package inside the snapshot, two at a time (like `pnpm -r typecheck`).
+  // 4. tsc per package inside the snapshot, one at a time: each tsc takes about 370 MB and this laptop runs several
+  //    lanes plus the demo (2026-10-22: 0.02 GB free with three in parallel). TSC_PARALLEL=2 restores two at a time.
   const tsc = resolve(root, 'node_modules', 'typescript', 'bin', 'tsc');
   const check = (pkg) =>
     new Promise((done) => {
@@ -148,8 +149,9 @@ try {
   );
   if (queue.length === 0)
     console.log('typecheck (commit snapshot): no TypeScript package affected');
+  const parallel = process.env.TSC_PARALLEL === '2' ? 2 : 1;
   await Promise.all(
-    [0, 1].map(async () => {
+    Array.from({ length: parallel }, async () => {
       for (let pkg = queue.shift(); pkg; pkg = queue.shift()) await check(pkg);
     }),
   );
