@@ -39,7 +39,8 @@ Status: **Built** = API and screens; **API only** = no screen yet; **Paused** = 
 ## 5. Menu
 | Feature | Status | Notes |
 |---|---|---|
-| Menu items and categories, admin disable with reason, bulk upload | Built | |
+| Menu items and categories, admin disable with reason, bulk change of availability, category or price (D124) | Built | |
+| Menu import from a file | Not built | |
 | Food item requests from the vendor app: create, change and delete requests, approve or reject (D119, D124–D126) | Built | |
 
 ## 6. Delivery partners
@@ -62,7 +63,8 @@ Status: **Built** = API and screens; **API only** = no screen yet; **Paused** = 
 | Orders list and detail with timeline, status changes through the state machine, assign a partner (picker respects the COD limit), cancel with a configured reason (D190) | Built | |
 | Order overview: open orders by stage, delayed orders, unassigned ready orders, due pre-orders, money tiles | Built | `/orders/overview` |
 | Pre-orders: schedule, reschedule, dispatch sweep (D150, D167) | Built | |
-| Unpaid online orders stay hidden until paid or timed out (D52, D161) | Built | |
+| Unpaid online orders stay hidden until paid (D52) | Built | |
+| Unpaid order timeout (D161) and cancellation windows (D156) | Not built | settings exist, not yet enforced |
 
 ## 9. Money
 | Feature | Status | Notes |
