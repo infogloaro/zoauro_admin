@@ -1,12 +1,7 @@
 'use client';
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  onboardingMoreInfoSchema,
-  type OnboardingAgeLevel,
-  type OnboardingItem,
-  type OnboardingStage,
-} from '@zoauro/shared';
+import type { OnboardingAgeLevel, OnboardingItem, OnboardingStage } from '@zoauro/shared';
 import { ClipboardList } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -20,8 +15,7 @@ import {
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../../components/ui/dialog';
-import { FormAlert, FormField } from '../../components/ui/field';
+import { FormAlert } from '../../components/ui/field';
 import { inputClass } from '../../components/ui/input';
 import { useToast } from '../../components/ui/toast';
 import { useApiClient } from '../../lib/api-client';
@@ -29,8 +23,7 @@ import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
 import { retryTransient } from '../audit/useAuditLogs';
-import { isApiError, TRY_AGAIN } from '../auth/errors';
-import { claimedMessage, useClaimsFor } from '../claims/api';
+import { useClaimsFor } from '../claims/api';
 import { ClaimBadge } from '../claims/ClaimBadge';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { useZoneOptions } from '../platform-settings/api';
@@ -47,7 +40,9 @@ import {
   recordHref,
   typeTabFromParam,
 } from './labels';
+import { MoreInfoDialog } from './MoreInfoDialog';
 import type { OnboardingPageProps } from './onboarding-page-props';
+import { onboardingProblem, startReview } from './record-actions';
 
 // Vendor Onboarding (D170; owner's A2 + A3; demo act 4): one queue for restaurants, shops, Home Food and hotels. Type
 // tabs and stage and age filters with counts, search, the zone switcher, oldest in stage first, 25 a page, all in the
@@ -61,14 +56,6 @@ const STAGES: readonly OnboardingStage[] = [
   'DECIDED',
 ];
 const AGES: readonly OnboardingAgeLevel[] = ['OK', 'WARN', 'LATE'];
-
-const problem = (err: unknown) =>
-  claimedMessage(err) ??
-  (isApiError(err, 'CONFLICT')
-    ? err.message || 'Give it a zone first: a sign-up without a zone cannot be reviewed yet.'
-    : isApiError(err)
-      ? err.message || TRY_AGAIN
-      : TRY_AGAIN);
 
 export function OnboardingPage({ role, myZones, canAct }: OnboardingPageProps) {
   const client = useApiClient();
@@ -133,17 +120,12 @@ export function OnboardingPage({ role, myZones, canAct }: OnboardingPageProps) {
     setAlert(null);
     setBusyId(r.id);
     try {
-      const params = { id: r.id };
-      if (r.module === 'restaurants')
-        await client.post('/restaurants/{id}/onboarding/review', { params });
-      else if (r.module === 'homemakers')
-        await client.post('/homemakers/{id}/onboarding/review', { params });
-      else await client.post('/hotels/{id}/onboarding/review', { params });
+      await startReview(client, r.module, r.id);
       toast({ title: `You are reviewing ${r.name}` });
       await qc.invalidateQueries({ queryKey: ['onboarding'] });
       router.push(recordHref(role, r.module, r.id));
     } catch (err) {
-      setAlert(problem(err));
+      setAlert(onboardingProblem(err));
     } finally {
       setBusyId(null);
     }
@@ -415,73 +397,7 @@ export function OnboardingPage({ role, myZones, canAct }: OnboardingPageProps) {
         ) : null}
       </Card>
 
-      {asking ? <MoreInfoDialog item={asking} onClose={() => setAsking(null)} /> : null}
+      {asking ? <MoreInfoDialog record={asking} onClose={() => setAsking(null)} /> : null}
     </div>
-  );
-}
-
-function MoreInfoDialog({ item, onClose }: { item: OnboardingItem; onClose: () => void }) {
-  const client = useApiClient();
-  const qc = useQueryClient();
-  const { toast } = useToast();
-  const [message, setMessage] = useState('');
-  const [alert, setAlert] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const parsed = onboardingMoreInfoSchema.safeParse({ message: message.trim() });
-
-  const run = async () => {
-    if (!parsed.success) return;
-    setAlert(null);
-    setBusy(true);
-    try {
-      const params = { id: item.id };
-      const body = parsed.data;
-      if (item.module === 'restaurants')
-        await client.post('/restaurants/{id}/onboarding/more-info', { params, body });
-      else if (item.module === 'homemakers')
-        await client.post('/homemakers/{id}/onboarding/more-info', { params, body });
-      else await client.post('/hotels/{id}/onboarding/more-info', { params, body });
-      toast({
-        title: `Asked ${item.name} for more information`,
-        description: 'It waits for the vendor now.',
-      });
-      await qc.invalidateQueries({ queryKey: ['onboarding'] });
-      onClose();
-    } catch (err) {
-      setAlert(problem(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
-      <DialogContent>
-        <div>
-          <DialogTitle>Ask {item.name} for more information?</DialogTitle>
-          <DialogDescription>
-            The message goes to the vendor app. The application shows “Waiting for vendor” until
-            they send it again.
-          </DialogDescription>
-        </div>
-        {alert ? <FormAlert>{alert}</FormAlert> : null}
-        <FormField label="What is missing or needs fixing" hint="At least 5 characters">
-          <textarea
-            className={inputClass('min-h-24 py-2')}
-            maxLength={1000}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-        </FormField>
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
-          <Button onClick={() => void run()} disabled={busy || !parsed.success}>
-            Send to the vendor
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
