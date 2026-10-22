@@ -64,7 +64,8 @@ Status: **Built** = API and screens; **API only** = no screen yet; **Paused** = 
 | Order overview: open orders by stage, delayed orders, unassigned ready orders, due pre-orders, money tiles | Built | `/orders/overview` |
 | Pre-orders: schedule, reschedule, dispatch sweep (D150, D167) | Built | |
 | Unpaid online orders stay hidden until paid (D52) | Built | |
-| Unpaid order timeout (D161) and cancellation windows (D156) | Not built | settings exist, not yet enforced |
+| Cancellation windows: up to which stage each actor may cancel, per zone (D156) | Built | admins blocked from out for delivery by default; Cancel hidden there (fe3b909) |
+| Unpaid order timeout (D161) | Not built | setting exists, not yet enforced |
 
 ## 9. Money
 | Feature | Status | Notes |

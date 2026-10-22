@@ -1,0 +1,793 @@
+# 64 — Demo Presenter Guide: script and flows
+
+Version 1.0, 2026-10-22. For the presenter of the ZOAURO admin panel demo on **Thursday 2026-10-23 at 15:00 IST**, and for anyone who wants to understand how the panel works.
+
+This guide tells you, part by part, from sign-in to the roadmap:
+
+- **Do**: where to click;
+- **They see**: what appears on the screen;
+- **Say**: words you can read out as they are;
+- **How it works**: the flow behind the screen, so you can answer questions.
+
+Doc 61 is the technical runbook (start commands, data reset, QA status of each step). This guide is the story. If a step here is marked **Plan only**, it is not built yet: show it from the workflow map (`60_Admin_Workflow_Map.html`) and do not click it in the panel.
+
+## Contents
+
+1. Before you start
+2. The big picture (3 min)
+3. Sign-in and security (4 min)
+4. Dashboard, search and activity (4 min)
+5. Zones (5 min)
+6. Control Panel: rules without code (8 min)
+7. People and access (8 min)
+8. Vendor onboarding and vendors (10 min)
+9. Menus and food item requests (4 min)
+10. Hotels and bookings (3 min)
+11. Vendor plans (packages) (3 min)
+12. Orders (8 min)
+13. Delivery partners and cash on delivery (4 min)
+14. Customers and reward points (3 min)
+15. Money: refunds, payments, payouts (8 min)
+16. Support and notifications (4 min)
+17. The Zonal Admin view (6 min)
+18. The Admin (second Super Admin) view (3 min)
+19. Audit trail (2 min)
+20. What comes next (3 min)
+21. Questions you may get
+22. If something goes wrong
+23. One-page running order
+
+---
+
+## 1. Before you start
+
+**Open these browser tabs**, in this order:
+
+| Tab | Address | Why |
+|---|---|---|
+| 1 | `http://127.0.0.1:3100` | The admin panel (demo build, sample data) |
+| 2 | `http://127.0.0.1:8025` | Mailpit: the inbox where the 2-step sign-in codes arrive |
+| 3 | `docs/F-execution/60_Admin_Workflow_Map.html` | The workflow map, for "the big picture" and anything marked Plan only |
+
+**Accounts.** The five demo logins, their passwords and which inbox receives each code are in the local workbook `ZOAURO_Demo_Credentials.xlsx` at the project root. It is never committed to git. Keep it open on your own screen, not on the projector.
+
+| Person | Role | Sign-in tab | What you show with this account |
+|---|---|---|---|
+| Arun Prakash | Primary Super Admin | Super Admin | Everything: all zones, Control Panel, access, approvals |
+| Meena Sundaram | Admin (a second Super Admin with only some Control Panel areas) | Super Admin | How the owner shares work without sharing every power |
+| Karthik Raj | Zonal Admin of two zones: Coimbatore Central and Coimbatore North | Zonal Admin | Zone switcher, refund limits, access request |
+| Priya Venkatesh | Zonal Admin, Coimbatore Central only, "Menu Desk" job | Zonal Admin | Two admins in one zone with different jobs |
+| Suresh Kumar | Zonal Admin, Tiruppur only | Zonal Admin | One zone, no switcher, hotel booking off in his zone |
+
+**The sample world** (all invented, no real customer data):
+
+- 4 zones: Coimbatore Central (CBE, delivery ₹30), Coimbatore North (CBN, ₹35), Tiruppur (TUP, ₹40, hotel booking off) and Pollachi (PLC, Upcoming, not live yet).
+- 16 vendors at every onboarding stage, 38 menu items, 9 delivery partners, 24 customers, about 590 orders over 30 days plus a live board for today, 4 hotels with room and table bookings, 6 support tickets, 8 refunds, notifications and promotions.
+
+**Live actions use up sample records.** Each "approve" or "verify" in this guide changes the data. After a rehearsal, ask for a data reset (doc 61 §1) so the real demo starts fresh.
+
+---
+
+## 2. The big picture (3 min)
+
+**Do:** tab 3, the workflow map, section 01 "System flow".
+
+**Say:**
+> "ZOAURO has three apps: one for customers, one for vendors (restaurants, Home Food cooks and hotels) and one for delivery partners. This admin panel sits in the middle. Everything the apps send comes here first. Our team checks it, decides, and the decision goes back to the apps. Today I will show the admin panel with sample data. The apps connect in the next phase."
+
+```mermaid
+flowchart LR
+  C[Customer app] -->|orders, refunds, tickets| A
+  V[Vendor app] -->|sign-ups, documents, menu changes| A
+  P[Partner app] -->|sign-ups, status, cash| A
+  A[ZOAURO admin panel<br/>checks, decides, controls rules] -->|approvals, status, settings| C
+  A --> V
+  A --> P
+```
+
+**Say:**
+> "Three ideas run through the whole panel.
+> First, **zones**. The business is split into zones by pincode. Every vendor, partner and order belongs to exactly one zone.
+> Second, **two kinds of admin**. A Super Admin sees every zone. A Zonal Admin sees only the zones and the actions we give them. The server checks this on every request, not just the menu.
+> Third, **every business rule is a setting**. Limits, charges, cycles and reasons are changed from the Control Panel, per zone, without a developer and with a full history."
+
+**How it works**
+
+- The panel is one web app with two areas: `/super-admin/...` for Super Admins and `/zone/...` for Zonal Admins. A Zonal Admin's menu is built from their permissions.
+- If a Zonal Admin opens a record from a zone that is not theirs, the server answers "not found", even if they type the address by hand.
+
+---
+
+## 3. Sign-in and security (4 min)
+
+**Do:**
+
+1. Tab 1, the sign-in page. Choose the **Super Admin** tab.
+2. Type Arun's email and password. Click **Sign in**.
+3. On the 2-step page, choose **Email code**. Open tab 2 (Mailpit), copy the 6-digit code, and type it back in tab 1.
+
+**They see:** the sign-in card with the two tabs, then a 2-step page with the choices Authenticator app and Email code, then the dashboard.
+
+**Say:**
+> "Every admin signs in with a password and a second step: a code from an authenticator app or a code sent by email. It is required for both roles. After five wrong passwords the account locks for 30 minutes. A Zonal Admin who uses the Super Admin tab cannot get in; they get the same message as a wrong password, so nobody learns which accounts exist."
+
+```mermaid
+flowchart LR
+  T[Choose tab:<br/>Super Admin or Zonal Admin] --> P[Email + password]
+  P -->|wrong 5 times| L[Locked 30 min]
+  P -->|ok| M{2-step method}
+  M --> AA[Authenticator app code]
+  M --> EC[Email code, valid 5 min]
+  M --> BC[Backup code, one use]
+  AA --> D[Dashboard]
+  EC --> D
+  BC --> D
+```
+
+**How it works**
+
+- **First sign-in:** a new admin changes the temporary password and sets up 2-step before seeing any page.
+- **Emails:** a forgotten password is reset by an email link. A sign-in from a new device and a changed password both send an email to the admin.
+- **My Account → Account security:** the admin sees their signed-in devices and can sign out the others. They can also regenerate backup codes, which asks for the password and a 2-step code again.
+- **Remember me** and the 2-step policy are settings in the Control Panel (Security Settings).
+- **SMS codes are built but switched off.** The SMS provider needs a registered company (DLT) first.
+
+---
+
+## 4. Dashboard, search and activity (4 min)
+
+**Do:** you land on **Overview → Dashboard**.
+
+**They see:**
+
+- the top row: Total zones, Active zones, Zones without a team, 2-step verification;
+- a banner if an access request is waiting;
+- **Operations** tiles (Orders, Restaurants, Home Food, Delivery partners, Customers), with a period picker: Today, Last 7 days, Last 30 days, This month;
+- charts: Orders over time, Orders by status, top restaurants and more.
+
+**Say:**
+> "This is the morning view. Without opening anything, I can see how many orders came in, how many were delivered or cancelled, which zones have no team, and what is waiting for my decision. Every tile is a link to the list behind it."
+
+**Do:** in the top bar, change the zone picker from **All zones** to **Coimbatore Central**.
+
+**Say:**
+> "When I pick one zone, the whole panel follows: the dashboard, every list and every count."
+
+**Do:** press **Ctrl K** (or click the search box) and type a vendor name, for example "Annapoorna".
+
+**Say:**
+> "Global search finds orders, customers, vendors and partners from anywhere, only inside the zones I am allowed to see."
+
+**Do:** **Overview → Recent Activities**.
+
+**Say:**
+> "Recent Activities is the live feed of what admins did: who, what, when, in which zone."
+
+**How it works**
+
+- Each tile appears only if the admin has the permission for that module. A Zonal Admin sees the same dashboard with only their zones and modules.
+- The charts have a "Show as a table" option for people who prefer numbers.
+- The dashboard follows the top-bar zone from the build of 2026-10-22 evening. Check it in the final QA (doc 61 §5) before showing it.
+
+---
+
+## 5. Zones (5 min)
+
+**Do:** **Zone Operations → Zone Management**.
+
+**They see:** the four zones, each with its status (Active or Upcoming), its pincodes, its team and its counts.
+
+**Say:**
+> "A zone is an area we serve, defined by its pincodes. Coimbatore Central, Coimbatore North and Tiruppur are live. Pollachi is Upcoming: it is set up but not open to customers yet."
+
+**Do:** open **Coimbatore Central**. Show the tabs: Overview, Pincodes, Services, Team, Activity.
+
+**Say:**
+> "Each zone has its own delivery charge, its own services and its own team. In Tiruppur, for example, hotel booking is switched off."
+
+**Do:** click **Add zone**. Fill in a name and a code. In pincodes, type one that already belongs to Coimbatore Central, for example 641005. Then cancel.
+
+**Say:**
+> "A pincode can belong to only one zone. If I type one that is already used, the panel refuses and tells me which zone has it."
+
+**How it works**
+
+```mermaid
+flowchart LR
+  U[Upcoming:<br/>set up, not live] -->|activate: checks pass| A[Active:<br/>open to customers]
+  A -->|deactivate: impact shown first| I[Inactive:<br/>no new orders]
+  I -->|activate| A
+```
+
+- **Activation checks** that the zone has a name, city, state, at least one pincode and a delivery charge (₹0 is allowed) before it goes live. If something is missing, the panel lists what.
+- **Before you deactivate,** an impact table shows what will stop. Open orders always finish.
+- A zone with history (orders, vendors) cannot be deleted. It can only be deactivated.
+- **Zone Teams** (in the same menu section) shows which admins work in which zone.
+- **Zone & Admin Performance** is marked "Soon": **Plan only**.
+
+---
+
+## 6. Control Panel: rules without code (8 min)
+
+**Do:** **Administration → Control Panel**.
+
+**They see:** tiles for Services by zone, People and access, Platform settings, Super Admins and the other areas.
+
+**Say:**
+> "This is the Control Panel. Every number and rule in the business lives here as a setting. Each setting has a default for the whole platform, and a zone may have its own value. Changing one never needs a developer."
+
+**Do:** **Administration → Platform Settings**. Scroll slowly through the groups.
+
+**Say:** (point at a few)
+> "Refund limits and refund rules, the payout cycle, cancel reasons, the cash-on-delivery limit for partners, how many orders a partner carries at once, onboarding documents for each kind of vendor, support response times, reward points, order number format, and more. More than twenty rules, all in one place."
+
+The settings, in plain words:
+
+| Area | Settings |
+|---|---|
+| Money | Refund limits (zone caps), refund rules (reasons, who pays), payout cycle in days, cash-on-delivery limit per partner, delivery charge cap |
+| Orders | Cancel reasons, cancellation rules, unpaid online order timeout, pre-order timing, order number format, stage time targets |
+| Delivery | Orders a partner carries at once, automatic assignment (switched off) |
+| Vendors | Onboarding documents per vendor type (required or optional), waiting-time colours |
+| People | Whether commission editing can be given to Zonal Admins, record lock timing, remember-me, 2-step policy |
+| Customers | Reward points (earn rate, value, expiry, limits) |
+| Messages | Support response times, notification timing and channels, SMS provider |
+
+**Do:** pick **Coimbatore Central** in the top-bar zone picker. Find **Payouts → Payout cycle** and click **Edit**. Change 7 to 6 and click **Review change**.
+
+**They see:** a before-and-after table and a box for the reason.
+
+**Do:** type a reason ("Faster payouts for Coimbatore Central vendors in the launch month") and click **Save**. Enter the password when asked.
+
+**They see:** "Payout cycle saved in Coimbatore Central". The setting now carries the label "Zone's own value".
+
+**Say:**
+> "Every change shows its effect before it is saved, needs a written reason and the admin's password, and is recorded. This value applies only to Coimbatore Central. The other zones keep the default of 7 days."
+
+**Do:** **Administration → Settings History**.
+
+**Say:**
+> "Here is the change I just made: who, when, why, the old value and the new value."
+
+**How it works**
+
+```mermaid
+flowchart LR
+  E[Edit] --> R[Review change:<br/>before / after,<br/>impact warnings]
+  R --> W[Reason<br/>required]
+  W --> S[Save]
+  S --> PW{Re-auth}
+  PW -->|password<br/>or password + 2-step<br/>for sensitive rules| OK[Saved, applies<br/>from the next request]
+  OK --> H[Settings History<br/>+ audit log]
+```
+
+- **Which value applies:** the zone's own value if it has one, otherwise the platform default. "Remove" on a zone value returns that zone to the default.
+- **Impact warnings:** if a new refund cap is lower than some admins' own limits, the review step names them.
+- **Who can change:**
+  - the Primary Super Admin changes everything;
+  - a second Super Admin changes only the Control Panel areas granted to them;
+  - Zonal Admins never change settings.
+- **Not enforced yet:** the unpaid-order timeout exists as a setting, but the order flow does not apply it yet. Do not demo it as working. The cancellation rules (up to which stage an admin, vendor or customer may cancel) are enforced from the evening build of 2026-10-22.
+
+---
+
+## 7. People and access (8 min)
+
+**Do:** **Administration → Super Admins**.
+
+**Say:**
+> "Arun is the Primary Super Admin, the owner's account. Meena is also a Super Admin, but she has only some Control Panel areas. Only the primary can add Super Admins or change what they control."
+
+**Do:** **Administration → Zonal Admins**. Open **Karthik Raj**, then click through to his access page.
+
+**They see:** Karthik's two zones as cards. Each card has:
+
+- an Access profile (for example "Zone Manager");
+- Per refund limit and Refunds per day;
+- Can reveal contacts and Can export;
+- Overrides;
+- a Note.
+
+On the right, **Effective access** shows his limits, the modules he sees, and his permissions in each zone.
+
+**Say:**
+> "A Zonal Admin can work in several zones, with different powers in each. In Coimbatore Central, Karthik is Zone Manager: he can refund up to ₹500 each time and ₹2,000 a day. In Coimbatore North he only runs operations: he cannot edit menus there, and his refund limit is lower. On the right I see exactly what he will see before I save."
+
+**Do:** open **Overrides** on one zone and point at a GRANT and a DENY.
+
+**Say:**
+> "On top of the profile I can grant or deny single actions. If both apply, deny wins."
+
+**Do:** **Administration → Access Profiles**.
+
+**Say:**
+> "Profiles are job templates: Zone Manager, Operations, Menu Desk. The locked rows are powers only a Super Admin can ever have: zones, access, settings and commission edits."
+
+**Do:** **Administration → Access History**.
+
+**Say:**
+> "Every access change is recorded with before and after, and the member gets an email."
+
+**How it works**
+
+```mermaid
+flowchart TB
+  PR[Access profile<br/>per zone] --> EF[Effective access]
+  OV[Overrides<br/>GRANT / DENY,<br/>deny wins] --> EF
+  LM[Limits:<br/>per refund, per day,<br/>reveal, export] --> EF
+  EF --> MENU[Menu and tiles<br/>the member sees]
+  EF --> API[Every server request<br/>checked again]
+```
+
+- **Adding a Zonal Admin:** name, email, mobile and a temporary password. They must change the password and set up 2-step at first sign-in.
+- **Saving an access change** asks for the password. It writes an access-history entry, emails the member and takes effect on their next click. No new sign-in is needed.
+- **Access requests:** a Zonal Admin asks for a zone or a permission, with a reason. The request appears under **Requests & Approvals → Access Requests** and as a banner on the dashboard. You show this live in Part 17.
+
+---
+
+## 8. Vendor onboarding and vendors (10 min)
+
+**Do:** **Requests & Approvals → Vendor Onboarding**.
+
+**They see:**
+
+- one queue for Restaurants, Shops, Home Food and Hotels;
+- stage tabs: Submitted, Under review, More info, Decided;
+- the waiting time on each row, which turns amber after 24 hours and red after 48.
+
+**Say:**
+> "A vendor (a restaurant, a shop, a Home Food cook or a cloud kitchen) applies from the vendor app with their documents. The application lands here. We check it, ask for more if something is missing, and then accept or reject it. Cloud kitchens are treated as Home Food."
+
+```mermaid
+flowchart LR
+  A[Vendor applies<br/>in the vendor app] --> S[Submitted]
+  S -->|Start review:<br/>admin claims it| U[Under review]
+  U -->|Ask for more info| M[More info required]
+  M -->|vendor sends it| U
+  U -->|Verify| V[Decided: Verified]
+  U -->|Reject + reason| R[Decided: Rejected]
+  V -->|Activate| L[Live:<br/>takes orders]
+  L -->|Suspend| X[Suspended:<br/>no new orders]
+```
+
+**Do:** on a Submitted row, click **Start review**.
+
+**Say:**
+> "When I start a review, the record is mine. If another admin opens it, they see that I am working on it, and they can ask me to hand it over. Two people never decide the same vendor at the same time."
+
+**Do:** open a submitted restaurant, for example **Kovai Biryani House** or **Arya Bhavan**. Go through the documents: FSSAI, GST, PAN, bank details. Open one, then accept it, or reject it with a note.
+
+**Say:**
+> "Each document is checked on its own. The list of required documents is a Control Panel setting for each kind of vendor. Home Food cooks, for example, can give an FSSAI registration instead of a full licence, plus kitchen photos."
+
+**Do:** in the **Decisions** card, click **Verify**.
+
+**Say:**
+> "Only a verified vendor can go live. Then I activate it, and from that moment it can take orders."
+
+**Do:** back in the queue, open the **More info** tab. Point at a row that shows "Asked: …".
+
+**Say:**
+> "When we need more, the vendor gets our message, and the row shows what we asked, so anyone on the team can follow up."
+
+**Do:** **Service Management → Restaurants**, then **Home Food**. Open one active vendor.
+
+**They see:**
+
+- status tabs with counts;
+- masked phone and email in the list;
+- on the vendor page: profile, documents, menu, orders, commission and zone.
+
+**Say:**
+> "Phone numbers and emails are hidden in lists. To see one, an admin clicks Reveal, and that click is recorded. The commission is set by the Super Admin. A Zonal Admin can edit it only if we switch that on in the Control Panel."
+
+**How it works**
+
+- **Needs a zone:** an application whose pincode is outside every zone goes to a "Needs a zone" list that only the Super Admin sees.
+- **Suspend:** stops new orders; open orders still finish.
+- **Moving a vendor:** a vendor can be moved to another zone, and the move is audited.
+- **Hotels in onboarding:** hotels also appear in the queue, but their documents step is not built yet. Show documents on a restaurant or Home Food vendor, not on a hotel.
+- **In the demo, applications are sample data.** In production they arrive from the vendor app through the signed Integration API (already built). Sending documents with the sign-up comes after the demo.
+
+---
+
+## 9. Menus and food item requests (4 min)
+
+**Do:** **Service Management → Menus & Food Items**.
+
+**Say:**
+> "Every vendor's menu: items, categories, prices, stock. An admin can disable an item with a reason, for example a quality complaint, and the vendor cannot switch it back on. Bulk changes (availability, category or price for many items) are all or nothing: either every item changes or none does."
+
+**Do:** **Requests & Approvals → Food Item Requests**. Open a pending request and **Approve** it.
+
+**Say:**
+> "When a vendor changes a price or a name in their app, it waits here. Customers keep seeing the old value until we approve. That protects customers from surprise price jumps."
+
+```mermaid
+flowchart LR
+  V[Vendor changes item<br/>in the vendor app] --> Q[Food item request:<br/>pending]
+  Q -->|Approve| N[New value live]
+  Q -->|Reject + reason| O[Old value stays]
+```
+
+- **Not built yet:** menu import from a file is Plan only.
+
+---
+
+## 10. Hotels and bookings (3 min)
+
+**Do:** **Service Management → Hotels & Bookings**. Open a live hotel. Show rooms, room bookings and table bookings.
+
+**Say:**
+> "Hotels list their rooms with capacity, and customers book rooms or tables. The panel never takes more bookings for a night than the hotel has rooms."
+
+**How it works**
+
+- **Room bookings:** Pending → Confirmed → Checked in → Checked out, or Cancelled.
+- **Table bookings:** Pending → Confirmed → Completed, or No-show, or Cancelled.
+- **Per-zone service:** hotel booking is a service switched on or off per zone. It is off in Tiruppur, and you show that in Part 17 with Suresh.
+
+---
+
+## 11. Vendor plans (packages) (3 min)
+
+**Do:** **Service Management → Vendor Plans**.
+
+**Say:**
+> "These are the packages we sell to vendors. A plan starts as a draft, goes active, and is retired when we stop selling it. We can put an active vendor on a plan, with a trial if we want, or cancel it. Zonal Admins see the plans and their own vendors, but only the Super Admin changes them."
+
+```mermaid
+flowchart LR
+  D[Draft] -->|Activate| A[Active:<br/>can be sold]
+  A -->|Retire| R[Retired:<br/>existing vendors keep it]
+```
+
+- **Not built yet:** weekly and monthly meal plans for customers are Plan only.
+
+---
+
+## 12. Orders (8 min)
+
+**Do:** **Orders & Customers → Orders**.
+
+**They see:**
+
+- status tabs with counts;
+- filters (payment method, vendor type, date);
+- a zone column;
+- today's live board with orders in every status.
+
+**Say:**
+> "Every order in every zone. The tabs follow the order's life, from placed to delivered."
+
+```mermaid
+flowchart LR
+  P[Placed] --> A[Accepted] --> PR[Preparing] --> R[Ready]
+  R --> AS[Partner assigned] --> O[Out for delivery] --> D[Delivered]
+  AS -->|partner removed| R
+  P --> C[Cancelled]
+  A --> C
+  PR --> C
+  R --> C
+  O --> C
+  D -->|fully refunded| RF[Refunded]
+  C -->|fully refunded| RF
+```
+
+**Do:** open an order from the **Ready** tab. Show the items, payment, customer, vendor and the **timeline**.
+
+**Say:**
+> "The timeline shows every step, with who did it and when: the vendor, the partner, or an admin."
+
+**Do:** click **Assign partner**.
+
+**They see:** only partners from the same zone who are available and under their order limit. One partner, **Arjun Selvam**, is marked blocked, "settle first".
+
+**Say:**
+> "We only offer partners who can take the order. Arjun is holding more cash than the cash-on-delivery limit, so he gets no cash orders until he hands the cash in. The limit is a Control Panel setting."
+
+**Do:** pick a partner and assign.
+
+**Do:** open an order that is still **New**, **Accepted** or **Preparing**, and click **Cancel order**. Show the reasons list, then close the dialog without cancelling (or cancel it if you want to show the result).
+
+**Say:**
+> "To cancel, the admin picks a reason from the zone's list, which is also a setting. 'Other' needs a note. The Control Panel also decides up to which stage each person may cancel. By default, an order that is out for delivery can no longer be cancelled, so the button is not even shown there."
+
+**Do (optional):** open an order in **Out for delivery** and point out that there is no Cancel button.
+
+**Do:** **Orders & Customers → Order overview**.
+
+**Say:**
+> "Order overview is the control room:
+> - open orders by stage;
+> - orders running late against our time targets;
+> - ready orders with no partner;
+> - pre-orders that are due soon."
+
+**How it works**
+
+- **Status changes** follow the rules above. The panel never lets an order jump to an impossible status. Assigning needs a partner, cancelling needs a reason, and "Refunded" is set by the refunds flow only when the whole amount paid has been refunded.
+- **Two admins on one order:** if two admins change the same order at once, the second one is told "This record changed. Reload" instead of overwriting the first.
+- **Hidden unpaid orders:** an online order that is not paid yet stays hidden from the vendor and the admin lists until the payment arrives.
+- **Pre-orders:** a customer orders for a chosen time. The order is sent to the kitchen at the right moment, and admins can reschedule or cancel it.
+- **Automatic partner assignment:** the nearest-partner rule is designed and has its settings, but assignment is manual today. Plan only.
+
+---
+
+## 13. Delivery partners and cash on delivery (4 min)
+
+**Do:** **Delivery → Delivery Partners**. Open one partner.
+
+**Say:**
+> "Partners have documents, a verification status, an online or offline state and the cash they are holding. An admin can force a partner offline, for example after a complaint."
+
+**Do:** **Requests & Approvals → Delivery Partner Requests**. Show **Verify**.
+
+**Say:**
+> "New partners who sign up in the partner app wait here until we verify their documents."
+
+**Do:** **Delivery → COD Cash Settlement**.
+
+**Say:**
+> "For cash-on-delivery orders, the partner collects the cash. Here we see how much each partner holds and record when they hand it in. If the amount differs from what is due, the admin must write a note. The history shows every difference."
+
+```mermaid
+flowchart LR
+  O[COD order delivered] --> H[Cash in hand<br/>goes up]
+  H -->|over the COD limit| B[Blocked from<br/>new cash orders]
+  H -->|hand-in recorded| S[Settled:<br/>difference needs a note]
+  B -->|hand-in recorded| S
+```
+
+---
+
+## 14. Customers and reward points (3 min)
+
+**Do:** **Orders & Customers → Customers**. Open a customer.
+
+**Say:**
+> "Customers with their addresses, orders and reward points. Contact details are hidden until an admin reveals them, and the reveal is recorded. We can block a customer, for example for abuse, and unblock them later."
+
+**Do:** on the customer, show **Reward points**: balance and history.
+
+**Say:**
+> "Customers earn points on orders. The earn rate, the value of a point, the expiry and the limits are Control Panel settings for each zone. In Coimbatore Central, for example, customers earn 5% of the order value, a point is worth ₹1, and points expire after a year. An admin can add or deduct points, always with a reason."
+
+---
+
+## 15. Money: refunds, payments, payouts (8 min)
+
+**Say first:**
+> "There is no payment gateway in this demo. The Razorpay connection waits for the keys from management. The flows and the rules are already built; only the bank connection is missing."
+
+**Refunds**
+
+**Do:** **Payments & Finance → Refunds**. Open the refund that is **waiting for approval** and click **Approve** (password).
+
+**Say:**
+> "A refund can be full, partial or a goodwill gesture, always with a reason. We also record who is at fault: the vendor, the platform or the customer. If an admin raises a refund within their own limit, it is approved straight away. Above the limit, it waits here for a Super Admin. Nobody can approve their own refund."
+
+```mermaid
+flowchart LR
+  RQ[Refund raised<br/>reason + fault] -->|within the member's limit| AP[Approved]
+  RQ -->|above the limit| PA[Waiting for<br/>Super Admin approval]
+  PA -->|approve, password| CHK{Above the<br/>second-approval amount?}
+  CHK -->|no| AP
+  CHK -->|yes: a second<br/>Super Admin approves| AP
+  PA -->|reject + reason| RJ[Rejected]
+  AP --> PRC[Processed: to source,<br/>wallet or UPI]
+  AP -.->|bank error| F[Failed]
+```
+
+**How it works**
+
+- **Limits:** each Zonal Admin has a per-refund and a per-day limit in each zone. The zone also has caps that no admin can go above.
+- **Vendor-fault refunds:** these are taken from the vendor's next payout, in the cycle in which the refund was decided.
+
+**Payments**
+
+**Do:** **Payments & Finance → Payments**.
+
+**Say:**
+> "Every payment by method (online, cash on delivery, wallet) and by status. It is read only. When Razorpay is connected, these rows fill from the gateway."
+
+**Payouts**
+
+**Do:** **Payments & Finance → Payouts & Reconciliation**. Show the tabs for restaurants, Home Food and delivery partners.
+
+**Say:**
+> "Each payout cycle shows, for every vendor:
+> - the gross;
+> - our commission;
+> - refunds that were the vendor's fault;
+> - the net amount we owe."
+
+**Do:** on a pending restaurant payout, click **Mark paid**. Enter a bank reference (UTR), the date paid and your password.
+
+**Say:**
+> "When finance pays the vendor, we record the bank reference here. If the vendor still has open refunds in that period, the panel stops us, so we never pay out money that will have to be taken back."
+
+**How it works**
+
+- **Who:** Mark paid is for Super Admins only, and it is new in the evening build of 2026-10-22. Check it in the final QA (doc 61 §5) before showing it.
+- **Delivery-partner payouts:** they wait for the pay formula, so they have no Mark paid button yet.
+- **Exports:** Payments, Refunds and Payouts can be exported to a spreadsheet file. The export runs in the background and the file appears when ready.
+
+---
+
+## 16. Support and notifications (4 min)
+
+**Do:** **Support & Engagement → Support Tickets**. Open a ticket.
+
+**Say:**
+> "Customer and vendor problems become tickets. Each ticket has a priority, an owner and a response timer. The target times are a setting. Tickets move from Open to Assigned, Waiting for the customer, Resolved and Closed, and a customer can reopen one."
+
+**Do:** **Support & Engagement → Notifications**. Find the **biryani promotion** waiting for approval and **Approve** it.
+
+**They see:** the promotion becomes Scheduled.
+
+**Say:**
+> "Admins write messages to a zone or an audience and can schedule them. Promotions need a Super Admin's approval before they go out, and quiet hours stop messages at night."
+
+---
+
+## 17. The Zonal Admin view (6 min)
+
+**Do:** open the profile menu (top right) and choose **Sign out**. On the sign-in page choose the **Zonal Admin** tab and sign in as **Karthik**.
+
+**They see:** a shorter menu, with no Control Panel, Zones or access screens. The zone picker offers "All my zones", Coimbatore Central and Coimbatore North only.
+
+**Say:**
+> "This is what a zone manager sees. Only his two zones, only the modules we gave him. He cannot even see that Tiruppur exists."
+
+**Do:** pick **Coimbatore North** and open **Menus & Food Items**.
+
+**Say:**
+> "In Coimbatore North he can see menus but not edit them, because we denied that there."
+
+**Do:** **Requests & Approvals → Access Requests**. Show his pending request for menu edit in Coimbatore North.
+
+**Say:**
+> "If he needs more, he asks, with a reason. He doesn't phone the owner; the request is recorded."
+
+**Do:** pick **Coimbatore Central**. Open a delivered order and raise a refund of **₹600**.
+
+**They see:** the refund is created as **Waiting for approval**.
+
+**Say:**
+> "His limit is ₹500 a refund. Anything above it goes to the Super Admin automatically."
+
+**Do:** sign out. Sign in as **Arun** (Super Admin tab).
+
+- Approve Karthik's access request: **Requests & Approvals → Access Requests → Approve** (password).
+- Show the ₹600 refund in **Refunds**, waiting for approval.
+
+**Do:** sign in as Karthik again. Open **Menus & Food Items** in Coimbatore North.
+
+**Say:**
+> "Now he can edit menus there, and the access history says who approved it and why."
+
+```mermaid
+sequenceDiagram
+  participant K as Karthik (Zonal Admin)
+  participant P as Panel (server)
+  participant A as Arun (Super Admin)
+  K->>P: Access request: menu edit in Coimbatore North + reason
+  P-->>A: Dashboard banner + Access Requests list
+  A->>P: Approve (password)
+  P->>P: Update access, write access history and audit
+  P-->>K: Email + menu updated on next click
+```
+
+**Optional, if time allows:**
+
+- **Priya** (Coimbatore Central, Menu Desk): the same zone as Karthik with a much narrower menu. "Two people, one zone, different jobs."
+- **Suresh** (Tiruppur only): no zone switcher, and no hotel booking because that service is off in Tiruppur.
+
+**How it works**
+
+- **Wrong-zone records:** if a Zonal Admin types the address of a record from another zone, the server answers "not found". The check is on the server, not only in the menu.
+- **Same rules everywhere:** counts, search, exports and notifications all use the same zone rules.
+
+---
+
+## 18. The Admin (second Super Admin) view (3 min)
+
+**Do:** sign out, then sign in as **Meena** (Super Admin tab).
+
+**They see:**
+
+- all zones and all operations;
+- in the Control Panel, only Services by zone, People and access, and Platform settings;
+- in Platform settings, only her areas: zones, refunds, onboarding and loyalty;
+- the Super Admins list is view only.
+
+**Say:**
+> "Meena runs operations across every zone, and she can change refund and onboarding rules. But she cannot change security, commissions or other admins' powers. The owner keeps those."
+
+---
+
+## 19. Audit trail (2 min)
+
+**Do:** sign in as Arun again, then **Administration → Audit & Logs**.
+
+**Say:**
+> "Everything we did in this demo is here:
+> - the setting change;
+> - the vendor we verified;
+> - the refund approval;
+> - Karthik's access;
+> - even the attempts that were refused.
+>
+> For each: who, what, which zone, before and after. Nothing changes in this panel without a trace."
+
+---
+
+## 20. What comes next (3 min)
+
+**Do:** open one of the menu entries marked **Soon**, for example Analytics. It shows the plan for that module. Then go to the workflow map (tab 3).
+
+**Say:**
+> "What you saw today is the admin side, working on sample data. Next:
+> 1. **Connect the three apps**, so real sign-ups, orders and menu changes flow in. The secure connection for the apps is already built.
+> 2. **Razorpay payments and refunds**, as soon as management shares the keys. The keys will be entered in the Control Panel; until then the demo gateway stands in.
+> 3. **Emails from our own domain** through Amazon SES, and **SMS codes** once the company is registered for SMS (DLT).
+> 4. **Maps and automatic partner assignment**, then ordering from several restaurants in one checkout.
+> 5. **Offers and coupons, reviews and ratings, analytics, zone and admin performance, advertising, customer meal plans.**
+> 6. **Production on AWS**, and a review of splitting the system into separate services once real traffic shows where it is needed."
+
+---
+
+## 21. Questions you may get
+
+| Question | Answer |
+|---|---|
+| Can a Zonal Admin see other zones' data if they know the link? | No. The server checks every request and answers "not found" for another zone's record. |
+| What if two admins act on the same thing? | Orders: the second gets "This record changed. Reload". Onboarding: the record is claimed by whoever started the review; others can request a takeover. |
+| Who can change prices, limits and rules? | Only Super Admins, from the Control Panel, with a reason and their password. The primary can limit what other Super Admins may change. |
+| Can we undo a setting change? | Settings History shows the old value. Set it back the same way, or remove a zone's own value to return to the default. |
+| Is customer data safe? | Phone numbers and emails are hidden in lists. Each reveal is recorded. 2-step sign-in is required for every admin. Every action is in the audit log. |
+| How do refunds reach the customer today? | Recorded and processed manually, or to the customer's wallet. With Razorpay they go back automatically. |
+| How are vendors paid? | Payouts per cycle (7 days by default, per zone), with our commission and vendor-fault refunds taken off. Finance records the bank reference with Mark paid. |
+| What happens to open orders if we suspend a vendor or close a zone? | They finish. Only new orders stop. |
+| Can a cloud kitchen join? | Yes, as Home Food, with its own document list. |
+| When can we go live? | After the apps are connected, Razorpay keys are in and the production setup on AWS is done. The admin side shown today is ready for that. |
+
+---
+
+## 22. If something goes wrong
+
+- **A page shows an error:** say "this is the next build step". Switch to the workflow map and show the same screen's flow there.
+- **No sign-in code:** refresh Mailpit (tab 2). Codes last 5 minutes. Every demo account also has an authenticator app as a fallback.
+- **"Wrong email or password" with the right password:** check the tab. Super Admin accounts use the Super Admin tab, Zonal Admins the Zonal Admin tab.
+- **Everything is slow:** the laptop is short of memory. Close everything except the browser, Docker, the demo API and the demo web app.
+- **A live action was already used in the rehearsal:** pick another record of the same kind (another pending refund, another submitted vendor), or skip it and explain the flow from the diagram in this guide.
+
+---
+
+## 23. One-page running order
+
+| # | Part | Sign in as | Live action | Minutes |
+|---|---|---|---|---|
+| 2 | Big picture | — (workflow map) | — | 3 |
+| 3 | Sign-in and security | Arun | Sign in with email code | 4 |
+| 4 | Dashboard, search, activity | Arun | Switch zone, search | 4 |
+| 5 | Zones | Arun | Pincode conflict in Add zone (cancel) | 5 |
+| 6 | Control Panel | Arun | Payout cycle 7 → 6 for Coimbatore Central | 8 |
+| 7 | People and access | Arun | — | 8 |
+| 8 | Vendor onboarding | Arun | Start review, check documents, Verify | 10 |
+| 9 | Menus, food item requests | Arun | Approve a food item request | 4 |
+| 10 | Hotels | Arun | — | 3 |
+| 11 | Vendor plans | Arun | — | 3 |
+| 12 | Orders | Arun | Assign a partner to a Ready order | 8 |
+| 13 | Partners, COD | Arun | — | 4 |
+| 14 | Customers | Arun | — | 3 |
+| 15 | Money | Arun | Approve the waiting refund; Mark paid | 8 |
+| 16 | Support, notifications | Arun | Approve the biryani promotion | 4 |
+| 17 | Zonal Admin view | Karthik → Arun → Karthik | ₹600 refund; approve his access request | 6 |
+| 18 | Admin view | Meena | — | 3 |
+| 19 | Audit trail | Arun | — | 2 |
+| 20 | What comes next | — | — | 3 |
+| | **Total** | | | **about 95** |
+
+**For a 60-minute slot,** keep Parts 2, 3, 4, 6, 7, 8, 12, 15, 17 and 20 (about 65 minutes). Mention the rest in one sentence each.
