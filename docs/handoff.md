@@ -609,3 +609,25 @@ Gate line status (pass/fail): pass — snapshot hook per commit; refunds 11, set
 Open points: (1) zoauro: vendor plans migration not applied (owner approval; coordinator after the demo); (2) payouts mark-paid (Super Admin, re-auth) and the payout job not built; (3) Control Panel field specs for orders.cancelReasons (web lane); (4) the order detail cancel dialog must use GET /orders/{id}/cancel-reasons (free text is refused now); (5) the pincode-mismatch report stays a stub
 Next step: post-demo: payouts mark-paid, vendor plans zoauro migration with the owner's approval, partner onboarding review/more-info routes, hotel documents API
 Verify: pnpm --filter @zoauro/api exec vitest run tests/refunds tests/settlements tests/vendor-plans tests/zones tests/orders src/lib/errors.test.ts --maxWorkers=1 (take .git/zo-dbtest.lock)
+
+Date / task id: 2026-10-22 / Docs + QA: demo checkpoints 1–2, presenter guide (doc 64), owner's mandatory modules (D202, D203)
+Lane / files changed: docs + QA — docs/F-execution/61_Demo_Script.md (§1 APP_URL tunnel link, act 6 cancel window and auto-assign, §5 checkpoint 1 and 2 results), docs/F-execution/64_Demo_Presenter_Guide.md + .html + 64_build_html.cjs (new: script, flows, 13 diagrams, changes box, payouts part 16, advertising part 17), docs/FEATURES.md, docs/README.md; QA scripts stay in the session scratchpad (walk with timings and the layout scan, recheck, paid, iso, shot, checks)
+Commits: 81291df (checkpoint 1), 491126c (doc 64), adfe007 (checkpoint 2 + auto-assign); the commit of the payouts/advertising parts and the changes box was queued on the commit lock at 19:30 (check `git log -3 -- docs/F-execution/64_Demo_Presenter_Guide.md`; if absent, rerun it: diff of docs 61/64/64.html/FEATURES)
+Contract changes (docs 08/09/10/36): none
+Decisions or [ASSUMPTION]s touched (D-numbers): none decided here; documented D154/D199 (auto-assign), D156 (cancel window), D202/D203 (payouts complete, ads and payouts mandatory for the demo), the owner's doc rule (docs 61, 64, FEATURES updated per demo-visible change)
+Gate line status (pass/fail): pass for the evening demo build 00b4ecf, all functional checks:
+- dark-mode table headers light; Cancel hidden out for delivery;
+- dashboard follows the zone (151 / 86 / 43 / 22);
+- payout-cycle save; re-auth;
+- Mark paid (3 paid with references, Sree Krishna Sweets held by an open refund, no button on partner payouts or for Meena);
+- isolation 12/12;
+- Arun's 55 pages with 0 errors and 0 layout findings;
+- the dark-os e2e flow 1/1.
+Timings tonight not valid (free RAM 0.2–0.9 GB). Not run tonight: the Karthik, Meena, Priya and Suresh walks on 00b4ecf, and the owner's live access E2E (A1–A12, C: create a Zonal Admin and a Super Admin, access overrides and limits, first-sign-in wizard, access request, suspend, primary toggles, 2-step reset, audit). UI labels for it are being mapped.
+Next step (morning, 2026-10-23):
+1. On the morning build, through the tunnel URL (APP_URL; 127.0.0.1 sign-in is refused since 19:13), run the access E2E and report each FAIL to the coordinator at once; then -23 resets.
+2. ads.cjs and the payouts checks (detail, tabs, statement, partner Mark paid, 4-profile isolation) as they land by 05:30.
+3. The four remaining walks + the timing run on the final build after the build sessions stop.
+4. Apply -3c's "Audit & Logs" menu regroup to the menu paths in docs 61 and 64; refresh the doc 64 changes box per build.
+5. Tracker sheets (Demo readiness, Features) after the 06:00 checkpoint.
+Verify: open docs/F-execution/64_Demo_Presenter_Guide.html in a browser (needs internet for fonts and diagrams); node docs/F-execution/64_build_html.cjs after any edit of the .md
