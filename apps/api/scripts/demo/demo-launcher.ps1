@@ -4,12 +4,14 @@
 #
 #   demo-launcher.ps1 start          Docker + infrastructure, demo API + worker + web, warm-up, browser
 #   demo-launcher.ps1 stop [/all]    ends only the demo processes; /all also stops the four infrastructure containers
+#   demo-launcher.ps1 ensure         the watchdog (scheduled every 5 min): starts the demo only when its processes are
+#                                    missing, without a browser; never touches a running demo; logs to starts.log
 #
 # Logs: <demo build>\logs\api.log, worker.log, web.log (outside the repository). The API logs error classes only, never
 # request bodies or personal data.
 
 param(
-  [Parameter(Position = 0)][ValidateSet('start', 'stop')][string]$Command = 'start',
+  [Parameter(Position = 0)][ValidateSet('start', 'stop', 'ensure')][string]$Command = 'start',
   [Parameter(Position = 1)][string]$Option = ''
 )
 
@@ -87,7 +89,7 @@ function Stop-Demo([switch]$All) {
   Write-Host 'Demo stopped.' -ForegroundColor Green
 }
 
-function Start-Demo {
+function Start-Demo([switch]$Quiet) {
   Write-Host 'Starting the ZOAURO demo'
 
   # 0. what the launcher needs
@@ -138,7 +140,7 @@ function Start-Demo {
   if ($running.Count -gt 0 -and (Get-PortOwner $ApiPort) -and (Get-PortOwner $WebPort) -and
       (Wait-Http "http://127.0.0.1:$ApiPort/api/ready" 5) -and (Wait-Http "$WebUrl/login" 5)) {
     # a second double-click: nothing new is started
-    Start-Process "$WebUrl/login"
+    if (-not $Quiet) { Start-Process "$WebUrl/login" }
     Write-Host ''
     Write-Host "Demo already running: $WebUrl (build $commit). Nothing new was started." -ForegroundColor Green
     return
@@ -187,12 +189,27 @@ function Start-Demo {
   }
   try { Invoke-WebRequest -Uri "http://127.0.0.1:$ApiPort/api/v1/openapi.json" -UseBasicParsing -TimeoutSec 30 | Out-Null } catch { }
 
-  # 7. browser
-  Start-Process "$WebUrl/login"
-  Start-Process 'http://127.0.0.1:8025'
+  # 7. browser (not for the watchdog)
+  if (-not $Quiet) {
+    Start-Process "$WebUrl/login"
+    Start-Process 'http://127.0.0.1:8025'
+  }
 
   Write-Host ''
   Write-Host "Demo ready: $WebUrl (build $commit). 2-step codes: your inbox or Mailpit http://127.0.0.1:8025." -ForegroundColor Green
 }
 
-if ($Command -eq 'stop') { Stop-Demo -All:($Option -eq '/all' -or $Option -eq '-all') } else { Start-Demo }
+# The watchdog: on 2026-10-22 the demo's three node processes vanished three times with no trace in any log. A
+# running demo (all three processes there) is never touched, however slow it answers; a missing one restarts the set.
+function Confirm-Demo {
+  if (-not (Test-Path (Join-Path $Build 'DEMO_BUILD.json'))) { return }
+  $n = @(Get-DemoProcesses | Where-Object { $_.Name -eq 'node.exe' }).Count
+  if ($n -ge 3) { return }
+  New-Item -ItemType Directory -Force -Path $Logs | Out-Null
+  Add-Content (Join-Path $Logs 'starts.log') "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') watchdog: $n of 3 demo processes running, starting"
+  Start-Demo -Quiet
+}
+
+if ($Command -eq 'stop') { Stop-Demo -All:($Option -eq '/all' -or $Option -eq '-all') }
+elseif ($Command -eq 'ensure') { Confirm-Demo }
+else { Start-Demo }
