@@ -77,6 +77,23 @@ export async function seedSettings(
     'Coimbatore Central is dense enough for three orders per ride',
     log,
   );
+  // D154, D199: Tiruppur is ready for auto-assign but stays OFF, so the live act is one switch (doc 61); demo
+  // locations are refreshed by demo:data, so a 60-minute location age covers the act
+  await save(
+    sa,
+    `/zones/${zoneId['TUP']}/settings/orders`,
+    {
+      'delivery.autoAssign': {
+        enabled: false,
+        radiusKm: 5,
+        offerTimeoutSeconds: 60,
+        maxAttempts: 3,
+        locationMaxAgeMinutes: 60,
+      },
+    },
+    'Tiruppur pilots auto-assign: ready to switch on, nearest partner within 5 km',
+    log,
+  );
   await save(
     sa,
     `/zones/${zoneId['TUP']}/settings/refunds`,

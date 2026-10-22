@@ -477,8 +477,9 @@ export async function seedOrders(
     try {
       if (l.target === 'CANCELLED') {
         await step(`/orders/${id}/cancel`, {
-          reasonCode: 'VENDOR_UNREACHABLE',
-          note: 'Vendor did not answer three calls; customer informed.',
+          // a D190 default reason (orders.cancelReasons); an unknown code is refused
+          reasonCode: 'VENDOR_CLOSED',
+          note: 'Vendor closed early and did not answer three calls; customer informed.',
         });
         moved += 1;
         continue;

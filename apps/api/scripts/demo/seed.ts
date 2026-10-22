@@ -8,7 +8,7 @@ import { DemoHttpError } from './client';
 import { ACCOUNTS, seedPeople, type AccountKey } from './people';
 import { seedVendors } from './vendors';
 import { ensureAppClients, seedMenu } from './menu';
-import { seedPartners } from './partners';
+import { refreshPartnerLocations, seedPartners } from './partners';
 import { seedCustomers } from './customers';
 import { freshenPreorders, seedOrders } from './orders';
 import { seedSettings } from './settings';
@@ -213,6 +213,7 @@ async function main(): Promise<void> {
       log,
     );
     await ensureCodLimitPartner(db, log);
+    await refreshPartnerLocations(db, log);
   } finally {
     await db.$disconnect();
   }

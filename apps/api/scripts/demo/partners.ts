@@ -218,12 +218,10 @@ export async function seedPartners(
     out.push({ id, zone: p.zone, zoneId: zid, name: p.name, stage: p.stage });
   }
 
-  // "online" is the partner app's own field (doc 44): the active partners are on duty for the demo
+  // "online" is the partner app's own field (doc 44): the active partners are on duty for the demo; their last
+  // location (lat, lng and time together, D154) is refreshed on every seed by refreshPartnerLocations
   const onDuty = out.filter((p) => p.stage === 'ACTIVE').map((p) => p.id);
-  await db.deliveryPartner.updateMany({
-    where: { id: { in: onDuty } },
-    data: { isOnline: true, lastLocationAt: new Date() },
-  });
+  await db.deliveryPartner.updateMany({ where: { id: { in: onDuty } }, data: { isOnline: true } });
 
   // Partner Requests from the partner app, through the real sign-up service as that app (IH-2)
   const registrations = new RegistrationsService(new RegistrationsDatabase(db));
@@ -257,4 +255,36 @@ export async function seedPartners(
     });
   }
   return out;
+}
+
+/**
+ * Where the on-duty demo partners stand (D154, D199 auto-assign): near their zone's vendors. Tiruppur has Murugan Velu
+ * about 1 km and Ravi Shankar about 4 km from Tiruppur Kongu Kitchen, so the auto-assign act picks Murugan first.
+ */
+const DEMO_LOCATIONS: Record<string, { lat: number; lng: number }> = {
+  'Mani Kandan': { lat: 11.0089, lng: 76.953 }, // RS Puram, CBE
+  'Arjun Selvam': { lat: 11.0183, lng: 76.966 }, // Gandhipuram, CBE
+  'Gokul Krishnan': { lat: 11.079, lng: 76.94 }, // near the CBN vendors
+  'Murugan Velu': { lat: 11.1175, lng: 77.3411 }, // ~1 km from Tiruppur Kongu Kitchen
+  'Ravi Shankar': { lat: 11.1445, lng: 77.3411 }, // ~4 km from Tiruppur Kongu Kitchen
+};
+
+/**
+ * Run on every seed: the on-duty demo partners' locations become "now" (lat, lng and time together), so auto-assign
+ * sees fresh locations during the demo (the TUP override accepts locations up to 60 minutes old).
+ */
+export async function refreshPartnerLocations(
+  db: PrismaClient,
+  log: (l: string) => void,
+): Promise<void> {
+  const now = new Date();
+  let n = 0;
+  for (const [name, at] of Object.entries(DEMO_LOCATIONS)) {
+    const r = await db.deliveryPartner.updateMany({
+      where: { name, deletedAt: null, status: 'ACTIVE', isOnline: true },
+      data: { lastLat: at.lat, lastLng: at.lng, lastLocationAt: now },
+    });
+    n += r.count;
+  }
+  log(`partner locations refreshed: ${n} on-duty partners (auto-assign needs a fresh location)`);
 }

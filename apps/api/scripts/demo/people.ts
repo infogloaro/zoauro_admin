@@ -279,20 +279,27 @@ export async function seedPeople(
     clients[key] = c;
   }
 
-  // a pending access request for the Super Admin's inbox: Karthik asks for the menu editing his CBN override denies
-  const pending = await db.accessRequest.count({
+  // pending access requests for the Super Admin's inbox: Karthik asks for the CBN menus (his Operations profile has no
+  // menu view there, and his override denies menu edit). One request is one action, so view and edit are asked apart:
+  // approving both makes the Menus entry and the CBN items appear for him (doc 61 live action).
+  const pending = await db.accessRequest.findMany({
     where: { requesterId: userId.karthik, status: 'PENDING' },
+    select: { module: true, action: true },
   });
-  if (pending === 0) {
+  for (const action of ['view', 'edit'] as const) {
+    const stored = action === 'view' ? 'VIEW' : 'EDIT';
+    if (pending.some((p) => p.module === 'menu' && p.action === stored)) continue;
     await clients.karthik.post('/me/access-requests', {
       kind: 'PERMISSION',
       zoneId: zoneId['CBN'],
       module: 'menu',
-      action: 'edit',
+      action,
       reason:
-        'Vendors in Coimbatore North keep calling about price fixes; I can do them the same day.',
+        action === 'view'
+          ? 'I need to see the Coimbatore North menus to answer the vendors there.'
+          : 'Vendors in Coimbatore North keep calling about price fixes; I can do them the same day.',
     });
-    log('access request from Karthik (menu:edit in CBN) pending');
+    log(`access request from Karthik (menu:${action} in CBN) pending`);
   }
   return { zoneId, profileId, userId, clients };
 }
