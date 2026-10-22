@@ -252,3 +252,30 @@ describe('Payouts', () => {
     );
   });
 });
+
+describe('payout mark-paid rules (F4a)', () => {
+  it('amount to pay, who may mark paid, which payees', async () => {
+    const { amountToPay, canMarkPayoutsPaid, payeeMarkable } = await import('./labels');
+    expect(amountToPay({ status: 'PENDING', netPaise: 10_000, vendorRefundsPaise: 2_500 })).toBe(
+      7_500,
+    );
+    expect(amountToPay({ status: 'PENDING', netPaise: 1_000, vendorRefundsPaise: 2_500 })).toBe(0);
+    expect(
+      amountToPay({
+        status: 'PAID',
+        netPaise: 10_000,
+        vendorRefundsPaise: 2_500,
+        paidPaise: 9_000,
+      }),
+    ).toBe(9_000);
+    expect(
+      amountToPay({ status: 'PAID', netPaise: 10_000, vendorRefundsPaise: 2_500, paidPaise: null }),
+    ).toBe(10_000);
+    expect(canMarkPayoutsPaid(true, { isPrimary: true, areas: [] })).toBe(true);
+    expect(canMarkPayoutsPaid(true, { isPrimary: false, areas: ['settings.refunds'] })).toBe(false);
+    expect(canMarkPayoutsPaid(true, { isPrimary: false, areas: ['settings.payouts'] })).toBe(true);
+    expect(canMarkPayoutsPaid(false, null)).toBe(false);
+    expect(payeeMarkable('HOMEMAKER')).toBe(true);
+    expect(payeeMarkable('DELIVERY_PARTNER')).toBe(false);
+  });
+});

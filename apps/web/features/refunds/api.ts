@@ -32,6 +32,20 @@ export interface PaymentFilters {
 
 export const refundKeys = { all: ['refunds'] as const, payments: ['payments'] as const };
 
+/** The refund list's query; GET /refunds/export (F4) takes the same filters and exports every matching row. */
+export function refundListQuery(f: RefundFilters) {
+  return {
+    page: f.page,
+    pageSize: DEFAULT_LIST_PAGE_SIZE,
+    sort: f.sort,
+    ...(f.q ? { q: f.q } : {}),
+    ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
+    ...(f.status && f.status.length ? { status: [...f.status] } : {}),
+    ...(f.awaitingSecondApproval ? { awaitingSecondApproval: 'true' as const } : {}),
+    ...(f.fault ? { fault: f.fault } : {}),
+  };
+}
+
 export function useRefundList(f: RefundFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({
@@ -39,16 +53,7 @@ export function useRefundList(f: RefundFilters, enabled = true) {
     enabled,
     queryFn: ({ signal }) =>
       client.get('/refunds', {
-        query: {
-          page: f.page,
-          pageSize: DEFAULT_LIST_PAGE_SIZE,
-          sort: f.sort,
-          ...(f.q ? { q: f.q } : {}),
-          ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
-          ...(f.status && f.status.length ? { status: [...f.status] } : {}),
-          ...(f.awaitingSecondApproval ? { awaitingSecondApproval: 'true' as const } : {}),
-          ...(f.fault ? { fault: f.fault } : {}),
-        },
+        query: refundListQuery(f),
         signal,
       }),
     placeholderData: keepPreviousData,
@@ -69,6 +74,21 @@ export function useRefund(id: string) {
   });
 }
 
+/** The payment list's query; GET /payments/export (F4) takes the same filters and exports every matching row. */
+export function paymentListQuery(f: PaymentFilters) {
+  return {
+    page: f.page,
+    pageSize: DEFAULT_LIST_PAGE_SIZE,
+    sort: f.sort,
+    ...(f.q ? { q: f.q } : {}),
+    ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
+    ...(f.method ? { method: f.method } : {}),
+    ...(f.status ? { status: f.status } : {}),
+    ...(f.from ? { from: f.from } : {}),
+    ...(f.to ? { to: f.to } : {}),
+  };
+}
+
 export function usePaymentList(f: PaymentFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({
@@ -76,17 +96,7 @@ export function usePaymentList(f: PaymentFilters, enabled = true) {
     enabled,
     queryFn: ({ signal }) =>
       client.get('/payments', {
-        query: {
-          page: f.page,
-          pageSize: DEFAULT_LIST_PAGE_SIZE,
-          sort: f.sort,
-          ...(f.q ? { q: f.q } : {}),
-          ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
-          ...(f.method ? { method: f.method } : {}),
-          ...(f.status ? { status: f.status } : {}),
-          ...(f.from ? { from: f.from } : {}),
-          ...(f.to ? { to: f.to } : {}),
-        },
+        query: paymentListQuery(f),
         signal,
       }),
     placeholderData: keepPreviousData,

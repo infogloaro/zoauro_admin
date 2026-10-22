@@ -80,6 +80,20 @@ export function useCashSettlements(f: SettlementFilters, enabled = true) {
   });
 }
 
+/** The payout list's query; GET /payouts/export (F4) takes the same filters and exports every matching row. */
+export function payoutListQuery(f: PayoutFilters) {
+  return {
+    page: f.page,
+    pageSize: DEFAULT_LIST_PAGE_SIZE,
+    sort: f.sort,
+    ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
+    ...(f.payeeType ? { payeeType: f.payeeType } : {}),
+    ...(f.status ? { status: f.status } : {}),
+    ...(f.from ? { from: f.from } : {}),
+    ...(f.to ? { to: f.to } : {}),
+  };
+}
+
 export function usePayouts(f: PayoutFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({
@@ -87,16 +101,7 @@ export function usePayouts(f: PayoutFilters, enabled = true) {
     enabled,
     queryFn: ({ signal }) =>
       client.get('/payouts', {
-        query: {
-          page: f.page,
-          pageSize: DEFAULT_LIST_PAGE_SIZE,
-          sort: f.sort,
-          ...(f.zoneId ? { zoneId: [f.zoneId] } : {}),
-          ...(f.payeeType ? { payeeType: f.payeeType } : {}),
-          ...(f.status ? { status: f.status } : {}),
-          ...(f.from ? { from: f.from } : {}),
-          ...(f.to ? { to: f.to } : {}),
-        },
+        query: payoutListQuery(f),
         signal,
       }),
     ...common,

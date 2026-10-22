@@ -66,3 +66,31 @@ export function periodText(from: string, to: string): string {
     });
   return `${d(from, false)} to ${d(to, true)}`;
 }
+
+/**
+ * F4a: what a payout pays. A paid payout keeps its snapshot (paidPaise); a pending one pays net minus the vendor-fault
+ * refunds decided in its period (D152), never below zero. Rows paid before F4 have no snapshot and show net.
+ */
+export function amountToPay(p: {
+  status: string;
+  netPaise: number;
+  vendorRefundsPaise: number;
+  paidPaise?: number | null;
+}): number {
+  if (typeof p.paidPaise === 'number') return p.paidPaise;
+  if (p.status === 'PAID') return p.netPaise;
+  return Math.max(p.netPaise - p.vendorRefundsPaise, 0);
+}
+
+/** F4a: who may mark a payout paid: a primary Super Admin, or a non-primary one with the settings.payouts area. */
+export function canMarkPayoutsPaid(
+  superAdmin: boolean,
+  areas: { isPrimary: boolean; areas: readonly string[] } | null | undefined,
+): boolean {
+  if (!superAdmin) return false;
+  return !areas || areas.isPrimary || areas.areas.includes('settings.payouts');
+}
+
+/** F4a: only vendor payouts are marked paid here; the delivery-partner formula is not confirmed yet. */
+export const payeeMarkable = (type: 'RESTAURANT' | 'HOMEMAKER' | 'DELIVERY_PARTNER') =>
+  type === 'RESTAURANT' || type === 'HOMEMAKER';
