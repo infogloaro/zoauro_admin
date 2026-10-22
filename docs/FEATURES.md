@@ -80,7 +80,7 @@ Status: **Built** = API and screens; **API only** = no screen yet; **Paused** = 
 | Feature | Status | Notes |
 |---|---|---|
 | Dashboards for both roles (tiles per permission and zone) | Built | |
-| Global search in the header (orders, customers, vendors, partners) (D143) | Built | |
+| Global search in the header (orders, customers, vendors, partners) (D143) | Built | top bar only; "See all results for …" opens the full page (the sidebar entry was removed in 86bf37f) |
 | Notifications: messages, promotions with Super Admin approval, scheduling (D134–D137) | Built | |
 | Support desk: tickets, messages, assignment, SLA timers, reopen (D139–D141) | Built | |
 | Exports of every list to CSV (D129, D149) | Built | needs the worker |

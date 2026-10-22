@@ -112,7 +112,7 @@ Sign in as the **Primary Super Admin**.
    - onboarding documents per vendor type, mandatory or optional (D145);
    - reward points (D169); orders a partner carries at once (D121); auto-assign settings (D154, off).
 3. Change one value (for example the payout cycle for one zone): preview → reason → password → saved. (Several setting editors opened empty on yesterday's build; the fix lands before the 14:00 freeze and is checked on the final build. If one still opens empty, use the refund limits editor instead.)
-4. **Settings history** — Ready. The change you just made, with who, why, before and after.
+4. **Audit & Logs → Settings History** — Ready. The change you just made, with who, why, before and after.
 
 Talking point: management can change prices, limits and rules any time, per zone, with an audit trail.
 
@@ -120,7 +120,7 @@ Talking point: management can change prices, limits and rules any time, per zone
 1. **Administration → Zonal admins** — Ready. Add a Zonal Admin (name, email, mobile, temporary password).
 2. **Member access** — Ready. Add a zone with an access profile; set refund limits; grant or deny single actions (deny wins); reveal and export switches; **Preview** shows exactly which menu and tiles the member will see.
 3. **Access profiles** — Ready. The permission matrix; Super Admin-only rows are locked.
-4. **Zone teams** and **Access history** — Ready. Who works where; every access change with before and after.
+4. **Zone teams** (Zone Operations) and **Audit & Logs → Access History** — Ready. Who works where; every access change with before and after.
 5. **Super Admins** — Ready. Arun carries the Primary badge; each Super Admin shows the Control Panel areas granted; only a primary adds, removes or changes them (D178).
 6. **Commission** — Ready. Set on the vendor by the Super Admin; a Zonal Admin can edit it only where the Super Admin enables it (D155).
 
@@ -173,7 +173,7 @@ Sign out; sign in as the **Zonal Admin** on the Zonal Admin tab.
 Sign in as the **Admin** (Super Admin with granted areas) — Ready (dashboard fixed in 796e13a). All-zone operations, but the menu shows only her granted areas, and the Super Admins list is view-only. Her Control Panel is filtered to her granted areas by a fix landing before the 14:00 freeze; until it is confirmed on the final build, don't pick a zone in Platform settings while signed in as Meena.
 
 ### Act 13. Audit trail (2 min)
-**Administration → Audit & logs** — Ready. Every action from this demo is listed: who, what, which zone, before and after, denied attempts.
+**Audit & Logs → Audit & Logs** — Ready (the Audit & Logs group, 86bf37f, also holds Recent Activities, Access History and Settings History; hidden for Zonal Admins and for Meena without those areas). Every action from this demo is listed: who, what, which zone, before and after, denied attempts.
 
 ### Act 14. What comes next (3 min) — Design
 The "Soon" entries in the menu open each module's plan page (owner's choice: show the roadmap, not hide it). From the workflow map and doc 60: app integration (customer, vendor, partner apps), Razorpay payments, advertising and commission, customer meal plans, offers, maps and automatic partner assignment, multi-restaurant checkout.

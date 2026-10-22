@@ -35,7 +35,8 @@ For the owner. Updated with every demo build. Newest first.
 
 - the payout detail page, statement and partner payouts (Part 16);
 - Advertising (Part 17), shown as "Soon" in the menu until then;
-- a new "Audit & Logs" menu group (Audit & Logs, Recent Activities, Access History, Settings History). The sidebar Global Search entry is removed; the top-bar search stays.
+- **Changed (86bf37f):** a new **Audit & Logs** menu group after Administration, holding Audit & Logs, Recent Activities, Access History and Settings History. The sidebar Global Search entry is gone; search from the top bar and pick "See all results for …". Parts 4, 6, 7 and 21.
+- **Changed (267518b):** if sign-out is refused, a red toast says why instead of staying silently on the page.
 
 ## Contents
 
@@ -182,12 +183,12 @@ flowchart LR
 **Say:**
 > "When I pick one zone, the whole panel follows: the dashboard, every list and every count."
 
-**Do:** press **Ctrl K** (or click the search box) and type a vendor name, for example "Annapoorna".
+**Do:** press **Ctrl K** (or click the search box in the top bar) and type at least two letters, for example "ravi" or "Annapoorna". Pick a result, or choose **See all results for …** (or press Enter on it) to open the full search page.
 
 **Say:**
 > "Global search finds orders, customers, vendors and partners from anywhere, only inside the zones I am allowed to see."
 
-**Do:** **Overview → Recent Activities**.
+**Do:** open the **Audit & Logs** group in the sidebar, then **Recent Activities**.
 
 **Say:**
 > "Recent Activities is the live feed of what admins did: who, what, when, in which zone."
@@ -273,7 +274,7 @@ The settings, in plain words:
 **Say:**
 > "Every change shows its effect before it is saved, needs a written reason and the admin's password, and is recorded. This value applies only to Coimbatore Central. The other zones keep the default of 7 days."
 
-**Do:** **Administration → Settings History**.
+**Do:** **Audit & Logs → Settings History**.
 
 **Say:**
 > "Here is the change I just made: who, when, why, the old value and the new value."
@@ -332,7 +333,7 @@ On the right, **Effective access** shows his limits, the modules he sees, and hi
 **Say:**
 > "Profiles are job templates: Zone Manager, Operations, Menu Desk. The locked rows are powers only a Super Admin can ever have: zones, access, settings and commission edits."
 
-**Do:** **Administration → Access History**.
+**Do:** **Audit & Logs → Access History**.
 
 **Say:**
 > "Every access change is recorded with before and after, and the member gets an email."
@@ -939,7 +940,7 @@ sequenceDiagram
 
 ## 21. Audit trail (2 min)
 
-**Do:** sign in as Arun again, then **Administration → Audit & Logs**.
+**Do:** sign in as Arun again, then **Audit & Logs → Audit & Logs**. The **Audit & Logs** group holds every record screen: Audit & Logs, Recent Activities, Access History and Settings History.
 
 **Say:**
 > "Everything we did in this demo is here:
