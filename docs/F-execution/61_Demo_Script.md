@@ -203,3 +203,33 @@ Rechecked at 17:00 on the next frozen build with fresh data: all five accounts c
 **Known risk:** with the build sessions running, the laptop had only 0.14 GB of memory free and the demo API briefly lost its database connection, so a sign-in failed with "Something went wrong". Stopping all build sessions an hour before the demo (D189) removes this; if it ever happens, wait a few seconds and try again.
 
 Pages marked "Soon" in the menu are the roadmap and are not counted as errors.
+
+### Checkpoint 1: 2026-10-22, 14:26, demo build `ac0c950`
+
+The walk now also times each page (budget: main content under 2 s, each API call under 800 ms) and scans every page at 1440 and 1280 pixels wide for text that runs over a button or link, and for table cells whose text spills out without "…". Each account signs out at the end.
+
+| Account | Pages | Errors | Typical page | Pages over 2 s |
+|---|---|---|---|---|
+| Arun (primary Super Admin) | 55 | 0 | 0.5 s | Security Settings 9.2 s, Vendor Onboarding 3.1 s, Account security 2.3 s |
+| Meena (Admin) | 45 | 0 | 0.6 s | Payments 9.5 s, Orders 5.6 s, an order 4.3 s, Control Panel 2.7 s |
+| Karthik (two zones) | 30 | 0 | 0.6 s | Notifications 5.0 s, a refund 2.3 s |
+| Priya, Suresh | 15, 24 | 0 | 0.45 s | none |
+
+- **Zone isolation:** every record from another zone answers "not found"; no list shows another zone.
+- **Passed:**
+  - every Platform Settings editor opens with its fields (23 platform, 14 for a zone);
+  - saving Coimbatore Central's payout cycle (password asked, "Payout cycle saved");
+  - Account security re-auth (password and authenticator code, new backup codes shown);
+  - "Manage team" keeps the zone;
+  - a pending vendor's Decisions card offers only Verify and Reject;
+  - Home Food uploads offer FSSAI registration;
+  - Meena's Control Panel shows only her three areas, with no error panels.
+- **Fixed after this build, recheck on the 19:00 build:**
+  - the dashboard ignores the top-bar zone (151 orders for every zone; fix 94aae90);
+  - table headers turn dark when Windows is in dark mode (fix 7d7c806; its automated test already passes);
+  - Orders fires eight count queries at once (fix 94aae90).
+- **Open:**
+  - on Vendor Onboarding, the "Asked: …" note runs under the **Start review** button (two rows, Super Admin and Zonal Admin views); the web lane is fixing it;
+  - slow first loads of Payments, Security Settings, Orders and Notifications, mostly from many calls at once;
+  - the menu badges are counted again on every page.
+- **Demo stack:** it stopped twice without an error (13:18 and about 14:00) because it ran inside a build session's shell. Since 14:19 it runs under Windows Task Scheduler, where closing a session cannot stop it.
