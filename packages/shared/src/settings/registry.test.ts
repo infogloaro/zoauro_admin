@@ -52,7 +52,6 @@ describe('effect badges', () => {
         .map((s) => s.key)
         .sort(),
     ).toEqual([
-      'delivery.autoAssign',
       'orders.cancellationRules',
       'orders.numberFormat',
       'orders.unpaidTimeoutMinutes',

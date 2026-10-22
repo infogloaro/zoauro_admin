@@ -194,6 +194,7 @@ export const AUDIT_ACTIONS = {
   'order.status_changed': a('orders', 'Changed order status'),
   // D167 pre-orders
   'order.rescheduled': a('orders', 'Rescheduled pre-order'),
+  'order.auto_assign_requested': a('orders', 'Asked auto-assign to try again'),
   'order.marked_delayed': a('orders', 'Marked order delayed'),
   'order.exported': a('orders', 'Exported orders', H),
   // support desk (D139-D141)
@@ -258,6 +259,8 @@ export const AUDIT_ACTIONS = {
   'job.payment_expired': a('system', 'Payment expired'),
   'job.payout_run': a('system', 'Payout run'),
   'job.preorder_released': a('system', 'Pre-order released for dispatch'),
+  // D154, D199 auto-assign (the assignment itself is order.partner_assigned with the System actor)
+  'job.auto_assign_fallback': a('system', 'Auto-assign gave up; assign by hand'),
   // D188 vendor plans
   'vendor_plan.created': a('plans', 'Created vendor plan', H),
   'vendor_plan.updated': a('plans', 'Updated vendor plan', H),

@@ -335,12 +335,18 @@ export const orderPreorderSchema = z
     message: 'the lead time must be shorter than the booking horizon',
   });
 
-/** D154: per zone, OFF by default; nearest available partner within the radius, offered in turn with a timeout. */
+/**
+ * D154, D199: per zone, OFF by default; the nearest eligible partner within the radius is assigned directly (offers
+ * wait for the partner app). offerTimeoutSeconds spaces the retries when nobody is free; after maxAttempts the order
+ * falls back to manual. The two newer fields default, so values saved before 10-22 still parse.
+ */
 export const deliveryAutoAssignSchema = z
   .object({
     enabled: z.boolean(),
     radiusKm: z.number().min(0.5).max(50).multipleOf(0.1),
     offerTimeoutSeconds: z.number().int().min(15).max(600),
+    maxAttempts: z.number().int().min(1).max(10).default(3),
+    locationMaxAgeMinutes: z.number().int().min(1).max(60).default(15),
   })
   .strict();
 
@@ -803,14 +809,20 @@ export const SETTINGS: readonly SettingDef[] = [
     group: 'orders',
     label: 'Auto-assign delivery partners',
     description:
-      'When on, a ready order is offered to the nearest available partner (online, active, verified, under the order cap) within the radius, one at a time with a timeout; if nobody accepts it falls back to manual assignment with an alert.',
+      'When on, a ready order is assigned to the nearest available partner (online, active, verified, under the order cap, with a recent location) within the radius. If nobody is free it tries again after the retry time; after the set number of tries the order is left for manual assignment.',
     schema: deliveryAutoAssignSchema,
-    default: { enabled: false, radiusKm: 5, offerTimeoutSeconds: 60 },
+    default: {
+      enabled: false,
+      radiusKm: 5,
+      offerTimeoutSeconds: 60,
+      maxAttempts: 3,
+      locationMaxAgeMinutes: 15,
+    },
     zoneOverride: true,
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Dispatch (auto-assign)'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'payouts.cycleDays',

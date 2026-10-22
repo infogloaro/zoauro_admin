@@ -699,6 +699,7 @@ model Zone {
   rewardEntries      RewardPointEntry[]
   walletTransactions WalletTransaction[]
   assignmentOffers   OrderAssignmentOffer[]
+  autoAssignStates   OrderAutoAssignState[]
   recordClaims       RecordClaim[]
   refunds            Refund[]
 
@@ -1132,6 +1133,7 @@ model Order {
   supportTickets   SupportTicket[]
   rewardEntries    RewardPointEntry[]
   assignmentOffers OrderAssignmentOffer[]
+  autoAssignState  OrderAutoAssignState?
 
   @@index([zoneId, status, placedAt(sort: Desc)])
   @@index([customerId])
@@ -2122,6 +2124,26 @@ model OrderAssignmentOffer {
   @@index([status, expiresAt])
   @@index([partnerId, status])
   @@map("order_assignment_offers")
+}
+
+/// D154, D199: the auto-assign engine's tries for one READY order (20261022170000_auto_assign_state)
+model OrderAutoAssignState {
+  orderId       String    @id @map("order_id") @db.Uuid
+  zoneId        String    @map("zone_id") @db.Uuid
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at") @db.Timestamptz
+  /// set when the engine gave up; the order is then assigned by hand
+  fallbackAt    DateTime? @map("fallback_at") @db.Timestamptz
+  /// ASSIGNED | NO_PARTNER (CHECK in SQL)
+  lastOutcome   String?   @map("last_outcome")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  zone  Zone  @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  // partial index order_auto_assign_state_due (zone_id, next_attempt_at) WHERE fallback_at IS NULL: SQL only
+  @@map("order_auto_assign_state")
 }
 
 // ---- D174 record claims (control-panel session) -------------------------------------------------------------------
