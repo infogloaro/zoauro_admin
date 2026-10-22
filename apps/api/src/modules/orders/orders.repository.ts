@@ -82,6 +82,10 @@ const writeSelect = {
   paymentMethod: true,
   paymentStatus: true,
   deliveryPartnerId: true,
+  // D167: the pre-order cancel cut-off
+  scheduledFor: true,
+  dispatchAt: true,
+  releasedAt: true,
   restaurant: { select: { status: true } },
   homemaker: { select: { status: true } },
 } satisfies Prisma.OrderSelect;

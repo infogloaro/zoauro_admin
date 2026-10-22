@@ -1,3 +1,4 @@
+import type { PreorderRules } from './preorder.rules';
 import type { Router } from 'express';
 import { orderOverviewQuerySchema, type OrderSla } from '@zoauro/shared';
 import { authContextOf } from '../../lib/authz';
@@ -19,6 +20,8 @@ export function createOrdersModule(deps: {
   maxConcurrentOrders: (zoneId: string) => Promise<number>;
   /** D173: the effective `delivery.codLimitPaise` of a zone (absent: no COD gate) */
   codLimit?: (zoneId: string) => Promise<number>;
+  /** D167: settings orders.preorder of a zone (SettingsReader.preorderRules) */
+  preorderRules?: (zoneId: string) => Promise<PreorderRules>;
   /** D190: settings orders.cancelReasons of a zone (SettingsReader.cancelReasons) */
   cancelReasons?: (
     zoneId: string,
@@ -43,6 +46,7 @@ export function createOrdersModule(deps: {
     maxConcurrentOrders: deps.maxConcurrentOrders,
     ...(deps.codLimit ? { codLimit: deps.codLimit } : {}),
     ...(deps.cancelReasons ? { cancelReasons: deps.cancelReasons } : {}),
+    ...(deps.preorderRules ? { preorderRules: deps.preorderRules } : {}),
     ...(deps.onDelivered ? { onDelivered: deps.onDelivered } : {}),
     delayedIds: (ctx) => overview.delayedIds(ctx),
   });

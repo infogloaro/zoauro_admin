@@ -306,6 +306,33 @@ describe('POST /orders/{id}/cancel', () => {
     });
   });
 
+  it('D167: a pre-order cannot be cancelled within the cut-off before dispatch (30 min by default)', async () => {
+    const preorder = async (dispatchInMinutes: number) => {
+      const o = await seedOrder(env, zoneA, { status: 'PLACED' });
+      const dispatch = new Date(env.clock.now().getTime() + dispatchInMinutes * 60_000);
+      await env.db.owner.query(
+        `UPDATE orders SET scheduled_for = $2, dispatch_at = $3 WHERE id = $1`,
+        [o.orderId, new Date(dispatch.getTime() + 45 * 60_000), dispatch],
+      );
+      return o.orderId;
+    };
+    const soon = await preorder(10);
+    const detail = await client(adminA, app).get(`/orders/${soon}`);
+    expect(detail.body.actions.cancel).toBe(false);
+    const r = await write(adminA, `/orders/${soon}/cancel`, 1, {
+      reasonCode: 'CUSTOMER_REQUESTED',
+    });
+    expect(r.status).toBe(409);
+    expect(r.body.error.details).toEqual([{ field: 'status', issue: 'PAST_CUTOFF' }]);
+
+    const later = await preorder(120);
+    expect((await client(adminA, app).get(`/orders/${later}`)).body.actions.cancel).toBe(true);
+    const ok = await write(adminA, `/orders/${later}/cancel`, 1, {
+      reasonCode: 'CUSTOMER_REQUESTED',
+    });
+    expect(ok.status, JSON.stringify(ok.body)).toBe(200);
+  });
+
   it('an assigned or delivered order cannot be cancelled (doc 10)', async () => {
     const o = await seedOrder(env, zoneA, { status: 'DELIVERED' });
     const r = await write(adminA, `/orders/${o.orderId}/cancel`, 1, {

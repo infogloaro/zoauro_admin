@@ -20,6 +20,7 @@ import { maskEmail, maskPhone, record, uuidv7 } from '../../lib/audit';
 import { assertCanWrite, can, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
 import { orderEventRows, type OrderEventExtra } from './orders.events';
+import { cancelBlocker, type PreorderRules } from './preorder.rules';
 import type {
   OrderDetailRow,
   OrderListRow,
@@ -120,7 +121,12 @@ export function addressLine(snapshot: unknown): string | null {
  * "somewhere"), so a member who is read-only there sees no buttons. Ported from magaraj's dev_cb, plus assign and
  * reschedule.
  */
-export function actionsFor(ctx: AuthContext, row: OrderDetailRow): OrderDetail['actions'] {
+/** `preorderLocked`: a pre-order past its D167 cancel cut-off (computed by the service, which has the rules). */
+export function actionsFor(
+  ctx: AuthContext,
+  row: OrderDetailRow,
+  preorderLocked = false,
+): OrderDetail['actions'] {
   const status = can(ctx, 'orders:status', row.zoneId);
   const edit = can(ctx, 'orders:edit', row.zoneId);
   return {
@@ -129,18 +135,18 @@ export function actionsFor(ctx: AuthContext, row: OrderDetailRow): OrderDetail['
           (t) => t !== 'CANCELLED' && t !== 'ASSIGNED' && t !== 'REFUNDED',
         )
       : [],
-    cancel: status && ORDER_CANCELLABLE.includes(row.status),
+    cancel: status && ORDER_CANCELLABLE.includes(row.status) && !preorderLocked,
     assign: edit && (row.status === 'READY' || row.status === 'ASSIGNED'),
     reschedule:
       edit && row.status === 'PLACED' && row.scheduledFor !== null && row.releasedAt === null,
   };
 }
 
-function toDetail(ctx: AuthContext, row: OrderDetailRow): OrderDetail {
+function toDetail(ctx: AuthContext, row: OrderDetailRow, preorderLocked = false): OrderDetail {
   return {
     ...toListItem(row),
     addressLine: addressLine(row.addressSnapshotJson),
-    actions: actionsFor(ctx, row),
+    actions: actionsFor(ctx, row, preorderLocked),
     subtotal: row.subtotal,
     tax: row.tax,
     deliveryCharge: row.deliveryCharge,
@@ -259,6 +265,8 @@ export class OrdersService {
       maxConcurrentOrders: (zoneId: string) => Promise<number>;
       /** D173: effective `delivery.codLimitPaise` for the zone (absent: no COD gate) */
       codLimit?: (zoneId: string) => Promise<number>;
+      /** D167: settings orders.preorder of the zone (absent: no cancel cut-off) */
+      preorderRules?: (zoneId: string) => Promise<PreorderRules>;
       /** D190: the zone's orders.cancelReasons (absent: any reason code is accepted) */
       cancelReasons?: (zoneId: string) => Promise<CancelReasonDef[]>;
       /**
@@ -284,7 +292,7 @@ export class OrdersService {
   async get(ctx: AuthContext, id: string): Promise<OrderDetail> {
     const row = await this.deps.db.repo.detail(ctx, id);
     if (!row) throw notFound();
-    return toDetail(ctx, row);
+    return toDetail(ctx, row, (await this.preorderBlocker(row)) !== null);
   }
 
   /** POST /orders/{id}/transition: every doc 10 move except cancel and assign (their own routes). */
@@ -365,6 +373,25 @@ export class OrdersService {
     };
   }
 
+  /** D167: why a PLACED, unreleased pre-order can no longer be cancelled (null: it can). */
+  private async preorderBlocker(o: {
+    zoneId: string;
+    status: string;
+    scheduledFor: Date | null;
+    dispatchAt: Date | null;
+    releasedAt: Date | null;
+  }): Promise<string | null> {
+    if (!this.deps.preorderRules || o.status !== 'PLACED' || !o.scheduledFor || !o.dispatchAt)
+      return null;
+    if (o.releasedAt !== null) return null;
+    const rules = await this.deps.preorderRules(o.zoneId);
+    return cancelBlocker(
+      { dispatchAt: o.dispatchAt, releasedAt: o.releasedAt },
+      this.deps.clock(),
+      rules,
+    );
+  }
+
   private async adminCancelReasons(zoneId: string): Promise<CancelReasonDef[]> {
     const all = (await this.deps.cancelReasons?.(zoneId)) ?? [];
     return all.filter((r) => r.usableBy.includes('ADMIN'));
@@ -380,6 +407,10 @@ export class OrdersService {
     return this.write(ctx, id, version, 'orders:status', async (_tx, order) => {
       if (!isOrderTransitionAllowed(order.status, 'CANCELLED'))
         throw invalid(order.status, 'CANCELLED');
+      // D167: a pre-order cannot be cancelled within the cut-off before its dispatch
+      const blocker = await this.preorderBlocker(order);
+      if (blocker)
+        throw guard('status', blocker, 'Too close to the pre-order dispatch time to cancel');
       if (this.deps.cancelReasons) {
         const reason = (await this.adminCancelReasons(order.zoneId)).find(
           (r) => r.code === input.reasonCode,

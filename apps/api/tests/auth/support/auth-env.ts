@@ -409,6 +409,7 @@ export async function createAuthTestEnv() {
       maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
       codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
       cancelReasons: (zoneId) => settings.reader.cancelReasons(zoneId), // D190
+      preorderRules: (zoneId) => settings.reader.preorderRules(zoneId), // D167
       clock: clock.now,
     });
     const customers = createCustomersModule({
