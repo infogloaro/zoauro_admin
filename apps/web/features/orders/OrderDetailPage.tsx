@@ -20,6 +20,7 @@ import { relativeTime } from '../dashboard/time';
 import { useInvalidateOrders, useOrderDetail } from './api';
 import { RequestRefundDialog } from '../refunds/RefundDialogs';
 import { AssignPartnerDialog } from './AssignPartnerDialog';
+import { AutoAssignCard } from './AutoAssignCard';
 import {
   ORDER_STATUS_LABEL,
   ORDER_STATUS_TONE,
@@ -225,6 +226,13 @@ export function OrderDetailPage({
           {o.cancelReason ? <p className="text-sm">Cancel reason: “{o.cancelReason}”</p> : null}
         </CardBody>
       </Card>
+
+      <AutoAssignCard
+        orderId={o.id}
+        status={o.status}
+        version={o.version}
+        canAssign={acts.canAssign}
+      />
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2" aria-labelledby="order-items">
