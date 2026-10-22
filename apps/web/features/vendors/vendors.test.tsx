@@ -227,3 +227,19 @@ describe('vendor decisions (W5)', () => {
     expect(Object.values(vendorDecisions('INACTIVE', 'REJECTED')).some(Boolean)).toBe(false);
   });
 });
+
+describe('vendor document upload (W6)', () => {
+  it('offers the checklist codes plus Other, the first missing or rejected one first', async () => {
+    const { uploadDocChoices } = await import('./labels');
+    const c = uploadDocChoices([
+      { docType: 'FSSAI_REGISTRATION', label: 'FSSAI registration', state: 'ACCEPTED' },
+      { docType: 'ADDRESS_PROOF', label: 'Address proof', state: 'MISSING' },
+    ]);
+    expect(c.options.map((o) => o.code)).toEqual(['FSSAI_REGISTRATION', 'ADDRESS_PROOF', 'OTHER']);
+    expect(c.first).toBe('ADDRESS_PROOF');
+    expect(uploadDocChoices(null)).toEqual({
+      options: [{ code: 'OTHER', label: expect.any(String) }],
+      first: 'OTHER',
+    });
+  });
+});

@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  VENDOR_DOCUMENT_TYPES,
-  type HomemakerDetail,
-  type RestaurantDetail,
-  type VendorDocumentType,
-  type VendorModule,
-} from '@zoauro/shared';
+import type { HomemakerDetail, RestaurantDetail, VendorModule } from '@zoauro/shared';
 import {
   ArrowRightLeft,
   BadgeCheck,
@@ -37,7 +31,6 @@ import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
 import { fileProblem, useInvalidateVendors, useUploadFile, useVendorDetail } from './api';
 import {
-  VENDOR_DOC_LABEL,
   vendorDocLabel,
   VENDOR_META,
   VENDOR_STATUS_LABEL,
@@ -45,6 +38,7 @@ import {
   VERIFICATION_LABEL,
   VERIFICATION_TONE,
   openingHoursLines,
+  uploadDocChoices,
   vendorDecisions,
 } from './labels';
 import { VendorActionDialog, type VendorAction } from './VendorActions';
@@ -414,7 +408,11 @@ function DocumentsCard({
   const invalidate = useInvalidateVendors(module);
   const { toast } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
-  const [docType, setDocType] = useState<VendorDocumentType>('FSSAI');
+  // W6: the vendor's checklist codes plus OTHER, the first missing or rejected one first
+  const choices = uploadDocChoices(v.checklist);
+  const docOptions = choices.options;
+  const [docType, setDocType] = useState<string>(choices.first);
+  const docTypeLabel = docOptions.find((o) => o.code === docType)?.label ?? vendorDocLabel(docType);
   const [busy, setBusy] = useState(false);
   const [alert, setAlert] = useState<string | null>(null);
 
@@ -451,7 +449,7 @@ function DocumentsCard({
         await client.post('/restaurants/{id}/documents', { params: { id: v.id }, body });
       else await client.post('/homemakers/{id}/documents', { params: { id: v.id }, body });
       toast({
-        title: `${VENDOR_DOC_LABEL[docType]} uploaded`,
+        title: `${docTypeLabel} uploaded`,
         description: 'It waits to be checked.',
       });
       await invalidate();
@@ -565,11 +563,11 @@ function DocumentsCard({
               <select
                 className={inputClass('min-w-48')}
                 value={docType}
-                onChange={(e) => setDocType(e.target.value as VendorDocumentType)}
+                onChange={(e) => setDocType(e.target.value)}
               >
-                {VENDOR_DOCUMENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {VENDOR_DOC_LABEL[t]}
+                {docOptions.map((o) => (
+                  <option key={o.code} value={o.code}>
+                    {o.label}
                   </option>
                 ))}
               </select>

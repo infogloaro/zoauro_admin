@@ -149,3 +149,24 @@ export function vendorDecisions(status: VendorStatus, verification: Verification
     suspend: status === 'ACTIVE',
   };
 }
+
+/**
+ * W6: what a vendor's document upload offers. The API accepts the vendor's checklist codes (the D145 catalogue, e.g.
+ * Home Food's FSSAI_REGISTRATION) plus OTHER; the first entry still missing or rejected is preselected.
+ */
+export function uploadDocChoices(
+  checklist: readonly { docType: string; label: string; state: string }[] | null,
+): { options: { code: string; label: string }[]; first: string } {
+  const list = checklist ?? [];
+  const options = [
+    ...list.map((c) => ({ code: c.docType, label: c.label })),
+    ...(list.some((c) => c.docType === 'OTHER')
+      ? []
+      : [{ code: 'OTHER', label: vendorDocLabel('OTHER') }]),
+  ];
+  const first =
+    list.find((c) => c.state === 'MISSING' || c.state === 'REJECTED')?.docType ??
+    options[0]?.code ??
+    'OTHER';
+  return { options, first };
+}
