@@ -349,7 +349,24 @@ export const KEY_SPECS: Record<string, KeySpec> = {
     fields: [
       { path: 'enabled', label: 'Assign partners automatically', kind: 'bool' },
       { path: 'radiusKm', label: 'Search radius (km)', kind: 'number' },
-      { path: 'offerTimeoutSeconds', label: 'Seconds a partner has to accept', kind: 'int' },
+      {
+        path: 'offerTimeoutSeconds',
+        label: 'Seconds before trying again',
+        kind: 'int',
+        hint: 'When nobody is free (15 to 600 seconds)',
+      },
+      {
+        path: 'maxAttempts',
+        label: 'Tries before falling back to manual',
+        kind: 'int',
+        hint: '1 to 10',
+      },
+      {
+        path: 'locationMaxAgeMinutes',
+        label: 'Ignore partner locations older than',
+        kind: 'minutes',
+        hint: '1 to 60 minutes',
+      },
     ],
   },
   'payouts.cycleDays': {
