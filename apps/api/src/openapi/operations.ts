@@ -136,6 +136,7 @@ import { REFUND_OPERATIONS } from './operations.refunds';
 import { SETTLEMENT_OPERATIONS } from './operations.settlements';
 import { HOTEL_OPERATIONS } from './operations.hotels';
 import { PREORDER_OPERATIONS } from './operations.preorders';
+import { AUTO_ASSIGN_OPERATIONS } from './operations.auto-assign';
 import { MENU_OPERATIONS } from './operations.menu';
 import { ONBOARDING_OPERATIONS } from './operations.onboarding';
 import { PLAN_OPERATIONS } from './operations.plans';
@@ -1475,6 +1476,8 @@ export const OPERATIONS: OperationDef[] = [
   ...HOTEL_OPERATIONS,
   // D167 pre-orders: reschedule (operations.preorders.ts)
   ...PREORDER_OPERATIONS,
+  // D154, D199 auto-assign of one order (operations.auto-assign.ts)
+  ...AUTO_ASSIGN_OPERATIONS,
   // D170 onboarding queue (operations.onboarding.ts)
   ...ONBOARDING_OPERATIONS,
   // D188 vendor plans (operations.plans.ts)

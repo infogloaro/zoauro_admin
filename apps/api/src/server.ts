@@ -18,6 +18,7 @@ import { createAuditModule } from './modules/audit';
 import { createAuthMailer, createAuthModule, createSmsProvider } from './modules/auth';
 import { createHotelsModule } from './modules/hotels';
 import { createPreordersModule } from './modules/orders/preorders.routes';
+import { createAutoAssignModule } from './modules/orders/auto-assign.routes';
 import { createMenuModule } from './modules/menu';
 import { createOnboardingModule } from './modules/onboarding';
 import { createPlansModule } from './modules/plans';
@@ -240,6 +241,15 @@ const preorders = createPreordersModule({
   rules: (zoneId) => settings.reader.preorderRules(zoneId),
 });
 
+// D154, D199 auto-assign: the order page's state and "Try auto-assign again"; the sweep runs in the worker
+const autoAssign = createAutoAssignModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  setting: (zoneId) => settings.reader.autoAssign(zoneId),
+  maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+  codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+});
+
 // M17 notifications (D134–D137): the API enqueues each zone's send; the worker process sends (notifications.jobs.ts)
 const notifications = createNotificationsModule({
   prisma,
@@ -373,6 +383,7 @@ const app = createApp({
       menu.router,
       hotels.router,
       preorders.router,
+      autoAssign.router,
       // D170 onboarding queue: start review claims the record (D174)
       createOnboardingModule({
         prisma,

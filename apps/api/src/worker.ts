@@ -18,6 +18,8 @@ import { createExportQueue, createExportsService, startExportJobs } from './modu
 import { createOrdersModule } from './modules/orders';
 import { startPreorderJobs } from './modules/orders/preorders.jobs';
 import { createPreordersModule } from './modules/orders/preorders.routes';
+import { startAutoAssignJobs } from './modules/orders/auto-assign.jobs';
+import { createAutoAssignModule } from './modules/orders/auto-assign.routes';
 import {
   createNotificationQueue,
   createNotificationsModule,
@@ -140,6 +142,15 @@ const preordersService = createPreordersModule({
   rules: (zoneId) => preorderSettings.preorderRules(zoneId),
 }).service;
 let preorderJobs: { close(): Promise<void> } | null = null;
+// D154, D199: the auto-assign sweep (every 10 s) assigns the due READY orders of the zones that have it on
+const autoAssignService = createAutoAssignModule({
+  prisma,
+  appOrigin: env.APP_URL,
+  setting: (zoneId) => preorderSettings.autoAssign(zoneId),
+  maxConcurrentOrders: (zoneId) => preorderSettings.maxConcurrentOrders(zoneId),
+  codLimit: (zoneId) => preorderSettings.codLimitPaise(zoneId),
+}).service;
+let autoAssignJobs: { close(): Promise<void> } | null = null;
 
 async function shutdown(signal: string) {
   console.log(`worker stopping (${signal})`);
@@ -149,6 +160,7 @@ async function shutdown(signal: string) {
   await notificationJobs?.close();
   await notificationQueue.close();
   await preorderJobs?.close();
+  await autoAssignJobs?.close();
   await supportJobs?.close();
   await rewardsJobs?.close();
   redis.disconnect();
@@ -170,12 +182,16 @@ assertDatabaseRole({
       service: notificationsService,
     });
     preorderJobs = await startPreorderJobs({ redisUrl: env.REDIS_URL, service: preordersService });
+    autoAssignJobs = await startAutoAssignJobs({
+      redisUrl: env.REDIS_URL,
+      service: autoAssignService,
+    });
     supportJobs = await startSupportJobs({ redisUrl: env.REDIS_URL, service: supportService });
     rewardsJobs = await startRewardsExpiryJob({ redisUrl: env.REDIS_URL, service: rewardsService });
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
     process.once('SIGINT', () => void shutdown('SIGINT'));
     console.log(
-      `worker started (outbox publisher, webhook delivery: ${transport.name}, exports, notifications, pre-orders, support SLA, reward expiry)`,
+      `worker started (outbox publisher, webhook delivery: ${transport.name}, exports, notifications, pre-orders, auto-assign, support SLA, reward expiry)`,
     );
   })
   .catch((err: unknown) => {
