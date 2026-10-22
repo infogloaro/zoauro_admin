@@ -251,9 +251,9 @@ export class AuthService {
     const sessionToken = randomToken(32);
     const tokenHash = sha256Hex(sessionToken);
     const sessionId = uuidv7();
-    const absoluteMs = opts.remember
-      ? this.config.rememberAbsoluteTimeoutMs
-      : this.config.absoluteTimeoutMs;
+    // D163: the remember-me days come from settings sessions.remember
+    await this.deps.sessions.refreshRemember();
+    const absoluteMs = this.deps.sessions.absoluteMsFor(opts.remember);
     const expiresAt = new Date(now.getTime() + absoluteMs);
 
     const { redirect, capped } = await this.asUser(user, meta, () =>

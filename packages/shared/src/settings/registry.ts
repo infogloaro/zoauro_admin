@@ -926,7 +926,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'STRONG',
     editable: true,
     appsRead: false,
-    effect: pending('Sign-in (the server reads its environment today)'),
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'sms.provider',

@@ -55,7 +55,6 @@ describe('effect badges', () => {
       'orders.cancellationRules',
       'orders.numberFormat',
       'orders.unpaidTimeoutMinutes',
-      'sessions.remember',
       'sms.provider',
     ]);
   });

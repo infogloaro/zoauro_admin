@@ -110,14 +110,41 @@ export class SessionStore {
       sessionSecret: string;
       /** D142: told about every eviction (revoke, logout, expiry) so realtime can drop those sessions' sockets */
       onEvicted?: (tokenHashes: string[]) => void;
+      /** D163: settings sessions.remember (absent or unreadable: the config values) */
+      rememberPolicy?: () => Promise<{ rememberDays: number; rememberIdleHours: number } | null>;
     },
   ) {}
+
+  /** the latest sessions.remember values (ms); null until read, then the config values are used */
+  private remember: { absoluteMs: number; idleMs: number } | null = null;
+
+  /** D163: re-read sessions.remember (the settings reader caches it); a failure keeps the last values. */
+  async refreshRemember(): Promise<void> {
+    if (!this.deps.rememberPolicy) return;
+    try {
+      const p = await this.deps.rememberPolicy();
+      if (p)
+        this.remember = {
+          absoluteMs: p.rememberDays * 24 * 3_600_000,
+          idleMs: p.rememberIdleHours * 3_600_000,
+        };
+    } catch {
+      /* keep the last values */
+    }
+  }
+
+  /** Absolute limit of a session: 12 h, or the remember-me days (D79, D163). */
+  absoluteMsFor(remember: boolean): number {
+    if (!remember) return this.deps.config.absoluteTimeoutMs;
+    return this.remember?.absoluteMs ?? this.deps.config.rememberAbsoluteTimeoutMs;
+  }
 
   private key = (tokenHash: string): string => `sess:${tokenHash}`;
 
   /** Idle limit of a session: 30 min, or 8 h with "remember me" (doc 52 section 2.6, D79). */
   idleMsFor(remember: boolean): number {
-    return remember ? this.deps.config.rememberIdleTimeoutMs : this.deps.config.idleTimeoutMs;
+    if (!remember) return this.deps.config.idleTimeoutMs;
+    return this.remember?.idleMs ?? this.deps.config.rememberIdleTimeoutMs;
   }
 
   csrfFor(tokenHash: string): string {
@@ -155,6 +182,7 @@ export class SessionStore {
 
   /** Cookie value -> session, or null when unknown, revoked, idle-expired or past the absolute limit. Slides the idle window. */
   async resolve(token: string): Promise<AuthSession | null> {
+    await this.refreshRemember();
     const tokenHash = sha256Hex(token);
     const now = this.deps.clock().getTime();
     let cached = await this.read(tokenHash);

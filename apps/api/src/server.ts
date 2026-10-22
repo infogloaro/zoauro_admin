@@ -98,8 +98,13 @@ if (env.DEMO_MODE && env.DEMO_OTP_REDIRECT)
 // D142: session evictions disconnect that session's sockets; the realtime server starts with the HTTP server below
 const realtimeGate: { sessionsEvicted?: (tokenHashes: string[]) => void } = {};
 
+// D163: the settings reader is built after auth (settings needs its step-up guard), so remember-me reads it late
+const settingsGate: {
+  reader?: { sessionRemember(): Promise<{ rememberDays: number; rememberIdleHours: number }> };
+} = {};
 const auth = createAuthModule({
   controlAreas: (userId) => controlAreas.of(userId), // D178: GET /me
+  rememberPolicy: async () => (settingsGate.reader ? settingsGate.reader.sessionRemember() : null),
   prisma,
   redis,
   audit,
@@ -131,6 +136,7 @@ const settings = createSettingsModule({
   requireReauth: auth.requireReauth,
   smsReady: () => env.SMS_PROVIDER !== 'none',
 });
+settingsGate.reader = settings.reader; // D163
 const refundCaps = (zoneIds: readonly string[]) => settings.reader.refundCaps(zoneIds);
 // D155: the Control Panel switch that opens commission:edit to a member's override
 const grantSwitches = async () => ({

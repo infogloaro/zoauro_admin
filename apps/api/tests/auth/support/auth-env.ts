@@ -270,8 +270,14 @@ export async function createAuthTestEnv() {
       deniedLimiter: extra.deniedLimiter ?? new RedisDeniedRateLimiter(appRedis),
       ...(extra.onDeniedFailure ? { onDeniedFailure: extra.onDeniedFailure } : {}),
     });
+    // D163: the settings reader is built after auth (settings needs its step-up guard), so remember-me reads it late
+    const settingsGate: {
+      reader?: { sessionRemember(): Promise<{ rememberDays: number; rememberIdleHours: number }> };
+    } = {};
     const auth = createAuthModule({
       controlAreas: (userId) => controlAreas.of(userId), // D178: GET /me
+      rememberPolicy: async () =>
+        settingsGate.reader ? settingsGate.reader.sessionRemember() : null,
       prisma,
       redis: appRedis,
       audit,
@@ -302,6 +308,7 @@ export async function createAuthTestEnv() {
       smsReady: () => false,
       clock: clock.now,
     });
+    settingsGate.reader = settings.reader; // D163
     const refundCaps = (zoneIds: readonly string[]) => settings.reader.refundCaps(zoneIds);
     // D155: the Control Panel switch that opens commission:edit to a member's override
     const grantSwitches = async () => ({

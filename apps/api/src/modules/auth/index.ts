@@ -75,6 +75,8 @@ export function createAuthModule(deps: {
   onSessionsEvicted?: (tokenHashes: string[]) => void;
   /** D178: a Super Admin's Control Panel areas for GET /me (the access module) */
   controlAreas?: (userId: string) => Promise<{ isPrimary: boolean; areas: string[] } | null>;
+  /** D163: settings sessions.remember (the settings reader; built after this module, so read late) */
+  rememberPolicy?: () => Promise<{ rememberDays: number; rememberIdleHours: number } | null>;
 }): AuthModule {
   const config = deps.config ?? DEFAULT_AUTH_CONFIG;
   const clock = deps.clock ?? (() => new Date());
@@ -86,6 +88,7 @@ export function createAuthModule(deps: {
     clock,
     sessionSecret: deps.sessionSecret,
     ...(deps.onSessionsEvicted ? { onEvicted: deps.onSessionsEvicted } : {}),
+    ...(deps.rememberPolicy ? { rememberPolicy: deps.rememberPolicy } : {}),
   });
   const limiter = new RedisRateLimiter(deps.redis);
   const mailer = deps.mailer ?? noopAuthMailer;
