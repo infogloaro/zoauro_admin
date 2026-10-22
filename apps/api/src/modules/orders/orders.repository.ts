@@ -194,6 +194,19 @@ export class OrdersRepository extends BaseRepository<Prisma.OrderWhereInput, Ord
     return { rows, total };
   }
 
+  /** Orders per status for the list's filters without the status filter (the status tabs), one grouped query. */
+  async statusCounts(
+    ctx: AuthContext,
+    q: OrderListQuery,
+    extra?: Prisma.OrderWhereInput,
+  ): Promise<Record<string, number>> {
+    const base = listWhere({ ...q, status: undefined });
+    const where = this.scope(ctx, this.viewPermission, extra ? { AND: [base, extra] } : base);
+    if (where === null) return {};
+    const groups = await this.db.order.groupBy({ by: ['status'], where, _count: { _all: true } });
+    return Object.fromEntries(groups.map((g) => [g.status, g._count._all]));
+  }
+
   async detail(ctx: AuthContext, id: string): Promise<OrderDetailRow | null> {
     const where = this.scope(ctx, this.viewPermission, this.idFilter(id));
     if (where === null) return null;

@@ -8347,6 +8347,7 @@ export interface operations {
         parameters: {
             query?: {
                 range?: "today" | "7d" | "30d" | "month";
+                zoneId?: string[];
             };
             header?: never;
             path?: never;
@@ -8440,6 +8441,7 @@ export interface operations {
         parameters: {
             query?: {
                 range?: "today" | "7d" | "30d" | "month";
+                zoneId?: string[];
             };
             header?: never;
             path?: never;
@@ -8509,6 +8511,7 @@ export interface operations {
         parameters: {
             query?: {
                 range?: "today" | "7d" | "30d" | "month";
+                zoneId?: string[];
             };
             header?: never;
             path?: never;
@@ -8575,6 +8578,7 @@ export interface operations {
         parameters: {
             query?: {
                 range?: "today" | "7d" | "30d" | "month";
+                zoneId?: string[];
             };
             header?: never;
             path?: never;
@@ -8666,6 +8670,7 @@ export interface operations {
         parameters: {
             query?: {
                 range?: "today" | "7d" | "30d" | "month";
+                zoneId?: string[];
             };
             header?: never;
             path?: never;
@@ -8733,6 +8738,7 @@ export interface operations {
         parameters: {
             query?: {
                 range?: "today" | "7d" | "30d" | "month";
+                zoneId?: string[];
             };
             header?: never;
             path?: never;
@@ -8808,6 +8814,7 @@ export interface operations {
         parameters: {
             query?: {
                 range?: "today" | "7d" | "30d" | "month";
+                zoneId?: string[];
             };
             header?: never;
             path?: never;
@@ -18738,6 +18745,12 @@ export interface operations {
                             zoneId: string;
                         }[];
                         meta: {
+                            counts?: {
+                                byStatus: {
+                                    [key: string]: number;
+                                };
+                                total: number;
+                            };
                             page: number;
                             pageSize: number;
                             total: number;

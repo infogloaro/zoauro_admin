@@ -19356,6 +19356,24 @@
                         },
                         "total": {
                           "type": "integer"
+                        },
+                        "counts": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer"
+                            },
+                            "byStatus": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "required": [
+                            "total",
+                            "byStatus"
+                          ]
                         }
                       },
                       "required": [
@@ -53668,6 +53686,20 @@
             "required": false,
             "name": "range",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
           }
         ],
         "responses": {
@@ -53930,6 +53962,20 @@
             "required": false,
             "name": "range",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
           }
         ],
         "responses": {
@@ -54065,6 +54111,20 @@
             },
             "required": false,
             "name": "range",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
             "in": "query"
           }
         ],
@@ -54205,6 +54265,20 @@
             "required": false,
             "name": "range",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
           }
         ],
         "responses": {
@@ -54341,6 +54415,20 @@
             },
             "required": false,
             "name": "range",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
             "in": "query"
           }
         ],
@@ -54504,6 +54592,20 @@
             "required": false,
             "name": "range",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
           }
         ],
         "responses": {
@@ -54633,6 +54735,20 @@
             },
             "required": false,
             "name": "range",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "zoneId",
             "in": "query"
           }
         ],

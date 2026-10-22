@@ -211,6 +211,24 @@ describe('summary (per-tile scope, D52)', () => {
     expect(outside.body.error.code).toBe('ZONE_NOT_FOUND');
   });
 
+  it('the top-bar zone narrows every tile; the cache keeps the narrowed scopes apart', async () => {
+    const all = await as(sa).get('/dashboard/summary?range=today');
+    const onlyA = await as(sa).get(`/dashboard/summary?range=today&zoneId=${zoneA}`);
+    expect(onlyA.status, JSON.stringify(onlyA.body)).toBe(200);
+    expect(all.body.orders.total).toBe(6);
+    expect(onlyA.body.orders).toMatchObject({ total: 4, delivered: 3, cancelled: 1 });
+    expect(onlyA.body.homemakers.total).toBe(0);
+    const abInB = await as(adminAB).get(`/dashboard/summary?range=today&zoneId=${zoneB}`);
+    expect(abInB.body.orders.total).toBe(2);
+    expect(abInB.body.homemakers.total).toBe(1);
+    const aInA = await as(adminA).get(`/dashboard/summary?range=today&zoneId=${zoneA}`);
+    expect(aInA.body.orders.total).toBe(4);
+    const chartA = await as(sa).get(`/dashboard/order-status?range=today&zoneId=${zoneA}`);
+    expect(chartA.body.data.find((d: { status: string }) => d.status === 'DELIVERED')?.count).toBe(
+      3,
+    );
+  });
+
   it('the cache never answers one scope with another (TC-MZ-6)', async () => {
     const a = await as(adminA).get('/dashboard/order-status?range=today');
     const ab = await as(adminAB).get('/dashboard/order-status?range=today');

@@ -281,12 +281,19 @@ export class OrdersService {
 
   async list(ctx: AuthContext, q: OrderListQuery): Promise<OrderListResponse> {
     const ids = q.delayed && this.deps.delayedIds ? await this.deps.delayedIds(ctx) : null;
-    const { rows, total } = await this.deps.db.repo.list(
-      ctx,
-      q,
-      ids === null ? undefined : { id: { in: ids } },
-    );
-    return buildPage(rows.map(toListItem), total, q);
+    const extra = ids === null ? undefined : { id: { in: ids } };
+    const [{ rows, total }, byStatus] = await Promise.all([
+      this.deps.db.repo.list(ctx, q, extra),
+      this.deps.db.repo.statusCounts(ctx, q, extra),
+    ]);
+    const page = buildPage(rows.map(toListItem), total, q);
+    return {
+      ...page,
+      meta: {
+        ...page.meta,
+        counts: { total: Object.values(byStatus).reduce((a, b) => a + b, 0), byStatus },
+      },
+    };
   }
 
   async get(ctx: AuthContext, id: string): Promise<OrderDetail> {

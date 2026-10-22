@@ -180,7 +180,12 @@ export type OrderListItem = z.infer<typeof orderListItemSchema>;
 
 export const orderListResponseSchema = z.object({
   data: z.array(orderListItemSchema),
-  meta: pageMetaSchema,
+  meta: pageMetaSchema.extend({
+    /** orders per status for the same filters without ?status (the status tabs; one grouped query) */
+    counts: z
+      .object({ total: z.number().int(), byStatus: z.record(z.string(), z.number().int()) })
+      .optional(),
+  }),
 });
 export type OrderListResponse = z.infer<typeof orderListResponseSchema>;
 

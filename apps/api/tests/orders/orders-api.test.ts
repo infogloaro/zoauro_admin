@@ -109,6 +109,16 @@ describe('GET /orders: scope, filters, masking', () => {
     expect((await as(sa).get('/orders?status=NOPE')).status).toBe(422);
     expect((await as(sa).get('/orders?sort=-total')).status).toBe(200);
   });
+
+  it('meta.counts gives every status tab for the same filters in one answer (status ignored)', async () => {
+    await seedOrder(env, zoneA, { customerName: 'Tabs Person', status: 'READY' });
+    await seedOrder(env, zoneA, { customerName: 'Tabs Person', status: 'PLACED' });
+    await seedOrder(env, zoneA, { customerName: 'Tabs Person', status: 'PLACED' });
+    const r = await as(sa).get('/orders?q=tabs%20person&status=READY');
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    expect(r.body.meta.total).toBe(1);
+    expect(r.body.meta.counts).toEqual({ total: 3, byStatus: { READY: 1, PLACED: 2 } });
+  });
 });
 
 describe('GET /orders/{id}', () => {

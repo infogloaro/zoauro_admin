@@ -8,8 +8,18 @@ import { ORDER_STATUSES } from '../orders/schemas';
 export const DASHBOARD_RANGES = ['today', '7d', '30d', 'month'] as const;
 export type DashboardRange = (typeof DASHBOARD_RANGES)[number];
 
+/**
+ * `?zoneId=` (repeatable): the top-bar zone. The auth context narrows every tile to requested ∩ the tile's zones (an
+ * unassigned zone is 404 ZONE_NOT_FOUND) and the cache key holds the narrowed scope.
+ */
+const zoneIdsParam = z.preprocess(
+  (v) => (v === undefined ? undefined : Array.isArray(v) ? v : [v]),
+  z.array(z.uuid()).min(1).max(50).optional(),
+);
+
 export const dashboardQuerySchema = z.object({
   range: z.enum(DASHBOARD_RANGES).default('7d'),
+  zoneId: zoneIdsParam,
 });
 export type DashboardQuery = z.infer<typeof dashboardQuerySchema>;
 
