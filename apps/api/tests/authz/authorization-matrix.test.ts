@@ -295,7 +295,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 1 order cancel reasons (D190)
     // + 1 payout mark-paid (F4a)
     // + 2 order auto-assign (D154, D199)
-    expect(report.coveredRoutes).toHaveLength(258);
+    // + 1 menu badges (GET /me/badges)
+    expect(report.coveredRoutes).toHaveLength(259);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

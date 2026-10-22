@@ -1637,6 +1637,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/badges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The menu badges in one call: food item requests and partner requests waiting (scoped like their lists), access requests waiting (Super Admin) and the caller’s open claims; null where not readable */
+        get: operations["getMyBadges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/control-areas": {
         parameters: {
             query?: never;
@@ -2265,6 +2282,24 @@ export interface paths {
         put?: never;
         /** Assign (READY) or reassign (ASSIGNED) a delivery partner of the same zone: verified, online, under delivery.maxConcurrentOrders (D121). Partner row locked */
         post: operations["assignOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/auto-assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The order zone's auto-assign setting (enabled, radius, retry time, tries), the engine's attempt state (tries, next try, fallback to manual) and the partners it picked (rank, distance); no phone or email */
+        get: operations["getOrderAutoAssign"];
+        put?: never;
+        /** Try auto-assign again (If-Match: version): starts the count over and runs one try now as the System; the order must be READY without a partner (409 NOT_READY) in a zone that has auto-assign on (409 AUTO_ASSIGN_OFF) */
+        post: operations["runOrderAutoAssign"];
         delete?: never;
         options?: never;
         head?: never;
@@ -15247,6 +15282,49 @@ export interface operations {
             };
         };
     };
+    getMyBadges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accessRequests: number | null;
+                        foodRequests: number | null;
+                        myClaims: number | null;
+                        partnerRequests: number | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The first-login password change is still pending */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     myControlAreas: {
         parameters: {
             query?: never;
@@ -18983,6 +19061,199 @@ export interface operations {
                         /** @enum {string} */
                         status: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
                         version: number;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getOrderAutoAssign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        offers: {
+                            distanceM: number;
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: date-time */
+                            offeredAt: string;
+                            /** Format: uuid */
+                            partnerId: string;
+                            partnerName: string;
+                            rank: number;
+                            /** Format: date-time */
+                            respondedAt: string | null;
+                            /** @enum {string} */
+                            status: "OFFERED" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "WITHDRAWN";
+                        }[];
+                        /** Format: uuid */
+                        orderId: string;
+                        setting: {
+                            enabled: boolean;
+                            maxAttempts: number;
+                            offerTimeoutSeconds: number;
+                            radiusKm: number;
+                        };
+                        state: {
+                            attempts: number;
+                            /** Format: date-time */
+                            fallbackAt: string | null;
+                            /** @enum {string|null} */
+                            lastOutcome: "ASSIGNED" | "NO_PARTNER" | null;
+                            /** Format: date-time */
+                            nextAttemptAt: string;
+                        } | null;
+                        /** Format: uuid */
+                        zoneId: string;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    runOrderAutoAssign: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description The try */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        offer: {
+                            distanceM: number;
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: date-time */
+                            offeredAt: string;
+                            /** Format: uuid */
+                            partnerId: string;
+                            partnerName: string;
+                            rank: number;
+                            /** Format: date-time */
+                            respondedAt: string | null;
+                            /** @enum {string} */
+                            status: "OFFERED" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "WITHDRAWN";
+                        } | null;
+                        order: {
+                            /** Format: uuid */
+                            deliveryPartnerId: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            status: "PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+                            version: number;
+                        };
+                        /** @enum {string} */
+                        outcome: "ASSIGNED" | "NO_PARTNER" | "FALLBACK";
                     };
                 };
             };

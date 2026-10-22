@@ -39,6 +39,7 @@ import { createSettlementsModule } from '../../../src/modules/settlements';
 import { createUploadsModule } from '../../../src/modules/uploads';
 import { createPartnersModule } from '../../../src/modules/delivery-partners';
 import { createNotificationsModule } from '../../../src/modules/notifications';
+import { createBadgesModule } from '../../../src/modules/badges';
 import { createDashboardModule } from '../../../src/modules/dashboard';
 import { createSearchModule } from '../../../src/modules/search';
 import { noopMailer } from '../../../src/lib/mailer';
@@ -523,6 +524,12 @@ export async function createAuthTestEnv() {
       notifications.router,
       createDashboardModule({ prisma, redis: extra.dashboardCache ?? null, clock: clock.now })
         .router,
+      createBadgesModule({
+        menuChanges: menu.changes,
+        partners: partners.service,
+        access: accessControl.service,
+        claims: accessControl.claims,
+      }).router,
       createSearchModule({
         prisma,
         limiter: extra.searchLimiter ?? new RedisRateLimiter(appRedis),

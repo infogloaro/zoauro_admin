@@ -140,3 +140,19 @@ export const dashboardNewRegistrationsSchema = z.object({
   deliveryPartners: z.object({ count, latest: z.array(recentEntry) }).nullable(),
 });
 export type DashboardNewRegistrations = z.infer<typeof dashboardNewRegistrationsSchema>;
+
+/**
+ * GET /me/badges: the menu's waiting counts and the caller's open claims in one call (each scoped like its own list;
+ * null = not readable for this member, or not available right now).
+ */
+export const meBadgesSchema = z.object({
+  /** R09: food item change requests waiting */
+  foodRequests: z.number().int().nullable(),
+  /** R12: delivery partners waiting for verification */
+  partnerRequests: z.number().int().nullable(),
+  /** R13: access requests waiting (Super Admin only) */
+  accessRequests: z.number().int().nullable(),
+  /** D174: the caller's open claims */
+  myClaims: z.number().int().nullable(),
+});
+export type MeBadges = z.infer<typeof meBadgesSchema>;

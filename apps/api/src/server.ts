@@ -29,6 +29,7 @@ import { createRewardsModule } from './modules/rewards';
 import { createUploadsModule } from './modules/uploads';
 import { createPartnersModule } from './modules/delivery-partners';
 import { createNotificationQueue, createNotificationsModule } from './modules/notifications';
+import { createBadgesModule } from './modules/badges';
 import { createDashboardModule } from './modules/dashboard';
 import { createSearchModule } from './modules/search';
 import { createVendorsModule } from './modules/vendors';
@@ -378,6 +379,13 @@ const app = createApp({
       notifications.router,
       // M16: tiles cached 30 s in Redis by scope hash; M18: 60 searches a minute per member
       createDashboardModule({ prisma, redis }).router,
+      // QA: the menu badges in one call
+      createBadgesModule({
+        menuChanges: menu.changes,
+        partners: partners.service,
+        access: accessControl.service,
+        claims: accessControl.claims,
+      }).router,
       createSearchModule({ prisma, limiter: new RedisRateLimiter(redis) }).router,
       uploads.router,
       menu.router,

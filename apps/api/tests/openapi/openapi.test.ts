@@ -300,6 +300,7 @@ describe('the committed API contract is current (this is the CI check)', () => {
         'POST /notifications/{id}/cancel',
         // M16 dashboard tiles and M18 global search (doc 09)
         'GET /dashboard/summary',
+        'GET /me/badges',
         'GET /dashboard/order-status',
         'GET /dashboard/order-overview',
         'GET /dashboard/zone-orders',

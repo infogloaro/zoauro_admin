@@ -7,6 +7,7 @@ import {
   dashboardTopCategoriesSchema,
   dashboardTopVendorsSchema,
   dashboardZoneOrdersSchema,
+  meBadgesSchema,
 } from '@zoauro/shared';
 import type { OperationDef } from './operations';
 
@@ -89,5 +90,15 @@ export const DASHBOARD_OPERATIONS: OperationDef[] = [
     access,
     query: dashboardQuerySchema,
     response: { status: 200, schema: dashboardNewRegistrationsSchema, description: 'The tabs' },
+  },
+  {
+    operationId: 'getMyBadges',
+    method: 'get',
+    path: '/me/badges',
+    tags: ['me'],
+    summary:
+      'The menu badges in one call: food item requests and partner requests waiting (scoped like their lists), access requests waiting (Super Admin) and the caller’s open claims; null where not readable',
+    access: { kind: 'session' },
+    response: { status: 200, schema: meBadgesSchema, description: 'The counts' },
   },
 ];

@@ -47163,6 +47163,454 @@
         }
       }
     },
+    "/orders/{id}/auto-assign": {
+      "get": {
+        "operationId": "getOrderAutoAssign",
+        "tags": [
+          "orders"
+        ],
+        "summary": "The order zone's auto-assign setting (enabled, radius, retry time, tries), the engine's attempt state (tries, next try, fallback to manual) and the partners it picked (rank, distance); no phone or email",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zoneId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "setting": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "radiusKm": {
+                          "type": "number"
+                        },
+                        "offerTimeoutSeconds": {
+                          "type": "integer"
+                        },
+                        "maxAttempts": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "enabled",
+                        "radiusKm",
+                        "offerTimeoutSeconds",
+                        "maxAttempts"
+                      ]
+                    },
+                    "state": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "attempts": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "nextAttemptAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fallbackAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "lastOutcome": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "ASSIGNED",
+                            "NO_PARTNER",
+                            null
+                          ]
+                        }
+                      },
+                      "required": [
+                        "attempts",
+                        "nextAttemptAt",
+                        "fallbackAt",
+                        "lastOutcome"
+                      ]
+                    },
+                    "offers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "partnerId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "partnerName": {
+                            "type": "string"
+                          },
+                          "rank": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "distanceM": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "OFFERED",
+                              "ACCEPTED",
+                              "DECLINED",
+                              "EXPIRED",
+                              "WITHDRAWN"
+                            ]
+                          },
+                          "offeredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "respondedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "partnerId",
+                          "partnerName",
+                          "rank",
+                          "distanceM",
+                          "status",
+                          "offeredAt",
+                          "respondedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "orderId",
+                    "zoneId",
+                    "setting",
+                    "state",
+                    "offers"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "orders:view",
+          "zone": "none"
+        }
+      },
+      "post": {
+        "operationId": "runOrderAutoAssign",
+        "tags": [
+          "orders"
+        ],
+        "summary": "Try auto-assign again (If-Match: version): starts the count over and runs one try now as the System; the order must be READY without a partner (409 NOT_READY) in a zone that has auto-assign on (409 AUTO_ASSIGN_OFF)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The try",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "ASSIGNED",
+                        "NO_PARTNER",
+                        "FALLBACK"
+                      ]
+                    },
+                    "order": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PLACED",
+                            "ACCEPTED",
+                            "PREPARING",
+                            "READY",
+                            "ASSIGNED",
+                            "OUT_FOR_DELIVERY",
+                            "DELIVERED",
+                            "CANCELLED",
+                            "REFUNDED"
+                          ]
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "deliveryPartnerId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "version",
+                        "deliveryPartnerId"
+                      ]
+                    },
+                    "offer": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "partnerId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "partnerName": {
+                          "type": "string"
+                        },
+                        "rank": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "distanceM": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "OFFERED",
+                            "ACCEPTED",
+                            "DECLINED",
+                            "EXPIRED",
+                            "WITHDRAWN"
+                          ]
+                        },
+                        "offeredAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "respondedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "partnerId",
+                        "partnerName",
+                        "rank",
+                        "distanceM",
+                        "status",
+                        "offeredAt",
+                        "respondedAt"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "outcome",
+                    "order",
+                    "offer"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "orders:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "orders",
+          "action": "order.auto_assign_requested"
+        }
+      }
+    },
     "/onboarding": {
       "get": {
         "operationId": "listOnboarding",
@@ -54953,6 +55401,87 @@
           "kind": "permission",
           "permission": "dashboard:view",
           "zone": "none"
+        }
+      }
+    },
+    "/me/badges": {
+      "get": {
+        "operationId": "getMyBadges",
+        "tags": [
+          "me"
+        ],
+        "summary": "The menu badges in one call: food item requests and partner requests waiting (scoped like their lists), access requests waiting (Super Admin) and the caller’s open claims; null where not readable",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "foodRequests": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "partnerRequests": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "accessRequests": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "myClaims": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "foodRequests",
+                    "partnerRequests",
+                    "accessRequests",
+                    "myClaims"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The first-login password change is still pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "session"
         }
       }
     },
