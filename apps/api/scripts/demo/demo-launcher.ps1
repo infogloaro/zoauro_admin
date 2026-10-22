@@ -83,6 +83,7 @@ function Stop-Demo([switch]$All) {
     Push-Location $Repo
     try { Invoke-Docker '' @('compose', '-f', 'docker-compose.dev.yml', 'stop', 'postgres', 'redis', 'minio', 'mailpit') } finally { Pop-Location }
   }
+  if (Test-Path $Logs) { Add-Content (Join-Path $Logs 'starts.log') "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') stop ($($mine.Count) processes)" }
   Write-Host 'Demo stopped.' -ForegroundColor Green
 }
 
@@ -148,19 +149,25 @@ function Start-Demo {
     Start-Sleep -Seconds 2
   }
 
-  # 4. API, worker and web, each in its own minimized window, logs to files
+  # 4. API, worker and web, each in its own minimized window, logs to files. The previous run's logs are kept as
+  #    *.prev.log (why did it stop?), and each process gets a heap cap so none can take this laptop's last memory.
   $apiDir = Join-Path $Build 'apps\api'
   $webDir = Join-Path $Build 'apps\web'
+  foreach ($name in 'api', 'api.err', 'worker', 'worker.err', 'web', 'web.err') {
+    $log = Join-Path $Logs "$name.log"
+    if (Test-Path $log) { Move-Item -Force $log (Join-Path $Logs "$name.prev.log") }
+  }
+  Add-Content (Join-Path $Logs 'starts.log') "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') start, build $commit"
   Step 'starting the demo API (:4100) and worker'
-  Start-Process -FilePath $node -ArgumentList "`"--env-file=$EnvDemo`"", 'dist/server.js' -WorkingDirectory $apiDir `
+  Start-Process -FilePath $node -ArgumentList '--max-old-space-size=768', "`"--env-file=$EnvDemo`"", 'dist/server.js' -WorkingDirectory $apiDir `
     -WindowStyle Minimized -RedirectStandardOutput (Join-Path $Logs 'api.log') -RedirectStandardError (Join-Path $Logs 'api.err.log') | Out-Null
-  Start-Process -FilePath $node -ArgumentList "`"--env-file=$EnvDemo`"", 'dist/worker.js' -WorkingDirectory $apiDir `
+  Start-Process -FilePath $node -ArgumentList '--max-old-space-size=384', "`"--env-file=$EnvDemo`"", 'dist/worker.js' -WorkingDirectory $apiDir `
     -WindowStyle Minimized -RedirectStandardOutput (Join-Path $Logs 'worker.log') -RedirectStandardError (Join-Path $Logs 'worker.err.log') | Out-Null
   Step 'starting the demo web (:3100)'
   $env:WEB_INTERNAL_API_URL = "http://127.0.0.1:$ApiPort"
   $env:NEXT_TELEMETRY_DISABLED = '1'
   $next = Join-Path $webDir 'node_modules\next\dist\bin\next'
-  Start-Process -FilePath $node -ArgumentList "`"$next`"", 'start', '-p', "$WebPort", '-H', '127.0.0.1' -WorkingDirectory $webDir `
+  Start-Process -FilePath $node -ArgumentList '--max-old-space-size=1024', "`"$next`"", 'start', '-p', "$WebPort", '-H', '127.0.0.1' -WorkingDirectory $webDir `
     -WindowStyle Minimized -RedirectStandardOutput (Join-Path $Logs 'web.log') -RedirectStandardError (Join-Path $Logs 'web.err.log') | Out-Null
 
   # 5. ready checks
