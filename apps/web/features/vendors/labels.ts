@@ -135,3 +135,17 @@ export function openingHoursLines(
       : `${DAY_LABEL[d.day]} closed`,
   );
 }
+
+/**
+ * W5: the decisions the vendor state machine accepts from here. Verify / Reject while the verification is PENDING;
+ * Deactivate / Suspend while ACTIVE; Activate when not ACTIVE and already VERIFIED. Anything else the API refuses.
+ */
+export function vendorDecisions(status: VendorStatus, verification: VerificationStatus) {
+  return {
+    verify: verification === 'PENDING',
+    reject: verification === 'PENDING',
+    activate: status !== 'ACTIVE' && verification === 'VERIFIED',
+    deactivate: status === 'ACTIVE',
+    suspend: status === 'ACTIVE',
+  };
+}

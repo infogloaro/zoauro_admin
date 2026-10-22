@@ -45,6 +45,7 @@ import {
   VERIFICATION_LABEL,
   VERIFICATION_TONE,
   openingHoursLines,
+  vendorDecisions,
 } from './labels';
 import { VendorActionDialog, type VendorAction } from './VendorActions';
 import { VendorFormDialog } from './VendorFormDialog';
@@ -119,6 +120,8 @@ export function VendorDetailPage({
   if (!detail.data) return <CardSkeleton rows={8} />;
   const v = detail.data as Detail;
   const isR = 'cuisineTags' in v;
+  // W5: only the moves the state machine accepts from here
+  const decide = vendorDecisions(v.status, v.verificationStatus);
 
   const facts: [string, string][] = [
     ['Zone', v.zone ? `${v.zone.name} (${v.zone.code})` : 'No zone yet'],
@@ -231,7 +234,7 @@ export function VendorDetailPage({
         isSuperAdmin={role === 'SUPER_ADMIN'}
       />
 
-      {can.status ? (
+      {can.status && Object.values(decide).some(Boolean) ? (
         <Card aria-labelledby="decisions">
           <CardHeader
             id="decisions"
@@ -239,12 +242,12 @@ export function VendorDetailPage({
             subtitle="Each asks you to confirm; your access decides what is allowed."
           />
           <CardBody className="flex flex-wrap gap-2">
-            {v.verificationStatus !== 'VERIFIED' ? (
+            {decide.verify ? (
               <Button onClick={() => setAction({ kind: 'verify', decision: 'VERIFIED' })}>
                 <BadgeCheck aria-hidden className="size-4" /> Verify
               </Button>
             ) : null}
-            {v.verificationStatus === 'PENDING' ? (
+            {decide.reject ? (
               <Button
                 variant="danger"
                 onClick={() => setAction({ kind: 'verify', decision: 'REJECTED' })}
@@ -252,17 +255,15 @@ export function VendorDetailPage({
                 <CircleX aria-hidden className="size-4" /> Reject
               </Button>
             ) : null}
-            {v.status !== 'ACTIVE' ? (
+            {decide.activate ? (
               <Button
                 variant="secondary"
-                disabled={v.verificationStatus !== 'VERIFIED'}
-                title={v.verificationStatus !== 'VERIFIED' ? 'Verify first' : undefined}
                 onClick={() => setAction({ kind: 'status', to: 'ACTIVE' })}
               >
                 <Power aria-hidden className="size-4" /> Activate
               </Button>
             ) : null}
-            {v.status === 'ACTIVE' || v.status === 'SUSPENDED' ? (
+            {decide.deactivate ? (
               <Button
                 variant="secondary"
                 onClick={() => setAction({ kind: 'status', to: 'INACTIVE' })}
@@ -270,7 +271,7 @@ export function VendorDetailPage({
                 Deactivate
               </Button>
             ) : null}
-            {v.status !== 'SUSPENDED' ? (
+            {decide.suspend ? (
               <Button
                 variant="ghost"
                 onClick={() => setAction({ kind: 'status', to: 'SUSPENDED' })}

@@ -197,3 +197,33 @@ describe('Restaurants list (Super Admin)', () => {
     );
   });
 });
+
+describe('vendor decisions (W5)', () => {
+  it('offers only the moves the state machine accepts', async () => {
+    const { vendorDecisions } = await import('./labels');
+    expect(vendorDecisions('INACTIVE', 'PENDING')).toEqual({
+      verify: true,
+      reject: true,
+      activate: false,
+      deactivate: false,
+      suspend: false,
+    });
+    expect(vendorDecisions('ACTIVE', 'VERIFIED')).toEqual({
+      verify: false,
+      reject: false,
+      activate: false,
+      deactivate: true,
+      suspend: true,
+    });
+    // suspended: only Activate (already verified); never Deactivate or Suspend again
+    expect(vendorDecisions('SUSPENDED', 'VERIFIED')).toEqual({
+      verify: false,
+      reject: false,
+      activate: true,
+      deactivate: false,
+      suspend: false,
+    });
+    // rejected: nothing to verify again from here
+    expect(Object.values(vendorDecisions('INACTIVE', 'REJECTED')).some(Boolean)).toBe(false);
+  });
+});
