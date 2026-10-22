@@ -32,6 +32,9 @@ export function createSettingsRoutes(
         const m = /^(?:\/zones\/[^/]+)?\/settings(?:\/([^/]+))?/.exec(req.path);
         if (!m) return null;
         const group = m[1];
+        // the history of one group needs that group's area; the lists need any (the service then filters)
+        const historyGroup = group === 'history' ? req.query['group'] : undefined;
+        if (typeof historyGroup === 'string') return `settings.${historyGroup}`;
         return !group || group === 'history' ? 'settings.*' : `settings.${group}`;
       }),
     );

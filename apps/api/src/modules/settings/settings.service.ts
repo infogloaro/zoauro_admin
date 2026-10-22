@@ -85,6 +85,11 @@ export interface SettingsDeps {
   smsReady: () => boolean;
   /** cleared after every write (the in-process reader cache) */
   onChanged: () => void;
+  /**
+   * D178: the settings groups a Super Admin's Control Panel areas allow ('ALL' for a primary); absent = all (tests).
+   * The lists answer only these groups.
+   */
+  groupsOf?: (userId: string) => Promise<readonly string[] | 'ALL'>;
 }
 
 const view = (
@@ -133,10 +138,19 @@ const view = (
   };
 };
 
+const areaNotGranted = () =>
+  new AppError('FORBIDDEN', 'This Control Panel area is not granted to you', [
+    { field: 'area', issue: 'AREA_NOT_GRANTED' },
+  ]);
+
 export class SettingsService {
   constructor(private readonly deps: SettingsDeps) {}
 
   // ---- reads ------------------------------------------------------------------------------------------------------
+
+  private async allowedGroups(ctx: AuthContext): Promise<readonly string[] | 'ALL'> {
+    return this.deps.groupsOf ? this.deps.groupsOf(ctx.userId) : 'ALL';
+  }
 
   async list(
     ctx: AuthContext,
@@ -144,6 +158,10 @@ export class SettingsService {
     zoneId?: string,
   ): Promise<SettingListResponse> {
     let defs = group ? settingsOfGroup(group) : [...SETTINGS];
+    if (!group && ctx.isSuperAdmin) {
+      const allowed = await this.allowedGroups(ctx);
+      if (allowed !== 'ALL') defs = defs.filter((d) => allowed.includes(d.group));
+    }
     if (!ctx.isSuperAdmin) {
       // D169: a Zonal Admin sees only the keys delegated to them, for one zone where they hold the view permission
       defs = defs.filter((d) => d.zoneDelegate);
@@ -389,7 +407,17 @@ export class SettingsService {
   // ---- history ----------------------------------------------------------------------------------------------------
 
   async history(ctx: AuthContext, q: SettingHistoryQuery) {
-    const rows = await this.deps.db.repo.history(ctx, q);
+    // D178: ?group= is checked by the route guard; ?key= and the full history follow the granted groups
+    const allowed = ctx.isSuperAdmin ? await this.allowedGroups(ctx) : 'ALL';
+    if (allowed !== 'ALL' && q.key) {
+      const def = settingDef(q.key);
+      if (!def || !allowed.includes(def.group)) throw areaNotGranted();
+    }
+    const keys =
+      allowed === 'ALL' || q.key || q.group
+        ? undefined
+        : SETTINGS.filter((s) => allowed.includes(s.group)).map((s) => s.key);
+    const rows = await this.deps.db.repo.history(ctx, q, keys);
     const page = buildCursorPage(rows, q.limit, (r) => r.id);
     return {
       data: page.data.map((r) => ({

@@ -19,6 +19,8 @@ export function createSettingsModule(deps: {
   smsReady: () => boolean;
   /** D178: the Control Panel area guard (the access module's ControlAreasService) */
   requireArea?: (area: (req: Parameters<RequestHandler>[0]) => string | null) => RequestHandler;
+  /** D178: the settings groups a Super Admin's areas allow ('ALL' for a primary) */
+  groupsOf?: (userId: string) => Promise<readonly string[] | 'ALL'>;
   clock?: () => Date;
 }): { router: Router; service: SettingsService; reader: SettingsReader } {
   const db = new SettingsDatabase(deps.prisma);
@@ -29,6 +31,7 @@ export function createSettingsModule(deps: {
     clock,
     smsReady: deps.smsReady,
     onChanged: () => reader.clear(),
+    ...(deps.groupsOf ? { groupsOf: deps.groupsOf } : {}),
   });
   return {
     router: createSettingsRoutes(createSettingsController(service), {

@@ -197,7 +197,8 @@ export class SettingsRepository {
   }
 
   /** Settings History (doc 59 §5): the audit rows of module `settings`, newest first. */
-  async history(ctx: AuthContext, q: SettingHistoryQuery) {
+  /** `keys`: only these keys (the groups a non-primary Super Admin was granted, D178) */
+  async history(ctx: AuthContext, q: SettingHistoryQuery, keys?: readonly string[]) {
     this.superAdminOnly(ctx);
     const where: Prisma.AuditLogWhereInput = {
       module: 'settings',
@@ -206,7 +207,9 @@ export class SettingsRepository {
         : q.group
           ? // the keys of the group (a group holds keys of other prefixes: orders has delivery.*)
             { entityLabel: { in: SETTINGS.filter((s) => s.group === q.group).map((s) => s.key) } }
-          : {}),
+          : keys
+            ? { entityLabel: { in: [...keys] } }
+            : {}),
       ...(q.zoneId ? { zoneId: q.zoneId } : {}),
       ...(q.actorId ? { actorId: q.actorId } : {}),
       ...(q.from || q.to

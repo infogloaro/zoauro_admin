@@ -7,7 +7,8 @@ import {
   type AuthTestEnv,
   type TestUser,
 } from '../auth/support/auth-env';
-import { client, type Signed } from '../zones/support';
+import { SETTINGS } from '@zoauro/shared';
+import { client, reauth, type Signed } from '../zones/support';
 
 // D178 (owner's final design): primaries hold every Control Panel area and alone manage Super Admins; a non-primary
 // Super Admin holds only the areas a primary granted (403 AREA_NOT_GRANTED otherwise); Zonal Admins are unchanged.
@@ -148,6 +149,46 @@ describe('Control Panel areas (D178)', () => {
       reason: REASON,
     });
     expect(bad.status).toBe(422); // a primary holds every area
+  });
+
+  it('the settings lists and history answer only the granted groups; a primary sees all', async () => {
+    // `other` holds settings.refunds (and zones) since the previous case
+    const groupOf = (key: string) => SETTINGS.find((s) => s.key === key)?.group;
+    const mine = await client(o, app).get('/settings');
+    expect(mine.status, JSON.stringify(mine.body)).toBe(200);
+    expect(new Set(mine.body.data.map((d: { key: string }) => groupOf(d.key)))).toEqual(
+      new Set(['refunds']),
+    );
+    const all = await client(p, app).get('/settings');
+    expect(all.body.data).toHaveLength(SETTINGS.length);
+
+    const denied = await client(o, app).get('/settings/history?group=orders');
+    expect(denied.status).toBe(403);
+    expect(denied.body.error.details[0].issue).toBe('AREA_NOT_GRANTED');
+    expect((await client(o, app).get('/settings/history?group=refunds')).status).toBe(200);
+    const byKey = await client(o, app).get('/settings/history?key=delivery.maxConcurrentOrders');
+    expect(byKey.status).toBe(403);
+    // a primary's change to an ungranted group stays out of the full history
+    await reauth(env, p);
+    await client(p, app).put('/settings/orders', {
+      values: { 'delivery.maxConcurrentOrders': { perPartner: 3 } },
+      reason: REASON,
+    });
+    const history = await client(o, app).get('/settings/history');
+    expect(history.status).toBe(200);
+    expect(history.body.data.every((h: { key: string }) => groupOf(h.key) === 'refunds')).toBe(
+      true,
+    );
+    expect(
+      (await client(p, app).get('/settings/history')).body.data.map((h: { key: string }) => h.key),
+    ).toContain('delivery.maxConcurrentOrders');
+
+    // a non-primary with no settings area: 403 on both lists
+    const bare = await env.createUser('SUPER_ADMIN', { primary: false });
+    const bs = await env.session(bare);
+    const b = { cookie: bs.cookie, csrf: bs.csrf };
+    for (const path of ['/settings', '/settings/history'])
+      expect((await client(b, app).get(path)).status, path).toBe(403);
   });
 
   it('promote and demote; the last active primary cannot be demoted', async () => {

@@ -118,6 +118,12 @@ const auth = createAuthModule({
 const controlAreas = createControlAreas(prisma);
 const settings = createSettingsModule({
   requireArea: (area) => controlAreas.require(area), // D178
+  // D178: GET /settings and /settings/history answer only the granted groups
+  groupsOf: async (userId) => {
+    const mine = await controlAreas.of(userId);
+    if (!mine || mine.isPrimary) return 'ALL';
+    return mine.areas.filter((a) => a.startsWith('settings.')).map((a) => a.slice(9));
+  },
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   requireReauth: auth.requireReauth,
