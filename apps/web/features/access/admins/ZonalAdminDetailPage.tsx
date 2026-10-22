@@ -23,23 +23,12 @@ import { PageHeader } from '../../../components/shared/PageHeader';
 import { Badge } from '../../../components/ui/badge';
 import { Button, buttonClass } from '../../../components/ui/button';
 import { Card, CardBody, CardHeader } from '../../../components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '../../../components/ui/dialog';
-import { FormField } from '../../../components/ui/field';
-import { inputClass } from '../../../components/ui/input';
-import { useToast } from '../../../components/ui/toast';
-import { useApiClient } from '../../../lib/api-client';
-import { ReauthCancelled, useReauthGuard } from '../../account/useReauthGuard';
 import { formatTimestamp } from '../../audit/format';
 import { failureKind } from '../../audit/useAuditLogs';
-import { isApiError, TRY_AGAIN } from '../../auth/errors';
 import { CardError, CardSkeleton, EmptyState } from '../../dashboard/parts';
 import { relativeTime } from '../../dashboard/time';
 import { useInvalidateMembers, useZonalAdmin } from './api';
+import { MfaResetDialog } from '../MfaResetDialog';
 import { MemberActionDialog, MemberFormDialog, type MemberAction } from './MemberDialogs';
 
 // One Zonal Admin (M03): account facts, zones with their profile, sign-in security, and every account action. Access per
@@ -50,6 +39,7 @@ export function ZonalAdminDetailPage({ id }: { id: string }) {
   const [editing, setEditing] = useState(false);
   const [action, setAction] = useState<MemberAction | null>(null);
   const [mfaReset, setMfaReset] = useState(false);
+  const invalidateMembers = useInvalidateMembers();
 
   if (member.isError) {
     return (
@@ -327,96 +317,17 @@ export function ZonalAdminDetailPage({ id }: { id: string }) {
           if (a === 'delete') window.location.assign('/super-admin/zonal-admins');
         }}
       />
-      <MfaResetDialog open={mfaReset} member={m} onClose={() => setMfaReset(false)} />
+      <MfaResetDialog
+        open={mfaReset}
+        member={m}
+        onClose={() => setMfaReset(false)}
+        onDone={invalidateMembers}
+      />
     </div>
   );
 }
 
 /** POST /members/{id}/mfa/reset (doc 52 section 2.5): a reason, STRONG re-authentication; methods and codes removed. */
-function MfaResetDialog({
-  open,
-  member,
-  onClose,
-}: {
-  open: boolean;
-  member: { id: string; name: string };
-  onClose: () => void;
-}) {
-  const client = useApiClient();
-  const invalidate = useInvalidateMembers();
-  const { toast } = useToast();
-  const { guarded, dialog } = useReauthGuard();
-  const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function confirm() {
-    setBusy(true);
-    setError(null);
-    try {
-      await guarded(`Reset 2-step for ${member.name}`, 'STRONG', async () => {
-        await client.post('/members/{id}/mfa/reset', {
-          params: { id: member.id },
-          body: { reason: reason.trim() },
-        });
-      });
-      toast({ title: '2-step reset', description: 'They set it up again at their next sign-in.' });
-      await invalidate();
-      setReason('');
-      onClose();
-    } catch (err) {
-      if (err instanceof ReauthCancelled) return;
-      setError(isApiError(err) ? err.message || TRY_AGAIN : TRY_AGAIN);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
-        <DialogContent>
-          <DialogTitle>Reset 2-step verification: {member.name}</DialogTitle>
-          <DialogDescription>
-            Their authenticator, email codes and backup codes are removed and every session ends.
-            Use this only after you have confirmed who they are (for example by phone). You will be
-            asked for your password and a code.
-          </DialogDescription>
-          <FormField label="Reason" hint="Recorded in the audit trail">
-            <textarea
-              rows={3}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className={inputClass('resize-y')}
-            />
-          </FormField>
-          {error ? (
-            <p
-              role="alert"
-              className="flex items-start gap-2 rounded-input bg-danger-soft p-3 text-sm text-danger"
-            >
-              <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" /> {error}
-            </p>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={onClose} disabled={busy}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              disabled={busy || reason.trim().length === 0}
-              onClick={() => void confirm()}
-            >
-              {busy ? 'Working…' : 'Reset 2-step'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      {dialog}
-    </>
-  );
-}
-
 function Fact({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     // a <dl> group may hold only <dt> and <dd>: the icon lives inside the term

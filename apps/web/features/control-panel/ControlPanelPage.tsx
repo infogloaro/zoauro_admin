@@ -11,6 +11,7 @@ import {
   BedDouble,
   ChefHat,
   History,
+  KeyRound,
   Lock,
   Map,
   Search,
@@ -52,7 +53,14 @@ const SERVICE_ICON: Record<ZoneServiceKind, LucideIcon> = {
   HOTEL_BOOKING: BedDouble,
 };
 
-const CONTROLS: { href: string; title: string; text: string; icon: LucideIcon; area: string }[] = [
+/** `area`: the D178 Control Panel area the control needs; none = every Super Admin (as in the menu). */
+const CONTROLS: { href: string; title: string; text: string; icon: LucideIcon; area?: string }[] = [
+  {
+    href: '/super-admin/super-admins',
+    title: 'Super Admins',
+    text: 'Accounts, primaries, Control Panel areas, 2-step reset',
+    icon: KeyRound,
+  },
   {
     href: '/super-admin/zonal-admins',
     title: 'Zonal Admins',
@@ -98,7 +106,7 @@ const CONTROLS: { href: string; title: string; text: string; icon: LucideIcon; a
 ];
 
 export function ControlPanelPage({ areas }: { areas?: ControlAreas | null }) {
-  const can = (area: string) => areaAllows(area, areas);
+  const can = (area?: string) => areaAllows(area, areas);
   const controls = CONTROLS.filter((c) => can(c.area));
   const [q, setQ] = useState('');
   const settings = usePlatformSettings(can('settings'));

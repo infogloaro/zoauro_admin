@@ -119,6 +119,9 @@ export function SuperAdminsPage({ meIsPrimary }: { meIsPrimary: boolean }) {
             id: 'actions',
             header: 'Actions',
             cell: (r: SuperAdmin) => {
+              // TODO(F9 B5): a "Reset 2-step" action (features/access/MfaResetDialog, problem = superAdminProblem for
+              // 403 PRIMARY_ONLY / 409 SELF) for another member with 2-step on, once the API lets only primaries
+              // reset a Super Admin. Until then the route also resets Super Admins for any Super Admin, so no button.
               const locked = lockReason(r, activeCount, primaryCount);
               return (
                 <div className="flex flex-wrap gap-1.5">

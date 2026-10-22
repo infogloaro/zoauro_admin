@@ -78,6 +78,10 @@ describe('Control Panel: D178 areas (W2)', () => {
     const { get } = setup({ isPrimary: false, areas: ['access'] });
     expect(await screen.findByRole('link', { name: /Zonal Admins/ })).toBeTruthy();
     expect(screen.getByRole('link', { name: /Zone teams/ })).toBeTruthy();
+    // F9 W3: the Super Admins tile has no area, as in the menu
+    expect(screen.getByRole('link', { name: /Super Admins/ }).getAttribute('href')).toBe(
+      '/super-admin/super-admins',
+    );
     expect(screen.queryByRole('link', { name: /^Zones/ })).toBeNull();
     expect(screen.queryByRole('link', { name: /Security/ })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Platform settings' })).toBeNull();
