@@ -1,53 +1,26 @@
-# ZOAURO (GloAro Food Delivery) — Admin Panel: Dev-Ready Documentation Pack v2.3 (full development pack)
+# ZOAURO (GloAro Food Delivery): Admin Panel documentation
 
-Scope: Super Admin + Zonal Admin web panel. A Zonal Admin can operate **multiple zones**, a zone can have **several members**, and the Super Admin controls exactly what each member can do in each zone (Access Control panel). v1.1 = v1.0 pre-dev pack, verified against the designer PDF and Figma screenshots, aligned to the GloAro CRM stack, plus separate phase plans for Super Admin and Zonal Admin.
-
-**v2.0:** the panels are fed by the customer, vendor and partner apps. New: `G-integration/` (docs 41–45 + `contracts/`: OpenAPI, event catalogue, sample payloads) and `H-delivery/` (docs 46–48 + `deploy/`: lifecycle, step-by-step deployment, integration test and UAT plan).
+Web admin panel for ZOAURO food delivery: **Super Admin** (all zones) and **Zonal Admin** (only the zones and actions granted), fed by the customer, vendor and partner apps through the Integration API.
 
 ## Start here
-1. `00-review/00_Alignment_Review.md` — what was verified, what did not match, what you must decide.
-2. `A-product/03_Business_Rules_and_Decision_Register.md` — every decision with status (Decided / Changed / Assumed / Open).
-3. **Integration with the apps:** `G-integration/41` (data flow) → `42` (inbound contract for app teams) → `43` (outbound events) → `44` (field ownership) → `45` (admin Integration Hub). **Lifecycle and deployment:** `H-delivery/46` → `47` → `48`. **To start coding today:** `H-delivery/49` (setup steps and copy-paste Claude Code prompts).
-4. `F-execution/39` modules and workflows, **`40` three-developer allocation and module-by-module plan**, `33…35` phase plans, `36` multi-zone and access tests, `37` design reconciliation, `38` Claude Code lanes.
-5. Copy `AGENTS.md` and this folder (as `docs/`) into the repository root.
+1. **`FEATURES.md`**: what is built today, module by module, with status.
+2. `A-product/03_Business_Rules_and_Decision_Register.md`: every decision (D-numbers) with its status.
+3. `F-execution/61_Demo_Script.md`: how to run and present the demo.
+4. `E-quality-ops/32_Technical_Debt_and_Change_Log.md`: what changed, when and why.
+5. `handoff.md`: the latest state of each work stream.
 
 ## Index
-| # | Document | Folder | v1.1 |
-|---|---|---|---|
-| 00 | Alignment Review | 00-review | new |
-| 01 Project Brief · 02 PRD | A-product | patched |
-| 03 Business Rules and Decision Register · 04 Roles and Permission Matrix | A-product | rewritten |
-| 05 Use Cases | A-product | patched (UC-11, UC-12) |
-| 06 Architecture and Stack · 07 Repo Structure · 08 Schema · 09 API · 12 Environment | B-architecture | rewritten |
-| 10 State Machines · 11 Integrations | B-architecture | patched |
-| 13 Security · 16 Payments · 17 Recovery | C-security | patched |
-| 14 Authentication and Authorization | C-security | rewritten |
-| 15 Privacy and Retention | C-security | unchanged |
-| 18 Information Architecture | D-ui | rewritten |
-| 19 Design System · 20 Admin Screens · 21 Zonal/Vendor Screens · 22 Forms/Tables · 23 Frontend State | D-ui | patched |
-| 24 Test Strategy · 25 Acceptance · 26 AI Instructions · 28 AI Context · 29 CI/CD · 30 Operations · 31 Release | E-quality-ops | patched |
-| 27 Backlog (now a pointer) · 32 Tech Debt and Change Log | E-quality-ops | rewritten |
-| 33 Shared Foundation Plan · 34 Super Admin Plan · 35 Zonal Admin Plan | F-execution | new |
-| 36 Multi-Zone Zonal Admin Spec · 37 Design Reconciliation · 38 Lanes and Prompts | F-execution | new |
-| **41 Ecosystem and Data Flow · 42 App→Admin Contract · 43 Admin→App Control and Events · 44 Data Ownership and Sync · 45 Integration Hub** (+ `contracts/`) | G-integration | **new in v2.0** |
-| **50 Module Guide M04 Audit and Logs (v1.1, with verified code bundle `Zoauro-M04-Audit-Bundle/`)** | F-execution | **new** (first module guide) |
-| **52 Module Guide M01 Auth, Sessions and 2-Step Verification · 53 Module Guide M02 Zones** | F-execution | **new in v2.4** |
-| **54 Auth and Zones Build Prompts (from scratch, in order)** | H-delivery | **new in v2.4** |
-| **46 Lifecycle Roadmap · 47 Deployment Runbook · 48 Integration Test and UAT Plan · 49 Claude Code Kickoff Steps and Prompts** (+ `deploy/`) | H-delivery | **new in v2.0** |
-| **39 Modules and Workflows · 40 Three-Developer Allocation and Module Plan** | F-execution | **new in v1.2** |
-| **60 Admin Workflow Map and Change Requests** (+ `60_Admin_Workflow_Map.html`, flowcharts and per-screen wireframes) | F-execution | **new 2026-10-18** |
-| **61 Demo Script** (sample-data demo: setup, logins per role, click path with readiness tags) | F-execution | **new 2026-10-21** |
+| Folder | Documents |
+|---|---|
+| `A-product` | 01 Project Brief · 02 Product Requirements · **03 Business Rules and Decision Register** · 04 Roles and Permission Matrix · 05 Use Cases and Workflows · `roadmap/` (phase roadmap) |
+| `B-architecture` | 06 Architecture and Stack · 07 Repository Structure and Coding Standards · **08 Database Schema** · **09 API Specification** · 10 State Machines and Events · 11 Integrations · 12 Environment and Configuration |
+| `C-security` | 13 Security and Threat Model · 14 Authentication and Authorization · 15 Privacy and Retention · 16 Payments and Financial Controls · 17 Incident and Recovery |
+| `D-ui` | 18 Information Architecture · 19 Design System · 20 Admin Screens · 21 Zonal Admin and Vendor Screens · 22 Forms, Tables and Components · 23 Frontend State |
+| `E-quality-ops` | 24 Test Strategy · 25 Acceptance and Definition of Done · 29 CI/CD · 30 Monitoring and Operations · 31 Release Plan · **32 Change Log** |
+| `F-execution` | 34 Super Admin Plan · 35 Zonal Admin Plan · 36 Multi-Zone Spec · 37 Design Reconciliation · 38 Lanes · 39 Modules and Workflows · 40 Developer Allocation · Module guides 50 (Audit), 52 (Auth), 53 (Zones) · **60 Admin Workflow Map and Change Requests** (+ `60_Admin_Workflow_Map.html`) · **61 Demo Script** |
+| `G-integration` | 41 Ecosystem and Data Flow · 42 App to Admin Contract · 43 Admin to App Events · 44 Data Ownership · 45 Integration Hub · `contracts/` (OpenAPI, event catalogue, sample payloads) |
+| `H-delivery` | 46 Lifecycle Roadmap · 47 Deployment Runbook · 48 Integration Test and UAT Plan · 58 Manual Test Procedure · 62 Colleague Branch Review · `deploy/` |
+| `design`, `reference_images` | the designer's PDF, logo, screenshots and reference screens |
+| `archive` | finished build plans, one-time prompts and superseded copies, kept for history (see `archive/README.md`) |
 
-v1.2 changes: access model D41–D49 (docs 03, 04, 08, 09, 14, 18, 20, 22, 36), plans 34/35/37/38 patched, timeline corrected to about 24 weeks with 3 developers (superseded by v2.0: about 26 weeks).
-
-v2.2 changes: contradictions found by the Claude Code orientation read-out fixed (AGENTS.md open-decision list, D18 timing, pnpm audit, scaffold exemption from the 5-file rule, doc 33 pointer to doc 40). No new documents.
-
-v2.0 changes: D50–D58 (apps feed the panels; HMAC-signed Integration API; signed webhooks; field ownership; Integration Hub), docs 03, 04, 06, 08–14, 20, 24, 25, 30–32, 34, 35, 39, 40 patched; timeline now about 26 weeks (13 sprints) with 3 developers.
-
-Items marked Assumed in doc 03 use a default so work can start; change the register first, then the documents that cite it.
-
-Reading note (v1.2): wherever a document says "assigned zones", read it as "zones where the member holds the required permission for that module" (doc 36 header, doc 14 §4).
-
-v2.3 changes: doc 50 (Audit and Logs) rewritten as v1.1 after building and testing a reference implementation (`Zoauro-M04-Audit-Bundle`, delivered separately): third database role for retention (D64), extra indexes, diff-before-redact, customer zone rule (D63, Assumed), build status in §18, new Phase 0.6 prompt to adopt the bundle. Doc 07 route list now says `access` instead of `roles`.
-
-v2.4 changes: docs 52, 53, 54 added (Auth with authenticator/email/SMS 2-step verification; Zones). Changes the earlier decision to keep SMS OTP out of v1 (D67; doc 14 §2, TD-17); new decisions D65–D90, threats T30–T43, tests TC-AUTH-6…47 and TC-ZONE-5…30. Docs 02, 03, 05, 06, 08, 09, 11, 12, 13, 14, 17, 20, 24, 25, 31, 32, 34, 37, 39, 40, 42, 50 and AGENTS.md amended. Nothing in 52/53 is built or tested yet.
+Instructions for AI coding sessions: `AGENTS.md` at the repository root.

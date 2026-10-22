@@ -8,7 +8,7 @@ Monorepo: `apps/web`, `apps/api`, `packages/shared`; plus `tools/simulators` (ap
 
 ## Read order (load only what the task needs)
 
-1. This file. 2. The task row in `docs/F-execution/33|34|35` (it names the docs to load). 3. `docs/A-product/03_*` (decisions) only if business rules matter. 4. Relevant sections of 08 (schema), 09 (API), 10 (state machines), 04 (permissions), 36 (multi-zone). 5. UI tasks: 18–22, 37 and Figma. 6. Only then source files. Parallel sessions: obey the lanes in doc 38.
+1. This file. 2. `docs/FEATURES.md` (what is built), then the task row in `docs/F-execution/34|35` (it names the docs to load; the finished foundation plan 33 is in `docs/archive/`). 3. `docs/A-product/03_*` (decisions) only if business rules matter. 4. Relevant sections of 08 (schema), 09 (API), 10 (state machines), 04 (permissions), 36 (multi-zone). 5. UI tasks: 18–22, 37 and Figma. 6. Only then source files. Parallel sessions: obey the lanes in doc 38.
 
 ## Before changing code
 
