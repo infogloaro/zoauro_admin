@@ -22,10 +22,14 @@ import { Badge, type BadgeTone } from '../../components/ui/badge';
 import { buttonClass } from '../../components/ui/button';
 import { Card, CardBody, CardHeader } from '../../components/ui/card';
 import { NAV_GROUPS, NAV_MODULES, areaAllows, comingSoonHref } from '../../lib/navigation';
+import { useUrlState } from '../../lib/url-state';
+import { selectedZone, ZONE_PARAM } from '../../lib/zone-scope';
 import { formatPaise } from '../audit/format';
+import { useZoneOptions } from '../platform-settings/api';
 import { CardError, CardSkeleton, EmptyState, ProportionBar } from './parts';
 import { OperationsTiles } from './tiles/OperationsTiles';
 import { greeting, relativeTime, todayLabel } from './time';
+import { ZoneFocusCard, ZoneFocusKpis } from './ZoneFocus';
 import { CHANGE_TYPE_LABEL } from '../access/history/filters';
 import { usePendingRequestCount } from '../access/requests/api';
 import {
@@ -42,6 +46,7 @@ import {
 // show their plan instead of numbers (doc 56: no fake data). D178: a non-primary Super Admin sees (and the page asks
 // for) only the cards of the Control Panel areas granted, the same check as the menu: security status needs
 // settings.security, recent activity audit, the Zonal Admin cards and the requests banner access, Add zone zones.
+// A zone picked in the top bar (?zone) narrows the operations tiles to it, and the zone cards show that zone.
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   ACTIVE: 'success',
@@ -74,6 +79,19 @@ export function SuperAdminDashboard({
     access: areaAllows('access', areas),
     zones: areaAllows('zones', areas),
   };
+  const url = useUrlState();
+  const zoneCode = url.params.get(ZONE_PARAM);
+  const zoneOptions = useZoneOptions(zoneCode !== null);
+  const picked = selectedZone(
+    zoneCode,
+    (zoneOptions.data?.data ?? []).map((z) => ({
+      id: z.id,
+      name: z.name,
+      code: z.code,
+      colorHex: z.colorHex,
+    })),
+  );
+  const resolving = zoneCode !== null && zoneOptions.isPending;
   const summary = useZoneSummary();
   const zones = useZonePreview();
   const security = useSecurityStatus(can.security);
@@ -111,39 +129,45 @@ export function SuperAdminDashboard({
 
       {/* KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total zones"
-          value={s?.total ?? null}
-          hint={s ? `${s.active} active · ${s.upcoming} upcoming` : undefined}
-          icon={Map}
-          href="/super-admin/zones"
-          loading={summary.isPending}
-        />
-        <StatCard
-          label="Active zones"
-          value={s?.active ?? null}
-          hint={
-            s && s.total > 0
-              ? `${Math.round((s.active / s.total) * 100)}% of all zones`
-              : 'Taking orders'
-          }
-          icon={MapPin}
-          tone="success"
-          href="/super-admin/zones?status=ACTIVE"
-          loading={summary.isPending}
-        />
-        <StatCard
-          label="Zones without a team"
-          value={s && !s.missingSources.includes('access') ? s.withoutTeam : null}
-          hint={
-            s?.missingSources.includes('access')
-              ? 'Known once Access Control is built'
-              : 'Need a Zonal Admin'
-          }
-          icon={UsersRound}
-          tone="warning"
-          loading={summary.isPending}
-        />
+        {picked ? (
+          <ZoneFocusKpis zoneId={picked.id} />
+        ) : (
+          <>
+            <StatCard
+              label="Total zones"
+              value={s?.total ?? null}
+              hint={s ? `${s.active} active · ${s.upcoming} upcoming` : undefined}
+              icon={Map}
+              href="/super-admin/zones"
+              loading={summary.isPending}
+            />
+            <StatCard
+              label="Active zones"
+              value={s?.active ?? null}
+              hint={
+                s && s.total > 0
+                  ? `${Math.round((s.active / s.total) * 100)}% of all zones`
+                  : 'Taking orders'
+              }
+              icon={MapPin}
+              tone="success"
+              href="/super-admin/zones?status=ACTIVE"
+              loading={summary.isPending}
+            />
+            <StatCard
+              label="Zones without a team"
+              value={s && !s.missingSources.includes('access') ? s.withoutTeam : null}
+              hint={
+                s?.missingSources.includes('access')
+                  ? 'Known once Access Control is built'
+                  : 'Need a Zonal Admin'
+              }
+              icon={UsersRound}
+              tone="warning"
+              loading={summary.isPending}
+            />
+          </>
+        )}
         {can.security ? (
           <StatCard
             label="2-step verification"
@@ -192,115 +216,119 @@ export function SuperAdminDashboard({
         </div>
       ) : null}
 
-      <OperationsTiles userRole="SUPER_ADMIN" />
+      <OperationsTiles userRole="SUPER_ADMIN" zoneId={picked?.id ?? null} enabled={!resolving} />
 
       <h2 className="text-lg font-semibold">Platform</h2>
 
       <div className="grid gap-6 xl:grid-cols-3">
         {/* zones by status */}
-        <Card className="xl:col-span-2" aria-labelledby="zones-status">
-          <CardHeader
-            id="zones-status"
-            title="Zones by status"
-            subtitle="Where ZOAURO is live, launching or paused"
-            actions={
-              <a
-                href="/super-admin/zones"
-                className="text-sm font-medium text-primary-strong hover:underline"
-              >
-                Manage zones
-              </a>
-            }
-          />
-          <CardBody>
-            {summary.isError ? (
-              <CardError what="Zone figures" onRetry={() => void summary.refetch()} />
-            ) : !s ? (
-              <CardSkeleton rows={2} />
-            ) : s.total === 0 ? (
-              <EmptyState
-                icon={<Map aria-hidden className="size-5" />}
-                title="No zones yet"
-                action={
-                  can.zones ? (
-                    <a
-                      href="/super-admin/zones?new=1"
-                      className={buttonClass('primary', undefined, 'sm')}
-                    >
-                      <Plus aria-hidden className="size-4" /> Create the first zone
-                    </a>
-                  ) : undefined
-                }
-              >
-                Zones decide which pincodes ZOAURO serves and who manages them.
-              </EmptyState>
-            ) : (
-              <ProportionBar
-                total={s.total}
-                segments={[
-                  {
-                    label: 'Active',
-                    value: s.active,
-                    colour: 'bg-green-500',
-                    href: '/super-admin/zones?status=ACTIVE',
-                  },
-                  {
-                    label: 'Upcoming',
-                    value: s.upcoming,
-                    colour: 'bg-amber-400',
-                    href: '/super-admin/zones?status=UPCOMING',
-                  },
-                  {
-                    label: 'Inactive',
-                    value: s.inactive,
-                    colour: 'bg-neutral-400',
-                    href: '/super-admin/zones?status=INACTIVE',
-                  },
-                ]}
-              />
-            )}
-
-            <div className="mt-6 border-t border-line pt-5">
-              <h3 className="mb-3 text-sm font-semibold">Latest zones</h3>
-              {zones.isError ? (
-                <CardError what="The zone list" onRetry={() => void zones.refetch()} />
-              ) : !zones.data ? (
-                <CardSkeleton rows={3} />
-              ) : zones.data.data.length === 0 ? (
-                <p className="text-sm text-muted">Zones you create appear here.</p>
-              ) : (
-                <ul className="grid gap-3 sm:grid-cols-2">
-                  {zones.data.data.map((z) => (
-                    <li key={z.id}>
+        {picked ? (
+          <ZoneFocusCard zoneId={picked.id} />
+        ) : (
+          <Card className="xl:col-span-2" aria-labelledby="zones-status">
+            <CardHeader
+              id="zones-status"
+              title="Zones by status"
+              subtitle="Where ZOAURO is live, launching or paused"
+              actions={
+                <a
+                  href="/super-admin/zones"
+                  className="text-sm font-medium text-primary-strong hover:underline"
+                >
+                  Manage zones
+                </a>
+              }
+            />
+            <CardBody>
+              {summary.isError ? (
+                <CardError what="Zone figures" onRetry={() => void summary.refetch()} />
+              ) : !s ? (
+                <CardSkeleton rows={2} />
+              ) : s.total === 0 ? (
+                <EmptyState
+                  icon={<Map aria-hidden className="size-5" />}
+                  title="No zones yet"
+                  action={
+                    can.zones ? (
                       <a
-                        href={`/super-admin/zones/${z.id}`}
-                        className="flex items-center gap-3 rounded-input border border-line p-3 hover:border-orange-200 hover:bg-primary-soft/40 focus-visible:outline-2 focus-visible:outline-primary"
+                        href="/super-admin/zones?new=1"
+                        className={buttonClass('primary', undefined, 'sm')}
                       >
-                        <span
-                          aria-hidden
-                          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
-                          style={{ backgroundColor: z.colorHex }}
-                        >
-                          {z.code.slice(0, 3)}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">{z.name}</span>
-                          <span className="block truncate text-xs text-muted">
-                            {z.city} · {z.pincodeCount} pincodes ·{' '}
-                            {formatPaise(z.deliveryChargePaise)}
-                          </span>
-                        </span>
-                        <Badge tone={STATUS_TONE[z.status] ?? 'neutral'} dot>
-                          {STATUS_LABEL[z.status] ?? z.status}
-                        </Badge>
+                        <Plus aria-hidden className="size-4" /> Create the first zone
                       </a>
-                    </li>
-                  ))}
-                </ul>
+                    ) : undefined
+                  }
+                >
+                  Zones decide which pincodes ZOAURO serves and who manages them.
+                </EmptyState>
+              ) : (
+                <ProportionBar
+                  total={s.total}
+                  segments={[
+                    {
+                      label: 'Active',
+                      value: s.active,
+                      colour: 'bg-green-500',
+                      href: '/super-admin/zones?status=ACTIVE',
+                    },
+                    {
+                      label: 'Upcoming',
+                      value: s.upcoming,
+                      colour: 'bg-amber-400',
+                      href: '/super-admin/zones?status=UPCOMING',
+                    },
+                    {
+                      label: 'Inactive',
+                      value: s.inactive,
+                      colour: 'bg-neutral-400',
+                      href: '/super-admin/zones?status=INACTIVE',
+                    },
+                  ]}
+                />
               )}
-            </div>
-          </CardBody>
-        </Card>
+
+              <div className="mt-6 border-t border-line pt-5">
+                <h3 className="mb-3 text-sm font-semibold">Latest zones</h3>
+                {zones.isError ? (
+                  <CardError what="The zone list" onRetry={() => void zones.refetch()} />
+                ) : !zones.data ? (
+                  <CardSkeleton rows={3} />
+                ) : zones.data.data.length === 0 ? (
+                  <p className="text-sm text-muted">Zones you create appear here.</p>
+                ) : (
+                  <ul className="grid gap-3 sm:grid-cols-2">
+                    {zones.data.data.map((z) => (
+                      <li key={z.id}>
+                        <a
+                          href={`/super-admin/zones/${z.id}`}
+                          className="flex items-center gap-3 rounded-input border border-line p-3 hover:border-orange-200 hover:bg-primary-soft/40 focus-visible:outline-2 focus-visible:outline-primary"
+                        >
+                          <span
+                            aria-hidden
+                            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+                            style={{ backgroundColor: z.colorHex }}
+                          >
+                            {z.code.slice(0, 3)}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold">{z.name}</span>
+                            <span className="block truncate text-xs text-muted">
+                              {z.city} · {z.pincodeCount} pincodes ·{' '}
+                              {formatPaise(z.deliveryChargePaise)}
+                            </span>
+                          </span>
+                          <Badge tone={STATUS_TONE[z.status] ?? 'neutral'} dot>
+                            {STATUS_LABEL[z.status] ?? z.status}
+                          </Badge>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </CardBody>
+          </Card>
+        )}
 
         {/* security posture */}
         {can.security ? (

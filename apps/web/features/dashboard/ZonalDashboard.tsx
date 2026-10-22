@@ -45,7 +45,16 @@ export function groupPermissions(keys: readonly string[]): [string, string[]][] 
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export function ZonalDashboard({ name, zones }: { name: string; zones: readonly MeZone[] }) {
+export function ZonalDashboard({
+  name,
+  zones,
+  zoneId = null,
+}: {
+  name: string;
+  zones: readonly MeZone[];
+  /** the zone picked in the top bar (?zone, resolved by the page from /me); the tiles count that zone only */
+  zoneId?: string | null;
+}) {
   const menu = menuFor('ZONAL_ADMIN', zones).filter((m) => m.id !== 'M16' && m.group !== 'account');
   const active = zones.filter((z) => z.status === 'ACTIVE').length;
   const highestLimit = Math.max(0, ...zones.map((z) => z.limits.perRefund));
@@ -83,7 +92,7 @@ export function ZonalDashboard({ name, zones }: { name: string; zones: readonly 
         />
       </div>
 
-      {zones.length > 0 ? <OperationsTiles userRole="ZONAL_ADMIN" /> : null}
+      {zones.length > 0 ? <OperationsTiles userRole="ZONAL_ADMIN" zoneId={zoneId} /> : null}
 
       <h2 className="text-lg font-semibold">My zones and access</h2>
 

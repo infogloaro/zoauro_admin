@@ -86,7 +86,11 @@ function tiles(range: string) {
   } as Record<string, unknown>;
 }
 
-function mount(override: Record<string, unknown> = {}, hold?: Promise<void>) {
+function mount(
+  override: Record<string, unknown> = {},
+  hold?: Promise<void>,
+  zoneId: string | null = null,
+) {
   const get = vi.fn(async (path: string, init?: { query?: { range?: string } }) => {
     if (hold) await hold;
     const all = { ...tiles(init?.query?.range ?? '7d'), ...override };
@@ -101,7 +105,7 @@ function mount(override: Record<string, unknown> = {}, hold?: Promise<void>) {
       <ApiClientProvider client={client}>{children}</ApiClientProvider>
     </QueryClientProvider>
   );
-  render(<OperationsTiles userRole="ZONAL_ADMIN" />, { wrapper: Wrap });
+  render(<OperationsTiles userRole="ZONAL_ADMIN" zoneId={zoneId} />, { wrapper: Wrap });
   return get;
 }
 
@@ -118,6 +122,14 @@ describe('tile helpers', () => {
 });
 
 describe('OperationsTiles', () => {
+  it('a zone picked in the top bar goes to every tile as ?zoneId', async () => {
+    const id = '0192f1d2-0000-7000-8000-00000000000a';
+    const get = mount({}, undefined, id);
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(7));
+    for (const call of get.mock.calls)
+      expect(call[1]).toEqual(expect.objectContaining({ query: { range: '7d', zoneId: [id] } }));
+  });
+
   it('headline counts, hidden tiles, empty tiles and the ranked lists', async () => {
     const get = mount();
     expect(await screen.findByText('120')).toBeTruthy();

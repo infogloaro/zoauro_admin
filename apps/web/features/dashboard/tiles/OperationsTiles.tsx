@@ -111,10 +111,20 @@ function stateOf<T>(
   return q.data.data.length === 0 ? 'empty' : 'ready';
 }
 
-export function OperationsTiles({ userRole }: { userRole: 'SUPER_ADMIN' | 'ZONAL_ADMIN' }) {
+export function OperationsTiles({
+  userRole,
+  zoneId = null,
+  enabled = true,
+}: {
+  userRole: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
+  /** the zone picked in the top bar (null: all the member's zones) */
+  zoneId?: string | null;
+  /** false while the picked zone's code is being resolved, so no all-zones request goes out first */
+  enabled?: boolean;
+}) {
   const url = useUrlState();
   const range = rangeFromParam(url.params.get('range'));
-  const t = useDashboardTiles(range);
+  const t = useDashboardTiles(range, zoneId, enabled);
   const base = userRole === 'SUPER_ADMIN' ? '/super-admin' : '/zone';
   const s = t.summary.data;
   const period = RANGE_LABEL[range].toLowerCase();

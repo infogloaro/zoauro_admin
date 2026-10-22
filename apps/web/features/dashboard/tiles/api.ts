@@ -7,7 +7,8 @@ import { retryTransient } from '../../audit/useAuditLogs';
 
 // M16 dashboard tiles (6a08d1d): every tile counts only the zones where the member can view its source module; a tile
 // they cannot see anywhere comes back null and is hidden. Cached 30 s by the API per scope; the page refreshes them
-// every minute while it is open.
+// every minute while it is open. With a zone picked in the top bar (?zone) every tile asks for that zone only (?zoneId,
+// 94aae90; the API answers 404 for a zone the member does not hold).
 
 export const RANGE_LABEL: Record<DashboardRange, string> = {
   today: 'Today',
@@ -23,10 +24,13 @@ const TILE_REFRESH_MS = 60_000;
 function useTile<T>(
   name: string,
   range: DashboardRange,
+  zoneId: string | null,
+  enabled: boolean,
   fetcher: (signal: AbortSignal) => Promise<T>,
 ) {
   return useQuery({
-    queryKey: ['dashboard', 'tile', name, range],
+    queryKey: ['dashboard', 'tile', name, range, zoneId ?? 'all'],
+    enabled,
     queryFn: ({ signal }) => fetcher(signal),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
@@ -36,29 +40,34 @@ function useTile<T>(
   });
 }
 
-export function useDashboardTiles(range: DashboardRange) {
+/** `zoneId` null: every zone the member may see; `enabled` false while the picked zone's code is being resolved. */
+export function useDashboardTiles(
+  range: DashboardRange,
+  zoneId: string | null = null,
+  enabled = true,
+) {
   const client = useApiClient();
-  const query = { range };
+  const query = { range, ...(zoneId ? { zoneId: [zoneId] } : {}) };
   return {
-    summary: useTile('summary', range, (signal) =>
+    summary: useTile('summary', range, zoneId, enabled, (signal) =>
       client.get('/dashboard/summary', { query, signal }),
     ),
-    overview: useTile('order-overview', range, (signal) =>
+    overview: useTile('order-overview', range, zoneId, enabled, (signal) =>
       client.get('/dashboard/order-overview', { query, signal }),
     ),
-    status: useTile('order-status', range, (signal) =>
+    status: useTile('order-status', range, zoneId, enabled, (signal) =>
       client.get('/dashboard/order-status', { query, signal }),
     ),
-    zones: useTile('zone-orders', range, (signal) =>
+    zones: useTile('zone-orders', range, zoneId, enabled, (signal) =>
       client.get('/dashboard/zone-orders', { query, signal }),
     ),
-    vendors: useTile('top-restaurants', range, (signal) =>
+    vendors: useTile('top-restaurants', range, zoneId, enabled, (signal) =>
       client.get('/dashboard/top-restaurants', { query, signal }),
     ),
-    categories: useTile('top-categories', range, (signal) =>
+    categories: useTile('top-categories', range, zoneId, enabled, (signal) =>
       client.get('/dashboard/top-categories', { query, signal }),
     ),
-    registrations: useTile('new-registrations', range, (signal) =>
+    registrations: useTile('new-registrations', range, zoneId, enabled, (signal) =>
       client.get('/dashboard/new-registrations', { query, signal }),
     ),
   };

@@ -26,6 +26,7 @@ export default async function Page({
     <ZonalDashboard
       name={me.user.name}
       zones={pick ? zones.filter((z) => z.zoneId === pick.id) : zones}
+      zoneId={pick?.id ?? null}
     />
   );
 }
