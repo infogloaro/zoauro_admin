@@ -1,4 +1,7 @@
-import { uuidv7 } from '../../src/lib/audit';
+import { randomUUID } from 'node:crypto';
+import { DEFAULT_REFUND_RULES } from '@zoauro/shared';
+import { runWithAuditContext, uuidv7 } from '../../src/lib/audit';
+import { createRefundsModule } from '../../src/modules/refunds';
 import type { DemoClient } from './client';
 import { DemoHttpError } from './client';
 import type { PrismaClient } from './db';
@@ -285,6 +288,138 @@ export async function seedMoney(
   log(
     `money: ${haveSettlements ? 'COD hand-overs kept' : `${rows.length} COD hand-overs (1 short), ${cashInHand.size} partners holding cash`}, ${havePayouts ? 'payouts kept' : `${payoutRows.length} payouts (${payoutRows.filter((p) => p.status === 'PENDING').length} pending)`}`,
   );
+}
+
+/**
+ * Run on every seed (F4 mark-paid, doc 16 §5): the payout screens' edge cases on Coimbatore Central's latest PENDING
+ * vendor payouts, through the real refunds service (report, then a decision with VENDOR fault), with the refund's
+ * times moved into the payout period afterwards:
+ * - deduction: a PROCESSED vendor-fault refund (to the wallet) inside the first vendor's period;
+ * - freeze: an APPROVED vendor-fault refund (to the original payment) inside the second vendor's period;
+ * and the PAID payouts get their bank reference and the amount paid. Marker notes keep it idempotent.
+ */
+export async function ensurePayoutCases(
+  db: PrismaClient,
+  sa: DemoClient,
+  zoneId: string,
+  customerAppClientId: string,
+  log: Log,
+): Promise<void> {
+  const refunds = createRefundsModule({
+    prisma: db,
+    appOrigin: 'http://127.0.0.1:3100',
+    requireReauth: () => (_req, _res, next) => next(),
+    rules: async () => DEFAULT_REFUND_RULES,
+    caps: async () => ({
+      perRefundPaise: 100_000,
+      perDayPaise: 500_000,
+      secondApproverAbovePaise: 1_000_000,
+    }),
+  });
+  const pending = await db.payout.findMany({
+    where: { zoneId, status: 'PENDING', payeeType: { in: ['RESTAURANT', 'HOMEMAKER'] } },
+    orderBy: [{ periodTo: 'desc' }, { net: 'desc' }],
+    take: 2,
+  });
+  const cases = [
+    {
+      marker: '[payout case: deduction]',
+      target: 'WALLET' as const,
+      note: 'Curd rice was spoilt.',
+    },
+    {
+      marker: '[payout case: freeze]',
+      target: 'SOURCE' as const,
+      note: 'Two items were cold and stale.',
+    },
+  ];
+  for (const [i, c] of cases.entries()) {
+    const payout = pending[i];
+    if (!payout) break;
+    const done = await db.refund.findFirst({
+      where: { reasonNote: { contains: c.marker } },
+      select: { id: true },
+    });
+    if (done) continue;
+    const to = new Date(payout.periodTo.getTime() + DAY);
+    const order = await db.order.findFirst({
+      where: {
+        ...(payout.payeeType === 'RESTAURANT'
+          ? { restaurantId: payout.payeeId }
+          : { homemakerId: payout.payeeId }),
+        status: 'DELIVERED',
+        paymentMethod: 'ONLINE',
+        paymentStatus: 'PAID',
+        deliveredAt: { gte: payout.periodFrom, lt: to },
+        refunds: { none: {} },
+      },
+      orderBy: { deliveredAt: 'desc' },
+      select: { id: true, orderNo: true, subtotal: true, deliveredAt: true },
+    });
+    if (!order?.deliveredAt) {
+      log(`payout ${c.marker} skipped: no delivered online order of that vendor in the period`);
+      continue;
+    }
+    const id = await tryStep(log, `report for ${c.marker}`, () =>
+      runWithAuditContext(
+        {
+          actor: {
+            type: 'APP_CLIENT',
+            id: customerAppClientId,
+            name: 'Customer app (demo sandbox)',
+            role: null,
+          },
+        },
+        () =>
+          refunds.service.createFromReport({
+            orderId: order.id,
+            amountPaise: Math.min(18_000, order.subtotal),
+            reasonCode: 'QUALITY_ISSUE',
+            note: `${c.note} ${c.marker}`,
+            target: c.target,
+            idempotencyKey: randomUUID(),
+          }),
+      ),
+    );
+    if (!id) continue;
+    await tryStep(log, `decision for ${c.marker}`, () =>
+      sa.post(`/refunds/${id}/decide`, {
+        decision: 'APPROVE',
+        fault: 'VENDOR',
+        target: c.target,
+        note: 'Vendor accepted the complaint; vendor bears it.',
+      }),
+    );
+    // the complaint came in a day after delivery and was decided two hours later: inside the payout period
+    const requestedAt = new Date(order.deliveredAt.getTime() + 3 * 3_600_000);
+    const decidedAt = new Date(requestedAt.getTime() + 2 * 3_600_000);
+    await db.$executeRaw`UPDATE refunds SET requested_at = ${requestedAt}, decided_at = ${decidedAt},
+      processed_at = CASE WHEN processed_at IS NULL THEN NULL ELSE ${decidedAt}::timestamptz END
+      WHERE id = ${id}::uuid`;
+    const r = await db.refund.findUnique({
+      where: { id },
+      select: { status: true, vendorSharePaise: true },
+    });
+    log(
+      `payout ${c.marker}: refund on ${order.orderNo} ${r?.status ?? '?'}, vendor share ₹${((r?.vendorSharePaise ?? 0) / 100).toFixed(0)}`,
+    );
+  }
+  // a PAID payout carries the bank reference and what was paid (the mark-paid snapshot, F4)
+  const unreferenced = await db.payout.findMany({
+    where: { status: 'PAID', paidReference: null },
+    select: { id: true, net: true },
+    orderBy: { id: 'asc' },
+  });
+  for (const [i, p] of unreferenced.entries())
+    await db.payout.update({
+      where: { id: p.id },
+      data: {
+        paidReference: `NEFT${String(26_102_2000 + i * 37).padStart(10, '0')}`,
+        paidAmount: p.net,
+      },
+    });
+  if (unreferenced.length > 0)
+    log(`payouts: ${unreferenced.length} paid payouts got their reference`);
 }
 
 /** D173 COD gate: at or above this much cash in hand a partner gets no new COD orders until they hand it over. */
