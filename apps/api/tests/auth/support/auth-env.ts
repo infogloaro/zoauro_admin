@@ -475,6 +475,17 @@ export async function createAuthTestEnv() {
     const exportFiles = createMemoryExportFiles();
     const exportQueue: string[] = [];
     const exportGate: { run?: (id: string) => Promise<unknown> } = {};
+    // as server.ts: payments and settlements before the exports, whose money lists they serve (F4b)
+    const payments = createPaymentsModule({ prisma });
+    const settlements = createSettlementsModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
+      codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+      requireReauth: auth.requireReauth, // F4 mark-paid
+      requireArea: (area) => controlAreas.require(area), // D178
+      clock: clock.now,
+    });
     const exportsModule = createExportsModule({
       prisma,
       orders: orders.service,
@@ -487,6 +498,9 @@ export async function createAuthTestEnv() {
         notifications: notifications.service,
         support: support.service,
         customers: customers.service,
+        payments: payments.service,
+        refunds: refunds.service,
+        payouts: settlements.service,
       },
       files: exportFiles,
       enqueue: async (id) => {
@@ -510,16 +524,8 @@ export async function createAuthTestEnv() {
       customers.router,
       rewards.router,
       refunds.router,
-      createPaymentsModule({ prisma }).router,
-      createSettlementsModule({
-        prisma,
-        appOrigin: APP_ORIGIN,
-        cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
-        codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
-        requireReauth: auth.requireReauth, // F4 mark-paid
-        requireArea: (area) => controlAreas.require(area), // D178
-        clock: clock.now,
-      }).router,
+      payments.router,
+      settlements.router,
       partners.router,
       notifications.router,
       createDashboardModule({ prisma, redis: extra.dashboardCache ?? null, clock: clock.now })

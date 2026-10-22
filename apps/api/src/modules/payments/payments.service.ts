@@ -40,6 +40,12 @@ export class PaymentsService {
     };
   }
 
+  /** One page of rows for an export (D149): the list's scope and mapping, without totals or counts. */
+  async exportRows(ctx: AuthContext, q: PaymentListQuery): Promise<PaymentRow[]> {
+    const { rows } = await this.repo.list(scopeOf(ctx), q, false);
+    return rows.map(rowOf);
+  }
+
   async detail(ctx: AuthContext, id: string): Promise<PaymentDetail> {
     const p = await this.repo.find(scopeOf(ctx), id);
     if (!p) throw new AppError('NOT_FOUND', 'Not found');

@@ -99,6 +99,13 @@ export class RefundsService {
     };
   }
 
+  /** One page of rows for an export (D149): the list's scope and mapping, without totals or counts. */
+  async exportRows(ctx: AuthContext, q: RefundListQuery): Promise<RefundRow[]> {
+    const { rows } = await this.deps.db.repo.list(scopeOf(ctx), q, false);
+    const caps = await this.capsFor([...new Set(rows.map((r) => r.zoneId))]);
+    return rows.map((r) => rowOf(r, caps.get(r.zoneId)));
+  }
+
   async detail(ctx: AuthContext, id: string): Promise<RefundDetail> {
     const r = await this.deps.db.repo.find(scopeOf(ctx), id);
     if (!r) throw notFound();

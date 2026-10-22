@@ -192,6 +192,12 @@ export class SettlementsService {
     };
   }
 
+  /** One page of payout rows for an export (D149): the list's scope and mapping, without totals or cycles. */
+  async exportPayouts(ctx: AuthContext, q: PayoutListQuery): Promise<PayoutRow[]> {
+    const { rows } = await this.deps.db.repo.payouts(scopeOf(ctx, 'payouts:view'), q, false);
+    return payoutRows(this.deps.db.repo, rows);
+  }
+
   async payouts(ctx: AuthContext, q: PayoutListQuery): Promise<PayoutListResponse> {
     const scope = scopeOf(ctx, 'payouts:view');
     const [{ rows, total }, t] = await Promise.all([

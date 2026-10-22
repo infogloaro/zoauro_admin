@@ -9,6 +9,9 @@ import { createPartnersModule } from './modules/delivery-partners';
 import type { ListServices } from './modules/exports';
 import { createHotelsModule } from './modules/hotels';
 import { createMenuModule } from './modules/menu';
+import { createPaymentsModule } from './modules/payments';
+import { createRefundsModule } from './modules/refunds';
+import { createSettlementsModule } from './modules/settlements';
 import type { NotificationsService } from './modules/notifications';
 import type { SettingsReader } from './modules/settings/settings.service';
 import type { SupportService } from './modules/support';
@@ -75,5 +78,24 @@ export function buildWorkerListServices(deps: {
     notifications: deps.notifications,
     support: deps.support,
     customers: createCustomersModule({ prisma, appOrigin, limiter }).service,
+    // F4b: the money lists, with the same settings readers as server.ts
+    payments: createPaymentsModule({ prisma }).service,
+    refunds: createRefundsModule({
+      prisma,
+      appOrigin,
+      requireReauth: noRoutes,
+      rules: (zoneId) => settings.refundRules(zoneId),
+      caps: async (zoneId) => {
+        const caps = (await settings.refundCaps([zoneId])).get(zoneId);
+        if (!caps) throw new Error(`no refund caps for zone ${zoneId}`);
+        return caps;
+      },
+    }).service,
+    payouts: createSettlementsModule({
+      prisma,
+      appOrigin,
+      cycleDays: (zoneId) => settings.payoutCycleDays(zoneId),
+      codLimit: (zoneId) => settings.codLimitPaise(zoneId),
+    }).service,
   };
 }

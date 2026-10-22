@@ -50,7 +50,12 @@ export class PaymentsRepository {
     return { AND: and };
   }
 
-  async list(scope: Scope, q: PaymentListQuery): Promise<{ rows: PaymentRecord[]; total: number }> {
+  /** withTotal false: rows only (an export page), total is -1 */
+  async list(
+    scope: Scope,
+    q: PaymentListQuery,
+    withTotal = true,
+  ): Promise<{ rows: PaymentRecord[]; total: number }> {
     if (scope !== 'ALL' && scope.length === 0) return { rows: [], total: 0 };
     const where = this.where(scope, q);
     const [rows, total] = await Promise.all([
@@ -64,7 +69,7 @@ export class PaymentsRepository {
         take: q.pageSize,
         select: paymentSelect,
       }),
-      this.db.payment.count({ where }),
+      withTotal ? this.db.payment.count({ where }) : Promise.resolve(-1),
     ]);
     return { rows, total };
   }

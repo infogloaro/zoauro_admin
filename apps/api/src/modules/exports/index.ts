@@ -4,7 +4,8 @@ import type { OrdersService } from '../orders';
 import { ExportsDatabase } from './exports.repository';
 import { createExportsRoutes } from './exports.routes';
 import { ExportsService, type ContextBuilder } from './exports.service';
-import { listExportSources, type ListServices } from './sources/lists.source';
+import { listExportSources, type ListServices as BaseListServices } from './sources/lists.source';
+import { moneyExportSources, type MoneyListServices } from './sources/money.source';
 import { ordersExportSource } from './sources/orders.source';
 
 // Export jobs (doc 09 GET <list>/export, GET /exports/{id}; D129, D149). The API builds it with an enqueue function;
@@ -18,7 +19,8 @@ export {
   type ExportQueue,
 } from './exports.jobs';
 export { ExportsService, MAX_ACTIVE_EXPORTS } from './exports.service';
-export type { ListServices } from './sources/lists.source';
+/** D149: every list's service (each optional until its module is wired); F4b adds payments, refunds, payouts */
+export type ListServices = BaseListServices & MoneyListServices;
 
 type ExportsDeps = {
   prisma: ConstructorParameters<typeof ExportsDatabase>[0];
@@ -35,10 +37,11 @@ type ExportsDeps = {
 /** The service alone: the worker runs jobs and never serves routes. */
 export function createExportsService(deps: ExportsDeps): ExportsService {
   const sources = new Map<ExportModule, ExportSource>(
-    [ordersExportSource(deps.orders), ...listExportSources(deps.lists ?? {})].map((s) => [
-      s.module,
-      s,
-    ]),
+    [
+      ordersExportSource(deps.orders),
+      ...listExportSources(deps.lists ?? {}),
+      ...moneyExportSources(deps.lists ?? {}),
+    ].map((s) => [s.module, s]),
   );
   return new ExportsService({
     db: new ExportsDatabase(deps.prisma),

@@ -258,6 +258,9 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
             'exportHotels',
             'exportRoomBookings',
             'exportDiningReservations',
+            'exportPayments',
+            'exportRefunds',
+            'exportPayouts',
           ].map((op) => [
             op,
             {
@@ -296,7 +299,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 1 payout mark-paid (F4a)
     // + 2 order auto-assign (D154, D199)
     // + 1 menu badges (GET /me/badges)
-    expect(report.coveredRoutes).toHaveLength(259);
+    // + 3 money list exports (F4b, D149)
+    expect(report.coveredRoutes).toHaveLength(262);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

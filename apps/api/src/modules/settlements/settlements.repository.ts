@@ -324,9 +324,11 @@ export class SettlementsRepository {
     return { AND: and };
   }
 
+  /** withTotal false: rows only (an export page), total is -1 */
   async payouts(
     scope: Scope,
     q: PayoutListQuery,
+    withTotal = true,
   ): Promise<{ rows: PayoutRecord[]; total: number }> {
     if (empty(scope)) return { rows: [], total: 0 };
     const where = this.payoutWhere(scope, q);
@@ -340,7 +342,7 @@ export class SettlementsRepository {
         take: q.pageSize,
         select: payoutSelect,
       }),
-      this.db.payout.count({ where }),
+      withTotal ? this.db.payout.count({ where }) : Promise.resolve(-1),
     ]);
     return { rows, total };
   }

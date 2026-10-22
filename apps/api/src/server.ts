@@ -310,6 +310,17 @@ const refunds = createRefundsModule({
 // Export jobs for every list (D129, D149): the API validates, scopes and queues; the worker writes the CSV to S3. The
 // exports router goes before the list routers, so `<list>/export` is never read as `<list>/{id}`.
 const exportQueue = createExportQueue({ redisUrl: env.REDIS_URL });
+// D159 payments (read only until the gateway, D6), D173 COD settlement and D152 payouts; their lists export too (F4b)
+const payments = createPaymentsModule({ prisma });
+const settlements = createSettlementsModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
+  codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+  requireReauth: auth.requireReauth, // F4 mark-paid
+  requireArea: (area) => controlAreas.require(area), // D178
+});
+
 const exportsModule = createExportsModule({
   prisma,
   orders: orders.service,
@@ -322,6 +333,9 @@ const exportsModule = createExportsModule({
     notifications: notifications.service,
     support: support.service,
     customers: customers.service,
+    payments: payments.service,
+    refunds: refunds.service,
+    payouts: settlements.service,
   },
   files: createS3ExportFileStore({
     bucket: env.S3_BUCKET,
@@ -364,17 +378,8 @@ const app = createApp({
       customers.router,
       rewards.router,
       refunds.router,
-      // D159 payments, read only until the gateway (D6)
-      createPaymentsModule({ prisma }).router,
-      // D173 COD settlement and D152 payouts, read only (the cycle from settings payouts.cycleDays)
-      createSettlementsModule({
-        prisma,
-        appOrigin: new URL(env.APP_URL).origin,
-        cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
-        codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
-        requireReauth: auth.requireReauth, // F4 mark-paid
-        requireArea: (area) => controlAreas.require(area), // D178
-      }).router,
+      payments.router,
+      settlements.router,
       partners.router,
       notifications.router,
       // M16: tiles cached 30 s in Redis by scope hash; M18: 60 searches a minute per member

@@ -232,7 +232,12 @@ export class RefundsRepository {
     return { AND: and };
   }
 
-  async list(scope: Scope, q: RefundListQuery): Promise<{ rows: RefundRecord[]; total: number }> {
+  /** withTotal false: rows only (an export page), total is -1 */
+  async list(
+    scope: Scope,
+    q: RefundListQuery,
+    withTotal = true,
+  ): Promise<{ rows: RefundRecord[]; total: number }> {
     if (scope !== 'ALL' && scope.length === 0) return { rows: [], total: 0 };
     const where = this.where(scope, q, true);
     const field =
@@ -249,7 +254,7 @@ export class RefundsRepository {
         take: q.pageSize,
         select: refundSelect,
       }),
-      this.db.refund.count({ where }),
+      withTotal ? this.db.refund.count({ where }) : Promise.resolve(-1),
     ]);
     return { rows, total };
   }

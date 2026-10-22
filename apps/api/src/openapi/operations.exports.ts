@@ -11,6 +11,9 @@ import {
   notificationListQuerySchema,
   orderListQuerySchema,
   partnerListQuerySchema,
+  paymentListQuerySchema,
+  payoutListQuerySchema,
+  refundListQuerySchema,
   ticketListQuerySchema,
   vendorListQuerySchema,
   type ExportModule,
@@ -76,6 +79,24 @@ const LISTS: { module: ExportModule; operationId: string; label: string; query: 
     operationId: 'exportDiningReservations',
     label: 'dining reservations',
     query: diningListQuerySchema,
+  }, // F4b: the money lists (their export permission, the zone's export switch for Zonal Admins, D149)
+  {
+    module: 'payments',
+    operationId: 'exportPayments',
+    label: 'payments',
+    query: paymentListQuerySchema,
+  },
+  {
+    module: 'refunds',
+    operationId: 'exportRefunds',
+    label: 'refunds',
+    query: refundListQuerySchema,
+  },
+  {
+    module: 'payouts',
+    operationId: 'exportPayouts',
+    label: 'payouts',
+    query: payoutListQuerySchema,
   },
 ];
 
