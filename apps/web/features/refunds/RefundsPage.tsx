@@ -52,7 +52,7 @@ export function RefundsPage({ role, myZones }: RefundPageProps) {
     : myZones;
   const zoneCode = url.params.get('zone');
   const zone = selectedZone(zoneCode, zones);
-  const waiting = superAdmin && zoneCode !== null && !allZones.data;
+  const waiting = superAdmin && zoneCode !== null && allZones.isPending;
   const tab = refundTabFromParam(url.params.get('tab'), superAdmin);
   const tabDef = REFUND_TABS.find((t) => t.id === tab) ?? REFUND_TABS[0];
   const q = url.params.get('q') ?? '';

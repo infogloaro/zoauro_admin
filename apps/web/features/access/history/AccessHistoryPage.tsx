@@ -85,7 +85,7 @@ export function AccessHistoryPage() {
   const filters = readHistoryFilters(url.params, zones.data?.data ?? []);
   const query = toHistoryQuery(filters);
   const narrowed = hasHistoryNarrowing(filters);
-  const waitingForZone = zoneCode !== null && !zones.data;
+  const waitingForZone = zoneCode !== null && zones.isPending;
 
   const history = useInfiniteQuery({
     queryKey: ['access', 'changes', query],

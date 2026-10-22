@@ -74,7 +74,7 @@ export function NotificationsPage({
       : myZones;
   const zoneCode = url.params.get('zone');
   const zone = selectedZone(zoneCode, zones);
-  const waiting = role === 'SUPER_ADMIN' && zoneCode !== null && !allZones.data;
+  const waiting = role === 'SUPER_ADMIN' && zoneCode !== null && allZones.isPending;
   const tab = notificationTabFromParam(url.params.get('tab'));
   const q = url.params.get('q') ?? '';
   const k = url.params.get('kind');

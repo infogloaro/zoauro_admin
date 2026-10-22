@@ -55,7 +55,7 @@ export function CodSettlementPage({ role, myZones, canRecord }: SettlementPagePr
     : myZones;
   const zoneCode = url.params.get('zone');
   const zone = selectedZone(zoneCode, zones);
-  const waiting = superAdmin && zoneCode !== null && !allZones.data;
+  const waiting = superAdmin && zoneCode !== null && allZones.isPending;
   const view = codViewFromParam(url.params.get('view'));
   const showZone = superAdmin ? !zone : zones.length > 1 && !zone;
 

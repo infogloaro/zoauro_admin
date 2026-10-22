@@ -59,7 +59,11 @@ export function AccessRequestQueuePage() {
   const zone = zoneCode
     ? zones.data?.data.find((z) => z.code === zoneCode.toUpperCase())
     : undefined;
-  const queue = useAccessRequestQueue(status, zone?.id ?? null, zoneCode !== null && !zones.data);
+  const queue = useAccessRequestQueue(
+    status,
+    zone?.id ?? null,
+    zoneCode !== null && zones.isPending,
+  );
   const [open, setOpen] = useState<Row | null>(null);
   const rows = queue.data?.pages.flatMap((p) => p.data) ?? [];
   const pending = queue.data?.pages[0]?.meta.pendingCount;

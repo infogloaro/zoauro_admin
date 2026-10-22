@@ -88,7 +88,7 @@ function SystemLogs({ timeZone }: { timeZone: string }) {
     () => readActivityFilters(new URLSearchParams(query), now, zoneList),
     [query, now, zoneList],
   );
-  const waitingForZone = params.has('zone') && !zones.data;
+  const waitingForZone = params.has('zone') && zones.isPending;
   const signIns = useMemo(() => readSignInFilters(new URLSearchParams(query), now), [query, now]);
 
   const [openId, setOpenId] = useState<string | null>(null);

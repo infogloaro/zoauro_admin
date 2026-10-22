@@ -45,7 +45,7 @@ export function PaymentsPage({ role, myZones }: RefundPageProps) {
     : myZones;
   const zoneCode = url.params.get('zone');
   const zone = selectedZone(zoneCode, zones);
-  const waiting = superAdmin && zoneCode !== null && !allZones.data;
+  const waiting = superAdmin && zoneCode !== null && allZones.isPending;
   const q = url.params.get('q') ?? '';
   const method = METHODS.find((m) => m === url.params.get('method'));
   const status = PAYMENT_DISPLAY_STATUSES.find((s) => s === url.params.get('status'));

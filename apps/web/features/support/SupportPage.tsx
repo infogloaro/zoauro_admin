@@ -67,7 +67,7 @@ export function SupportPage({ role, myZones, can }: SupportPageProps) {
       : myZones;
   const zoneCode = url.params.get('zone');
   const zone = selectedZone(zoneCode, zones);
-  const waitingForZone = role === 'SUPER_ADMIN' && zoneCode !== null && !allZones.data;
+  const waitingForZone = role === 'SUPER_ADMIN' && zoneCode !== null && allZones.isPending;
   const zoneById = new Map(zones.map((z) => [z.id, z]));
 
   const tab = queueTabFromParam(url.params.get('tab'));

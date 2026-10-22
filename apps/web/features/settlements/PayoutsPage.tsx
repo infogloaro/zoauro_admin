@@ -53,7 +53,7 @@ export function PayoutsPage({ role, myZones }: SettlementPageProps) {
     : myZones;
   const zoneCode = url.params.get('zone');
   const zone = selectedZone(zoneCode, zones);
-  const waiting = superAdmin && zoneCode !== null && !allZones.data;
+  const waiting = superAdmin && zoneCode !== null && allZones.isPending;
   const tab = payeeTabFromParam(url.params.get('payee'));
   const payeeType = PAYEE_TABS.find((t) => t.id === tab)?.type ?? null;
   const rawStatus = url.params.get('status');

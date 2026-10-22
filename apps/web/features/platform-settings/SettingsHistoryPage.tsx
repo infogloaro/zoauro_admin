@@ -33,7 +33,7 @@ export function SettingsHistoryPage() {
   const zoneCode = url.params.get('zone');
   const zones = useZoneOptions();
   const zone = zoneCode ? zones.data?.data.find((z) => z.code === zoneCode) : undefined;
-  const waitingForZone = Boolean(zoneCode) && !zones.data;
+  const waitingForZone = Boolean(zoneCode) && zones.isPending;
   const { actorId, from, to } = readHistoryFilters(url.params);
   // who may have changed settings: every Super Admin, plus anyone already seen in the loaded rows
   const admins = useSuperAdmins();
