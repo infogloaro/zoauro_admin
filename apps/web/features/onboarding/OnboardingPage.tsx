@@ -30,7 +30,8 @@ import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
 import { retryTransient } from '../audit/useAuditLogs';
 import { isApiError, TRY_AGAIN } from '../auth/errors';
-import { claimedMessage } from '../claims/api';
+import { claimedMessage, useClaimsFor } from '../claims/api';
+import { ClaimBadge } from '../claims/ClaimBadge';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { useZoneOptions } from '../platform-settings/api';
 import {
@@ -151,6 +152,16 @@ export function OnboardingPage({ role, myZones, canAct }: OnboardingPageProps) {
   const showZone = superAdmin ? !zone : zones.length > 1 && !zone;
   const filtered = Boolean(q || stage || age || tab !== 'all');
 
+  // who is reviewing each applicant (D174 claims): one lookup per record type, all at once
+  const rows = list.data?.data ?? [];
+  const idsOf = (m: OnboardingItem['module']) =>
+    rows.filter((r) => r.module === m).map((r) => r.id);
+  const claims = {
+    restaurants: useClaimsFor('RESTAURANT', idsOf('restaurants')),
+    homemakers: useClaimsFor('HOMEMAKER', idsOf('homemakers')),
+    hotels: useClaimsFor('HOTEL', idsOf('hotels')),
+  };
+
   const columns: Column<OnboardingItem>[] = [
     {
       id: 'name',
@@ -164,6 +175,7 @@ export function OnboardingPage({ role, myZones, canAct }: OnboardingPageProps) {
             {TYPE_LABEL[r.type]}
             {r.area ? ` · ${r.area}` : ''}
           </p>
+          <ClaimBadge claim={claims[r.module].data?.get(r.id)} />
         </div>
       ),
     },

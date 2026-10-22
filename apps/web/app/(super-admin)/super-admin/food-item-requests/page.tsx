@@ -12,5 +12,5 @@ export default async function Page() {
   if (!me) return null;
   const p = menuPageProps(me);
   if (p.role === 'ZONAL_ADMIN' && p.myZones.length === 0) notFound();
-  return <FoodItemRequestsPage role={p.role} myZones={p.myZones} canDecide={p.can.edit} />;
+  return <FoodItemRequestsPage role={p.role} myZones={p.myZones} canDecide={p.can.status} />;
 }

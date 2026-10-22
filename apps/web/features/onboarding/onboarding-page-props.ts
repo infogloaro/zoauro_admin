@@ -2,7 +2,7 @@ import type { MeResponse } from '@zoauro/shared';
 import type { ScopeZone } from '../../lib/zone-scope';
 
 // What the onboarding queue shows a member, from /me (server side). A convenience only: the API scopes the queue to the
-// zones where the member may view each module (restaurants, homemakers, hotels) and checks <module>:edit on a review.
+// zones where the member may view each module (restaurants, homemakers, hotels) and checks <module>:status on a review.
 
 const MODULES = ['restaurants', 'homemakers', 'hotels'] as const;
 
@@ -21,6 +21,7 @@ export function onboardingPageProps(me: MeResponse): OnboardingPageProps {
     myZones: zones
       .filter((z) => MODULES.some((m) => z.permissions.includes(`${m}:view`)))
       .map((z) => ({ id: z.zoneId, name: z.name, code: z.code, colorHex: z.colorHex })),
-    canAct: zones.some((z) => MODULES.some((m) => z.permissions.includes(`${m}:edit`))),
+    // a review and a more-info request are status decisions on the record (the API checks <module>:status)
+    canAct: zones.some((z) => MODULES.some((m) => z.permissions.includes(`${m}:status`))),
   };
 }
