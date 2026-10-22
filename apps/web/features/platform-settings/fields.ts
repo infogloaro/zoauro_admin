@@ -1,4 +1,5 @@
 import {
+  CANCELLATION_STAGES,
   ONBOARDING_DOCUMENT_TYPES,
   REFUND_COST_BEARERS,
   REFUND_TARGETS,
@@ -78,6 +79,13 @@ export const OPTION_LABEL: Record<string, string> = {
   UPI: 'UPI',
   ADMIN: 'Admins',
   SYSTEM: 'System',
+  // order stages (who may cancel until when, D156)
+  ACCEPTED: 'Accepted',
+  PREPARING: 'Preparing',
+  READY: 'Ready',
+  ASSIGNED: 'Partner assigned',
+  OUT_FOR_DELIVERY: 'Out for delivery',
+  DELIVERED: 'Delivered',
 };
 
 const REASON_COLUMNS: readonly ColumnSpec[] = [
@@ -263,6 +271,132 @@ export const KEY_SPECS: Record<string, KeySpec> = {
       { path: 'earnRatePercent', label: 'Earn rate (% of order value)', kind: 'number' },
       { path: 'pointsExpiryDays', label: 'Points expire after (days)', kind: 'int' },
       { path: 'pointValuePaise', label: 'Value of one point', kind: 'money' },
+      { path: 'minRedeemPoints', label: 'Fewest points a customer can redeem', kind: 'int' },
+      {
+        path: 'maxRedeemPercentPerOrder',
+        label: 'Most of an order paid with points (%)',
+        kind: 'int',
+      },
+      {
+        path: 'monthlyEarnCapPoints',
+        label: 'Most points earned in a month',
+        kind: 'int',
+        nullable: true,
+        hint: 'Leave empty for no monthly cap',
+      },
+      {
+        path: 'walletConversionEnabled',
+        label: 'Customers may convert points to wallet money',
+        kind: 'bool',
+      },
+    ],
+  },
+  'orders.unpaidTimeoutMinutes': {
+    fields: [
+      { path: 'ONLINE', label: 'Online payment: cancel when unpaid after', kind: 'minutes' },
+      { path: 'WALLET', label: 'Wallet payment: cancel when unpaid after', kind: 'minutes' },
+    ],
+  },
+  'orders.cancellationRules': {
+    fields: [
+      {
+        path: 'CUSTOMER.allowedBefore',
+        label: 'A customer may cancel until before',
+        kind: 'select',
+        options: CANCELLATION_STAGES,
+      },
+      { path: 'CUSTOMER.reasonRequired', label: 'A customer must give a reason', kind: 'bool' },
+      {
+        path: 'VENDOR.allowedBefore',
+        label: 'A vendor may cancel until before',
+        kind: 'select',
+        options: CANCELLATION_STAGES,
+      },
+      { path: 'VENDOR.reasonRequired', label: 'A vendor must give a reason', kind: 'bool' },
+      {
+        path: 'ADMIN.allowedBefore',
+        label: 'An admin may cancel until before',
+        kind: 'select',
+        options: CANCELLATION_STAGES,
+      },
+      { path: 'ADMIN.reasonRequired', label: 'An admin must give a reason', kind: 'bool' },
+    ],
+  },
+  'orders.preorder': {
+    fields: [
+      { path: 'minLeadMinutes', label: 'Placed at least this long ahead', kind: 'minutes' },
+      { path: 'maxAheadDays', label: 'Placed at most this many days ahead', kind: 'int' },
+      { path: 'travelBufferMinutes', label: 'Travel buffer', kind: 'minutes' },
+      {
+        path: 'prepMinutes',
+        label: 'Preparation time when the vendor has no average',
+        kind: 'minutes',
+      },
+      {
+        path: 'cancelCutoffMinutes',
+        label: 'Cancel up to this long before dispatch',
+        kind: 'minutes',
+      },
+      {
+        path: 'rescheduleCutoffMinutes',
+        label: 'Reschedule up to this long before dispatch',
+        kind: 'minutes',
+      },
+      { path: 'maxReschedules', label: 'Most reschedules per pre-order', kind: 'int' },
+    ],
+  },
+  'delivery.autoAssign': {
+    fields: [
+      { path: 'enabled', label: 'Assign partners automatically', kind: 'bool' },
+      { path: 'radiusKm', label: 'Search radius (km)', kind: 'number' },
+      { path: 'offerTimeoutSeconds', label: 'Seconds a partner has to accept', kind: 'int' },
+    ],
+  },
+  'payouts.cycleDays': {
+    fields: [{ path: 'days', label: 'Payout cycle (days)', kind: 'int', hint: '1 to 31 days' }],
+  },
+  'zones.deliveryChargeCapPaise': {
+    fields: [{ path: 'capPaise', label: 'Most a zone may charge for delivery', kind: 'money' }],
+  },
+  'access.commissionEditGrantable': {
+    fields: [
+      {
+        path: 'enabled',
+        label: 'Commission editing may be granted to Zonal Admins',
+        kind: 'bool',
+        hint: 'Per member and zone, in the member access editor (D155)',
+      },
+    ],
+  },
+  'orders.sla': {
+    fields: [
+      { path: 'acceptMinutes', label: 'Accept', kind: 'minutes' },
+      { path: 'prepareMinutes', label: 'Prepare', kind: 'minutes' },
+      { path: 'readyToAssignMinutes', label: 'Ready to partner assigned', kind: 'minutes' },
+      { path: 'assignedToPickupMinutes', label: 'Assigned to picked up', kind: 'minutes' },
+      { path: 'outForDeliveryMinutes', label: 'Out for delivery to delivered', kind: 'minutes' },
+    ],
+  },
+  'onboarding.ageWarnings': {
+    fields: [
+      { path: 'warnHours', label: 'Amber after (hours without a decision)', kind: 'int' },
+      { path: 'lateHours', label: 'Red after (hours without a decision)', kind: 'int' },
+    ],
+  },
+  'claims.timing': {
+    fields: [
+      { path: 'ttlMinutes', label: 'A claim lasts without activity (minutes)', kind: 'int' },
+      {
+        path: 'takeoverTimeoutMinutes',
+        label: 'A takeover request waits for the claimer (minutes)',
+        kind: 'int',
+      },
+    ],
+  },
+  'sessions.remember': {
+    fields: [
+      { path: 'rememberDays', label: '"Remember me" lasts (days)', kind: 'int' },
+      { path: 'rememberIdleHours', label: 'Signed out after idle (hours)', kind: 'int' },
     ],
   },
 };
@@ -360,7 +494,7 @@ export function fromDraft(key: string, draft: Draft): unknown {
       case 'minutes':
       case 'int':
       case 'number':
-        setPath(out, f.path, num(v));
+        setPath(out, f.path, f.nullable && (v === null || String(v).trim() === '') ? null : num(v));
         break;
       case 'bool':
         setPath(out, f.path, v === true);
