@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 // Page header (doc 19, prototype): breadcrumbs, title, one-line description and the page's actions on the right.
@@ -32,12 +33,13 @@ export function PageHeader({
                 <li key={`${c.label}-${i}`} className="flex items-center gap-1">
                   {i > 0 ? <ChevronRight aria-hidden className="size-3" /> : null}
                   {c.href ? (
-                    <a
+                    <Link
                       href={c.href}
+                      prefetch={false}
                       className="font-medium text-primary-strong hover:underline focus-visible:outline-2 focus-visible:outline-primary"
                     >
                       {c.label}
-                    </a>
+                    </Link>
                   ) : (
                     <span aria-current="page">{c.label}</span>
                   )}

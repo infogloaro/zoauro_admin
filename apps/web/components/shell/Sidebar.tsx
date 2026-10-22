@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { cn } from '../../lib/utils';
 import { groupedMenu, type MenuItem, type NavGroupId, type ShellRole } from '../../lib/navigation';
@@ -111,8 +112,9 @@ export function Sidebar({
                     const waiting = counts[item.id] ?? 0;
                     return (
                       <li key={item.id}>
-                        <a
+                        <Link
                           href={item.href}
+                          prefetch={false}
                           aria-current={isCurrent ? 'page' : undefined}
                           aria-label={
                             soon
@@ -170,7 +172,7 @@ export function Sidebar({
                               ) : null}
                             </>
                           )}
-                        </a>
+                        </Link>
                       </li>
                     );
                   })}

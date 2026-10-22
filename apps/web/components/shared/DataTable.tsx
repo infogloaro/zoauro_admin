@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -35,8 +36,9 @@ export function RowActivator({
   const { onClick, className: base, ...rest } = ctx.activatorProps;
   if (ctx.href)
     return (
-      <a
+      <Link
         href={ctx.href}
+        prefetch={false}
         data-row-activate={rest['data-row-activate']}
         aria-label={rest['aria-label']}
         className={cn(base, className)}
@@ -48,7 +50,7 @@ export function RowActivator({
         }}
       >
         {children}
-      </a>
+      </Link>
     );
   return (
     <button type="button" {...ctx.activatorProps} className={cn(base, className)}>

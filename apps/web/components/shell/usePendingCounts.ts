@@ -6,7 +6,8 @@ import { retryTransient } from '../../features/audit/useAuditLogs';
 
 // A9 (owner, 2026-10-20): how much is waiting under Requests & Approvals, as menu badges. Only the entries the member's
 // menu shows are asked for; each count is scoped by the API like its list (zones, permissions). Refreshed every minute
-// while the page is open; a count that fails is simply not shown.
+// while the page is open, and fresh for a minute, so moving between pages does not ask again; a count that fails is
+// simply not shown.
 
 const REFRESH_MS = 60_000;
 
@@ -15,7 +16,7 @@ function useCount(id: string, enabled: boolean, fetch: (signal: AbortSignal) => 
     queryKey: ['menu-badges', id],
     enabled,
     queryFn: ({ signal }) => fetch(signal),
-    staleTime: 30_000,
+    staleTime: REFRESH_MS,
     refetchInterval: REFRESH_MS,
     refetchIntervalInBackground: false,
     retry: retryTransient,

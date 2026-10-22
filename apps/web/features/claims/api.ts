@@ -68,6 +68,9 @@ export function useMyClaims(enabled = true) {
     queryKey: claimKeys.mine,
     enabled,
     queryFn: ({ signal }) => client.get('/claims/mine', { signal }),
+    // in the shell on every page: fresh for its refresh interval, so a page change does not ask again (a claim taken or
+    // released here invalidates it)
+    staleTime: 60_000,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
     retry: retryTransient,

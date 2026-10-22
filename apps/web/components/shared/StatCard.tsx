@@ -1,4 +1,5 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -68,15 +69,16 @@ export function StatCard({
       </div>
     );
   return href ? (
-    <a
+    <Link
       href={href}
+      prefetch={false}
       className={cn(
         box,
         'transition-shadow hover:shadow-pop focus-visible:outline-2 focus-visible:outline-primary',
       )}
     >
       {body}
-    </a>
+    </Link>
   ) : (
     <div className={box}>{body}</div>
   );

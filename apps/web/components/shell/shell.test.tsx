@@ -155,7 +155,7 @@ describe('sidebar', () => {
     expect(html).toContain('aria-expanded="true"');
     expect(html).toContain('/brand/zoauro-logo.jpeg');
     expect(html).toMatch(
-      /aria-current="page"[^>]*>(<span>)?Audit &amp; Logs|href="\/super-admin\/settings\/logs" aria-current="page"/,
+      /aria-current="page"[^>]*>(<span>)?Audit &amp; Logs|href="\/super-admin\/settings\/logs" aria-current="page"|aria-current="page"[^>]*href="\/super-admin\/settings\/logs"/,
     );
     expect(html).toContain('bg-sidebar-active');
   });
