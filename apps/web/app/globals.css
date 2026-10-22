@@ -155,6 +155,18 @@ body {
   }
 }
 
+/* Long names, emails, notes, reasons and addresses wrap inside their own table cell or detail field instead of running
+   across the next one (owner, Vendor Onboarding, 2026-10-22). A field in a card grid breaks anywhere so its column never
+   grows over its neighbour; a table cell wraps at words and only breaks a word longer than the column. */
+@layer base {
+  td {
+    overflow-wrap: break-word;
+  }
+  dd {
+    overflow-wrap: anywhere;
+  }
+}
+
 /* the sidebar's own thin scrollbar */
 .scrollbar-thin {
   scrollbar-width: thin;

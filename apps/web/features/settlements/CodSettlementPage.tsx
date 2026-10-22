@@ -406,7 +406,11 @@ function History({ zoneId, showZone }: { zoneId?: string; showZone: boolean }) {
           <p>
             <time dateTime={r.settledAt}>{dateTime(r.settledAt)}</time> · {r.settledBy.name}
           </p>
-          {r.note ? <p className="max-w-56 truncate">“{r.note}”</p> : null}
+          {r.note ? (
+            <p className="max-w-56 truncate" title={r.note}>
+              “{r.note}”
+            </p>
+          ) : null}
         </div>
       ),
     },

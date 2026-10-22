@@ -142,7 +142,7 @@ export function AccessRequestQueuePage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold">{requestText(r)}</p>
-                    <p className="truncate text-xs text-muted">
+                    <p className="truncate text-xs text-muted" title={r.reason}>
                       {r.requester.name} · {relativeTime(r.createdAt)} · “{r.reason}”
                     </p>
                   </div>

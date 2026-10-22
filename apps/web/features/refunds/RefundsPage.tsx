@@ -121,7 +121,7 @@ export function RefundsPage({ role, myZones }: RefundPageProps) {
       header: 'Reason',
       cell: (r) => (
         <div className="max-w-56 text-sm">
-          <p className="truncate">
+          <p className="truncate" title={r.reasonNote ?? undefined}>
             {r.reasonNote ?? r.reasonCode.replaceAll('_', ' ').toLowerCase()}
           </p>
           <p className="text-xs text-muted">

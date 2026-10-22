@@ -179,12 +179,18 @@ export function OnboardingPage({ role, myZones, canAct }: OnboardingPageProps) {
       id: 'stage',
       header: 'Stage',
       cell: (r) => (
-        <div className="flex max-w-64 flex-col items-start gap-1">
+        <div className="flex max-w-64 min-w-0 flex-col items-start gap-1">
           <Badge tone={STAGE_TONE[r.stage]} dot>
             {STAGE_LABEL[r.stage]}
           </Badge>
           {r.stage === 'MORE_INFO_REQUIRED' && r.moreInfoMessage ? (
-            <span className="truncate text-xs text-muted">Asked: “{r.moreInfoMessage}”</span>
+            // stays in the Stage cell (owner, 2026-10-22): two lines at most, the whole message on hover
+            <span
+              className="line-clamp-2 w-full text-xs break-words text-muted"
+              title={r.moreInfoMessage}
+            >
+              Asked: “{r.moreInfoMessage}”
+            </span>
           ) : null}
           {r.stage === 'DECIDED' ? (
             <span className="text-xs text-muted">
