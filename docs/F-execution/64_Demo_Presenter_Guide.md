@@ -11,8 +11,35 @@ This guide tells you, part by part, from sign-in to the roadmap:
 
 Doc 61 is the technical runbook (start commands, data reset, QA status of each step). This guide is the story. If a step here is marked **Plan only**, it is not built yet: show it from the workflow map (`60_Admin_Workflow_Map.html`) and do not click it in the panel.
 
+## Changed since the last build
+
+For the owner. Updated with every demo build. Newest first.
+
+**Evening build `00b4ecf` (2026-10-22, 18:12), data reset at 19:05:**
+
+- **New: automatic partner assignment** for one zone (Tiruppur pilot), Part 12.
+- **New: cancel only up to the zone's stage.** Admins can't cancel an order that is out for delivery; Cancel is hidden there. Part 12.
+- **New: Mark paid** on vendor payouts, with the bank reference, held back while a refund is open. Part 16.
+- **New: exports** of Payments, Refunds and Payouts.
+- **Fixed:**
+  - the dashboard follows the top-bar zone;
+  - table headers stay light when Windows is in dark mode;
+  - the onboarding "Asked: …" note stays in its column.
+- **Changed:**
+  - list headers are tinted and hovered rows are coloured;
+  - "Remember me" follows the Control Panel setting.
+- **Sample data:** Karthik now has two Coimbatore North requests (menu view and menu edit), Part 19. Coimbatore Central payouts include one with a refund deduction and one held by an open refund.
+- **Demo address:** the demo opens on the owner's shareable tunnel link, not on 127.0.0.1 (Part 1).
+
+**Coming overnight (checked at 06:00 on 2026-10-23):**
+
+- the payout detail page, statement and partner payouts (Part 16);
+- Advertising (Part 17), shown as "Soon" in the menu until then;
+- a new "Audit & Logs" menu group (Audit & Logs, Recent Activities, Access History, Settings History). The sidebar Global Search entry is removed; the top-bar search stays.
+
 ## Contents
 
+0. Changed since the last build
 1. Before you start
 2. The big picture (3 min)
 3. Sign-in and security (4 min)
@@ -27,15 +54,17 @@ Doc 61 is the technical runbook (start commands, data reset, QA status of each s
 12. Orders (10 min)
 13. Delivery partners and cash on delivery (4 min)
 14. Customers and reward points (3 min)
-15. Money: refunds, payments, payouts (8 min)
-16. Support and notifications (4 min)
-17. The Zonal Admin view (6 min)
-18. The Admin (second Super Admin) view (3 min)
-19. Audit trail (2 min)
-20. What comes next (3 min)
-21. Questions you may get
-22. If something goes wrong
-23. One-page running order
+15. Money: refunds and payments (5 min)
+16. Vendor and partner payouts (8 min)
+17. Advertising (10 min)
+18. Support and notifications (4 min)
+19. The Zonal Admin view (6 min)
+20. The Admin (second Super Admin) view (3 min)
+21. Audit trail (2 min)
+22. What comes next (3 min)
+23. Questions you may get
+24. If something goes wrong
+25. One-page running order
 
 ---
 
@@ -45,7 +74,7 @@ Doc 61 is the technical runbook (start commands, data reset, QA status of each s
 
 | Tab | Address | Why |
 |---|---|---|
-| 1 | `http://127.0.0.1:3100` | The admin panel (demo build, sample data) |
+| 1 | The demo link from the demo-stack lane (the shareable tunnel address set as APP_URL; `http://127.0.0.1:3100` only when APP_URL is local, otherwise sign-in there is refused) | The admin panel (demo build, sample data) |
 | 2 | `http://127.0.0.1:8025` | Mailpit: the inbox where the 2-step sign-in codes arrive |
 | 3 | `docs/F-execution/60_Admin_Workflow_Map.html` | The workflow map, for "the big picture" and anything marked Plan only |
 
@@ -321,7 +350,7 @@ flowchart TB
 
 - **Adding a Zonal Admin:** name, email, mobile and a temporary password. They must change the password and set up 2-step at first sign-in.
 - **Saving an access change** asks for the password. It writes an access-history entry, emails the member and takes effect on their next click. No new sign-in is needed.
-- **Access requests:** a Zonal Admin asks for a zone or a permission, with a reason. The request appears under **Requests & Approvals → Access Requests** and as a banner on the dashboard. You show this live in Part 17.
+- **Access requests:** a Zonal Admin asks for a zone or a permission, with a reason. The request appears under **Requests & Approvals → Access Requests** and as a banner on the dashboard. You show this live in Part 19.
 
 ---
 
@@ -425,7 +454,7 @@ flowchart LR
 
 - **Room bookings:** Pending → Confirmed → Checked in → Checked out, or Cancelled.
 - **Table bookings:** Pending → Confirmed → Completed, or No-show, or Cancelled.
-- **Per-zone service:** hotel booking is a service switched on or off per zone. It is off in Tiruppur, and you show that in Part 17 with Suresh.
+- **Per-zone service:** hotel booking is a service switched on or off per zone. It is off in Tiruppur, and you show that in Part 19 with Suresh.
 
 ---
 
@@ -493,12 +522,12 @@ flowchart LR
 **Do:**
 
 1. In the top bar, pick **Tiruppur**.
-2. Go to **Administration → Platform Settings**, find **Automatic assignment** and click **Edit**.
+2. Go to **Administration → Platform Settings**. Under **Orders**, find **Auto-assign delivery partners** and click **Edit**. Tiruppur is pre-set: 5 km radius, 60 seconds between tries, 3 tries, partner locations up to 60 minutes old.
 3. Switch it on and click **Review change**.
 4. Write a reason, click **Save** and enter your password.
-5. Open a **Ready** order from a Tiruppur vendor such as Tiruppur Kongu Kitchen.
+5. Wait 10 to 40 seconds, then open the **Ready** order from Tiruppur Kongu Kitchen. If nothing has happened yet, click **Try auto-assign again** on the order.
 
-**They see:** the order page's auto-assign card shows the partner the system picked and how far away they are. In the sample data, Murugan Velu is about 1 km away and Ravi Shankar about 4 km, so Murugan is picked.
+**They see:** the order's **Automatic assignment** card says "Assigned by the system", with the partner and the distance, and the timeline says "Auto-assigned: choice 1, 1.0 km from the pickup", done by System. In the sample data, Murugan Velu is about 1 km away and Ravi Shankar about 4 km, so Murugan is picked.
 
 **Say:**
 > "Each zone can let the system assign partners. It picks the nearest partner within the radius who is online, verified, has a fresh location, is under their order limit and, for a cash order, under the cash limit. If nobody fits, the order falls back to manual assignment with an alert, and we can press 'Try auto-assign again'. Every automatic assignment is in the audit log, done by 'system'. Tiruppur is the pilot. Other zones keep manual assignment until we switch them on."
@@ -579,7 +608,7 @@ flowchart LR
 
 ---
 
-## 15. Money: refunds, payments, payouts (8 min)
+## 15. Money: refunds and payments (5 min)
 
 **Say first:**
 > "There is no payment gateway in this demo. The Razorpay connection waits for the keys from management. The flows and the rules are already built; only the bank connection is missing."
@@ -615,31 +644,208 @@ flowchart LR
 **Say:**
 > "Every payment by method (online, cash on delivery, wallet) and by status. It is read only. When Razorpay is connected, these rows fill from the gateway."
 
-**Payouts**
+**Exports**
 
-**Do:** **Payments & Finance → Payouts & Reconciliation**. Show the tabs for restaurants, Home Food and delivery partners.
-
-**Say:**
-> "Each payout cycle shows, for every vendor:
-> - the gross;
-> - our commission;
-> - refunds that were the vendor's fault;
-> - the net amount we owe."
-
-**Do:** on a pending restaurant payout, click **Mark paid**. Enter a bank reference (UTR), the date paid and your password.
-
-**Say:**
-> "When finance pays the vendor, we record the bank reference here. If the vendor still has open refunds in that period, the panel stops us, so we never pay out money that will have to be taken back."
-
-**How it works**
-
-- **Who:** Mark paid is for Super Admins only, and it is new in the evening build of 2026-10-22. Check it in the final QA (doc 61 §5) before showing it.
-- **Delivery-partner payouts:** they wait for the pay formula, so they have no Mark paid button yet.
-- **Exports:** Payments, Refunds and Payouts can be exported to a spreadsheet file. The export runs in the background and the file appears when ready.
+- Payments, Refunds and Payouts can be exported to a spreadsheet file. The export runs in the background, and the file appears when it is ready.
 
 ---
 
-## 16. Support and notifications (4 min)
+## 16. Vendor and partner payouts (8 min)
+
+> **Status:** the list, Mark paid and exports work on the evening build of 2026-10-22. The detail page, the statement and partner payouts land overnight and are checked at 06:00 on 2026-10-23 (doc 61 §5). If they are not green, show only the list and Mark paid.
+
+**Do:** **Payments & Finance → Payouts & Reconciliation**.
+
+**They see:**
+
+- summary tiles at the top: Pending (count and amount to pay), Paid this cycle, Blocked by open refunds, and the next payout date for each zone;
+- tabs for Restaurants, Home Food and Delivery partners.
+
+**Say:**
+> "Every cycle, the system works out what we owe each vendor and each delivery partner. The cycle length is a Control Panel setting, 7 days by default and per zone. This page tells finance what is waiting, what has been paid and what is held back."
+
+**Do:** pick **Coimbatore Central** in the top bar. Open a pending restaurant payout.
+
+**They see:** the payee, zone, period and status, then the **money block**: Gross, Commission, Net, Vendor-fault refunds, Ad fees, **Amount to pay**. Below it are four tabs.
+
+**Say:**
+> "For each vendor, the payout shows exactly how we got to the amount:
+> - the value of the delivered orders;
+> - minus our commission;
+> - minus refunds that were the vendor's fault;
+> - minus their advertising fees.
+>
+> Nothing is a black box."
+
+**Do:** click through the tabs:
+
+1. **Orders**: each delivered order in the period, with its commission. An order number opens the order.
+2. **Refunds**: the vendor-fault refunds taken off, and any refund still open.
+3. **Ad fees**: the vendor's advertising billed in this period (Part 17).
+4. **History**: every action on this payout.
+
+**Do:** click **Mark paid**. Enter the bank reference (UTR or NEFT), the date paid and your password.
+
+**They see:** the status becomes Paid, with the reference, the date, the amount and who recorded it. The History tab shows the action.
+
+**Say:**
+> "Finance pays the vendor from the bank, then records the reference here. The panel keeps the proof: who marked it, when, and which bank transfer."
+
+**Do:** click **Print statement**.
+
+**Say:**
+> "This is the statement we can send the vendor: the period, the money block and every order line."
+
+**Do:** go back to the list and open **Sree Krishna Sweets**. Click **Mark paid**.
+
+**They see:** "1 refund for this vendor is still open". The payout cannot be paid yet.
+
+**Say:**
+> "If a vendor still has a refund under review in that period, we hold the payout, so we never pay money that has to be taken back."
+
+**Do:** open the **Delivery partners** tab and open a partner payout.
+
+**They see:** deliveries, delivery fees, the partner's share, the cash on delivery they still hold, and the amount to pay.
+
+**Say:**
+> "Partners earn their share of the delivery fees. The share is a setting, 100% today. If a partner is still holding cash from cash-on-delivery orders, that cash is taken off their payout, so we never pay them money they already have in hand."
+
+**Do:** mark the partner payout paid (reference, date, password).
+
+```mermaid
+flowchart LR
+  C[Cycle ends<br/>7 days by default,<br/>per zone] --> G[Payout created:<br/>gross, commission, net]
+  G --> D[Deductions:<br/>vendor-fault refunds,<br/>ad fees,<br/>COD cash held for partners]
+  D --> A[Amount to pay]
+  A -->|an open refund in the period| H[Held until<br/>the refund is decided]
+  H --> A
+  A -->|finance pays,<br/>Mark paid + reference| P[Paid:<br/>reference, date, by whom]
+  P --> S[Statement<br/>and history]
+```
+
+**How it works**
+
+- **Vendor amount to pay:** net (gross minus commission), minus vendor-fault refunds decided in the period, minus ad fees billed in the period.
+- **Partner amount to pay:** delivery fees on delivered orders × the partner share, minus the cash-on-delivery money the partner still holds at the end of the period. It is never below zero.
+- **Who can pay:** Mark paid is for Super Admins with the payouts area. A Zonal Admin with payouts view sees their zones' payouts read only. Meena does not see Mark paid.
+- **Safe to click twice:** each payment is recorded once, even if someone double-clicks or retries. If two admins open the same payout, the second is told it changed and must reload.
+- **Money never moves from the panel.** Finance pays from the bank; the panel records it. Paying vendors automatically comes with the payment gateway.
+
+---
+
+## 17. Advertising (10 min)
+
+> **Status:** built overnight; checked at 06:00 on 2026-10-23 (doc 61 §5). If it is not green, the menu shows "Advertising: Soon" and you show the plan instead. The figures come from the sample data: read the exact amounts from the seed log, not from this guide.
+
+**Say first:**
+> "Vendors can pay to be seen more. They can buy a banner on a page, or a top listing in their category. We sell two kinds: a flat fee per day, or a percentage commission on the orders the ad brings. The vendor asks from the vendor app, we quote, the vendor accepts, and the fee is taken from their next payout."
+
+```mermaid
+flowchart LR
+  RQ[Vendor asks for an ad<br/>page, placement, dates, banner] --> W[Waiting]
+  W -->|Quote: slot, price,<br/>valid 72 h| Q[Quoted]
+  W -->|Reject + reason| RJ[Rejected]
+  Q -->|vendor accepts<br/>in the vendor app| AC[Accepted:<br/>campaign scheduled]
+  Q -->|not accepted in time| EX[Expired]
+  AC --> L[Live]
+  L -->|Pause + reason| PS[Paused:<br/>days not billed]
+  PS -->|Resume| L
+  L --> EN[Ended]
+  L -->|Cancel + reason| CN[Cancelled:<br/>billed only the live days]
+  EN --> PO[Fee taken from<br/>the next vendor payout]
+  CN --> PO
+```
+
+**Dashboard**
+
+**Do:** **Support & Engagement → Advertising**.
+
+**They see:**
+
+- count tiles: active slots, requests waiting, quotes with vendors, campaigns scheduled, live and paused, ended in the last 30 days, and today's occupancy;
+- money cards: flat ad fees billed so far, ranking commission earned, total ad revenue, and the amount due from the next vendor payouts;
+- the top vendors by ad revenue.
+
+**Say:**
+> "This is our advertising business at a glance: what is running, what is waiting for us, and how much it has earned, both flat fees and commission on real orders."
+
+**Do:** switch the top-bar zone to **Tiruppur**.
+
+**Say:**
+> "Each zone has its own ad slots and prices. Tiruppur has no hotel banner because hotel booking is off there."
+
+**Slots**
+
+**Do:** open the **Slots** tab (Coimbatore Central).
+
+**Say:**
+> "A slot is a place on a page we can sell: the home banner, the restaurants banner, a top listing. Each has a list price and a capacity: the home banner holds two ads at once. We can pause or retire a slot. The slots for this demo are set up in advance."
+
+**Requests**
+
+**Do:** open the **Requests** tab, **Waiting**. Open **Haribhavanam** (top listing, 7 days) and click **Quote**. Pick **Top listing #1** and send.
+
+**They see:** "This slot is full on …", with the dates, because Annapoorna already holds it.
+
+**Do:** pick **Top listing #2** at its list rate and send.
+
+**They see:** the request moves to Quoted, valid for 72 hours, with the terms attached.
+
+**Say:**
+> "We can never sell the same place twice. The panel checks the slot's capacity for every day of the request."
+
+**Do:** open **Sree Krishna Sweets** (home banner) and try to quote.
+
+**They see:** "Banners need an uploaded image".
+
+**Say:**
+> "The rules are Control Panel settings: a banner needs an image, how long a quote stays valid, and so on."
+
+**Do:** open **Lakshmi's Home Kitchen** and **Reject** it with a reason.
+
+**Do:** open the **Quoted** or **Accepted** tab and point at **Saravanampatti Tiffin Centre**.
+
+**Say:**
+> "Once the vendor accepts our quote in the vendor app, the campaign is created and scheduled. In this demo the vendor app is not connected yet, so this accepted request was prepared in the sample data."
+
+**Campaigns**
+
+**Do:** open the **Campaigns** tab.
+
+- On **Annapoorna's top listing** (a commission campaign), show the orders it brought, the order value and the commission earned.
+- **Pause** Tiruppur Kongu Kitchen with a reason, then **Resume** it.
+- Point at Haribhavanam: its paused days are not billed.
+- Point at The Residency Towers: cancelled, billed only for the days it was live.
+- Point at "Deducted from next payout".
+
+**Say:**
+> "We bill only the days an ad was really live. Pauses and cancellations are fair to the vendor. The amount due goes straight onto their next payout, which is the Ad fees line we saw in the payout."
+
+**Settings**
+
+**Do:** **Administration → Platform Settings → Advertising**. Change **A quote stays valid** from 72 to 48 hours (reason, password). Then open **Settings History**.
+
+**Zonal Admin view** (when you sign in as Karthik in Part 19)
+
+- Advertising shows only Coimbatore Central and Coimbatore North, with a zone chip on each row.
+- In Coimbatore Central he can Quote and Reject. In Coimbatore North the rows are read only.
+- The commission % field is locked for him, because commission is a Super Admin power.
+
+**How it works**
+
+- **Who sees the money:** order figures and money cards are shown only to admins who may see payments in that zone. Others see "Needs payments view".
+- **Billing:** a billable day is each started 24 hours an ad was live, minus paused days. Commission campaigns earn a percentage of delivered orders from that vendor in that zone.
+- **Hotels:** hotel campaigns are billed to the hotel, not taken from a payout, because hotels have no payout.
+- **After the demo:**
+  - vendors send requests and accept quotes from the vendor app;
+  - creating and editing slots in the panel;
+  - automatic start and end of campaigns;
+  - export to a spreadsheet;
+  - using plan ad credits.
+
+---
+
+## 18. Support and notifications (4 min)
 
 **Do:** **Support & Engagement → Support Tickets**. Open a ticket.
 
@@ -655,7 +861,7 @@ flowchart LR
 
 ---
 
-## 17. The Zonal Admin view (6 min)
+## 19. The Zonal Admin view (6 min)
 
 **Do:** open the profile menu (top right) and choose **Sign out**. On the sign-in page choose the **Zonal Admin** tab and sign in as **Karthik**.
 
@@ -669,7 +875,7 @@ flowchart LR
 **Say:**
 > "In Coimbatore North he can see menus but not edit them, because we denied that there."
 
-**Do:** **Requests & Approvals → Access Requests**. Show his pending request for menu edit in Coimbatore North.
+**Do:** **Requests & Approvals → Access Requests**. Show his two pending requests in Coimbatore North: menu view and menu edit.
 
 **Say:**
 > "If he needs more, he asks, with a reason. He doesn't phone the owner; the request is recorded."
@@ -683,7 +889,7 @@ flowchart LR
 
 **Do:** sign out. Sign in as **Arun** (Super Admin tab).
 
-- Approve Karthik's access request: **Requests & Approvals → Access Requests → Approve** (password).
+- Approve both of Karthik's requests: **Requests & Approvals → Access Requests → Approve** (password each time).
 - Show the ₹600 refund in **Refunds**, waiting for approval.
 
 **Do:** sign in as Karthik again. Open **Menus & Food Items** in Coimbatore North.
@@ -696,7 +902,7 @@ sequenceDiagram
   participant K as Karthik (Zonal Admin)
   participant P as Panel (server)
   participant A as Arun (Super Admin)
-  K->>P: Access request: menu edit in Coimbatore North + reason
+  K->>P: Access requests: menu view and menu edit in Coimbatore North + reason
   P-->>A: Dashboard banner + Access Requests list
   A->>P: Approve (password)
   P->>P: Update access, write access history and audit
@@ -715,7 +921,7 @@ sequenceDiagram
 
 ---
 
-## 18. The Admin (second Super Admin) view (3 min)
+## 20. The Admin (second Super Admin) view (3 min)
 
 **Do:** sign out, then sign in as **Meena** (Super Admin tab).
 
@@ -731,7 +937,7 @@ sequenceDiagram
 
 ---
 
-## 19. Audit trail (2 min)
+## 21. Audit trail (2 min)
 
 **Do:** sign in as Arun again, then **Administration → Audit & Logs**.
 
@@ -747,7 +953,7 @@ sequenceDiagram
 
 ---
 
-## 20. What comes next (3 min)
+## 22. What comes next (3 min)
 
 **Do:** open one of the menu entries marked **Soon**, for example Analytics. It shows the plan for that module. Then go to the workflow map (tab 3).
 
@@ -762,7 +968,7 @@ sequenceDiagram
 
 ---
 
-## 21. Questions you may get
+## 23. Questions you may get
 
 | Question | Answer |
 |---|---|
@@ -779,7 +985,7 @@ sequenceDiagram
 
 ---
 
-## 22. If something goes wrong
+## 24. If something goes wrong
 
 - **A page shows an error:** say "this is the next build step". Switch to the workflow map and show the same screen's flow there.
 - **No sign-in code:** refresh Mailpit (tab 2). Codes last 5 minutes. Every demo account also has an authenticator app as a fallback.
@@ -789,7 +995,7 @@ sequenceDiagram
 
 ---
 
-## 23. One-page running order
+## 25. One-page running order
 
 | # | Part | Sign in as | Live action | Minutes |
 |---|---|---|---|---|
@@ -806,12 +1012,14 @@ sequenceDiagram
 | 12 | Orders | Arun | Assign a partner to a Ready order; switch on automatic assignment in Tiruppur | 10 |
 | 13 | Partners, COD | Arun | — | 4 |
 | 14 | Customers | Arun | — | 3 |
-| 15 | Money | Arun | Approve the waiting refund; Mark paid | 8 |
-| 16 | Support, notifications | Arun | Approve the biryani promotion | 4 |
-| 17 | Zonal Admin view | Karthik → Arun → Karthik | ₹600 refund; approve his access request | 6 |
-| 18 | Admin view | Meena | — | 3 |
-| 19 | Audit trail | Arun | — | 2 |
-| 20 | What comes next | — | — | 3 |
-| | **Total** | | | **about 97** |
+| 15 | Refunds, payments | Arun | Approve the waiting refund | 5 |
+| 16 | Payouts | Arun | Mark a vendor payout paid; print a statement; mark a partner payout paid | 8 |
+| 17 | Advertising | Arun | Quote (slot full, then a free slot); reject a request; pause and resume a campaign; change the quote validity | 10 |
+| 18 | Support, notifications | Arun | Approve the biryani promotion | 4 |
+| 19 | Zonal Admin view | Karthik → Arun → Karthik | ₹600 refund; approve his access request | 6 |
+| 20 | Admin view | Meena | — | 3 |
+| 21 | Audit trail | Arun | — | 2 |
+| 22 | What comes next | — | — | 3 |
+| | **Total** | | | **about 112** |
 
-**For a 60-minute slot,** keep Parts 2, 3, 4, 6, 7, 8, 12, 15, 17 and 20 (about 67 minutes; skip automatic assignment in Part 12 to save 2). Mention the rest in one sentence each.
+**The owner requires the dashboard, payouts and advertising in every run (D203).** For a shorter run of about 75 minutes, keep Parts 2, 3, 4, 6, 7, 8, 12 (manual assignment only), 16, 17, 19 and 22, and mention the rest in one sentence each.

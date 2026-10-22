@@ -50,7 +50,7 @@ Update the tags after each push wave. Before the demo, rehearse once and change 
 3. **Morning of the demo** (about 12 minutes; the coordinator runs it with the seed lane): after the final push, `demo:build`, then stop `demo:api`, `demo:reset`, start `demo:api` and `demo:web`, `demo:data`. Today's live board and the pre-orders are placed relative to the moment the data is loaded, so data loaded the day before would read as yesterday's.
 4. The demo uses only `zoauro_demo`; the real `zoauro` database is never touched (D188).
 5. Check `http://127.0.0.1:4100/api/ready` shows database and Redis `ok`. The first check after a quiet spell can say "database down" for a moment; check again.
-6. Open the panel at **`http://127.0.0.1:3100`**. Use `127.0.0.1`, not `localhost`, so it doesn't share sign-in cookies with the development app.
+6. Open the panel at the address in `APP_URL`: since 2026-10-22 19:13 that is the owner-approved shareable tunnel link the demo-stack lane gives out. Sign-in on any other address is refused (403, origin check). When APP_URL is local, use `http://127.0.0.1:3100`, not `localhost`, so it doesn't share sign-in cookies with the development app.
 7. Open Mailpit at `http://127.0.0.1:8025` in a second tab. Two-step sign-in codes arrive there; the demo API sends every email to Mailpit only.
 8. Open `docs/F-execution/60_Admin_Workflow_Map.html` in a third tab as the backup for anything marked Design.
 
@@ -71,7 +71,7 @@ Passwords and authenticator secrets are in the local file `apps/api/.env.demo-cr
 **Sample data:** 16 vendors (restaurants, a shop, Home Food) at every onboarding stage with documents; 38 menu items and 6 food item requests from the vendor app (4 pending); 9 delivery partners and 4 partner requests (1 in Needs a zone); 24 customers (2 blocked) with reward points; 586 orders over 30 days plus today's live board (28 orders in every status), 1 hidden unpaid online order and 4 pre-orders for tomorrow; 4 hotels (2 live, 1 under review, 1 rejected), 5 room bookings and 5 table bookings; 6 support tickets; notifications (one sent, one promotion waiting for approval, one scheduled); 8 refunds (2 requested, 1 waiting for approval, 1 approved, 3 processed, 1 rejected); Control Panel values with zone overrides (reward points, orders per partner, Tiruppur refund caps, commission-edit switch on).
 
 **Actions to do live** (each uses up its sample record; reset the data after a rehearsal):
-- Approve Karthik's access request (menu edit in Coimbatore North), then show his menu change.
+- Approve Karthik's two access requests (menu view and menu edit in Coimbatore North), then show the Coimbatore North menus for him.
 - Approve the refund waiting for approval.
 - Verify Kovai Biryani House or Arya Bhavan from the onboarding queue.
 - Approve a food item request.
@@ -79,7 +79,7 @@ Passwords and authenticator secrets are in the local file `apps/api/.env.demo-cr
 - Approve the biryani promotion.
 
 **Signing in (every account):**
-1. Open `http://127.0.0.1:3100/login`.
+1. Open `<APP_URL>/login` (see §1 step 6).
 2. Choose the **Super Admin** tab for Arun and Meena, **Zonal Admin** for the others. The wrong tab gives the same message as a wrong password.
 3. Type the email and password.
 4. Choose **Email code** and type the 6-digit code from Mailpit (every demo account also has an authenticator set up).
@@ -141,7 +141,7 @@ Talking point: management can change prices, limits and rules any time, per zone
 1. **Orders** — Ready. Status tabs with counts, filters (payment method, vendor type, date), zone column.
 2. Open an order — Ready. Items, payment, customer, timeline with who did each step; move the status; **Assign partner** (only partners in the same zone, under their limit; on a cash-on-delivery order a partner holding more cash than the COD limit is shown as blocked, "settle first": in the demo data this is Arjun Selvam, D173); **Cancel** an order that is still New, Accepted or Preparing, with a reason picked from the zone's list of cancel reasons, a Control Panel setting (D190; "Other" needs a note). Talking point: the Control Panel decides up to which stage each actor may cancel; out for delivery is blocked by default, so an out-for-delivery order shows no Cancel button (D156, fe3b909). A second admin changing the same order gets "This record changed. Reload".
 3. **Order overview** — Ready. Open, delayed and unassigned orders, cancellations and average times.
-4. **Automatic assignment** (D154, D199) — Today, rehearse once. Tiruppur is seeded ready but off. Pick Tiruppur, go to Platform settings → Automatic assignment, switch it on (reason, password), then open a Ready Tiruppur Kongu Kitchen order. The auto-assign card shows the partner picked and the distance: Murugan Velu (about 1 km) before Ravi Shankar (about 4 km). If nobody fits, the order falls back to manual assignment with a banner and **Try auto-assign again**. It is audited as "system". Doc 64 Part 12 has the script.
+4. **Automatic assignment** (D154, D199) — Today, rehearse once. Tiruppur is seeded ready but off. Pick Tiruppur, go to Platform settings → Orders → Auto-assign delivery partners (pre-set 5 km, 60 s, 3 tries, 60-minute location age), switch it on (reason, password), wait 10–40 s, then open the Ready Tiruppur Kongu Kitchen order (or click **Try auto-assign again**). The timeline says "Auto-assigned: choice 1, 1.0 km from the pickup", actor System. The auto-assign card shows the partner picked and the distance: Murugan Velu (about 1 km) before Ravi Shankar (about 4 km). If nobody fits, the order falls back to manual assignment with a banner and **Try auto-assign again**. It is audited as "system". Doc 64 Part 12 has the script.
 5. **Delivery partners** and **Delivery partner requests** — Ready. Verify documents, activate, force offline; cash in hand. Partner requests have **Verify** and **Reject** only (no Start review or Ask for more info), so show Verify.
 
 ### Act 7. Customers (4 min)

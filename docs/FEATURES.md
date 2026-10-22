@@ -49,7 +49,7 @@ Status: **Built** = API and screens; **API only** = no screen yet; **Paused** = 
 | Partners: add, documents, verification, status, force offline, move zone | Built | |
 | Partner requests (sign-ups waiting for verification) | Built | |
 | COD cash limit: no new cash order for a partner over the limit (D173) | Built | limit in the Control Panel |
-| Automatic assignment of the nearest partner (D154) | Not built | manual assignment from the order |
+| Automatic assignment of the nearest partner, per zone, assigned directly until the partner app can accept offers (D154, D199) | Built | off by default; Tiruppur pre-set for the demo; order card with "Try auto-assign again" |
 
 ## 7. Customers
 | Feature | Status | Notes |
@@ -73,6 +73,8 @@ Status: **Built** = API and screens; **API only** = no screen yet; **Paused** = 
 | Refunds: requested, pending approval, second approval, approved, processed, rejected, failed; to source, wallet or UPI; vendor share (D146, D180, D187) | Built | no payment gateway yet |
 | Payments list and detail | Built | read only until the gateway (D6, Razorpay parked) |
 | COD settlement (cash hand-overs, cash in hand) and payouts to vendors and partners | Built | |
+| Mark a vendor payout paid with the bank reference, held back while a refund is open (F4a, D152) | Built | Super Admin, password; partner payouts, payout detail and statement in progress (D202, D203) |
+| Advertising & Commission: slots, requests and quotes, campaigns, ad revenue dashboard (D179, D182, D201) | In progress | menu shows "Soon" until the screens land (f16e9fb); API contract 28c42d3 |
 
 ## 10. Operations
 | Feature | Status | Notes |
@@ -99,4 +101,4 @@ Refund limits and rules, onboarding documents and age warnings, support response
 Separate `zoauro_demo` database with full sample data, run from a frozen build of committed code. Start and stop by double-click: `apps/api/scripts/demo/Start-ZOAURO-Demo.cmd` and `Stop-ZOAURO-Demo.cmd`. Commands: `demo:build`, `demo:db`, `demo:reset`, `demo:data`. Sign-in codes of the demo logins are also copied to the presenters' inboxes (demo only). Details: `F-execution/61_Demo_Script.md`.
 
 ## 14. Not built yet
-Payment gateway (Razorpay, D6), automatic partner assignment (D154), map-based zones (PostGIS, D164), multi-restaurant checkout (D181), ads and offers modules, the Integration Hub screens, production deployment.
+Payment gateway (Razorpay, D6), map-based zones (PostGIS, D164), multi-restaurant checkout (D181), offers module, the Integration Hub screens, production deployment.
