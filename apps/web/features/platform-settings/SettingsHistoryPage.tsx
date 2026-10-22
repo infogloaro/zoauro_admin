@@ -12,13 +12,15 @@ import { useUrlState } from '../../lib/url-state';
 import { retryTransient } from '../audit/useAuditLogs';
 import { CardError, CardSkeleton, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
+import { useSuperAdmins } from '../access/super-admins/api';
 import { useZoneOptions } from './api';
 import { describeValue } from './fields';
+import { readHistoryFilters, toIstBounds } from './history-filters';
 import { GROUP_LABEL } from './PlatformSettingsPage';
 
 // Settings History (owner's spec 2.9): every saved, reset or zone-level setting change from the append-only audit trail,
 // newest first, with before and after (the API redacts anything secret), scope, who, why and when. Filters live in the
-// URL (?group, ?key, ?zone=<CODE>). Read-only: history can never be edited here.
+// URL (?group, ?key, ?zone=<CODE>, ?actor, ?from, ?to as India-time days). Read-only: history can never be edited here.
 
 const isGroup = (v: string | null): v is SettingGroup =>
   v !== null && (SETTING_GROUPS as readonly string[]).includes(v);
@@ -32,10 +34,15 @@ export function SettingsHistoryPage() {
   const zones = useZoneOptions();
   const zone = zoneCode ? zones.data?.data.find((z) => z.code === zoneCode) : undefined;
   const waitingForZone = Boolean(zoneCode) && !zones.data;
+  const { actorId, from, to } = readHistoryFilters(url.params);
+  // who may have changed settings: every Super Admin, plus anyone already seen in the loaded rows
+  const admins = useSuperAdmins();
   const query = {
     ...(group ? { group } : {}),
     ...(key && settingDef(key) ? { key } : {}),
     ...(zone ? { zoneId: zone.id } : {}),
+    ...(actorId ? { actorId } : {}),
+    ...toIstBounds(from, to),
     limit: 25,
   };
 
@@ -53,7 +60,10 @@ export function SettingsHistoryPage() {
     retry: retryTransient,
   });
   const rows = history.data?.pages.flatMap((p) => p.data) ?? [];
-  const filtered = Boolean(group || key || zoneCode);
+  const filtered = Boolean(group || key || zoneCode || actorId || from || to);
+  const actors = new Map<string, string>();
+  for (const a of admins.data?.data ?? []) actors.set(a.id, a.name);
+  for (const r of rows) if (r.actor.id) actors.set(r.actor.id, r.actor.name);
 
   return (
     <div className="flex flex-col gap-6">
@@ -118,8 +128,48 @@ export function SettingsHistoryPage() {
             ))}
           </select>
         </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          Changed by
+          <select
+            className={inputClass('min-w-48')}
+            value={actorId ?? ''}
+            onChange={(e) => url.patch({ actor: e.target.value || null })}
+          >
+            <option value="">Anyone</option>
+            {[...actors].map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          From
+          <input
+            type="date"
+            className={inputClass()}
+            value={from ?? ''}
+            max={to ?? undefined}
+            onChange={(e) => url.patch({ from: e.target.value || null })}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          To
+          <input
+            type="date"
+            className={inputClass()}
+            value={to ?? ''}
+            min={from ?? undefined}
+            onChange={(e) => url.patch({ to: e.target.value || null })}
+          />
+        </label>
         {filtered ? (
-          <Button variant="ghost" onClick={() => url.patch({ group: null, key: null, zone: null })}>
+          <Button
+            variant="ghost"
+            onClick={() =>
+              url.patch({ group: null, key: null, zone: null, actor: null, from: null, to: null })
+            }
+          >
             Clear filters
           </Button>
         ) : null}
