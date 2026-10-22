@@ -79,7 +79,15 @@ export function useMyClaims(enabled = true) {
 
 export function useInvalidateClaims() {
   const qc = useQueryClient();
-  return useCallback(() => qc.invalidateQueries({ queryKey: claimKeys.all }), [qc]);
+  // the menu badges carry my open claims (My reviews asks for its list only when there is one)
+  return useCallback(
+    () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: claimKeys.all }),
+        qc.invalidateQueries({ queryKey: ['menu-badges'] }),
+      ]),
+    [qc],
+  );
 }
 
 /** 409 RECORD_CLAIMED (a claim, or a save on a record someone else holds): who holds it, or null. */

@@ -4,18 +4,20 @@ import { useQuery } from '@tanstack/react-query';
 import { useApiClient } from '../../lib/api-client';
 import { retryTransient } from '../../features/audit/useAuditLogs';
 
-// A9 (owner, 2026-10-20): how much is waiting under Requests & Approvals, as menu badges. Only the entries the member's
-// menu shows are asked for; each count is scoped by the API like its list (zones, permissions). Refreshed every minute
-// while the page is open, and fresh for a minute, so moving between pages does not ask again; a count that fails is
-// simply not shown.
+// A9 (owner, 2026-10-20): how much is waiting under Requests & Approvals, as menu badges. One call for every badge
+// (GET /me/badges, 362f398; it replaced four calls per page, QA checkpoint 1), each count scoped by the API like its
+// list (zones, permissions). Refreshed every minute while the page is open and fresh for that minute, so moving between
+// pages does not ask again; a count the API cannot give (null) or a failed call is simply not shown.
 
 const REFRESH_MS = 60_000;
 
-function useCount(id: string, enabled: boolean, fetch: (signal: AbortSignal) => Promise<number>) {
+/** The badges query, shared by the menu and anything else that shows a waiting count. */
+export function useMenuBadges(enabled = true) {
+  const client = useApiClient();
   return useQuery({
-    queryKey: ['menu-badges', id],
+    queryKey: ['menu-badges'],
     enabled,
-    queryFn: ({ signal }) => fetch(signal),
+    queryFn: ({ signal }) => client.get('/me/badges', { signal }),
     staleTime: REFRESH_MS,
     refetchInterval: REFRESH_MS,
     refetchIntervalInBackground: false,
@@ -31,36 +33,11 @@ export function usePendingCounts(
   menuIds: readonly string[],
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN',
 ): Record<string, number> {
-  const client = useApiClient();
   const has = (id: string) => menuIds.includes(id) && (id !== 'R13' || role === 'SUPER_ADMIN');
-  const food = useCount(
-    'R09',
-    has('R09'),
-    async (signal) =>
-      (
-        await client.get('/menu-items/change-requests', {
-          query: { page: 1, pageSize: 1, status: 'PENDING' },
-          signal,
-        })
-      ).meta.total,
-  );
-  const partners = useCount(
-    'R12',
-    has('R12'),
-    async (signal) =>
-      (await client.get('/delivery-partners', { query: { page: 1, pageSize: 1 }, signal })).meta
-        .counts.pendingVerification,
-  );
-  const access = useCount(
-    'R13',
-    has('R13'),
-    async (signal) =>
-      (await client.get('/access-requests', { query: { status: 'PENDING', limit: 1 }, signal }))
-        .meta.pendingCount,
-  );
+  const badges = useMenuBadges(has('R09') || has('R12') || has('R13')).data;
   const out: Record<string, number> = {};
-  if (food.data) out['R09'] = food.data;
-  if (partners.data) out['R12'] = partners.data;
-  if (access.data) out['R13'] = access.data;
+  if (has('R09') && badges?.foodRequests) out['R09'] = badges.foodRequests;
+  if (has('R12') && badges?.partnerRequests) out['R12'] = badges.partnerRequests;
+  if (has('R13') && badges?.accessRequests) out['R13'] = badges.accessRequests;
   return out;
 }

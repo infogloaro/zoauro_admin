@@ -2,13 +2,16 @@
 
 import { ClipboardCheck } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
+import { useMenuBadges } from '../../components/shell/usePendingCounts';
 import { claimHref, clock, ENTITY_NOUN, useMyClaims } from './api';
 
 // D174 "My reviews" in the top bar: the records I am reviewing right now, each a link to its page, with the time my
-// claim runs to and a flag when someone asked to take one over. Hidden when I hold none.
+// claim runs to and a flag when someone asked to take one over. Hidden when I hold none. The list is asked for only when
+// the menu badges (one call per minute, shared) say I hold a claim, or cannot say.
 
 export function MyReviews({ userRole }: { userRole: 'SUPER_ADMIN' | 'ZONAL_ADMIN' }) {
-  const mine = useMyClaims();
+  const badges = useMenuBadges();
+  const mine = useMyClaims(badges.data ? badges.data.myClaims !== 0 : badges.isError);
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const listId = useId();
