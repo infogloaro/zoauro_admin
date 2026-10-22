@@ -1637,6 +1637,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/badges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The menu badges in one call: food item requests and partner requests waiting (scoped like their lists), access requests waiting (Super Admin) and the caller’s open claims; null where not readable */
+        get: operations["getMyBadges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/control-areas": {
         parameters: {
             query?: never;
@@ -15256,6 +15273,49 @@ export interface operations {
             };
             /** @description Invalid input */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getMyBadges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accessRequests: number | null;
+                        foodRequests: number | null;
+                        myClaims: number | null;
+                        partnerRequests: number | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The first-login password change is still pending */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
