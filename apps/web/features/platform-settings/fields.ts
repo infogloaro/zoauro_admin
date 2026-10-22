@@ -416,6 +416,28 @@ export const KEY_SPECS: Record<string, KeySpec> = {
       { path: 'rememberIdleHours', label: 'Signed out after idle (hours)', kind: 'int' },
     ],
   },
+  'ads.rules': {
+    fields: [
+      { path: 'quoteValidHours', label: 'A quote stays valid (hours)', kind: 'int' },
+      { path: 'minLeadHours', label: 'Earliest start after the quote (hours)', kind: 'int' },
+      { path: 'maxAheadDays', label: 'Book at most this far ahead (days)', kind: 'int' },
+      { path: 'maxCampaignDays', label: 'Longest campaign (days)', kind: 'int' },
+      {
+        path: 'maxLiveCampaignsPerVendor',
+        label: 'Campaigns per vendor at once',
+        kind: 'int',
+        hint: 'Scheduled, live and paused count',
+      },
+      {
+        path: 'quoteBandPercent',
+        label: 'Largest discount on the list price (%)',
+        kind: 'number',
+        hint: '0 = quote the list price',
+      },
+      { path: 'maxCommissionPercent', label: 'Highest ranking commission (%)', kind: 'number' },
+      { path: 'bannerNeedsCreative', label: 'Banners need an uploaded image', kind: 'bool' },
+    ],
+  },
 };
 
 /** One row of a "rows" field: text cells, switches and picked options. */

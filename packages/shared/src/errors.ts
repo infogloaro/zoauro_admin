@@ -31,6 +31,8 @@ export const ERROR_STATUS = {
   CATEGORY_IN_USE: 409,
   /** D127: the stay overlaps total_rooms blocking bookings on at least one night */
   NO_ROOMS_AVAILABLE: 409,
+  /** D201: the ad slot is fully booked on at least one day of the campaign; meta {slotId, fullDates[]} */
+  SLOT_FULL: 409,
   /** D174: someone else holds a claim on the record; meta {claimId, claimedBy{id,name}, expiresAt} */
   RECORD_CLAIMED: 409,
   /** a dependency (object storage, payment gateway) is unreachable or not configured; try again later (doc 32) */

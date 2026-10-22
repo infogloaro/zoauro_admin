@@ -39,6 +39,7 @@ describe('settings registry', () => {
       'payouts.cycleDays',
       'delivery.codLimitPaise',
       'orders.cancelReasons',
+      'ads.rules',
     ])
       expect(settingDef(k), k).toMatchObject({ zoneOverride: true, reauth: 'PASSWORD' });
   });
@@ -51,7 +52,7 @@ describe('effect badges', () => {
       SETTINGS.filter((s) => s.effect.state !== 'ENFORCED')
         .map((s) => s.key)
         .sort(),
-    ).toEqual(['orders.numberFormat', 'orders.unpaidTimeoutMinutes', 'sms.provider']);
+    ).toEqual(['ads.rules', 'orders.numberFormat', 'orders.unpaidTimeoutMinutes', 'sms.provider']);
   });
 });
 

@@ -140,6 +140,7 @@ import { AUTO_ASSIGN_OPERATIONS } from './operations.auto-assign';
 import { MENU_OPERATIONS } from './operations.menu';
 import { ONBOARDING_OPERATIONS } from './operations.onboarding';
 import { PLAN_OPERATIONS } from './operations.plans';
+import { ADS_OPERATIONS } from './operations.ads';
 import { PARTNER_OPERATIONS } from './operations.partners';
 import { NOTIFICATION_OPERATIONS } from './operations.notifications';
 import { DASHBOARD_OPERATIONS } from './operations.dashboard';
@@ -1482,6 +1483,7 @@ export const OPERATIONS: OperationDef[] = [
   ...ONBOARDING_OPERATIONS,
   // D188 vendor plans (operations.plans.ts)
   ...PLAN_OPERATIONS,
+  ...ADS_OPERATIONS,
   ...NOTIFICATION_OPERATIONS,
   ...DASHBOARD_OPERATIONS,
   ...SEARCH_OPERATIONS,

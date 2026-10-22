@@ -84,6 +84,7 @@
                   "PARTNER_NOT_ELIGIBLE",
                   "CATEGORY_IN_USE",
                   "NO_ROOMS_AVAILABLE",
+                  "SLOT_FULL",
                   "RECORD_CLAIMED",
                   "SERVICE_UNAVAILABLE",
                   "INTERNAL"
@@ -3722,7 +3723,13 @@
                                         "plans:edit",
                                         "plans:delete",
                                         "plans:status",
-                                        "plans:export"
+                                        "plans:export",
+                                        "ads:view",
+                                        "ads:add",
+                                        "ads:edit",
+                                        "ads:delete",
+                                        "ads:status",
+                                        "ads:export"
                                       ]
                                     }
                                   },
@@ -3966,7 +3973,8 @@
                 "system",
                 "hotels",
                 "support",
-                "plans"
+                "plans",
+                "ads"
               ]
             },
             "required": false,
@@ -4346,7 +4354,8 @@
                           "system",
                           "hotels",
                           "support",
-                          "plans"
+                          "plans",
+                          "ads"
                         ]
                       }
                     },
@@ -4382,7 +4391,8 @@
                               "system",
                               "hotels",
                               "support",
-                              "plans"
+                              "plans",
+                              "ads"
                             ]
                           },
                           "label": {
@@ -8473,7 +8483,8 @@
                               "payouts",
                               "zones",
                               "access",
-                              "sessions"
+                              "sessions",
+                              "ads"
                             ]
                           },
                           "label": {
@@ -8709,7 +8720,8 @@
                 "payouts",
                 "zones",
                 "access",
-                "sessions"
+                "sessions",
+                "ads"
               ]
             },
             "required": false,
@@ -8971,7 +8983,8 @@
                 "payouts",
                 "zones",
                 "access",
-                "sessions"
+                "sessions",
+                "ads"
               ]
             },
             "required": true,
@@ -9025,7 +9038,8 @@
                               "payouts",
                               "zones",
                               "access",
-                              "sessions"
+                              "sessions",
+                              "ads"
                             ]
                           },
                           "label": {
@@ -9260,7 +9274,8 @@
                 "payouts",
                 "zones",
                 "access",
-                "sessions"
+                "sessions",
+                "ads"
               ]
             },
             "required": true,
@@ -9338,7 +9353,8 @@
                               "payouts",
                               "zones",
                               "access",
-                              "sessions"
+                              "sessions",
+                              "ads"
                             ]
                           },
                           "label": {
@@ -9590,7 +9606,8 @@
                 "payouts",
                 "zones",
                 "access",
-                "sessions"
+                "sessions",
+                "ads"
               ]
             },
             "required": true,
@@ -9786,7 +9803,8 @@
                 "payouts",
                 "zones",
                 "access",
-                "sessions"
+                "sessions",
+                "ads"
               ]
             },
             "required": true,
@@ -9862,7 +9880,8 @@
                               "payouts",
                               "zones",
                               "access",
-                              "sessions"
+                              "sessions",
+                              "ads"
                             ]
                           },
                           "label": {
@@ -10113,7 +10132,8 @@
                 "payouts",
                 "zones",
                 "access",
-                "sessions"
+                "sessions",
+                "ads"
               ]
             },
             "required": true,
@@ -10191,7 +10211,8 @@
                               "payouts",
                               "zones",
                               "access",
-                              "sessions"
+                              "sessions",
+                              "ads"
                             ]
                           },
                           "label": {
@@ -10452,7 +10473,8 @@
                 "payouts",
                 "zones",
                 "access",
-                "sessions"
+                "sessions",
+                "ads"
               ]
             },
             "required": true,
@@ -10528,7 +10550,8 @@
                               "payouts",
                               "zones",
                               "access",
-                              "sessions"
+                              "sessions",
+                              "ads"
                             ]
                           },
                           "label": {
@@ -10860,6 +10883,7 @@
                               "dining",
                               "loyalty",
                               "plans",
+                              "ads",
                               null
                             ]
                           },
@@ -11008,7 +11032,8 @@
                                   "bookings",
                                   "dining",
                                   "loyalty",
-                                  "plans"
+                                  "plans",
+                                  "ads"
                                 ]
                               },
                               "action": {
@@ -11156,7 +11181,8 @@
                           "bookings",
                           "dining",
                           "loyalty",
-                          "plans"
+                          "plans",
+                          "ads"
                         ]
                       },
                       "action": {
@@ -11292,6 +11318,7 @@
                         "dining",
                         "loyalty",
                         "plans",
+                        "ads",
                         null
                       ]
                     },
@@ -11558,6 +11585,7 @@
                         "dining",
                         "loyalty",
                         "plans",
+                        "ads",
                         null
                       ]
                     },
@@ -11871,6 +11899,7 @@
                               "dining",
                               "loyalty",
                               "plans",
+                              "ads",
                               null
                             ]
                           },
@@ -12154,6 +12183,7 @@
                         "dining",
                         "loyalty",
                         "plans",
+                        "ads",
                         null
                       ]
                     },
@@ -12438,6 +12468,7 @@
                         "dining",
                         "loyalty",
                         "plans",
+                        "ads",
                         null
                       ]
                     },
@@ -12733,6 +12764,7 @@
                         "dining",
                         "loyalty",
                         "plans",
+                        "ads",
                         null
                       ]
                     },
@@ -13179,7 +13211,8 @@
                               "bookings",
                               "dining",
                               "loyalty",
-                              "plans"
+                              "plans",
+                              "ads"
                             ]
                           },
                           "action": {
@@ -13444,7 +13477,13 @@
                           "plans:edit",
                           "plans:delete",
                           "plans:status",
-                          "plans:export"
+                          "plans:export",
+                          "ads:view",
+                          "ads:add",
+                          "ads:edit",
+                          "ads:delete",
+                          "ads:status",
+                          "ads:export"
                         ]
                       }
                     },
@@ -15700,7 +15739,8 @@
                                     "bookings",
                                     "dining",
                                     "loyalty",
-                                    "plans"
+                                    "plans",
+                                    "ads"
                                   ]
                                 },
                                 "action": {
@@ -15965,7 +16005,13 @@
                                 "plans:edit",
                                 "plans:delete",
                                 "plans:status",
-                                "plans:export"
+                                "plans:export",
+                                "ads:view",
+                                "ads:add",
+                                "ads:edit",
+                                "ads:delete",
+                                "ads:status",
+                                "ads:export"
                               ]
                             }
                           },
@@ -16145,7 +16191,8 @@
                                   "bookings",
                                   "dining",
                                   "loyalty",
-                                  "plans"
+                                  "plans",
+                                  "ads"
                                 ]
                               },
                               "action": {
@@ -16173,7 +16220,7 @@
                               "effect"
                             ]
                           },
-                          "maxItems": 168,
+                          "maxItems": 174,
                           "default": []
                         },
                         "limits": {
@@ -16357,7 +16404,8 @@
                                     "bookings",
                                     "dining",
                                     "loyalty",
-                                    "plans"
+                                    "plans",
+                                    "ads"
                                   ]
                                 },
                                 "action": {
@@ -16622,7 +16670,13 @@
                                 "plans:edit",
                                 "plans:delete",
                                 "plans:status",
-                                "plans:export"
+                                "plans:export",
+                                "ads:view",
+                                "ads:add",
+                                "ads:edit",
+                                "ads:delete",
+                                "ads:status",
+                                "ads:export"
                               ]
                             }
                           },
@@ -16963,7 +17017,13 @@
                           "plans:edit",
                           "plans:delete",
                           "plans:status",
-                          "plans:export"
+                          "plans:export",
+                          "ads:view",
+                          "ads:add",
+                          "ads:edit",
+                          "ads:delete",
+                          "ads:status",
+                          "ads:export"
                         ]
                       }
                     },
@@ -17027,7 +17087,8 @@
                               "bookings",
                               "dining",
                               "loyalty",
-                              "plans"
+                              "plans",
+                              "ads"
                             ]
                           },
                           "action": {
@@ -17104,7 +17165,8 @@
                           "bookings",
                           "dining",
                           "loyalty",
-                          "plans"
+                          "plans",
+                          "ads"
                         ]
                       }
                     }
@@ -17688,7 +17750,8 @@
                             "bookings",
                             "dining",
                             "loyalty",
-                            "plans"
+                            "plans",
+                            "ads"
                           ]
                         },
                         "actions": {
@@ -17712,7 +17775,7 @@
                         "actions"
                       ]
                     },
-                    "maxItems": 28,
+                    "maxItems": 29,
                     "default": []
                   }
                 },
@@ -17828,7 +17891,8 @@
                               "bookings",
                               "dining",
                               "loyalty",
-                              "plans"
+                              "plans",
+                              "ads"
                             ]
                           },
                           "actions": {
@@ -18059,7 +18123,8 @@
                               "bookings",
                               "dining",
                               "loyalty",
-                              "plans"
+                              "plans",
+                              "ads"
                             ]
                           },
                           "actions": {
@@ -18299,7 +18364,8 @@
                               "bookings",
                               "dining",
                               "loyalty",
-                              "plans"
+                              "plans",
+                              "ads"
                             ]
                           },
                           "actions": {
@@ -18562,7 +18628,8 @@
                               "bookings",
                               "dining",
                               "loyalty",
-                              "plans"
+                              "plans",
+                              "ads"
                             ]
                           },
                           "actions": {
@@ -18742,7 +18809,8 @@
                             "bookings",
                             "dining",
                             "loyalty",
-                            "plans"
+                            "plans",
+                            "ads"
                           ]
                         },
                         "actions": {
@@ -18766,7 +18834,7 @@
                         "actions"
                       ]
                     },
-                    "maxItems": 28
+                    "maxItems": 29
                   },
                   "defaults": {
                     "type": "object",
@@ -18858,7 +18926,8 @@
                               "bookings",
                               "dining",
                               "loyalty",
-                              "plans"
+                              "plans",
+                              "ads"
                             ]
                           },
                           "actions": {
@@ -32310,7 +32379,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "maxItems": 16
+                    "maxItems": 17
                   },
                   "reason": {
                     "type": "string",
@@ -51627,6 +51696,4424 @@
         "x-audit": {
           "module": "plans",
           "action": "vendor_plan_subscription.cancelled"
+        }
+      }
+    },
+    "/ads/dashboard": {
+      "get": {
+        "operationId": "getAdsDashboard",
+        "tags": [
+          "ads"
+        ],
+        "summary": "Ad counts, today’s occupancy and (with payments:view) flat fees billed, ranking commission, total, due from vendor payouts, billed to hotels and the top vendors",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The figures",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "zones": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "ALL"
+                          ]
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      ]
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "slotsActive": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "requestsSubmitted": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "requestsQuoted": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "campaignsScheduled": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "campaignsLive": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "campaignsPaused": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "campaignsEnded30d": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "slotsActive",
+                        "requestsSubmitted",
+                        "requestsQuoted",
+                        "campaignsScheduled",
+                        "campaignsLive",
+                        "campaignsPaused",
+                        "campaignsEnded30d"
+                      ]
+                    },
+                    "occupancyToday": {
+                      "type": "object",
+                      "properties": {
+                        "booked": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "capacity": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "booked",
+                        "capacity"
+                      ]
+                    },
+                    "money": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "zones": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ALL"
+                              ]
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "format": "uuid"
+                              }
+                            }
+                          ]
+                        },
+                        "flatBilledPaise": {
+                          "type": "integer"
+                        },
+                        "commissionEarnedPaise": {
+                          "type": "integer"
+                        },
+                        "totalEarnedPaise": {
+                          "type": "integer"
+                        },
+                        "dueFromPayoutsPaise": {
+                          "type": "integer"
+                        },
+                        "billedToHotelsPaise": {
+                          "type": "integer"
+                        },
+                        "topVendors": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "vendor": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "RESTAURANT",
+                                      "HOMEMAKER",
+                                      "HOTEL"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id",
+                                  "name"
+                                ]
+                              },
+                              "zone": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "code"
+                                ]
+                              },
+                              "campaigns": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "earnedPaise": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "vendor",
+                              "zone",
+                              "campaigns",
+                              "earnedPaise"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "zones",
+                        "flatBilledPaise",
+                        "commissionEarnedPaise",
+                        "totalEarnedPaise",
+                        "dueFromPayoutsPaise",
+                        "billedToHotelsPaise",
+                        "topVendors"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "asOf",
+                    "zones",
+                    "counts",
+                    "occupancyToday",
+                    "money"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:view",
+          "zone": "query"
+        }
+      }
+    },
+    "/ads/slots": {
+      "get": {
+        "operationId": "listAdSlots",
+        "tags": [
+          "ads"
+        ],
+        "summary": "The ad slots per zone, page and placement, with list prices and bookings now",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "HOME",
+                "RESTAURANTS",
+                "HOME_FOOD",
+                "HOTELS"
+              ]
+            },
+            "required": false,
+            "name": "adPage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BANNER",
+                "TOP_LISTING",
+                "FEATURED"
+              ]
+            },
+            "required": false,
+            "name": "placement",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "PAUSED",
+                "RETIRED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "page": {
+                            "type": "string",
+                            "enum": [
+                              "HOME",
+                              "RESTAURANTS",
+                              "HOME_FOOD",
+                              "HOTELS"
+                            ]
+                          },
+                          "placement": {
+                            "type": "string",
+                            "enum": [
+                              "BANNER",
+                              "TOP_LISTING",
+                              "FEATURED"
+                            ]
+                          },
+                          "position": {
+                            "type": "integer"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "capacity": {
+                            "type": "integer"
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FLAT_PER_DAY",
+                              "COMMISSION"
+                            ]
+                          },
+                          "pricePerDayPaise": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "commissionPct": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^\\d{1,3}\\.\\d{2}$"
+                          },
+                          "minDays": {
+                            "type": "integer"
+                          },
+                          "maxDays": {
+                            "type": "integer"
+                          },
+                          "terms": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "ACTIVE",
+                              "PAUSED",
+                              "RETIRED"
+                            ]
+                          },
+                          "bookedNow": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "zone",
+                          "page",
+                          "placement",
+                          "position",
+                          "label",
+                          "capacity",
+                          "pricing",
+                          "pricePerDayPaise",
+                          "commissionPct",
+                          "minDays",
+                          "maxDays",
+                          "terms",
+                          "status",
+                          "bookedNow",
+                          "version",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:view",
+          "zone": "query"
+        }
+      }
+    },
+    "/ads/slots/{id}/status": {
+      "post": {
+        "operationId": "setAdSlotStatus",
+        "tags": [
+          "ads"
+        ],
+        "summary": "ACTIVE ↔ PAUSED, or RETIRED while no scheduled, live or paused campaign holds the slot (If-Match)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVE",
+                      "PAUSED",
+                      "RETIRED"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "page": {
+                      "type": "string",
+                      "enum": [
+                        "HOME",
+                        "RESTAURANTS",
+                        "HOME_FOOD",
+                        "HOTELS"
+                      ]
+                    },
+                    "placement": {
+                      "type": "string",
+                      "enum": [
+                        "BANNER",
+                        "TOP_LISTING",
+                        "FEATURED"
+                      ]
+                    },
+                    "position": {
+                      "type": "integer"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "capacity": {
+                      "type": "integer"
+                    },
+                    "pricing": {
+                      "type": "string",
+                      "enum": [
+                        "FLAT_PER_DAY",
+                        "COMMISSION"
+                      ]
+                    },
+                    "pricePerDayPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "commissionPct": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d{1,3}\\.\\d{2}$"
+                    },
+                    "minDays": {
+                      "type": "integer"
+                    },
+                    "maxDays": {
+                      "type": "integer"
+                    },
+                    "terms": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "PAUSED",
+                        "RETIRED"
+                      ]
+                    },
+                    "bookedNow": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "page",
+                    "placement",
+                    "position",
+                    "label",
+                    "capacity",
+                    "pricing",
+                    "pricePerDayPaise",
+                    "commissionPct",
+                    "minDays",
+                    "maxDays",
+                    "terms",
+                    "status",
+                    "bookedNow",
+                    "version",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "ads",
+          "action": "ad_slot.status_changed"
+        }
+      }
+    },
+    "/ads/requests": {
+      "get": {
+        "operationId": "listAdRequests",
+        "tags": [
+          "ads"
+        ],
+        "summary": "Vendor ad requests with their quote and decision; counts per status for the tabs",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUBMITTED",
+                "QUOTED",
+                "ACCEPTED",
+                "REJECTED",
+                "WITHDRAWN",
+                "EXPIRED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "HOME",
+                "RESTAURANTS",
+                "HOME_FOOD",
+                "HOTELS"
+              ]
+            },
+            "required": false,
+            "name": "adPage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BANNER",
+                "TOP_LISTING",
+                "FEATURED"
+              ]
+            },
+            "required": false,
+            "name": "placement",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "RESTAURANT",
+                "HOMEMAKER",
+                "HOTEL"
+              ]
+            },
+            "required": false,
+            "name": "vendorType",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "vendor": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "RESTAURANT",
+                                  "HOMEMAKER",
+                                  "HOTEL"
+                                ]
+                              },
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "page": {
+                            "type": "string",
+                            "enum": [
+                              "HOME",
+                              "RESTAURANTS",
+                              "HOME_FOOD",
+                              "HOTELS"
+                            ]
+                          },
+                          "placement": {
+                            "type": "string",
+                            "enum": [
+                              "BANNER",
+                              "TOP_LISTING",
+                              "FEATURED"
+                            ]
+                          },
+                          "requestedStartDate": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "requestedDays": {
+                            "type": "integer"
+                          },
+                          "creativeUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "hasCreative": {
+                            "type": "boolean"
+                          },
+                          "vendorNote": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "SUBMITTED",
+                              "QUOTED",
+                              "ACCEPTED",
+                              "REJECTED",
+                              "WITHDRAWN",
+                              "EXPIRED"
+                            ]
+                          },
+                          "slot": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "pricing": {
+                                "type": "string",
+                                "enum": [
+                                  "FLAT_PER_DAY",
+                                  "COMMISSION"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "label",
+                              "pricing"
+                            ]
+                          },
+                          "quote": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "pricing": {
+                                "type": "string",
+                                "enum": [
+                                  "FLAT_PER_DAY",
+                                  "COMMISSION"
+                                ]
+                              },
+                              "pricePerDayPaise": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "commissionPct": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^\\d{1,3}\\.\\d{2}$"
+                              },
+                              "totalPaise": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "note": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "expiresAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "quotedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "quotedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "pricing",
+                              "pricePerDayPaise",
+                              "commissionPct",
+                              "totalPaise",
+                              "note",
+                              "expiresAt",
+                              "quotedAt",
+                              "quotedBy"
+                            ]
+                          },
+                          "terms": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "body": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "version",
+                              "body"
+                            ]
+                          },
+                          "decision": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "rejectReason": {
+                                "type": "string"
+                              },
+                              "decidedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "decidedBy": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "rejectReason",
+                              "decidedAt",
+                              "decidedBy"
+                            ]
+                          },
+                          "acceptedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "campaignId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "APP",
+                              "ADMIN"
+                            ]
+                          },
+                          "submittedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "zone",
+                          "vendor",
+                          "page",
+                          "placement",
+                          "requestedStartDate",
+                          "requestedDays",
+                          "creativeUrl",
+                          "hasCreative",
+                          "vendorNote",
+                          "status",
+                          "slot",
+                          "quote",
+                          "terms",
+                          "decision",
+                          "acceptedAt",
+                          "campaignId",
+                          "source",
+                          "submittedAt",
+                          "version"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "SUBMITTED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "QUOTED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "ACCEPTED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "REJECTED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "WITHDRAWN": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "EXPIRED": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "SUBMITTED",
+                        "QUOTED",
+                        "ACCEPTED",
+                        "REJECTED",
+                        "WITHDRAWN",
+                        "EXPIRED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "counts"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:view",
+          "zone": "query"
+        }
+      }
+    },
+    "/ads/requests/{id}": {
+      "get": {
+        "operationId": "getAdRequest",
+        "tags": [
+          "ads"
+        ],
+        "summary": "One ad request with its terms and a signed banner link (300 s)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "HOTEL"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "page": {
+                      "type": "string",
+                      "enum": [
+                        "HOME",
+                        "RESTAURANTS",
+                        "HOME_FOOD",
+                        "HOTELS"
+                      ]
+                    },
+                    "placement": {
+                      "type": "string",
+                      "enum": [
+                        "BANNER",
+                        "TOP_LISTING",
+                        "FEATURED"
+                      ]
+                    },
+                    "requestedStartDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "requestedDays": {
+                      "type": "integer"
+                    },
+                    "creativeUrl": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hasCreative": {
+                      "type": "boolean"
+                    },
+                    "vendorNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "SUBMITTED",
+                        "QUOTED",
+                        "ACCEPTED",
+                        "REJECTED",
+                        "WITHDRAWN",
+                        "EXPIRED"
+                      ]
+                    },
+                    "slot": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "pricing": {
+                          "type": "string",
+                          "enum": [
+                            "FLAT_PER_DAY",
+                            "COMMISSION"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label",
+                        "pricing"
+                      ]
+                    },
+                    "quote": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "pricing": {
+                          "type": "string",
+                          "enum": [
+                            "FLAT_PER_DAY",
+                            "COMMISSION"
+                          ]
+                        },
+                        "pricePerDayPaise": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "commissionPct": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "pattern": "^\\d{1,3}\\.\\d{2}$"
+                        },
+                        "totalPaise": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "note": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "quotedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "quotedBy": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "pricing",
+                        "pricePerDayPaise",
+                        "commissionPct",
+                        "totalPaise",
+                        "note",
+                        "expiresAt",
+                        "quotedAt",
+                        "quotedBy"
+                      ]
+                    },
+                    "terms": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "body": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "body"
+                      ]
+                    },
+                    "decision": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "rejectReason": {
+                          "type": "string"
+                        },
+                        "decidedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "decidedBy": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "rejectReason",
+                        "decidedAt",
+                        "decidedBy"
+                      ]
+                    },
+                    "acceptedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "campaignId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN"
+                      ]
+                    },
+                    "submittedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "vendor",
+                    "page",
+                    "placement",
+                    "requestedStartDate",
+                    "requestedDays",
+                    "creativeUrl",
+                    "hasCreative",
+                    "vendorNote",
+                    "status",
+                    "slot",
+                    "quote",
+                    "terms",
+                    "decision",
+                    "acceptedAt",
+                    "campaignId",
+                    "source",
+                    "submittedAt",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/ads/requests/{id}/quote": {
+      "post": {
+        "operationId": "quoteAdRequest",
+        "tags": [
+          "ads"
+        ],
+        "summary": "Quote a submitted request on a matching active slot (ads.rules: validity, lead time, days, band, commission cap, banner image); a % other than the slot’s needs commission:edit. 409 SLOT_FULL with meta.fullDates (If-Match)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slotId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "pricePerDayPaise": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  },
+                  "commissionPct": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "slotId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quoted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "HOTEL"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "page": {
+                      "type": "string",
+                      "enum": [
+                        "HOME",
+                        "RESTAURANTS",
+                        "HOME_FOOD",
+                        "HOTELS"
+                      ]
+                    },
+                    "placement": {
+                      "type": "string",
+                      "enum": [
+                        "BANNER",
+                        "TOP_LISTING",
+                        "FEATURED"
+                      ]
+                    },
+                    "requestedStartDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "requestedDays": {
+                      "type": "integer"
+                    },
+                    "creativeUrl": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hasCreative": {
+                      "type": "boolean"
+                    },
+                    "vendorNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "SUBMITTED",
+                        "QUOTED",
+                        "ACCEPTED",
+                        "REJECTED",
+                        "WITHDRAWN",
+                        "EXPIRED"
+                      ]
+                    },
+                    "slot": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "pricing": {
+                          "type": "string",
+                          "enum": [
+                            "FLAT_PER_DAY",
+                            "COMMISSION"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label",
+                        "pricing"
+                      ]
+                    },
+                    "quote": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "pricing": {
+                          "type": "string",
+                          "enum": [
+                            "FLAT_PER_DAY",
+                            "COMMISSION"
+                          ]
+                        },
+                        "pricePerDayPaise": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "commissionPct": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "pattern": "^\\d{1,3}\\.\\d{2}$"
+                        },
+                        "totalPaise": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "note": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "quotedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "quotedBy": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "pricing",
+                        "pricePerDayPaise",
+                        "commissionPct",
+                        "totalPaise",
+                        "note",
+                        "expiresAt",
+                        "quotedAt",
+                        "quotedBy"
+                      ]
+                    },
+                    "terms": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "body": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "body"
+                      ]
+                    },
+                    "decision": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "rejectReason": {
+                          "type": "string"
+                        },
+                        "decidedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "decidedBy": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "rejectReason",
+                        "decidedAt",
+                        "decidedBy"
+                      ]
+                    },
+                    "acceptedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "campaignId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN"
+                      ]
+                    },
+                    "submittedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "vendor",
+                    "page",
+                    "placement",
+                    "requestedStartDate",
+                    "requestedDays",
+                    "creativeUrl",
+                    "hasCreative",
+                    "vendorNote",
+                    "status",
+                    "slot",
+                    "quote",
+                    "terms",
+                    "decision",
+                    "acceptedAt",
+                    "campaignId",
+                    "source",
+                    "submittedAt",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state; The slot is fully booked on at least one day (meta.fullDates, D201); Changed by someone else since it was read (error.meta.current); The service is switched off in this zone (error.meta.service, D92)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:edit",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "ads",
+          "action": "ad_request.quoted"
+        }
+      }
+    },
+    "/ads/requests/{id}/reject": {
+      "post": {
+        "operationId": "rejectAdRequest",
+        "tags": [
+          "ads"
+        ],
+        "summary": "Reject a submitted or quoted request with a reason (If-Match)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "HOTEL"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "page": {
+                      "type": "string",
+                      "enum": [
+                        "HOME",
+                        "RESTAURANTS",
+                        "HOME_FOOD",
+                        "HOTELS"
+                      ]
+                    },
+                    "placement": {
+                      "type": "string",
+                      "enum": [
+                        "BANNER",
+                        "TOP_LISTING",
+                        "FEATURED"
+                      ]
+                    },
+                    "requestedStartDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "requestedDays": {
+                      "type": "integer"
+                    },
+                    "creativeUrl": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hasCreative": {
+                      "type": "boolean"
+                    },
+                    "vendorNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "SUBMITTED",
+                        "QUOTED",
+                        "ACCEPTED",
+                        "REJECTED",
+                        "WITHDRAWN",
+                        "EXPIRED"
+                      ]
+                    },
+                    "slot": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "pricing": {
+                          "type": "string",
+                          "enum": [
+                            "FLAT_PER_DAY",
+                            "COMMISSION"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label",
+                        "pricing"
+                      ]
+                    },
+                    "quote": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "pricing": {
+                          "type": "string",
+                          "enum": [
+                            "FLAT_PER_DAY",
+                            "COMMISSION"
+                          ]
+                        },
+                        "pricePerDayPaise": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "commissionPct": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "pattern": "^\\d{1,3}\\.\\d{2}$"
+                        },
+                        "totalPaise": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "note": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "quotedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "quotedBy": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "pricing",
+                        "pricePerDayPaise",
+                        "commissionPct",
+                        "totalPaise",
+                        "note",
+                        "expiresAt",
+                        "quotedAt",
+                        "quotedBy"
+                      ]
+                    },
+                    "terms": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "body": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "body"
+                      ]
+                    },
+                    "decision": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "rejectReason": {
+                          "type": "string"
+                        },
+                        "decidedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "decidedBy": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "rejectReason",
+                        "decidedAt",
+                        "decidedBy"
+                      ]
+                    },
+                    "acceptedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "campaignId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "APP",
+                        "ADMIN"
+                      ]
+                    },
+                    "submittedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "vendor",
+                    "page",
+                    "placement",
+                    "requestedStartDate",
+                    "requestedDays",
+                    "creativeUrl",
+                    "hasCreative",
+                    "vendorNote",
+                    "status",
+                    "slot",
+                    "quote",
+                    "terms",
+                    "decision",
+                    "acceptedAt",
+                    "campaignId",
+                    "source",
+                    "submittedAt",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "ads",
+          "action": "ad_request.rejected"
+        }
+      }
+    },
+    "/ads/campaigns": {
+      "get": {
+        "operationId": "listAdCampaigns",
+        "tags": [
+          "ads"
+        ],
+        "summary": "Ad campaigns with billed days and (with payments:view) billed fees, orders and ranking commission; counts per status",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "zoneId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SCHEDULED",
+                "LIVE",
+                "PAUSED",
+                "ENDED",
+                "CANCELLED"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "HOME",
+                "RESTAURANTS",
+                "HOME_FOOD",
+                "HOTELS"
+              ]
+            },
+            "required": false,
+            "name": "adPage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "RESTAURANT",
+                "HOMEMAKER",
+                "HOTEL"
+              ]
+            },
+            "required": false,
+            "name": "vendorType",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?[A-Za-z][A-Za-z0-9]*$"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "zone": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ]
+                          },
+                          "vendor": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "RESTAURANT",
+                                  "HOMEMAKER",
+                                  "HOTEL"
+                                ]
+                              },
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "slot": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "page": {
+                                "type": "string",
+                                "enum": [
+                                  "HOME",
+                                  "RESTAURANTS",
+                                  "HOME_FOOD",
+                                  "HOTELS"
+                                ]
+                              },
+                              "placement": {
+                                "type": "string",
+                                "enum": [
+                                  "BANNER",
+                                  "TOP_LISTING",
+                                  "FEATURED"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "label",
+                              "page",
+                              "placement"
+                            ]
+                          },
+                          "requestId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "startAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "SCHEDULED",
+                              "LIVE",
+                              "PAUSED",
+                              "ENDED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FLAT_PER_DAY",
+                              "COMMISSION"
+                            ]
+                          },
+                          "pricePerDayPaise": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "commissionPct": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^\\d{1,3}\\.\\d{2}$"
+                          },
+                          "terms": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "version": {
+                                "type": "integer"
+                              },
+                              "body": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "version",
+                              "body"
+                            ]
+                          },
+                          "billingStatus": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "DEDUCTED",
+                              "WAIVED"
+                            ]
+                          },
+                          "pauses": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "from": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "to": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              },
+                              "required": [
+                                "from",
+                                "to"
+                              ]
+                            }
+                          },
+                          "bookedDays": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "liveDays": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "moneyVisible": {
+                            "type": "boolean"
+                          },
+                          "billedPaise": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "orders": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "count": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "subtotalPaise": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "count",
+                              "subtotalPaise"
+                            ]
+                          },
+                          "commissionPaise": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "earnedPaise": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "cancelReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "zone",
+                          "vendor",
+                          "slot",
+                          "requestId",
+                          "startAt",
+                          "endAt",
+                          "status",
+                          "pricing",
+                          "pricePerDayPaise",
+                          "commissionPct",
+                          "terms",
+                          "billingStatus",
+                          "pauses",
+                          "bookedDays",
+                          "liveDays",
+                          "moneyVisible",
+                          "billedPaise",
+                          "orders",
+                          "commissionPaise",
+                          "earnedPaise",
+                          "cancelReason",
+                          "cancelledAt",
+                          "version"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "SCHEDULED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "LIVE": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "PAUSED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "ENDED": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "CANCELLED": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "SCHEDULED",
+                        "LIVE",
+                        "PAUSED",
+                        "ENDED",
+                        "CANCELLED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "counts"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:view",
+          "zone": "query"
+        }
+      }
+    },
+    "/ads/campaigns/{id}/pause": {
+      "post": {
+        "operationId": "pauseAdCampaign",
+        "tags": [
+          "ads"
+        ],
+        "summary": "Pause a live campaign with a reason; paused days are not billed (If-Match)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Paused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "HOTEL"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "slot": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "page": {
+                          "type": "string",
+                          "enum": [
+                            "HOME",
+                            "RESTAURANTS",
+                            "HOME_FOOD",
+                            "HOTELS"
+                          ]
+                        },
+                        "placement": {
+                          "type": "string",
+                          "enum": [
+                            "BANNER",
+                            "TOP_LISTING",
+                            "FEATURED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label",
+                        "page",
+                        "placement"
+                      ]
+                    },
+                    "requestId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "startAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "endAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "SCHEDULED",
+                        "LIVE",
+                        "PAUSED",
+                        "ENDED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "pricing": {
+                      "type": "string",
+                      "enum": [
+                        "FLAT_PER_DAY",
+                        "COMMISSION"
+                      ]
+                    },
+                    "pricePerDayPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "commissionPct": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d{1,3}\\.\\d{2}$"
+                    },
+                    "terms": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "body": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "body"
+                      ]
+                    },
+                    "billingStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "DEDUCTED",
+                        "WAIVED"
+                      ]
+                    },
+                    "pauses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "to": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to"
+                        ]
+                      }
+                    },
+                    "bookedDays": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "liveDays": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "moneyVisible": {
+                      "type": "boolean"
+                    },
+                    "billedPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "orders": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "subtotalPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "subtotalPaise"
+                      ]
+                    },
+                    "commissionPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "earnedPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cancelReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "cancelledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "vendor",
+                    "slot",
+                    "requestId",
+                    "startAt",
+                    "endAt",
+                    "status",
+                    "pricing",
+                    "pricePerDayPaise",
+                    "commissionPct",
+                    "terms",
+                    "billingStatus",
+                    "pauses",
+                    "bookedDays",
+                    "liveDays",
+                    "moneyVisible",
+                    "billedPaise",
+                    "orders",
+                    "commissionPaise",
+                    "earnedPaise",
+                    "cancelReason",
+                    "cancelledAt",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "ads",
+          "action": "ad_campaign.paused"
+        }
+      }
+    },
+    "/ads/campaigns/{id}/resume": {
+      "post": {
+        "operationId": "resumeAdCampaign",
+        "tags": [
+          "ads"
+        ],
+        "summary": "Resume a paused campaign before its end; the end date stays fixed (If-Match)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Live again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "HOTEL"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "slot": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "page": {
+                          "type": "string",
+                          "enum": [
+                            "HOME",
+                            "RESTAURANTS",
+                            "HOME_FOOD",
+                            "HOTELS"
+                          ]
+                        },
+                        "placement": {
+                          "type": "string",
+                          "enum": [
+                            "BANNER",
+                            "TOP_LISTING",
+                            "FEATURED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label",
+                        "page",
+                        "placement"
+                      ]
+                    },
+                    "requestId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "startAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "endAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "SCHEDULED",
+                        "LIVE",
+                        "PAUSED",
+                        "ENDED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "pricing": {
+                      "type": "string",
+                      "enum": [
+                        "FLAT_PER_DAY",
+                        "COMMISSION"
+                      ]
+                    },
+                    "pricePerDayPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "commissionPct": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d{1,3}\\.\\d{2}$"
+                    },
+                    "terms": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "body": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "body"
+                      ]
+                    },
+                    "billingStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "DEDUCTED",
+                        "WAIVED"
+                      ]
+                    },
+                    "pauses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "to": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to"
+                        ]
+                      }
+                    },
+                    "bookedDays": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "liveDays": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "moneyVisible": {
+                      "type": "boolean"
+                    },
+                    "billedPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "orders": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "subtotalPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "subtotalPaise"
+                      ]
+                    },
+                    "commissionPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "earnedPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cancelReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "cancelledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "vendor",
+                    "slot",
+                    "requestId",
+                    "startAt",
+                    "endAt",
+                    "status",
+                    "pricing",
+                    "pricePerDayPaise",
+                    "commissionPct",
+                    "terms",
+                    "billingStatus",
+                    "pauses",
+                    "bookedDays",
+                    "liveDays",
+                    "moneyVisible",
+                    "billedPaise",
+                    "orders",
+                    "commissionPaise",
+                    "earnedPaise",
+                    "cancelReason",
+                    "cancelledAt",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "ads",
+          "action": "ad_campaign.resumed"
+        }
+      }
+    },
+    "/ads/campaigns/{id}/cancel": {
+      "post": {
+        "operationId": "cancelAdCampaign",
+        "tags": [
+          "ads"
+        ],
+        "summary": "Cancel a scheduled, live or paused campaign with a reason; billing stops (If-Match)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "vendor": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "HOTEL"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "slot": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "page": {
+                          "type": "string",
+                          "enum": [
+                            "HOME",
+                            "RESTAURANTS",
+                            "HOME_FOOD",
+                            "HOTELS"
+                          ]
+                        },
+                        "placement": {
+                          "type": "string",
+                          "enum": [
+                            "BANNER",
+                            "TOP_LISTING",
+                            "FEATURED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label",
+                        "page",
+                        "placement"
+                      ]
+                    },
+                    "requestId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "startAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "endAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "SCHEDULED",
+                        "LIVE",
+                        "PAUSED",
+                        "ENDED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "pricing": {
+                      "type": "string",
+                      "enum": [
+                        "FLAT_PER_DAY",
+                        "COMMISSION"
+                      ]
+                    },
+                    "pricePerDayPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "commissionPct": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d{1,3}\\.\\d{2}$"
+                    },
+                    "terms": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "body": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "version",
+                        "body"
+                      ]
+                    },
+                    "billingStatus": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "DEDUCTED",
+                        "WAIVED"
+                      ]
+                    },
+                    "pauses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "to": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to"
+                        ]
+                      }
+                    },
+                    "bookedDays": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "liveDays": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "moneyVisible": {
+                      "type": "boolean"
+                    },
+                    "billedPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "orders": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "subtotalPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "subtotalPaise"
+                      ]
+                    },
+                    "commissionPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "earnedPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "cancelReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "cancelledAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "zone",
+                    "vendor",
+                    "slot",
+                    "requestId",
+                    "startAt",
+                    "endAt",
+                    "status",
+                    "pricing",
+                    "pricePerDayPaise",
+                    "commissionPct",
+                    "terms",
+                    "billingStatus",
+                    "pauses",
+                    "bookedDays",
+                    "liveDays",
+                    "moneyVisible",
+                    "billedPaise",
+                    "orders",
+                    "commissionPaise",
+                    "earnedPaise",
+                    "cancelReason",
+                    "cancelledAt",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "ads:status",
+          "zone": "none"
+        },
+        "x-audit": {
+          "module": "ads",
+          "action": "ad_campaign.cancelled"
         }
       }
     },

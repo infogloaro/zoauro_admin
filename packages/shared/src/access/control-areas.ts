@@ -19,6 +19,7 @@ const SETTING_GROUP_LABEL: Record<SettingGroup, string> = {
   zones: 'Zone limits',
   access: 'Access switches and record claims',
   sessions: 'Sign-in sessions',
+  ads: 'Advertising',
 };
 
 /** The catalogue, in display order (GET /super-admins/areas). Settings areas follow the settings groups. */

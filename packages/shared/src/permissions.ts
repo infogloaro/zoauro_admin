@@ -43,6 +43,8 @@ export const PERMISSION_MODULES = [
   'loyalty',
   // D188: ZOAURO → vendor plans (catalogue writes Super Admin only)
   'plans',
+  // D179/D182: Advertising & Commission
+  'ads',
 ] as const;
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
 
@@ -92,6 +94,9 @@ export const GRANTABLE_ACTIONS: Readonly<Record<PermissionModule, readonly Permi
   loyalty: ['view', 'edit'],
   // D188 (owner): Zonal Admins see the plans and their zones' subscribers; the catalogue is the Super Admin's
   plans: ['view'],
+  // D201: ad slots, requests and campaigns per zone; never delete (slots are retired); the commission % stays behind
+  // commission:edit (D155)
+  ads: ['view', 'add', 'edit', 'status', 'export'],
 };
 
 export const permissionKey = (module: PermissionModule, action: PermissionAction): PermissionKey =>

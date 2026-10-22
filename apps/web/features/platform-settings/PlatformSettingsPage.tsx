@@ -33,6 +33,7 @@ export const GROUP_LABEL: Record<SettingGroup, string> = {
   zones: 'Zones',
   access: 'Access',
   sessions: 'Sessions',
+  ads: 'Advertising',
 };
 
 const SOURCE: Record<SettingItem['source'], { label: string; tone: BadgeTone }> = {

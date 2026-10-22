@@ -22,6 +22,7 @@ export const AUDIT_MODULES = [
   'hotels', // D118
   'support', // D93, D139
   'plans', // D188
+  'ads', // D201
 ] as const;
 export type AuditModule = (typeof AUDIT_MODULES)[number];
 export type AuditSensitivity = 'NORMAL' | 'HIGH';
@@ -268,6 +269,20 @@ export const AUDIT_ACTIONS = {
   'vendor_plan.retired': a('plans', 'Retired vendor plan', H),
   'vendor_plan_subscription.created': a('plans', 'Put vendor on a plan'),
   'vendor_plan_subscription.cancelled': a('plans', 'Cancelled vendor plan'),
+  // D179, D182, D201 advertising and commission
+  'ad_slot.created': a('ads', 'Created ad slot', H),
+  'ad_slot.updated': a('ads', 'Updated ad slot', H),
+  'ad_slot.status_changed': a('ads', 'Changed ad slot status'),
+  'ad_request.quoted': a('ads', 'Quoted ad request', H),
+  'ad_request.rejected': a('ads', 'Rejected ad request'),
+  'ad_request.accepted': a('ads', 'Accepted ad request', H),
+  'ad_request.expired': a('ads', 'Ad request expired'),
+  'ad_campaign.created': a('ads', 'Created ad campaign'),
+  'ad_campaign.paused': a('ads', 'Paused ad campaign'),
+  'ad_campaign.resumed': a('ads', 'Resumed ad campaign'),
+  'ad_campaign.cancelled': a('ads', 'Cancelled ad campaign', H),
+  'ad_campaign.went_live': a('ads', 'Ad campaign went live'),
+  'ad_campaign.ended': a('ads', 'Ad campaign ended'),
 } as const satisfies Record<string, AuditActionDef>;
 
 export type AuditActionKey = keyof typeof AUDIT_ACTIONS;
@@ -288,6 +303,9 @@ export const ZONE_REQUIRED_ENTITY_TYPES: ReadonlySet<string> = new Set([
   'dining_reservation',
   'ticket', // D139: a ticket belongs to exactly one zone
   'vendor_plan_subscription',
+  'ad_slot',
+  'ad_request',
+  'ad_campaign',
 ]);
 /** Zone-related but the zone depends on context (e.g. customer): `zoneId` must be passed explicitly, `null` allowed. */
 export const ZONE_EXPLICIT_ENTITY_TYPES: ReadonlySet<string> = new Set([

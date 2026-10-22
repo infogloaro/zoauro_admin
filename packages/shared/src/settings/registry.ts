@@ -26,6 +26,7 @@ export const SETTING_GROUPS = [
   'zones',
   'access',
   'sessions',
+  'ads',
 ] as const;
 export type SettingGroup = (typeof SETTING_GROUPS)[number];
 
@@ -572,6 +573,31 @@ export const loyaltyValuesSchema = z
   .strict()
   .nullable();
 
+/** D201 (doc 60 §10.1): quotes, campaign length and timing, the vendor limit and the commission cap for ads. */
+export const adsRulesSchema = z
+  .object({
+    quoteValidHours: z.number().int().min(1).max(720),
+    minLeadHours: z.number().int().min(0).max(720),
+    maxAheadDays: z.number().int().min(1).max(365),
+    maxCampaignDays: z.number().int().min(1).max(365),
+    maxLiveCampaignsPerVendor: z.number().int().min(1).max(50),
+    quoteBandPercent: z.number().min(0).max(100),
+    maxCommissionPercent: z.number().min(0).max(50).multipleOf(0.01),
+    bannerNeedsCreative: z.boolean(),
+  })
+  .strict();
+export type AdsRules = z.infer<typeof adsRulesSchema>;
+export const DEFAULT_ADS_RULES: AdsRules = {
+  quoteValidHours: 72,
+  minLeadHours: 24,
+  maxAheadDays: 60,
+  maxCampaignDays: 30,
+  maxLiveCampaignsPerVendor: 3,
+  quoteBandPercent: 0,
+  maxCommissionPercent: 10,
+  bannerNeedsCreative: true,
+};
+
 // ---- the registry -------------------------------------------------------------------------------------------------
 
 export interface SettingDef {
@@ -969,6 +995,20 @@ export const SETTINGS: readonly SettingDef[] = [
     editable: false,
     appsRead: false,
     effect: { state: 'ENFORCED' },
+  },
+  {
+    key: 'ads.rules',
+    group: 'ads',
+    label: 'Advertising rules',
+    description:
+      'How long a quote stays valid, how early and how far ahead a campaign can start, the longest campaign, campaigns per vendor at once, the largest discount on a slot’s list price, the highest ranking commission, and whether banners need an uploaded image.',
+    schema: adsRulesSchema,
+    default: DEFAULT_ADS_RULES,
+    zoneOverride: true,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: pending('Advertising'),
   },
 ];
 

@@ -45,6 +45,7 @@ const ERROR_DESCRIPTION: Record<ErrorCode, string> = {
   ZONE_HAS_HISTORY: 'The zone has history and cannot be deleted (error.meta.counts)',
   CATEGORY_IN_USE: 'The category still has live menu items',
   NO_ROOMS_AVAILABLE: 'No room is free for every night of the stay (D127)',
+  SLOT_FULL: 'The slot is fully booked on at least one day (meta.fullDates, D201)',
   RECORD_CLAIMED:
     'Another admin is working on this record (D174); meta names the claimer and the expiry',
   // Integration API for the apps (doc 42 section 4)
