@@ -1,5 +1,6 @@
 import type { MeResponse } from '@zoauro/shared';
 import type { ScopeZone } from '../../lib/zone-scope';
+import { canMarkPayoutsPaid } from './labels';
 
 // What the COD settlement and payout pages show a member, from /me (server side). A convenience only: the API scopes
 // every row to the member's settlements:view / payouts:view zones and answers 404 for an unassigned ?zoneId.
@@ -10,13 +11,21 @@ export interface SettlementPageProps {
   myZones: ScopeZone[];
   /** settlements:add somewhere: record a COD hand-in (the API checks the partner's zone) */
   canRecord: boolean;
+  /** F4a: mark a vendor payout paid (Super Admin with the payouts control area; the API checks it again) */
+  canMarkPaid?: boolean;
 }
 
 export function settlementPageProps(
   me: MeResponse,
   module: 'settlements' | 'payouts',
 ): SettlementPageProps {
-  if (me.permissions.global) return { role: 'SUPER_ADMIN', myZones: [], canRecord: true };
+  if (me.permissions.global)
+    return {
+      role: 'SUPER_ADMIN',
+      myZones: [],
+      canRecord: true,
+      canMarkPaid: canMarkPayoutsPaid(true, me.controlAreas),
+    };
   return {
     role: 'ZONAL_ADMIN',
     myZones: me.permissions.zones

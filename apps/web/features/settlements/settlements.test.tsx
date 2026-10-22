@@ -253,6 +253,114 @@ describe('Payouts', () => {
   });
 });
 
+describe('Mark a payout paid (F4a)', () => {
+  const payee = (type: 'RESTAURANT' | 'DELIVERY_PARTNER', n: number, name: string) => ({
+    id: `0192f1d2-7777-7000-8000-00000000000${n}`,
+    payee: { type, id: `0192f1d2-4444-7000-8000-00000000000${n}`, name },
+    zone,
+    periodFrom: '2026-10-01',
+    periodTo: '2026-10-07',
+    grossPaise: 1_000_000,
+    commissionPaise: 150_000,
+    netPaise: 800_000,
+    vendorRefundsPaise: 50_000,
+    status: 'PENDING',
+    paidAt: null,
+    paidBy: null,
+    paidReference: null,
+    paidNote: null,
+    paidPaise: null,
+    version: 3,
+    createdAt: '2026-10-08T00:00:00.000Z',
+  });
+  const list = vi.fn(async () => ({
+    data: [payee('RESTAURANT', 1, 'Saravana Bhavan'), payee('DELIVERY_PARTNER', 2, 'Ravi Kumar')],
+    meta: {
+      ...meta,
+      total: 2,
+      counts: {
+        total: 2,
+        byStatus: { PENDING: 2 },
+        grossPaise: 2_000_000,
+        commissionPaise: 300_000,
+        netPaise: 1_600_000,
+      },
+      cycles: [{ zoneId: zone.id, days: 7 }],
+    },
+  }));
+  const asSuperAdmin = { role: 'SUPER_ADMIN' as const, myZones: [], canRecord: true };
+
+  beforeEach(() => window.history.replaceState(null, '', '/super-admin/payouts'));
+
+  it('only a pending vendor payout; sent with the version seen and one idempotency key', async () => {
+    const user = userEvent.setup();
+    const get = vi.fn(async (path: string) =>
+      path === '/zones' ? { data: [], meta: { page: 1, pageSize: 100, total: 0 } } : list(),
+    );
+    const post = vi.fn(async () => ({}));
+    mount(<PayoutsPage {...asSuperAdmin} canMarkPaid />, get, post);
+    expect(await screen.findByText('Saravana Bhavan')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Mark the payout to Ravi Kumar paid' })).toBeNull();
+    await user.click(
+      screen.getByRole('button', { name: 'Mark the payout to Saravana Bhavan paid' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('₹7,500.00')).toBeTruthy();
+    await user.click(within(dialog).getByRole('button', { name: 'Mark paid' }));
+    expect(within(dialog).getByText('Enter the bank or UPI reference.')).toBeTruthy();
+    expect(post).not.toHaveBeenCalled();
+    await user.type(within(dialog).getByLabelText(/Reference/), 'UTR-12345678');
+    await user.click(within(dialog).getByRole('button', { name: 'Mark paid' }));
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+    expect(post).toHaveBeenCalledWith('/payouts/{id}/mark-paid', {
+      params: { id: '0192f1d2-7777-7000-8000-000000000001' },
+      body: { reference: 'UTR-12345678', paidOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
+      ifMatch: 3,
+      idempotencyKey: expect.stringContaining('payout-0192f1d2-7777-7000-8000-000000000001-'),
+    });
+    expect(
+      (await screen.findAllByText(/Payout to Saravana Bhavan marked paid/)).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('open refunds in the period keep the dialog open with how many', async () => {
+    const user = userEvent.setup();
+    const { ApiError } = await import('@zoauro/api-client');
+    const get = vi.fn(async (path: string) =>
+      path === '/zones' ? { data: [], meta: { page: 1, pageSize: 100, total: 0 } } : list(),
+    );
+    const post = vi.fn(async () => {
+      throw new ApiError(
+        409,
+        'INVALID_STATE_TRANSITION',
+        'open refunds',
+        [{ field: 'status', issue: 'open_refunds' }],
+        undefined,
+        { openRefunds: 2 },
+      );
+    });
+    mount(<PayoutsPage {...asSuperAdmin} canMarkPaid />, get, post);
+    await user.click(
+      await screen.findByRole('button', { name: 'Mark the payout to Saravana Bhavan paid' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText(/Reference/), 'UTR-12345678');
+    await user.click(within(dialog).getByRole('button', { name: 'Mark paid' }));
+    expect(
+      await within(dialog).findByText(/2 refunds for this vendor are still open in this period/),
+    ).toBeTruthy();
+  });
+
+  it('no Mark paid without the right', async () => {
+    const get = vi.fn(async (path: string) =>
+      path === '/zones' ? { data: [], meta: { page: 1, pageSize: 100, total: 0 } } : list(),
+    );
+    mount(<PayoutsPage {...asSuperAdmin} />, get);
+    expect(await screen.findByText('Saravana Bhavan')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Mark the payout/ })).toBeNull();
+  });
+});
+
 describe('payout mark-paid rules (F4a)', () => {
   it('amount to pay, who may mark paid, which payees', async () => {
     const { amountToPay, canMarkPayoutsPaid, payeeMarkable } = await import('./labels');

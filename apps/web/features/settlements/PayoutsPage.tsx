@@ -1,6 +1,7 @@
 'use client';
 
 import { Banknote, Percent, Receipt, Wallet } from 'lucide-react';
+import { useState } from 'react';
 import { DataTable, type Column } from '../../components/shared/DataTable';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
@@ -19,17 +20,19 @@ import { usePayouts, type PayoutFilters } from './api';
 import {
   PAYEE_LABEL,
   PAYEE_TABS,
+  payeeMarkable,
   payeeTabFromParam,
   payoutTone,
   periodText,
   statusText,
 } from './labels';
+import { MarkPayoutPaidDialog } from './MarkPayoutPaidDialog';
 import type { SettlementPageProps } from './settlement-page-props';
 
-// Payouts (D152, 6a5f9b9; read only): what each restaurant, Home Food kitchen and delivery partner is owed per cycle
-// (gross, ZOAURO's commission, the vendor share of vendor-fault refunds decided in the period, net) and its status.
-// Payee tabs, status, period and sort are in the URL; the zone switcher's ?zone narrows to one zone. Each zone's cycle
-// comes from the Control Panel (payouts.cycleDays). Marking a payout paid comes with the payout job (not built yet).
+// Payouts (D152, 6a5f9b9): what each restaurant, Home Food kitchen and delivery partner is owed per cycle (gross,
+// ZOAURO's commission, the vendor share of vendor-fault refunds decided in the period, net) and its status. Payee tabs,
+// status, period and sort are in the URL; the zone switcher's ?zone narrows to one zone. Each zone's cycle comes from the
+// Control Panel (payouts.cycleDays). A Super Admin with the payouts area marks a pending vendor payout paid (F4a).
 
 type Row = NonNullable<ReturnType<typeof usePayouts>['data']>['data'][number];
 const SORTS = [
@@ -39,8 +42,10 @@ const SORTS = [
 ] as const;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-export function PayoutsPage({ role, myZones }: SettlementPageProps) {
+export function PayoutsPage({ role, myZones, canMarkPaid = false }: SettlementPageProps) {
   const url = useUrlState();
+  // the row as seen when the dialog opened: its version is the one sent, never a later refetch
+  const [marking, setMarking] = useState<Row | null>(null);
   const superAdmin = role === 'SUPER_ADMIN';
   const allZones = useZoneOptions(superAdmin);
   const zones: ScopeZone[] = superAdmin
@@ -148,9 +153,29 @@ export function PayoutsPage({ role, myZones }: SettlementPageProps) {
               {r.paidBy ? ` · ${r.paidBy.name}` : ''}
             </p>
           ) : null}
+          {r.paidReference ? <p className="text-xs text-muted">Ref {r.paidReference}</p> : null}
         </div>
       ),
     },
+    ...(canMarkPaid
+      ? [
+          {
+            id: 'actions',
+            header: 'Actions',
+            cell: (r: Row) =>
+              r.status === 'PENDING' && payeeMarkable(r.payee.type) ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  aria-label={`Mark the payout to ${r.payee.name} paid`}
+                  onClick={() => setMarking(r)}
+                >
+                  Mark paid
+                </Button>
+              ) : null,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -163,8 +188,8 @@ export function PayoutsPage({ role, myZones }: SettlementPageProps) {
         ]}
         description={
           cycleDays.length === 1
-            ? `What each payee is owed per ${cycleDays[0]}-day cycle, read only. Vendor-fault refunds come off in the cycle they are decided.`
-            : 'What each payee is owed per cycle, read only. Vendor-fault refunds come off in the cycle they are decided.'
+            ? `What each payee is owed per ${cycleDays[0]}-day cycle. Vendor-fault refunds come off in the cycle they are decided.`
+            : 'What each payee is owed per cycle. Vendor-fault refunds come off in the cycle they are decided.'
         }
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -311,6 +336,7 @@ export function PayoutsPage({ role, myZones }: SettlementPageProps) {
           />
         ) : null}
       </Card>
+      {marking ? <MarkPayoutPaidDialog payout={marking} onClose={() => setMarking(null)} /> : null}
     </div>
   );
 }
