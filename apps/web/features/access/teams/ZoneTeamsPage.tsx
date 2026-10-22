@@ -46,15 +46,21 @@ interface Removing {
 
 export function ZoneTeamsPage() {
   const url = useUrlState();
+  // ?zone=<CODE>, the zone switcher's parameter (M05); an older link with the zone's id still opens it
   const raw = url.params.get('zone');
-  const zoneId = raw !== null && UUID.test(raw) ? raw : null;
   const zones = useZoneOptions();
+  const zoneList = zones.data?.data ?? [];
+  const zone =
+    raw === null
+      ? undefined
+      : UUID.test(raw)
+        ? zoneList.find((z) => z.id === raw)
+        : zoneList.find((z) => z.code === raw.toUpperCase());
+  const zoneId = zone?.id ?? null;
   const team = useTeam(zoneId);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<Removing | null>(null);
 
-  const zoneList = zones.data?.data ?? [];
-  const zone = zoneList.find((z) => z.id === zoneId);
   const zoneName = zone?.name ?? 'this zone';
   const members = team.data?.data ?? [];
 
@@ -83,15 +89,14 @@ export function ZoneTeamsPage() {
           <label className="flex flex-col gap-1 text-xs font-medium text-muted">
             Zone
             <select
-              value={zoneId ?? ''}
+              value={zone?.code ?? ''}
               onChange={(e) => url.patch({ zone: e.target.value || null })}
               disabled={zones.isPending}
               className="h-10 min-w-64 rounded-input border border-line bg-surface px-3 text-sm text-text focus:border-primary focus:outline-none"
             >
               <option value="">{zones.isPending ? 'Loading zones…' : 'Choose a zone'}</option>
-              {zoneId && zones.data && !zone ? <option value={zoneId}>Selected zone</option> : null}
               {zoneList.map((z) => (
-                <option key={z.id} value={z.id}>
+                <option key={z.id} value={z.code}>
                   {z.name} ({z.code})
                 </option>
               ))}

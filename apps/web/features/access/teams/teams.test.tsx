@@ -132,8 +132,9 @@ describe('zone teams page', () => {
     expect(screen.getByText('Pick a zone above to see and manage its team.')).toBeTruthy();
     const select = screen.getByLabelText('Zone');
     await waitFor(() => expect(within(select).getByText('Chennai (CHN)')).toBeTruthy());
-    await user.selectOptions(select, ZB);
-    expect(new URLSearchParams(window.location.search).get('zone')).toBe(ZB);
+    await user.selectOptions(select, 'CHN');
+    // the zone switcher's parameter is the code (W3)
+    expect(new URLSearchParams(window.location.search).get('zone')).toBe('CHN');
     await waitFor(() =>
       expect(get).toHaveBeenCalledWith(
         '/zones/{id}/team',

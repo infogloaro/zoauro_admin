@@ -227,7 +227,7 @@ describe('Platform Settings page', () => {
     expect(rules.getByText(/Wrong item \(Vendor\)/)).toBeTruthy();
     const sla = await row('Support response times');
     expect(sla.getByText('Set by Super Admin')).toBeTruthy();
-    expect(sla.getByText('Applies when Support desk ships')).toBeTruthy();
+    expect(sla.getByText('Enforced')).toBeTruthy(); // the support desk reads support.sla
     expect(sla.getByText(/Changed by Asha Super/)).toBeTruthy();
     expect(
       sla.getByRole('button', { name: 'Reset Support response times to the default' }),

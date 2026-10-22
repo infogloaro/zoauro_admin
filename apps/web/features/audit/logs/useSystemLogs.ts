@@ -18,11 +18,13 @@ const STALE_LIST_MS = 15_000;
 const STALE_OPTIONS_MS = 5 * 60_000;
 const SEARCH_DEBOUNCE_MS = 200;
 
-export function useActivityLogs(filters: ActivityFilters) {
+/** `enabled` false while ?zone=<CODE> is not resolved yet (no unfiltered page first). */
+export function useActivityLogs(filters: ActivityFilters, enabled = true) {
   const client = useApiClient();
   const query = toActivityQuery(filters);
   return useInfiniteQuery({
     queryKey: ['audit', 'logs', 'ALL', query] as const,
+    enabled,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       client.get('/audit-logs', {

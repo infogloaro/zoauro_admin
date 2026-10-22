@@ -14,6 +14,22 @@ export interface ScopeZone {
 export const ZONE_PARAM = 'zone';
 
 /** The zone a ?zone=<CODE> names among the zones this person may choose; null = all (or a code they may not use). */
+const ZONE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * ?zone=<CODE> (M05) as a zone id, for a page whose API filter takes the id: by code in `zones`, or the id itself from
+ * an older link. null when absent, or when the code is not (yet) known.
+ */
+export function zoneIdFromParam(
+  raw: string | null,
+  zones: readonly { id: string; code: string }[],
+): string | null {
+  if (!raw) return null;
+  if (ZONE_ID.test(raw)) return raw;
+  const c = raw.trim().toUpperCase();
+  return zones.find((z) => z.code.toUpperCase() === c)?.id ?? null;
+}
+
 export function selectedZone(code: string | null, zones: readonly ScopeZone[]): ScopeZone | null {
   if (!code) return null;
   const c = code.trim().toUpperCase();

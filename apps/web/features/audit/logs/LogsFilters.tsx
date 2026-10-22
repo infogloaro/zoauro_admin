@@ -14,6 +14,7 @@ import {
   type SignInFilters,
 } from './filters';
 import { useActorSearch, useAuditCatalogue, useAuditZones } from './useSystemLogs';
+import { useZoneOptions } from '../../platform-settings/api';
 
 const SEARCH_COMMIT_MS = 300;
 const label = (module: string): string => module.charAt(0).toUpperCase() + module.slice(1);
@@ -146,6 +147,9 @@ export function ActivityFilterBar({
   const uid = useId();
   const catalogue = useAuditCatalogue();
   const zones = useAuditZones();
+  // the zone switcher's ?zone=<CODE>: each zone's code from the zone list (the audit list has id and name)
+  const zoneCodes = useZoneOptions();
+  const codeOf = (zoneId: string) => zoneCodes.data?.data.find((z) => z.id === zoneId)?.code;
   const modules = catalogue.data?.modules ?? [];
   const actions = useMemo(() => catalogue.data?.actions ?? [], [catalogue.data]);
   const grouped = useMemo(() => {
@@ -232,13 +236,13 @@ export function ActivityFilterBar({
       <Field label="Zone" htmlFor={id('zone')}>
         <select
           id={id('zone')}
-          value={filters.zoneId ?? ''}
+          value={filters.zoneId ? (codeOf(filters.zoneId) ?? filters.zoneId) : ''}
           onChange={(e) => patch({ zone: e.target.value || null })}
           className={CONTROL_CLASS}
         >
           <option value="">All zones</option>
           {(zones.data?.data ?? []).map((z) => (
-            <option key={z.id} value={z.id}>
+            <option key={z.id} value={codeOf(z.id) ?? z.id}>
               {z.name}
             </option>
           ))}

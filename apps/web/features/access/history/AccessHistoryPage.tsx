@@ -66,9 +66,6 @@ const timeOnly = (iso: string): string =>
 export function AccessHistoryPage() {
   const client = useApiClient();
   const url = useUrlState();
-  const filters = readHistoryFilters(url.params);
-  const query = toHistoryQuery(filters);
-  const narrowed = hasHistoryNarrowing(filters);
 
   const members = useQuery({
     queryKey: ['members', 'list', { picker: true }],
@@ -83,9 +80,16 @@ export function AccessHistoryPage() {
     staleTime: 60_000,
     retry: retryTransient,
   });
+  // ?zone=<CODE> (the zone switcher's parameter) needs the zone list to become the id the API filters on
+  const zoneCode = url.params.get('zone');
+  const filters = readHistoryFilters(url.params, zones.data?.data ?? []);
+  const query = toHistoryQuery(filters);
+  const narrowed = hasHistoryNarrowing(filters);
+  const waitingForZone = zoneCode !== null && !zones.data;
 
   const history = useInfiniteQuery({
     queryKey: ['access', 'changes', query],
+    enabled: !waitingForZone,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       client.get('/access-changes', {
@@ -150,16 +154,13 @@ export function AccessHistoryPage() {
           <label className="flex flex-col gap-1 text-xs font-medium text-muted">
             Zone
             <select
-              value={filters.zoneId ?? ''}
+              value={zoneOptions.find((z) => z.id === filters.zoneId)?.code ?? ''}
               onChange={(e) => url.patch({ zone: e.target.value || null })}
               className={selectClass}
             >
               <option value="">All zones</option>
-              {filters.zoneId && !zoneOptions.some((z) => z.id === filters.zoneId) ? (
-                <option value={filters.zoneId}>Selected zone</option>
-              ) : null}
               {zoneOptions.map((z) => (
-                <option key={z.id} value={z.id}>
+                <option key={z.id} value={z.code}>
                   {z.name}
                 </option>
               ))}

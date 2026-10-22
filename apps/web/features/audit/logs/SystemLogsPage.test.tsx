@@ -103,6 +103,13 @@ function setup(over: Partial<Record<string, Answer>> = {}) {
     '/audit-logs': () => list([entry()]),
     '/audit-logs/catalogue': () => CATALOGUE,
     '/audit-logs/zones': () => ZONES,
+    // the zone switcher's ?zone=<CODE> is resolved through the zone list (W3)
+    '/zones': () => ({
+      data: [
+        { id: ZA, name: 'Coimbatore', code: 'CBE', colorHex: '#123456' },
+        { id: ZB, name: 'Chennai', code: 'CHN', colorHex: '#654321' },
+      ],
+    }),
     '/audit-logs/actors': () => ({
       data: [{ id: KARTHIK, name: 'Karthik M', role: 'ZONAL_ADMIN' }],
     }),
@@ -227,7 +234,7 @@ describe('every filter reaches the URL and the request', () => {
       expect(lastList()).toMatchObject({ module: 'restaurants', action: 'restaurant.created' }),
     );
 
-    await user.selectOptions(screen.getByLabelText('Zone'), ZB);
+    await user.selectOptions(screen.getByLabelText('Zone'), 'CHN');
     await waitFor(() => expect(lastList()).toMatchObject({ zoneId: [ZB] }));
 
     await user.selectOptions(screen.getByLabelText('Actor type'), 'APP_CLIENT');
@@ -245,7 +252,7 @@ describe('every filter reaches the URL and the request', () => {
     expect(Object.fromEntries(params())).toMatchObject({
       module: 'restaurants',
       action: 'restaurant.created',
-      zone: ZB,
+      zone: 'CHN',
       actorType: 'APP_CLIENT',
       outcome: 'DENIED',
       entityType: 'restaurant',
@@ -345,7 +352,7 @@ describe('every filter reaches the URL and the request', () => {
     window.history.replaceState(
       null,
       '',
-      `/super-admin/settings/logs?module=orders&outcome=DENIED&sensitive=1&zone=${ZB}`,
+      `/super-admin/settings/logs?module=orders&outcome=DENIED&sensitive=1&zone=CHN`,
     );
     const { lastList } = setup();
     await rowsReady();

@@ -4,6 +4,7 @@ import {
   ZONE_REQUIRED_ENTITY_TYPES,
   type AuditModule,
 } from '@zoauro/shared';
+import { zoneIdFromParam } from '../../../lib/zone-scope';
 import { DEFAULT_TIME_ZONE } from '../format';
 
 // System Logs filters (doc 50 section 9.1). The URL is the source of truth: these functions turn a query string into a
@@ -118,9 +119,11 @@ const text = (v: string | null, max: number): string | null => {
 };
 const uuid = (v: string | null): string | null => (v !== null && UUID.test(v) ? v : null);
 
+/** `zones` resolves ?zone=<CODE> (the zone switcher's parameter) to the id GET /audit-logs filters on. */
 export function readActivityFilters(
   params: URLSearchParams,
   now: Date = new Date(),
+  zones: readonly { id: string; code: string }[] = [],
 ): ActivityFilters {
   const range = defaultRange(now);
   return {
@@ -131,7 +134,7 @@ export function readActivityFilters(
     actorType: pick(params.get('actorType'), ACTOR_TYPES),
     module: pick(params.get('module'), AUDIT_MODULES),
     action: text(params.get('action'), 80),
-    zoneId: uuid(params.get('zone')),
+    zoneId: zoneIdFromParam(params.get('zone'), zones),
     entityType: text(params.get('entityType'), 60),
     entityId: uuid(params.get('entityId')),
     q: text(params.get('q'), 100),

@@ -99,6 +99,7 @@ export function ActivityLogTable({
   narrowed,
   onOpen,
   onReset,
+  waiting = false,
 }: {
   filters: ActivityFilters;
   timeZone: string;
@@ -106,8 +107,10 @@ export function ActivityLogTable({
   narrowed: boolean;
   onOpen: (id: string) => void;
   onReset: () => void;
+  /** the zone in the URL is still being resolved */
+  waiting?: boolean;
 }) {
-  const query = useActivityLogs(filters);
+  const query = useActivityLogs(filters, !waiting);
   const rows = query.data?.pages.flatMap((p) => p.data) ?? [];
 
   const columns: Column<AuditEntryData>[] = [

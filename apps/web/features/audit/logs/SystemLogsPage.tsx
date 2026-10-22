@@ -22,6 +22,7 @@ import {
   type LogsTab,
 } from './filters';
 import { ActivityFilterBar, SignInFilterBar } from './LogsFilters';
+import { useZoneOptions } from '../../platform-settings/api';
 import { SignInsTable } from './SignInsTable';
 
 // Settings > System Logs (doc 50 section 9.1). Super Admin only: the route's server component decides who gets here, and
@@ -80,10 +81,14 @@ function SystemLogs({ timeZone }: { timeZone: string }) {
   const query = params.toString(); // filters are recomputed only when the URL really changes
   const tab = readTab(params);
   const now = useMemo(() => new Date(), []);
+  // ?zone=<CODE> (the zone switcher's parameter) becomes the zone id through the zone list
+  const zones = useZoneOptions();
+  const zoneList = useMemo(() => zones.data?.data ?? [], [zones.data]);
   const activity = useMemo(
-    () => readActivityFilters(new URLSearchParams(query), now),
-    [query, now],
+    () => readActivityFilters(new URLSearchParams(query), now, zoneList),
+    [query, now, zoneList],
   );
+  const waitingForZone = params.has('zone') && !zones.data;
   const signIns = useMemo(() => readSignInFilters(new URLSearchParams(query), now), [query, now]);
 
   const [openId, setOpenId] = useState<string | null>(null);
@@ -134,6 +139,7 @@ function SystemLogs({ timeZone }: { timeZone: string }) {
             filters={activity}
             timeZone={timeZone}
             narrowed={hasActivityNarrowing(activity, now)}
+            waiting={waitingForZone}
             onOpen={open}
             onReset={() => reset('activity')}
           />

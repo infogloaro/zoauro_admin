@@ -1,5 +1,6 @@
 import { ACCESS_CHANGE_TYPES, type AccessChangeType } from '@zoauro/shared';
 import type { DiffChange } from '../../audit/DiffView';
+import { zoneIdFromParam } from '../../../lib/zone-scope';
 
 // Access change history filters and display rules (M03, doc 09 GET /access-changes). The URL is the source of truth:
 // these pure functions turn the query string into a filter model, the model into API query parameters, and a change's
@@ -32,11 +33,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const uuid = (v: string | null): string | null => (v !== null && UUID.test(v) ? v : null);
 const date = (v: string | null): string | null => (v !== null && DATE.test(v) ? v : null);
 
-export function readHistoryFilters(params: URLSearchParams): HistoryFilters {
+/** `zones` resolves ?zone=<CODE> (the zone switcher's parameter) to the id GET /access-changes filters on. */
+export function readHistoryFilters(
+  params: URLSearchParams,
+  zones: readonly { id: string; code: string }[] = [],
+): HistoryFilters {
   const type = params.get('type');
   return {
     memberId: uuid(params.get('member')),
-    zoneId: uuid(params.get('zone')),
+    zoneId: zoneIdFromParam(params.get('zone'), zones),
     changeType: ACCESS_CHANGE_TYPES.find((t) => t === type) ?? null,
     from: date(params.get('from')),
     to: date(params.get('to')),
