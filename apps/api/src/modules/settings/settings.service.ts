@@ -6,6 +6,7 @@ import {
   orderCancellationRulesSchema,
   orderPreorderSchema,
   orderUnpaidTimeoutSchema,
+  adsRulesSchema,
   payoutCycleSchema,
   deliveryCodLimitSchema,
   orderCancelReasonsSchema,
@@ -587,6 +588,11 @@ export class SettingsReader {
   /** D190: the zone's order cancel reasons. */
   async cancelReasons(zoneId: string) {
     return (await this.effective('orders.cancelReasons', orderCancelReasonsSchema, zoneId)).reasons;
+  }
+
+  /** D201: quotes, campaign timing, the vendor limit and the commission cap for ads in the zone. */
+  async adsRules(zoneId: string) {
+    return this.effective('ads.rules', adsRulesSchema, zoneId);
   }
 
   /** D173: the COD cash a delivery partner may hold in the zone before new COD orders stop. */

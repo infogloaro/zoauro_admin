@@ -1008,7 +1008,7 @@ export const SETTINGS: readonly SettingDef[] = [
     reauth: 'PASSWORD',
     editable: true,
     appsRead: false,
-    effect: pending('Advertising'),
+    effect: { state: 'ENFORCED' },
   },
 ];
 

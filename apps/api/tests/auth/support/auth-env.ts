@@ -29,6 +29,7 @@ import { createAutoAssignModule } from '../../../src/modules/orders/auto-assign.
 import { createMenuModule } from '../../../src/modules/menu';
 import { createOnboardingModule } from '../../../src/modules/onboarding';
 import { createPlansModule } from '../../../src/modules/plans';
+import { createAdsModule } from '../../../src/modules/ads';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
 import { createCustomersModule } from '../../../src/modules/customers';
@@ -561,6 +562,14 @@ export async function createAuthTestEnv() {
         clock: clock.now,
       }).router,
       createPlansModule({ prisma, appOrigin: APP_ORIGIN, clock: clock.now }).router,
+      createAdsModule({
+        prisma,
+        appOrigin: APP_ORIGIN,
+        rules: (zoneId) => settings.reader.adsRules(zoneId),
+        services: zones.service,
+        storage,
+        clock: clock.now,
+      }).router,
       support.router,
     ];
     const extraRouters = [

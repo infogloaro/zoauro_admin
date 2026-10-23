@@ -29,6 +29,7 @@ export const FULL: Grants = {
   refunds: ['view', 'add'],
   settlements: ['view', 'add', 'edit'],
   payouts: ['view'],
+  ads: ['view', 'add', 'edit', 'status'],
 };
 export const READ_ONLY: Grants = Object.fromEntries(Object.keys(FULL).map((m) => [m, ['view']]));
 
@@ -303,14 +304,14 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     const orderId = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000f0${i}0`;
     await env.db.owner.query(
       `INSERT INTO payments (id, order_id, provider, amount, status, idempotency_key, updated_at)
-       VALUES ($1, $2, 'razorpay', 100, 'PAID', $1, now())`,
-      [id, orderId],
+       VALUES ($1, $2, 'razorpay', 100, 'PAID', $3, now())`,
+      [id, orderId, `pay-${id}`],
     );
     await env.db.owner.query(
       `INSERT INTO refunds (id, order_id, payment_id, zone_id, amount, type, reason_code, status, target, source,
          idempotency_key, updated_at)
-       VALUES ($1, $2, $1, $3, 50, 'PARTIAL', 'MISSING_ITEM', 'REQUESTED', 'WALLET', 'APP', $1, now())`,
-      [id, orderId, zones[z]],
+       VALUES ($1, $2, $1, $3, 50, 'PARTIAL', 'MISSING_ITEM', 'REQUESTED', 'WALLET', 'APP', $4, now())`,
+      [id, orderId, zones[z], `refund-${id}`],
     );
   }
 
@@ -340,6 +341,32 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
       `INSERT INTO restaurants (id, zone_id, name, status, verification_status, source, updated_at)
        VALUES ($1, $2, 'Matrix sign-up', 'PENDING', 'PENDING', 'APP', now())`,
       [`0192f1d2-0000-7000-8000-00000000b0${i}0`, zones[z]],
+    );
+  }
+
+  // D201 advertising: per zone A, B, C one slot, one submitted request and one live campaign of that zone's restaurant
+  // (made above), so the lists show which zones an actor reached; zone A's use the placeholder id for the object routes
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const own = i === 0 ? PLACEHOLDER_ID : null;
+    const restaurant = own ?? `0192f1d2-0000-7000-8000-00000000f0${i}0`;
+    const slot = own ?? `0192f1d2-0000-7000-8000-00000000a2${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO ad_slots (id, zone_id, page, placement, position, capacity, pricing, price_per_day_paise, updated_at)
+       VALUES ($1, $2, 'HOME', 'BANNER', 1, 2, 'FLAT_PER_DAY', 100000, now())`,
+      [slot, zones[z]],
+    );
+    await env.db.owner.query(
+      `INSERT INTO ad_requests (id, zone_id, restaurant_id, page, placement, requested_start_date, requested_days,
+         source, submitted_at, updated_at)
+       VALUES ($1, $2, $3, 'HOME', 'BANNER', current_date + 5, 7, 'APP', now(), now())`,
+      [own ?? `0192f1d2-0000-7000-8000-00000000a3${i}0`, zones[z], restaurant],
+    );
+    await env.db.owner.query(
+      `INSERT INTO ad_campaigns (id, zone_id, slot_id, restaurant_id, start_at, end_at, status, pricing,
+         price_per_day_paise, updated_at)
+       VALUES ($1, $2, $3, $4, now() - interval '2 days', now() + interval '5 days', 'LIVE', 'FLAT_PER_DAY', 100000,
+         now())`,
+      [own ?? `0192f1d2-0000-7000-8000-00000000a4${i}0`, zones[z], slot, restaurant],
     );
   }
 

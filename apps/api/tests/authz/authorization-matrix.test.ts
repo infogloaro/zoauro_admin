@@ -270,6 +270,21 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
           ]),
         ),
         getExport: { ownObject: true },
+        // D201 advertising: one slot, request and campaign per zone A, B, C (fixtures); a row names its zone, the
+        // dashboard the zones it covers; the object routes use the zone A placeholder rows (scope: tests/ads/)
+        listAdSlots: { listedZones: vendorZones },
+        listAdRequests: { listedZones: vendorZones },
+        listAdCampaigns: { listedZones: vendorZones },
+        getAdsDashboard: {
+          listedZones: (body) => (body as { zones: string[] | 'ALL' }).zones,
+        },
+        getAdRequest: { ownObject: true },
+        setAdSlotStatus: { ownObject: true },
+        quoteAdRequest: { ownObject: true },
+        rejectAdRequest: { ownObject: true },
+        pauseAdCampaign: { ownObject: true },
+        resumeAdCampaign: { ownObject: true },
+        cancelAdCampaign: { ownObject: true },
       },
     });
     publishReport('real-routes', report);
@@ -300,7 +315,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 2 order auto-assign (D154, D199)
     // + 1 menu badges (GET /me/badges)
     // + 3 money list exports (F4b, D149)
-    expect(report.coveredRoutes).toHaveLength(262);
+    // + 11 advertising (D201)
+    expect(report.coveredRoutes).toHaveLength(273);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

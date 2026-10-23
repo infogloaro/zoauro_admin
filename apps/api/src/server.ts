@@ -23,6 +23,7 @@ import { createAutoAssignModule } from './modules/orders/auto-assign.routes';
 import { createMenuModule } from './modules/menu';
 import { createOnboardingModule } from './modules/onboarding';
 import { createPlansModule } from './modules/plans';
+import { createAdsModule } from './modules/ads';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
 import { createCustomersModule } from './modules/customers';
@@ -416,6 +417,14 @@ const app = createApp({
       }).router,
       // D188 vendor plans (catalogue writes Super Admin only)
       createPlansModule({ prisma, appOrigin: new URL(env.APP_URL).origin }).router,
+      // D179, D182, D201 advertising and commission
+      createAdsModule({
+        prisma,
+        appOrigin: new URL(env.APP_URL).origin,
+        rules: (zoneId) => settings.reader.adsRules(zoneId),
+        services: zones.service,
+        storage,
+      }).router,
       support.router,
     ],
   },
