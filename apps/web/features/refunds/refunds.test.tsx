@@ -38,7 +38,7 @@ const asSuperAdmin = (meId: string) => ({
   role: 'SUPER_ADMIN' as const,
   meId,
   myZones: [],
-  can: { add: true },
+  can: { add: true, export: false },
 });
 const zone = { id: '0192f1d2-0000-7000-8000-00000000000a', name: 'Anna Nagar', code: 'ANN' };
 
@@ -181,6 +181,44 @@ describe('Refunds queue (Super Admin)', () => {
       query: { page: 1, pageSize: 25, sort: '-requestedAt', status: ['PENDING_APPROVAL'] },
       signal: expect.any(AbortSignal),
     });
+    expect(screen.queryByRole('button', { name: /Export CSV/ })).toBeNull();
+  });
+
+  it('F4b: Export CSV sends the queue’s filters to /refunds/export', async () => {
+    const user = userEvent.setup();
+    const get = vi.fn(async (path: string) => {
+      if (path === '/zones') return { data: [] };
+      if (path === '/refunds')
+        return {
+          data: [row()],
+          meta: {
+            page: 1,
+            pageSize: 25,
+            total: 1,
+            counts: {
+              requested: 0,
+              pendingApproval: 1,
+              approved: 0,
+              processed: 0,
+              rejected: 0,
+              failed: 0,
+            },
+          },
+        };
+      if (path === '/refunds/export') return { id: '0192f1d2-eeee-7000-8000-000000000001' };
+      if (path === '/exports/{id}')
+        return { id: 'x', status: 'QUEUED', rowCount: 0, downloadUrl: null };
+      throw new Error(`unexpected ${path}`);
+    });
+    render(<RefundsPage {...asSuperAdmin(ME)} can={{ add: true, export: true }} />, {
+      wrapper: wrap(get),
+    });
+    await user.click(await screen.findByRole('button', { name: /Export CSV/ }));
+    await waitFor(() =>
+      expect(get).toHaveBeenCalledWith('/refunds/export', {
+        query: { page: 1, pageSize: 25, sort: '-requestedAt', status: ['PENDING_APPROVAL'] },
+      }),
+    );
   });
 });
 

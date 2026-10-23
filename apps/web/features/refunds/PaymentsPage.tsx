@@ -12,6 +12,8 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { ExportButton } from '../../components/shared/ExportButton';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
 import { formatPaise } from '../audit/format';
@@ -19,7 +21,7 @@ import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { dayRange } from '../orders/labels';
 import { useZoneOptions } from '../platform-settings/api';
-import { usePaymentList, type PaymentFilters } from './api';
+import { paymentListQuery, usePaymentList, type PaymentFilters } from './api';
 import { METHOD_LABEL, PAYMENT_STATUS_LABEL, PAYMENT_STATUS_TONE, paymentsPath } from './labels';
 import type { RefundPageProps } from './refund-page-props';
 
@@ -30,7 +32,8 @@ import type { RefundPageProps } from './refund-page-props';
 type Row = NonNullable<ReturnType<typeof usePaymentList>['data']>['data'][number];
 const METHODS = ['ONLINE', 'COD', 'WALLET'] as const;
 
-export function PaymentsPage({ role, myZones }: RefundPageProps) {
+export function PaymentsPage({ role, myZones, can }: RefundPageProps) {
+  const client = useApiClient();
   const router = useRouter();
   const url = useUrlState();
   const superAdmin = role === 'SUPER_ADMIN';
@@ -156,6 +159,14 @@ export function PaymentsPage({ role, myZones }: RefundPageProps) {
           { label: 'Payments' },
         ]}
         description="Every payment of every order in scope, read only. Refunds are raised from the order page."
+        actions={
+          can.export ? (
+            // F4b: every payment matching the filters shown, in the same zone scope
+            <ExportButton
+              start={() => client.get('/payments/export', { query: paymentListQuery(filters) })}
+            />
+          ) : undefined
+        }
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

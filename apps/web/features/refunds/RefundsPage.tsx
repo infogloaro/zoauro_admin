@@ -10,6 +10,8 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { ExportButton } from '../../components/shared/ExportButton';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
@@ -17,7 +19,7 @@ import { formatPaise } from '../audit/format';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { relativeTime } from '../dashboard/time';
 import { useZoneOptions } from '../platform-settings/api';
-import { useRefundList, type RefundFilters } from './api';
+import { refundListQuery, useRefundList, type RefundFilters } from './api';
 import {
   FAULT_LABEL,
   REFUND_SORTS,
@@ -37,7 +39,8 @@ import type { RefundPageProps } from './refund-page-props';
 
 type Row = NonNullable<ReturnType<typeof useRefundList>['data']>['data'][number];
 
-export function RefundsPage({ role, myZones }: RefundPageProps) {
+export function RefundsPage({ role, myZones, can }: RefundPageProps) {
+  const client = useApiClient();
   const router = useRouter();
   const url = useUrlState();
   const superAdmin = role === 'SUPER_ADMIN';
@@ -173,6 +176,14 @@ export function RefundsPage({ role, myZones }: RefundPageProps) {
           superAdmin
             ? 'Every refund: customer reports, your approval queue (a second Super Admin above the second-approver amount), payments to make by UPI.'
             : 'Refunds in your zones. Within your limits they are approved at once; above them they wait for a Super Admin. Raise one from the order page.'
+        }
+        actions={
+          can.export ? (
+            // F4b: every row matching the queue and filters shown, in the same zone scope
+            <ExportButton
+              start={() => client.get('/refunds/export', { query: refundListQuery(filters) })}
+            />
+          ) : undefined
         }
       />
 
