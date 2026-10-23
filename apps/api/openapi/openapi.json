@@ -69778,6 +69778,54 @@
                     "amountToPayPaise": {
                       "type": "integer"
                     },
+                    "holdReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "heldAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "heldByName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "adjustmentPaise": {
+                      "type": "integer"
+                    },
+                    "adjustmentReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidMethod": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "NEFT",
+                        "IMPS",
+                        "RTGS",
+                        "UPI",
+                        "CHEQUE",
+                        null
+                      ]
+                    },
+                    "paidByName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "openRefunds": {
                       "type": "integer"
                     },
@@ -69930,6 +69978,13 @@
                     "createdAt",
                     "deductions",
                     "amountToPayPaise",
+                    "holdReason",
+                    "heldAt",
+                    "heldByName",
+                    "adjustmentPaise",
+                    "adjustmentReason",
+                    "paidMethod",
+                    "paidByName",
                     "openRefunds",
                     "partner",
                     "adFees",
@@ -70179,7 +70234,7 @@
         "tags": [
           "payouts"
         ],
-        "summary": "Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays the amount to pay (vendor: net − vendor-fault refunds − ad fees; delivery partner, D202: fees × payouts.partnerShare − COD held at period end), kept as paidPaise; ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK",
+        "summary": "Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays the amount to pay (vendor: net − vendor-fault refunds − ad fees; delivery partner, D202: fees × payouts.partnerShare − COD held at period end), plus any adjustment (D204), kept as paidPaise with the method; refused while ON_HOLD (409 on_hold); ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK",
         "security": [
           {
             "sessionCookie": [],
@@ -70221,6 +70276,16 @@
                   "paidOn": {
                     "type": "string",
                     "format": "date"
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "NEFT",
+                      "IMPS",
+                      "RTGS",
+                      "UPI",
+                      "CHEQUE"
+                    ]
                   },
                   "note": {
                     "type": "string",
@@ -70452,6 +70517,1613 @@
         "x-audit": {
           "module": "payouts",
           "action": "payout.marked_paid"
+        }
+      }
+    },
+    "/payouts/{id}/hold": {
+      "post": {
+        "operationId": "holdPayout",
+        "tags": [
+          "payouts"
+        ],
+        "summary": "Put a PENDING payout ON_HOLD with a reason while something is checked; Make payout waits (D204)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "On hold",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "payee": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "DELIVERY_PARTNER"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "periodFrom": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "periodTo": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "grossPaise": {
+                      "type": "integer"
+                    },
+                    "commissionPaise": {
+                      "type": "integer"
+                    },
+                    "netPaise": {
+                      "type": "integer"
+                    },
+                    "vendorRefundsPaise": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "paidAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "paidBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "paidReference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "deductions": {
+                      "type": "object",
+                      "properties": {
+                        "vendorRefundsPaise": {
+                          "type": "integer"
+                        },
+                        "adFeesPaise": {
+                          "type": "integer"
+                        },
+                        "codHeldPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "vendorRefundsPaise",
+                        "adFeesPaise",
+                        "codHeldPaise"
+                      ]
+                    },
+                    "amountToPayPaise": {
+                      "type": "integer"
+                    },
+                    "holdReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "heldAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "heldByName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "adjustmentPaise": {
+                      "type": "integer"
+                    },
+                    "adjustmentReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidMethod": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "NEFT",
+                        "IMPS",
+                        "RTGS",
+                        "UPI",
+                        "CHEQUE",
+                        null
+                      ]
+                    },
+                    "paidByName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "openRefunds": {
+                      "type": "integer"
+                    },
+                    "partner": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "deliveries": {
+                          "type": "integer"
+                        },
+                        "feesPaise": {
+                          "type": "integer"
+                        },
+                        "sharePercent": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "sharePaise": {
+                          "type": "integer"
+                        },
+                        "codHeldPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "deliveries",
+                        "feesPaise",
+                        "sharePercent",
+                        "sharePaise",
+                        "codHeldPaise"
+                      ]
+                    },
+                    "adFees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "campaignId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "slotLabel": {
+                            "type": "string"
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FLAT_PER_DAY",
+                              "COMMISSION"
+                            ]
+                          },
+                          "days": {
+                            "type": "integer"
+                          },
+                          "earnedPaise": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "campaignId",
+                          "slotLabel",
+                          "pricing",
+                          "days",
+                          "earnedPaise"
+                        ]
+                      }
+                    },
+                    "refunds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "amountPaise": {
+                            "type": "integer"
+                          },
+                          "vendorSharePaise": {
+                            "type": "integer"
+                          },
+                          "reasonCode": {
+                            "type": "string"
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "COUNTED",
+                              "OPEN"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderId",
+                          "orderNo",
+                          "status",
+                          "amountPaise",
+                          "vendorSharePaise",
+                          "reasonCode",
+                          "requestedAt",
+                          "decidedAt",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "payee",
+                    "zone",
+                    "periodFrom",
+                    "periodTo",
+                    "grossPaise",
+                    "commissionPaise",
+                    "netPaise",
+                    "vendorRefundsPaise",
+                    "status",
+                    "paidAt",
+                    "paidBy",
+                    "paidReference",
+                    "paidNote",
+                    "paidPaise",
+                    "version",
+                    "createdAt",
+                    "deductions",
+                    "amountToPayPaise",
+                    "holdReason",
+                    "heldAt",
+                    "heldByName",
+                    "adjustmentPaise",
+                    "adjustmentReason",
+                    "paidMethod",
+                    "paidByName",
+                    "openRefunds",
+                    "partner",
+                    "adFees",
+                    "refunds"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "payouts:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "payouts",
+          "action": "payout.held"
+        }
+      }
+    },
+    "/payouts/{id}/release": {
+      "post": {
+        "operationId": "releasePayout",
+        "tags": [
+          "payouts"
+        ],
+        "summary": "Release a payout hold with a reason: ON_HOLD → PENDING (D204)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pending again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "payee": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "DELIVERY_PARTNER"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "periodFrom": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "periodTo": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "grossPaise": {
+                      "type": "integer"
+                    },
+                    "commissionPaise": {
+                      "type": "integer"
+                    },
+                    "netPaise": {
+                      "type": "integer"
+                    },
+                    "vendorRefundsPaise": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "paidAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "paidBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "paidReference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "deductions": {
+                      "type": "object",
+                      "properties": {
+                        "vendorRefundsPaise": {
+                          "type": "integer"
+                        },
+                        "adFeesPaise": {
+                          "type": "integer"
+                        },
+                        "codHeldPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "vendorRefundsPaise",
+                        "adFeesPaise",
+                        "codHeldPaise"
+                      ]
+                    },
+                    "amountToPayPaise": {
+                      "type": "integer"
+                    },
+                    "holdReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "heldAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "heldByName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "adjustmentPaise": {
+                      "type": "integer"
+                    },
+                    "adjustmentReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidMethod": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "NEFT",
+                        "IMPS",
+                        "RTGS",
+                        "UPI",
+                        "CHEQUE",
+                        null
+                      ]
+                    },
+                    "paidByName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "openRefunds": {
+                      "type": "integer"
+                    },
+                    "partner": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "deliveries": {
+                          "type": "integer"
+                        },
+                        "feesPaise": {
+                          "type": "integer"
+                        },
+                        "sharePercent": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "sharePaise": {
+                          "type": "integer"
+                        },
+                        "codHeldPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "deliveries",
+                        "feesPaise",
+                        "sharePercent",
+                        "sharePaise",
+                        "codHeldPaise"
+                      ]
+                    },
+                    "adFees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "campaignId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "slotLabel": {
+                            "type": "string"
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FLAT_PER_DAY",
+                              "COMMISSION"
+                            ]
+                          },
+                          "days": {
+                            "type": "integer"
+                          },
+                          "earnedPaise": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "campaignId",
+                          "slotLabel",
+                          "pricing",
+                          "days",
+                          "earnedPaise"
+                        ]
+                      }
+                    },
+                    "refunds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "amountPaise": {
+                            "type": "integer"
+                          },
+                          "vendorSharePaise": {
+                            "type": "integer"
+                          },
+                          "reasonCode": {
+                            "type": "string"
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "COUNTED",
+                              "OPEN"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderId",
+                          "orderNo",
+                          "status",
+                          "amountPaise",
+                          "vendorSharePaise",
+                          "reasonCode",
+                          "requestedAt",
+                          "decidedAt",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "payee",
+                    "zone",
+                    "periodFrom",
+                    "periodTo",
+                    "grossPaise",
+                    "commissionPaise",
+                    "netPaise",
+                    "vendorRefundsPaise",
+                    "status",
+                    "paidAt",
+                    "paidBy",
+                    "paidReference",
+                    "paidNote",
+                    "paidPaise",
+                    "version",
+                    "createdAt",
+                    "deductions",
+                    "amountToPayPaise",
+                    "holdReason",
+                    "heldAt",
+                    "heldByName",
+                    "adjustmentPaise",
+                    "adjustmentReason",
+                    "paidMethod",
+                    "paidByName",
+                    "openRefunds",
+                    "partner",
+                    "adFees",
+                    "refunds"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "payouts:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "payouts",
+          "action": "payout.released"
+        }
+      }
+    },
+    "/payouts/{id}/adjust": {
+      "post": {
+        "operationId": "adjustPayout",
+        "tags": [
+          "payouts"
+        ],
+        "summary": "Set the adjustment (paise, negative allowed) added to the amount to pay of a PENDING or ON_HOLD payout, with a reason; the amount to pay stays ≥ 0 (422 below_zero, D204)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "adjustmentPaise": {
+                    "type": "integer",
+                    "minimum": -100000000,
+                    "maximum": 100000000
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "adjustmentPaise",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Adjusted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "payee": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "DELIVERY_PARTNER"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "periodFrom": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "periodTo": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "grossPaise": {
+                      "type": "integer"
+                    },
+                    "commissionPaise": {
+                      "type": "integer"
+                    },
+                    "netPaise": {
+                      "type": "integer"
+                    },
+                    "vendorRefundsPaise": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "paidAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "paidBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "paidReference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "deductions": {
+                      "type": "object",
+                      "properties": {
+                        "vendorRefundsPaise": {
+                          "type": "integer"
+                        },
+                        "adFeesPaise": {
+                          "type": "integer"
+                        },
+                        "codHeldPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "vendorRefundsPaise",
+                        "adFeesPaise",
+                        "codHeldPaise"
+                      ]
+                    },
+                    "amountToPayPaise": {
+                      "type": "integer"
+                    },
+                    "holdReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "heldAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "heldByName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "adjustmentPaise": {
+                      "type": "integer"
+                    },
+                    "adjustmentReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidMethod": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "NEFT",
+                        "IMPS",
+                        "RTGS",
+                        "UPI",
+                        "CHEQUE",
+                        null
+                      ]
+                    },
+                    "paidByName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "openRefunds": {
+                      "type": "integer"
+                    },
+                    "partner": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "deliveries": {
+                          "type": "integer"
+                        },
+                        "feesPaise": {
+                          "type": "integer"
+                        },
+                        "sharePercent": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "sharePaise": {
+                          "type": "integer"
+                        },
+                        "codHeldPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "deliveries",
+                        "feesPaise",
+                        "sharePercent",
+                        "sharePaise",
+                        "codHeldPaise"
+                      ]
+                    },
+                    "adFees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "campaignId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "slotLabel": {
+                            "type": "string"
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FLAT_PER_DAY",
+                              "COMMISSION"
+                            ]
+                          },
+                          "days": {
+                            "type": "integer"
+                          },
+                          "earnedPaise": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "campaignId",
+                          "slotLabel",
+                          "pricing",
+                          "days",
+                          "earnedPaise"
+                        ]
+                      }
+                    },
+                    "refunds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "amountPaise": {
+                            "type": "integer"
+                          },
+                          "vendorSharePaise": {
+                            "type": "integer"
+                          },
+                          "reasonCode": {
+                            "type": "string"
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "COUNTED",
+                              "OPEN"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderId",
+                          "orderNo",
+                          "status",
+                          "amountPaise",
+                          "vendorSharePaise",
+                          "reasonCode",
+                          "requestedAt",
+                          "decidedAt",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "payee",
+                    "zone",
+                    "periodFrom",
+                    "periodTo",
+                    "grossPaise",
+                    "commissionPaise",
+                    "netPaise",
+                    "vendorRefundsPaise",
+                    "status",
+                    "paidAt",
+                    "paidBy",
+                    "paidReference",
+                    "paidNote",
+                    "paidPaise",
+                    "version",
+                    "createdAt",
+                    "deductions",
+                    "amountToPayPaise",
+                    "holdReason",
+                    "heldAt",
+                    "heldByName",
+                    "adjustmentPaise",
+                    "adjustmentReason",
+                    "paidMethod",
+                    "paidByName",
+                    "openRefunds",
+                    "partner",
+                    "adFees",
+                    "refunds"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "payouts:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "payouts",
+          "action": "payout.adjusted"
+        }
+      }
+    },
+    "/payouts/{id}/history": {
+      "get": {
+        "operationId": "getPayoutHistory",
+        "tags": [
+          "payouts"
+        ],
+        "summary": "The payout’s activity (audit rows: who, what, note, before/after, when), oldest first (D204)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The activity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "actor": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "before": {},
+                          "after": {},
+                          "at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "action",
+                          "label",
+                          "actor",
+                          "note",
+                          "at"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "payouts:view",
+          "zone": "none"
         }
       }
     },

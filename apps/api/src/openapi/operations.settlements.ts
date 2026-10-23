@@ -13,6 +13,10 @@ import {
   payoutDetailSchema,
   payoutOrdersQuerySchema,
   payoutOrdersResponseSchema,
+  payoutHoldSchema,
+  payoutReleaseSchema,
+  payoutAdjustSchema,
+  payoutHistorySchema,
 } from '@zoauro/shared';
 import type { OperationDef } from './operations';
 
@@ -96,7 +100,7 @@ export const SETTLEMENT_OPERATIONS: OperationDef[] = [
     path: '/payouts/{id}/mark-paid',
     tags: ['payouts'],
     summary:
-      'Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays the amount to pay (vendor: net − vendor-fault refunds − ad fees; delivery partner, D202: fees × payouts.partnerShare − COD held at period end), kept as paidPaise; ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK',
+      'Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays the amount to pay (vendor: net − vendor-fault refunds − ad fees; delivery partner, D202: fees × payouts.partnerShare − COD held at period end), plus any adjustment (D204), kept as paidPaise with the method; refused while ON_HOLD (409 on_hold); ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK',
     access: { kind: 'permission', permission: 'payouts:edit', zone: 'none', reauth: 'PASSWORD' },
     audit: { module: 'payouts', action: 'payout.marked_paid' },
     params: payoutIdParamsSchema,
@@ -105,5 +109,62 @@ export const SETTLEMENT_OPERATIONS: OperationDef[] = [
     ifMatch: true,
     response: { status: 200, schema: payoutRowSchema, description: 'Paid' },
     errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
+  },
+  // D204: hold, release and adjust a payout before Make payout (Super Admin, PASSWORD, If-Match)
+  {
+    operationId: 'holdPayout',
+    method: 'post',
+    path: '/payouts/{id}/hold',
+    tags: ['payouts'],
+    summary:
+      'Put a PENDING payout ON_HOLD with a reason while something is checked; Make payout waits (D204)',
+    access: { kind: 'permission', permission: 'payouts:edit', zone: 'none', reauth: 'PASSWORD' },
+    audit: { module: 'payouts', action: 'payout.held' },
+    params: payoutIdParamsSchema,
+    body: payoutHoldSchema,
+    ifMatch: true,
+    response: { status: 200, schema: payoutDetailSchema, description: 'On hold' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
+  },
+  {
+    operationId: 'releasePayout',
+    method: 'post',
+    path: '/payouts/{id}/release',
+    tags: ['payouts'],
+    summary: 'Release a payout hold with a reason: ON_HOLD → PENDING (D204)',
+    access: { kind: 'permission', permission: 'payouts:edit', zone: 'none', reauth: 'PASSWORD' },
+    audit: { module: 'payouts', action: 'payout.released' },
+    params: payoutIdParamsSchema,
+    body: payoutReleaseSchema,
+    ifMatch: true,
+    response: { status: 200, schema: payoutDetailSchema, description: 'Pending again' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
+  },
+  {
+    operationId: 'adjustPayout',
+    method: 'post',
+    path: '/payouts/{id}/adjust',
+    tags: ['payouts'],
+    summary:
+      'Set the adjustment (paise, negative allowed) added to the amount to pay of a PENDING or ON_HOLD payout, with a reason; the amount to pay stays ≥ 0 (422 below_zero, D204)',
+    access: { kind: 'permission', permission: 'payouts:edit', zone: 'none', reauth: 'PASSWORD' },
+    audit: { module: 'payouts', action: 'payout.adjusted' },
+    params: payoutIdParamsSchema,
+    body: payoutAdjustSchema,
+    ifMatch: true,
+    response: { status: 200, schema: payoutDetailSchema, description: 'Adjusted' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION'],
+  },
+  {
+    operationId: 'getPayoutHistory',
+    method: 'get',
+    path: '/payouts/{id}/history',
+    tags: ['payouts'],
+    summary:
+      'The payout’s activity (audit rows: who, what, note, before/after, when), oldest first (D204)',
+    access: { kind: 'permission', permission: 'payouts:view', zone: 'none' },
+    params: payoutIdParamsSchema,
+    response: { status: 200, schema: payoutHistorySchema, description: 'The activity' },
+    errors: ['NOT_FOUND'],
   },
 ];

@@ -11,6 +11,7 @@ import type {
   PayoutListQuery,
   PayoutListResponse,
   PayoutMarkPaidInput,
+  PayoutHistory,
   PayoutOrdersQuery,
   PayoutOrdersResponse,
   PayoutRow,
@@ -18,7 +19,12 @@ import type {
 import { record, uuidv7 } from '../../lib/audit';
 import { assertCanWrite, zonesFor, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
-import type { PermissionKey } from '@zoauro/shared';
+import {
+  AUDIT_ACTIONS,
+  PAYOUT_METHODS,
+  type PayoutMethod,
+  type PermissionKey,
+} from '@zoauro/shared';
 import type {
   PayoutRecord,
   Scope,
@@ -296,10 +302,11 @@ export class SettlementsService {
     const from = p.periodFrom;
     const to = new Date(p.periodTo.getTime() + DAY_MS);
     const isVendor = p.payeeType !== 'DELIVERY_PARTNER';
-    const [row, amounts, refunds] = await Promise.all([
+    const [row, amounts, refunds, heldByName] = await Promise.all([
       payoutRows(repo, [p]),
       this.amounts(repo, { ...p, zoneId: p.zone.id }, this.deps.clock()),
       isVendor ? repo.payoutRefunds(p.payeeId, p.zone.id, from, to) : Promise.resolve([]),
+      repo.userName(p.heldBy),
     ]);
     const base = row[0];
     if (!base) throw new AppError('NOT_FOUND', 'Not found');
@@ -324,6 +331,13 @@ export class SettlementsService {
       },
       amountToPayPaise:
         p.status === 'PAID' ? (p.paidAmount ?? amounts.amountToPayPaise) : amounts.amountToPayPaise,
+      holdReason: p.holdReason,
+      heldAt: p.heldAt?.toISOString() ?? null,
+      heldByName,
+      adjustmentPaise: p.adjustmentPaise,
+      adjustmentReason: p.adjustmentReason,
+      paidMethod: isPayoutMethod(p.paidMethod) ? p.paidMethod : null,
+      paidByName: p.payer?.name ?? null,
       openRefunds: refundRows.filter((r) => r.effect === 'OPEN').length,
       partner: amounts.partner,
       adFees: amounts.adFees,
@@ -383,6 +397,8 @@ export class SettlementsService {
       periodFrom: Date;
       periodTo: Date;
       net: number;
+      /** D204: added to the amount to pay (negative allowed) */
+      adjustmentPaise: number;
     },
     now: Date,
   ): Promise<Amounts> {
@@ -401,7 +417,7 @@ export class SettlementsService {
         adFees: [],
         codHeldPaise: held,
         partner: { ...fees, sharePercent: share, sharePaise, codHeldPaise: held },
-        amountToPayPaise: Math.max(sharePaise - held, 0),
+        amountToPayPaise: Math.max(sharePaise - held + p.adjustmentPaise, 0),
       };
     }
     const [refunds, ads] = await Promise.all([
@@ -417,7 +433,10 @@ export class SettlementsService {
       adFees: ads.rows,
       codHeldPaise: 0,
       partner: null,
-      amountToPayPaise: Math.max(p.net - vendorRefundsPaise - ads.totalPaise, 0),
+      amountToPayPaise: Math.max(
+        p.net - vendorRefundsPaise - ads.totalPaise + p.adjustmentPaise,
+        0,
+      ),
     };
   }
 
@@ -452,6 +471,10 @@ export class SettlementsService {
             current: await current(),
           },
         );
+      if (p.status === 'ON_HOLD')
+        throw new AppError('INVALID_STATE_TRANSITION', 'The payout is on hold; release it first', [
+          { field: 'status', issue: 'on_hold' },
+        ]);
       if (p.status !== 'PENDING')
         throw new AppError('INVALID_STATE_TRANSITION', 'Only a pending payout can be marked paid', [
           { field: 'status', issue: 'not_pending' },
@@ -483,6 +506,7 @@ export class SettlementsService {
         paidReference: input.reference,
         paidNote: input.note ?? null,
         paidAmount: paid,
+        paidMethod: input.method ?? null,
       });
       if (!updated)
         throw new AppError(
@@ -530,17 +554,164 @@ export class SettlementsService {
           paidPaise: paid,
           paidOn: input.paidOn,
           reference: input.reference,
+          method: input.method ?? null,
+          adjustmentPaise: p.adjustmentPaise,
         },
         ...(input.note ? { note: input.note } : {}),
       });
       return after;
     });
   }
+
+  /** POST /payouts/{id}/hold (D204): PENDING → ON_HOLD with a reason. */
+  holdPayout(ctx: AuthContext, id: string, version: number, reason: string): Promise<PayoutDetail> {
+    return this.changePayout(ctx, id, version, { kind: 'hold', reason });
+  }
+
+  /** POST /payouts/{id}/release (D204): ON_HOLD → PENDING with a reason. */
+  releasePayout(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    reason: string,
+  ): Promise<PayoutDetail> {
+    return this.changePayout(ctx, id, version, { kind: 'release', reason });
+  }
+
+  /** POST /payouts/{id}/adjust (D204): sets the adjustment; the amount to pay stays ≥ 0. */
+  adjustPayout(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    input: { adjustmentPaise: number; reason: string },
+  ): Promise<PayoutDetail> {
+    return this.changePayout(ctx, id, version, { kind: 'adjust', ...input });
+  }
+
+  private async changePayout(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    change:
+      | { kind: 'hold'; reason: string }
+      | { kind: 'release'; reason: string }
+      | { kind: 'adjust'; reason: string; adjustmentPaise: number },
+  ): Promise<PayoutDetail> {
+    if (!ctx.isSuperAdmin)
+      throw new AppError('FORBIDDEN', 'Only a Super Admin can change a payout');
+    const now = this.deps.clock();
+    await this.deps.db.transaction(async (tx) => {
+      const p = await tx.repo.lockPayout(id);
+      if (!p) throw new AppError('NOT_FOUND', 'Not found');
+      if (p.version !== version)
+        throw new AppError(
+          'STALE_VERSION',
+          'This payout changed; reload it',
+          undefined,
+          undefined,
+          {
+            current: { status: p.status, version: p.version },
+          },
+        );
+      const from =
+        change.kind === 'hold'
+          ? ['PENDING']
+          : change.kind === 'release'
+            ? ['ON_HOLD']
+            : ['PENDING', 'ON_HOLD'];
+      if (!from.includes(p.status))
+        throw new AppError(
+          'INVALID_STATE_TRANSITION',
+          change.kind === 'release'
+            ? 'The payout is not on hold'
+            : 'Only a pending or held payout can change',
+          [{ field: 'status', issue: change.kind === 'release' ? 'not_on_hold' : 'not_pending' }],
+        );
+      let data: Parameters<SettlementsRepository['updatePayout']>[3];
+      let before: Record<string, unknown>;
+      let after: Record<string, unknown>;
+      if (change.kind === 'hold') {
+        data = { status: 'ON_HOLD', holdReason: change.reason, heldAt: now, heldBy: ctx.userId };
+        before = { status: p.status };
+        after = { status: 'ON_HOLD' };
+      } else if (change.kind === 'release') {
+        data = { status: 'PENDING', holdReason: null, heldAt: null, heldBy: null };
+        before = { status: p.status, holdReason: p.holdReason };
+        after = { status: 'PENDING' };
+      } else {
+        const old = (await this.amounts(tx.repo, p, now)).amountToPayPaise;
+        const base = (await this.amounts(tx.repo, { ...p, adjustmentPaise: 0 }, now))
+          .amountToPayPaise;
+        const next = base + change.adjustmentPaise;
+        if (next < 0)
+          throw new AppError('VALIDATION_ERROR', 'The amount to pay cannot go below zero', [
+            { field: 'adjustmentPaise', issue: 'below_zero' },
+          ]);
+        data = { adjustmentPaise: change.adjustmentPaise, adjustmentReason: change.reason };
+        before = { adjustmentPaise: p.adjustmentPaise, amountToPayPaise: old };
+        after = { adjustmentPaise: change.adjustmentPaise, amountToPayPaise: next };
+      }
+      if (!(await tx.repo.updatePayout(id, version, from, data)))
+        throw new AppError(
+          'STALE_VERSION',
+          'This payout changed; reload it',
+          undefined,
+          undefined,
+          {
+            current: { status: p.status, version: p.version },
+          },
+        );
+      const row = await tx.repo.payoutById(id);
+      const payee = row ? (await payoutRows(tx.repo, [row]))[0]?.payee.name : undefined;
+      await record(tx.audit, {
+        module: 'payouts',
+        action:
+          change.kind === 'hold'
+            ? 'payout.held'
+            : change.kind === 'release'
+              ? 'payout.released'
+              : 'payout.adjusted',
+        entity: {
+          type: 'payout',
+          id,
+          label: `Payout to ${payee ?? 'payee'} ${day(p.periodFrom)} to ${day(p.periodTo)}`,
+          zoneId: p.zoneId,
+        },
+        before,
+        after,
+        note: change.reason,
+      });
+    });
+    return this.payout(ctx, id);
+  }
+
+  /** GET /payouts/{id}/history (D204): the payout's audit rows, oldest first; 404 outside payouts:view. */
+  async payoutHistory(ctx: AuthContext, id: string): Promise<PayoutHistory> {
+    const repo = this.deps.db.repo;
+    if (!(await repo.payoutInScope(scopeOf(ctx, 'payouts:view'), id)))
+      throw new AppError('NOT_FOUND', 'Not found');
+    const labels: Record<string, { label: string } | undefined> = AUDIT_ACTIONS;
+    return {
+      data: (await repo.payoutAudit(id)).map((r) => ({
+        id: r.id,
+        action: r.action,
+        label: labels[r.action]?.label ?? r.action,
+        actor: r.actorId ? { id: r.actorId, name: r.actorName } : null,
+        note: r.note,
+        before: r.beforeJson,
+        after: r.afterJson,
+        at: r.createdAt.toISOString(),
+      })),
+    };
+  }
 }
 
 /** The account a payout settles (doc 16 §4): what the platform owes vendors or delivery partners. */
 export const payableAccount = (payeeType: string) =>
   payeeType === 'DELIVERY_PARTNER' ? 'DELIVERY_PAYABLE' : 'VENDOR_PAYABLE';
+
+const isPayoutMethod = (m: string | null): m is PayoutMethod =>
+  m !== null && (PAYOUT_METHODS as readonly string[]).includes(m);
 
 /** Today in India as YYYY-MM-DD. */
 const istToday = (now: Date) => new Date(now.getTime() + 330 * 60_000).toISOString().slice(0, 10);

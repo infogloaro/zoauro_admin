@@ -229,6 +229,10 @@ export const AUDIT_ACTIONS = {
   'cod_settlement.confirmed': a('settlements', 'Confirmed COD settlement', H),
   'payout.generated': a('payouts', 'Generated payout'),
   'payout.marked_paid': a('payouts', 'Marked payout paid', H),
+  // D204 hold, release and adjust before paying
+  'payout.held': a('payouts', 'Held payout', H),
+  'payout.released': a('payouts', 'Released payout hold', H),
+  'payout.adjusted': a('payouts', 'Adjusted payout amount', H),
   'reconciliation.mismatch_ack': a('payments', 'Acknowledged reconciliation mismatch', H),
   // settings
   'settings.updated': a('settings', 'Updated setting', H),

@@ -55,6 +55,13 @@ const payoutSelect = {
   paidReference: true,
   paidNote: true,
   paidAmount: true,
+  // D204
+  holdReason: true,
+  heldAt: true,
+  adjustmentPaise: true,
+  adjustmentReason: true,
+  paidMethod: true,
+  heldBy: true,
   version: true,
   createdAt: true,
   zone: zoneSelect,
@@ -243,8 +250,12 @@ export class SettlementsRepository {
         period_from: Date;
         period_to: Date;
         net: number;
+        adjustment_paise: number;
+        hold_reason: string | null;
+        adjustment_reason: string | null;
       }[]
-    >`SELECT id, status, version, zone_id, payee_type::text AS payee_type, payee_id, period_from, period_to, net
+    >`SELECT id, status, version, zone_id, payee_type::text AS payee_type, payee_id, period_from, period_to, net,
+        adjustment_paise, hold_reason, adjustment_reason
       FROM payouts WHERE id = ${id}::uuid FOR UPDATE`;
     const p = rows[0];
     return p
@@ -258,8 +269,56 @@ export class SettlementsRepository {
           periodFrom: p.period_from,
           periodTo: p.period_to,
           net: p.net,
+          adjustmentPaise: p.adjustment_paise,
+          holdReason: p.hold_reason,
+          adjustmentReason: p.adjustment_reason,
         }
       : null;
+  }
+
+  /** D204: hold, release or adjust at the version, from one of the given statuses. */
+  async updatePayout(
+    id: string,
+    version: number,
+    from: readonly string[],
+    data: {
+      status?: string;
+      holdReason?: string | null;
+      heldAt?: Date | null;
+      heldBy?: string | null;
+      adjustmentPaise?: number;
+      adjustmentReason?: string | null;
+    },
+  ): Promise<boolean> {
+    const r = await this.db.payout.updateMany({
+      where: { id, version, status: { in: [...from] } },
+      data: { ...data, version: { increment: 1 } },
+    });
+    return r.count === 1;
+  }
+
+  async userName(id: string | null): Promise<string | null> {
+    if (!id) return null;
+    return (await this.db.user.findUnique({ where: { id }, select: { name: true } }))?.name ?? null;
+  }
+
+  /** D204: the payout's audit rows, oldest first. */
+  async payoutAudit(id: string) {
+    return this.db.auditLog.findMany({
+      where: { entityType: 'payout', entityId: id },
+      orderBy: { id: 'asc' },
+      select: {
+        id: true,
+        action: true,
+        actorId: true,
+        actorName: true,
+        note: true,
+        beforeJson: true,
+        afterJson: true,
+        createdAt: true,
+      },
+      take: 200,
+    });
   }
 
   async payoutById(id: string): Promise<PayoutRecord | null> {
@@ -303,6 +362,7 @@ export class SettlementsRepository {
       paidReference: string;
       paidNote: string | null;
       paidAmount: number;
+      paidMethod: string | null;
     },
   ): Promise<boolean> {
     const r = await this.db.payout.updateMany({

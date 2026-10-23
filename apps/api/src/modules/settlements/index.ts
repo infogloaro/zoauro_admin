@@ -5,6 +5,9 @@ import {
   codBalanceQuerySchema,
   payoutIdParamsSchema,
   payoutIfMatchSchema,
+  payoutAdjustSchema,
+  payoutHoldSchema,
+  payoutReleaseSchema,
   payoutListQuerySchema,
   payoutMarkPaidSchema,
   payoutOrdersQuerySchema,
@@ -95,6 +98,15 @@ export function createSettlementsModule(deps: {
       await service.payout(authContextOf(res), parseBody(payoutIdParamsSchema, req.params).id),
     );
   });
+  // D204: the payout's activity (audit rows)
+  router.get('/payouts/:id/history', requirePermission('payouts', 'view'), async (req, res) => {
+    res.json(
+      await service.payoutHistory(
+        authContextOf(res),
+        parseBody(payoutIdParamsSchema, req.params).id,
+      ),
+    );
+  });
   router.get('/payouts/:id/orders', requirePermission('payouts', 'view'), async (req, res) => {
     res.json(
       await service.payoutOrders(
@@ -138,5 +150,63 @@ export function createSettlementsModule(deps: {
         );
       },
     );
+  // D204: hold, release and adjust before Make payout (Super Admin, PASSWORD, If-Match); If-Match and the body are read
+  // before the service, so a bad request is 422 first
+  if (deps.requireReauth) {
+    const reauth = deps.requireReauth('PASSWORD');
+    const version = (req: Parameters<RequestHandler>[0]) => {
+      const v = payoutIfMatchSchema.safeParse(req.get('If-Match'));
+      if (!v.success)
+        throw new AppError('VALIDATION_ERROR', 'Send the payout version in the If-Match header', [
+          { field: 'If-Match', issue: req.get('If-Match') === undefined ? 'required' : 'invalid' },
+        ]);
+      return v.data;
+    };
+    const guard = (operationId: string) => [
+      originCheck(deps.appOrigin),
+      requirePermission('payouts', 'edit'),
+      ...(deps.requireArea ? [deps.requireArea('settings.payouts')] : []),
+      requireCsrf,
+      reauth,
+      requireJsonBody,
+      auditMeta(auditOf(operationId)),
+    ];
+    router.post('/payouts/:id/hold', ...guard('holdPayout'), async (req, res) => {
+      const v = version(req);
+      const { reason } = parseBody(payoutHoldSchema, req.body);
+      res.json(
+        await service.holdPayout(
+          authContextOf(res),
+          parseBody(payoutIdParamsSchema, req.params).id,
+          v,
+          reason,
+        ),
+      );
+    });
+    router.post('/payouts/:id/release', ...guard('releasePayout'), async (req, res) => {
+      const v = version(req);
+      const { reason } = parseBody(payoutReleaseSchema, req.body);
+      res.json(
+        await service.releasePayout(
+          authContextOf(res),
+          parseBody(payoutIdParamsSchema, req.params).id,
+          v,
+          reason,
+        ),
+      );
+    });
+    router.post('/payouts/:id/adjust', ...guard('adjustPayout'), async (req, res) => {
+      const v = version(req);
+      const body = parseBody(payoutAdjustSchema, req.body);
+      res.json(
+        await service.adjustPayout(
+          authContextOf(res),
+          parseBody(payoutIdParamsSchema, req.params).id,
+          v,
+          body,
+        ),
+      );
+    });
+  }
   return { router, service };
 }

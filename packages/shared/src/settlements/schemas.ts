@@ -180,8 +180,12 @@ export const payoutRowSchema = z.object({
 });
 export type PayoutRow = z.infer<typeof payoutRowSchema>;
 
+/** D204: how a manual payout was made. */
+export const PAYOUT_METHODS = ['NEFT', 'IMPS', 'RTGS', 'UPI', 'CHEQUE'] as const;
+export type PayoutMethod = (typeof PAYOUT_METHODS)[number];
+
 /** F4: payout status values (handoff #1 settled for payouts; the column stays text). */
-export const PAYOUT_STATUSES = ['PENDING', 'PAID'] as const;
+export const PAYOUT_STATUSES = ['PENDING', 'ON_HOLD', 'PAID'] as const;
 export type PayoutStatus = (typeof PAYOUT_STATUSES)[number];
 
 export const payoutIdParamsSchema = z.object({ id: z.uuid() });
@@ -197,10 +201,45 @@ export const payoutMarkPaidSchema = z
       .trim()
       .regex(/^[A-Za-z0-9-]{6,40}$/, 'the UTR, NEFT or UPI reference'),
     paidOn: day,
+    /** D204: how the money went out (the Make payout dialog always sends it) */
+    method: z.enum(PAYOUT_METHODS).optional(),
     note: z.string().trim().min(3).max(300).optional(),
   })
   .strict();
 export type PayoutMarkPaidInput = z.infer<typeof payoutMarkPaidSchema>;
+
+const reason = z.string().trim().min(5).max(500);
+/** POST /payouts/{id}/hold (D204): PENDING → ON_HOLD while something is checked. */
+export const payoutHoldSchema = z.object({ reason }).strict();
+export type PayoutHoldInput = z.infer<typeof payoutHoldSchema>;
+/** POST /payouts/{id}/release (D204): ON_HOLD → PENDING. */
+export const payoutReleaseSchema = z.object({ reason }).strict();
+export type PayoutReleaseInput = z.infer<typeof payoutReleaseSchema>;
+/**
+ * POST /payouts/{id}/adjust (D204): sets the adjustment (paise, negative allowed) added to the amount to pay, which must
+ * stay ≥ 0; replaces any earlier adjustment.
+ */
+export const payoutAdjustSchema = z
+  .object({ adjustmentPaise: z.number().int().min(-100_000_000).max(100_000_000), reason })
+  .strict();
+export type PayoutAdjustInput = z.infer<typeof payoutAdjustSchema>;
+
+/** GET /payouts/{id}/history: the payout's audit rows, oldest first. */
+export const payoutHistorySchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      action: z.string(),
+      label: z.string(),
+      actor: userRef.nullable(),
+      note: z.string().nullable(),
+      before: z.unknown(),
+      after: z.unknown(),
+      at: isoOut,
+    }),
+  ),
+});
+export type PayoutHistory = z.infer<typeof payoutHistorySchema>;
 
 /** `If-Match: <version>` of a payout write; a weak or quoted value is accepted. */
 export const payoutIfMatchSchema = z.preprocess(
@@ -293,8 +332,16 @@ export const payoutDetailSchema = payoutRowSchema.extend({
     /** D202: partners only, else 0 */
     codHeldPaise: paise,
   }),
-  /** what Mark paid would pay now (vendors: net − refunds − ad fees; partners: D202), never below 0 */
+  /** what Make payout would pay now (vendors: net − refunds − ad fees + adjustment; partners: D202 + adjustment), ≥ 0 */
   amountToPayPaise: paise,
+  /** D204: hold, adjustment and how it was paid */
+  holdReason: z.string().nullable(),
+  heldAt: isoOut.nullable(),
+  heldByName: z.string().nullable(),
+  adjustmentPaise: paise,
+  adjustmentReason: z.string().nullable(),
+  paidMethod: z.enum(PAYOUT_METHODS).nullable(),
+  paidByName: z.string().nullable(),
   /** vendor refunds still open in the period: Mark paid waits for them (doc 16 §7); 0 for partners */
   openRefunds: count,
   partner: partnerPayoutBreakdownSchema.nullable(),

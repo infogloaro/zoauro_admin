@@ -2714,6 +2714,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/payouts/{id}/adjust": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set the adjustment (paise, negative allowed) added to the amount to pay of a PENDING or ON_HOLD payout, with a reason; the amount to pay stays ≥ 0 (422 below_zero, D204) */
+        post: operations["adjustPayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payouts/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The payout’s activity (audit rows: who, what, note, before/after, when), oldest first (D204) */
+        get: operations["getPayoutHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payouts/{id}/hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put a PENDING payout ON_HOLD with a reason while something is checked; Make payout waits (D204) */
+        post: operations["holdPayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/payouts/{id}/mark-paid": {
         parameters: {
             query?: never;
@@ -2723,7 +2774,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays the amount to pay (vendor: net − vendor-fault refunds − ad fees; delivery partner, D202: fees × payouts.partnerShare − COD held at period end), kept as paidPaise; ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK */
+        /** Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays the amount to pay (vendor: net − vendor-fault refunds − ad fees; delivery partner, D202: fees × payouts.partnerShare − COD held at period end), plus any adjustment (D204), kept as paidPaise with the method; refused while ON_HOLD (409 on_hold); ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK */
         post: operations["markPayoutPaid"];
         delete?: never;
         options?: never;
@@ -2742,6 +2793,23 @@ export interface paths {
         get: operations["listPayoutOrders"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payouts/{id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Release a payout hold with a reason: ON_HOLD → PENDING (D204) */
+        post: operations["releasePayout"];
         delete?: never;
         options?: never;
         head?: never;
@@ -22339,6 +22407,8 @@ export interface operations {
                             pricing: "FLAT_PER_DAY" | "COMMISSION";
                             slotLabel: string;
                         }[];
+                        adjustmentPaise: number;
+                        adjustmentReason: string | null;
                         amountToPayPaise: number;
                         commissionPaise: number;
                         /** Format: date-time */
@@ -22349,6 +22419,10 @@ export interface operations {
                             vendorRefundsPaise: number;
                         };
                         grossPaise: number;
+                        /** Format: date-time */
+                        heldAt: string | null;
+                        heldByName: string | null;
+                        holdReason: string | null;
                         /** Format: uuid */
                         id: string;
                         netPaise: number;
@@ -22360,6 +22434,9 @@ export interface operations {
                             id: string;
                             name: string;
                         } | null;
+                        paidByName: string | null;
+                        /** @enum {string|null} */
+                        paidMethod: "NEFT" | "IMPS" | "RTGS" | "UPI" | "CHEQUE" | null;
                         paidNote: string | null;
                         paidPaise: number | null;
                         paidReference: string | null;
@@ -22448,6 +22525,405 @@ export interface operations {
             };
         };
     };
+    adjustPayout: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    adjustmentPaise: number;
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Adjusted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        adFees: {
+                            /** Format: uuid */
+                            campaignId: string;
+                            days: number;
+                            earnedPaise: number;
+                            /** @enum {string} */
+                            pricing: "FLAT_PER_DAY" | "COMMISSION";
+                            slotLabel: string;
+                        }[];
+                        adjustmentPaise: number;
+                        adjustmentReason: string | null;
+                        amountToPayPaise: number;
+                        commissionPaise: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        deductions: {
+                            adFeesPaise: number;
+                            codHeldPaise: number;
+                            vendorRefundsPaise: number;
+                        };
+                        grossPaise: number;
+                        /** Format: date-time */
+                        heldAt: string | null;
+                        heldByName: string | null;
+                        holdReason: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        netPaise: number;
+                        openRefunds: number;
+                        /** Format: date-time */
+                        paidAt: string | null;
+                        paidBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        paidByName: string | null;
+                        /** @enum {string|null} */
+                        paidMethod: "NEFT" | "IMPS" | "RTGS" | "UPI" | "CHEQUE" | null;
+                        paidNote: string | null;
+                        paidPaise: number | null;
+                        paidReference: string | null;
+                        partner: {
+                            codHeldPaise: number;
+                            deliveries: number;
+                            feesPaise: number;
+                            sharePaise: number;
+                            sharePercent: number;
+                        } | null;
+                        payee: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        };
+                        /** Format: date */
+                        periodFrom: string;
+                        /** Format: date */
+                        periodTo: string;
+                        refunds: {
+                            amountPaise: number;
+                            /** Format: date-time */
+                            decidedAt: string | null;
+                            /** @enum {string} */
+                            effect: "COUNTED" | "OPEN";
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            orderId: string;
+                            orderNo: string;
+                            reasonCode: string;
+                            /** Format: date-time */
+                            requestedAt: string;
+                            status: string;
+                            vendorSharePaise: number;
+                        }[];
+                        status: string;
+                        vendorRefundsPaise: number;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getPayoutHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The activity */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            action: string;
+                            actor: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            after?: unknown;
+                            /** Format: date-time */
+                            at: string;
+                            before?: unknown;
+                            id: string;
+                            label: string;
+                            note: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    holdPayout: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description On hold */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        adFees: {
+                            /** Format: uuid */
+                            campaignId: string;
+                            days: number;
+                            earnedPaise: number;
+                            /** @enum {string} */
+                            pricing: "FLAT_PER_DAY" | "COMMISSION";
+                            slotLabel: string;
+                        }[];
+                        adjustmentPaise: number;
+                        adjustmentReason: string | null;
+                        amountToPayPaise: number;
+                        commissionPaise: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        deductions: {
+                            adFeesPaise: number;
+                            codHeldPaise: number;
+                            vendorRefundsPaise: number;
+                        };
+                        grossPaise: number;
+                        /** Format: date-time */
+                        heldAt: string | null;
+                        heldByName: string | null;
+                        holdReason: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        netPaise: number;
+                        openRefunds: number;
+                        /** Format: date-time */
+                        paidAt: string | null;
+                        paidBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        paidByName: string | null;
+                        /** @enum {string|null} */
+                        paidMethod: "NEFT" | "IMPS" | "RTGS" | "UPI" | "CHEQUE" | null;
+                        paidNote: string | null;
+                        paidPaise: number | null;
+                        paidReference: string | null;
+                        partner: {
+                            codHeldPaise: number;
+                            deliveries: number;
+                            feesPaise: number;
+                            sharePaise: number;
+                            sharePercent: number;
+                        } | null;
+                        payee: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        };
+                        /** Format: date */
+                        periodFrom: string;
+                        /** Format: date */
+                        periodTo: string;
+                        refunds: {
+                            amountPaise: number;
+                            /** Format: date-time */
+                            decidedAt: string | null;
+                            /** @enum {string} */
+                            effect: "COUNTED" | "OPEN";
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            orderId: string;
+                            orderNo: string;
+                            reasonCode: string;
+                            /** Format: date-time */
+                            requestedAt: string;
+                            status: string;
+                            vendorSharePaise: number;
+                        }[];
+                        status: string;
+                        vendorRefundsPaise: number;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     markPayoutPaid: {
         parameters: {
             query?: never;
@@ -22462,6 +22938,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @enum {string} */
+                    method?: "NEFT" | "IMPS" | "RTGS" | "UPI" | "CHEQUE";
                     note?: string;
                     /** Format: date */
                     paidOn: string;
@@ -22627,6 +23105,168 @@ export interface operations {
             };
             /** @description Not found (also used for objects in zones the caller cannot see) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    releasePayout: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Pending again */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        adFees: {
+                            /** Format: uuid */
+                            campaignId: string;
+                            days: number;
+                            earnedPaise: number;
+                            /** @enum {string} */
+                            pricing: "FLAT_PER_DAY" | "COMMISSION";
+                            slotLabel: string;
+                        }[];
+                        adjustmentPaise: number;
+                        adjustmentReason: string | null;
+                        amountToPayPaise: number;
+                        commissionPaise: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        deductions: {
+                            adFeesPaise: number;
+                            codHeldPaise: number;
+                            vendorRefundsPaise: number;
+                        };
+                        grossPaise: number;
+                        /** Format: date-time */
+                        heldAt: string | null;
+                        heldByName: string | null;
+                        holdReason: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        netPaise: number;
+                        openRefunds: number;
+                        /** Format: date-time */
+                        paidAt: string | null;
+                        paidBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        paidByName: string | null;
+                        /** @enum {string|null} */
+                        paidMethod: "NEFT" | "IMPS" | "RTGS" | "UPI" | "CHEQUE" | null;
+                        paidNote: string | null;
+                        paidPaise: number | null;
+                        paidReference: string | null;
+                        partner: {
+                            codHeldPaise: number;
+                            deliveries: number;
+                            feesPaise: number;
+                            sharePaise: number;
+                            sharePercent: number;
+                        } | null;
+                        payee: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        };
+                        /** Format: date */
+                        periodFrom: string;
+                        /** Format: date */
+                        periodTo: string;
+                        refunds: {
+                            amountPaise: number;
+                            /** Format: date-time */
+                            decidedAt: string | null;
+                            /** @enum {string} */
+                            effect: "COUNTED" | "OPEN";
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            orderId: string;
+                            orderNo: string;
+                            reasonCode: string;
+                            /** Format: date-time */
+                            requestedAt: string;
+                            status: string;
+                            vendorSharePaise: number;
+                        }[];
+                        status: string;
+                        vendorRefundsPaise: number;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
