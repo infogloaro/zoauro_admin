@@ -6,12 +6,13 @@ Version 0.4, 2026-10-22. Owner: docs lane. **Demo: Thursday 2026-10-23 at 15:00 
 
 | When (IST) | What |
 |---|---|
-| 2026-10-22, about 13:30, 19:00, 23:30 | Demo rebuilt from the latest code; QA walk of every role, timings and live actions after each |
-| 2026-10-23, about 06:00 | Rebuild and QA |
-| 2026-10-23, 10:00 | **Code freeze** and the final build: the build of record |
-| 10:30 to 12:30 | Final QA on a quiet machine (only Docker, demo API and demo web running) |
-| by 12:45 | Sample data reset to a fresh state |
-| 13:30 | All build sessions stopped |
+| 2026-10-22, 13:30 and 18:12 | Demo rebuilt from the latest code; QA walk of every role, timings and live actions after each (§5). The laptop was off overnight |
+| 2026-10-23, morning | Rebuilds as the advertising and payouts work lands; the owner's live access check |
+| 2026-10-23, 11:30 | **Code cut-off** |
+| 12:00 | The final demo build: the build of record |
+| 12:30 to 13:45 | Final QA on a quiet machine (only Docker, demo API and demo web running) |
+| by 14:00 | Sample data reset to a fresh state |
+| 14:15 | All build sessions stopped |
 | 15:00 | Demo |
 
 The demo shows the ZOAURO admin panel with **sample data only**: no live app data, no app integration, no payment gateway (Razorpay keys are pending from management). It walks through what each role sees and controls, how the main flows work, and how the Super Admin changes business rules from the Control Panel without code changes.
@@ -50,7 +51,7 @@ Update the tags after each push wave. Before the demo, rehearse once and change 
 3. **Morning of the demo** (about 12 minutes; the coordinator runs it with the seed lane): after the final push, `demo:build`, then stop `demo:api`, `demo:reset`, start `demo:api` and `demo:web`, `demo:data`. Today's live board and the pre-orders are placed relative to the moment the data is loaded, so data loaded the day before would read as yesterday's.
 4. The demo uses only `zoauro_demo`; the real `zoauro` database is never touched (D188).
 5. Check `http://127.0.0.1:4100/api/ready` shows database and Redis `ok`. The first check after a quiet spell can say "database down" for a moment; check again.
-6. Open the panel at the address in `APP_URL`: since 2026-10-22 19:13 that is the owner-approved shareable tunnel link the demo-stack lane gives out. Sign-in on any other address is refused (403, origin check). When APP_URL is local, use `http://127.0.0.1:3100`, not `localhost`, so it doesn't share sign-in cookies with the development app.
+6. On the demo laptop, open the panel at **`http://127.0.0.1:3100`** (not `localhost`, so it doesn't share sign-in cookies with the development app). Guests use the owner-approved shareable tunnel link, which the demo-stack lane announces after each start. Since build `3f9dc30` (2026-10-23) both addresses work for sign-in (multi-origin, d473e31 and 3f9dc30). The tunnel address changes on every restart and is never written into git: share the current one privately, never yesterday's. QA runs on 127.0.0.1 so it doesn't load the guests' tunnel.
 7. Open Mailpit at `http://127.0.0.1:8025` in a second tab. Two-step sign-in codes arrive there; the demo API sends every email to Mailpit only.
 8. Open `docs/F-execution/60_Admin_Workflow_Map.html` in a third tab as the backup for anything marked Design.
 

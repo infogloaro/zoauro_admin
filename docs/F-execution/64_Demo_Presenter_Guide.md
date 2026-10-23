@@ -15,6 +15,22 @@ Doc 61 is the technical runbook (start commands, data reset, QA status of each s
 
 For the owner. Updated with every demo build. Newest first.
 
+**Coming before the final build (cut-off 11:30, final build 12:00, checked 12:30–13:45):**
+
+- the payout detail page, statement and partner payouts (Part 16);
+- Advertising screens (Part 17): Dashboard, Requests, Campaigns and Slots;
+- a Reset 2-step button for Super Admins, and a password check when suspending or reactivating a Zonal Admin.
+
+**Morning build `3f9dc30` (2026-10-23, about 09:40), fresh sample data:**
+
+- **Changed:** a new **Audit & Logs** menu group holds Audit & Logs, Recent Activities, Access History and Settings History. Search is in the top bar only ("See all results for …").
+- **Changed:** **Advertising** appears in the menu as "Soon", with its plan, until the screens land (Part 17).
+- **Changed:** both `127.0.0.1:3100` and the new tunnel link work for sign-in. The link changes on every restart, so share only the current one.
+- **Fixed:**
+  - a refused sign-out now says why;
+  - a page that fails to load part of itself reloads once;
+  - menu badges load in one call (faster pages).
+
 **Evening build `00b4ecf` (2026-10-22, 18:12), data reset at 19:05:**
 
 - **New: automatic partner assignment** for one zone (Tiruppur pilot), Part 12.
@@ -29,14 +45,7 @@ For the owner. Updated with every demo build. Newest first.
   - list headers are tinted and hovered rows are coloured;
   - "Remember me" follows the Control Panel setting.
 - **Sample data:** Karthik now has two Coimbatore North requests (menu view and menu edit), Part 19. Coimbatore Central payouts include one with a refund deduction and one held by an open refund.
-- **Demo address:** the demo opens on the owner's shareable tunnel link, not on 127.0.0.1 (Part 1).
-
-**Coming overnight (checked at 06:00 on 2026-10-23):**
-
-- the payout detail page, statement and partner payouts (Part 16);
-- Advertising (Part 17), shown as "Soon" in the menu until then;
-- **Changed (86bf37f):** a new **Audit & Logs** menu group after Administration, holding Audit & Logs, Recent Activities, Access History and Settings History. The sidebar Global Search entry is gone; search from the top bar and pick "See all results for …". Parts 4, 6, 7 and 21.
-- **Changed (267518b):** if sign-out is refused, a red toast says why instead of staying silently on the page.
+- **Demo address:** the demo opened on the owner's shareable tunnel link (Part 1).
 
 ## Contents
 
@@ -75,7 +84,7 @@ For the owner. Updated with every demo build. Newest first.
 
 | Tab | Address | Why |
 |---|---|---|
-| 1 | The demo link from the demo-stack lane (the shareable tunnel address set as APP_URL; `http://127.0.0.1:3100` only when APP_URL is local, otherwise sign-in there is refused) | The admin panel (demo build, sample data) |
+| 1 | `http://127.0.0.1:3100` on the demo laptop. Guests use the shareable tunnel link announced after each demo start; it changes on every restart. | The admin panel (demo build, sample data) |
 | 2 | `http://127.0.0.1:8025` | Mailpit: the inbox where the 2-step sign-in codes arrive |
 | 3 | `docs/F-execution/60_Admin_Workflow_Map.html` | The workflow map, for "the big picture" and anything marked Plan only |
 
@@ -349,7 +358,12 @@ flowchart TB
   EF --> API[Every server request<br/>checked again]
 ```
 
-- **Adding a Zonal Admin:** name, email, mobile and a temporary password. They must change the password and set up 2-step at first sign-in.
+- **Adding a Zonal Admin:** **Add Zonal Admin** takes the full name, email, mobile (optional) and a temporary password (or "Generate a strong password"). The member access page then opens to give them zones. At their first sign-in the new admin:
+  1. sets up 2-step with an email code (an authenticator app can be added later in Account security);
+  2. saves their backup codes;
+  3. must change the temporary password.
+
+  Passwords need at least 12 characters and must not be a common password.
 - **Saving an access change** asks for the password. It writes an access-history entry, emails the member and takes effect on their next click. No new sign-in is needed.
 - **Access requests:** a Zonal Admin asks for a zone or a permission, with a reason. The request appears under **Requests & Approvals → Access Requests** and as a banner on the dashboard. You show this live in Part 19.
 
@@ -653,7 +667,7 @@ flowchart LR
 
 ## 16. Vendor and partner payouts (8 min)
 
-> **Status:** the list, Mark paid and exports work on the evening build of 2026-10-22. The detail page, the statement and partner payouts land overnight and are checked at 06:00 on 2026-10-23 (doc 61 §5). If they are not green, show only the list and Mark paid.
+> **Status:** the list, Mark paid and exports work on the evening build of 2026-10-22. The detail page, the statement and partner payouts land by the 11:30 cut-off on 2026-10-23 and are checked on the 12:00 final build (doc 61 §5). If they are not green, show only the list and Mark paid.
 
 **Do:** **Payments & Finance → Payouts & Reconciliation**.
 
@@ -736,7 +750,7 @@ flowchart LR
 
 ## 17. Advertising (10 min)
 
-> **Status:** built overnight; checked at 06:00 on 2026-10-23 (doc 61 §5). If it is not green, the menu shows "Advertising: Soon" and you show the plan instead. The figures come from the sample data: read the exact amounts from the seed log, not from this guide.
+> **Status:** lands by the 11:30 cut-off on 2026-10-23 and is checked on the 12:00 final build (doc 61 §5). If it is not green, the menu shows "Advertising: Soon" and you show the plan instead. The figures come from the sample data: read the exact amounts from the seed log, not from this guide.
 
 **Say first:**
 > "Vendors can pay to be seen more. They can buy a banner on a page, or a top listing in their category. We sell two kinds: a flat fee per day, or a percentage commission on the orders the ad brings. The vendor asks from the vendor app, we quote, the vendor accepts, and the fee is taken from their next payout."
@@ -890,7 +904,7 @@ flowchart LR
 
 **Do:** sign out. Sign in as **Arun** (Super Admin tab).
 
-- Approve both of Karthik's requests: **Requests & Approvals → Access Requests → Approve** (password each time).
+- Approve both of Karthik's requests: **Requests & Approvals → Access Requests**. On each row, click **Review**, write a reason, then click **Approve** and enter your password.
 - Show the ₹600 refund in **Refunds**, waiting for approval.
 
 **Do:** sign in as Karthik again. Open **Menus & Food Items** in Coimbatore North.
