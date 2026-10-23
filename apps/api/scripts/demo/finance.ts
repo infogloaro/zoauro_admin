@@ -425,6 +425,78 @@ export async function ensurePayoutCases(
     log(`payouts: ${unreferenced.length} paid payouts got their reference`);
 }
 
+/**
+ * Run on every seed (D204), through the API as the Super Admin: one Coimbatore Central vendor payout ON HOLD, one with a
+ * +₹150 adjustment, and one vendor-fault refund moved to PLATFORM with a reason. It uses the latest pending vendor
+ * payouts after the two kept for the deduction and freeze cases. Idempotent: each case is skipped once it exists.
+ */
+export async function ensurePayoutHoldCases(
+  db: PrismaClient,
+  sa: DemoClient,
+  zoneId: string,
+  log: Log,
+): Promise<void> {
+  const pending = await db.payout.findMany({
+    where: { zoneId, status: 'PENDING', payeeType: { in: ['RESTAURANT', 'HOMEMAKER'] } },
+    orderBy: [{ periodTo: 'desc' }, { net: 'desc' }],
+    select: { id: true, version: true, adjustmentPaise: true },
+  });
+  // pending[0] and [1] are the deduction and freeze cases of ensurePayoutCases
+  const spare = pending.slice(2);
+  if ((await db.payout.count({ where: { status: 'ON_HOLD' } })) === 0) {
+    const p = spare[0];
+    if (p)
+      await tryStep(log, 'payout on hold', () =>
+        sa.postVersioned(`/payouts/${p.id}/hold`, p.version, {
+          reason: 'Bank details do not match the GST certificate',
+        }),
+      );
+  }
+  if ((await db.payout.count({ where: { adjustmentPaise: { not: 0 } } })) === 0) {
+    const p = spare[1];
+    if (p)
+      await tryStep(log, 'payout adjustment', () =>
+        sa.postVersioned(`/payouts/${p.id}/adjust`, p.version, {
+          adjustmentPaise: 15_000,
+          reason: 'Packaging reimbursement',
+        }),
+      );
+  }
+  const moved = await db.auditLog.count({ where: { action: 'refund.responsibility_changed' } });
+  if (moved === 0) {
+    const r = await db.refund.findFirst({
+      where: {
+        fault: 'VENDOR',
+        status: { in: ['APPROVED', 'PROCESSED'] },
+        NOT: { reasonNote: { contains: '[payout case' } },
+      },
+      orderBy: { requestedAt: 'desc' },
+      select: { id: true, version: true },
+    });
+    if (r)
+      await tryStep(log, 'refund responsibility', () =>
+        sa.call(
+          'PATCH',
+          `/refunds/${r.id}/responsibility`,
+          {
+            fault: 'PLATFORM',
+            reason:
+              'Delivery partner damaged the package on the way; ZOAURO bears it, not the vendor.',
+          },
+          { 'If-Match': String(r.version) },
+        ),
+      );
+  }
+  const [held, adjusted, platform] = await Promise.all([
+    db.payout.count({ where: { status: 'ON_HOLD' } }),
+    db.payout.count({ where: { adjustmentPaise: { not: 0 } } }),
+    db.auditLog.count({ where: { action: 'refund.responsibility_changed' } }),
+  ]);
+  log(
+    `payout hold cases: ${held} on hold, ${adjusted} adjusted, ${platform} refund responsibility change`,
+  );
+}
+
 /** D173 COD gate: at or above this much cash in hand a partner gets no new COD orders until they hand it over. */
 const COD_LIMIT_PAISE = 500_000;
 
