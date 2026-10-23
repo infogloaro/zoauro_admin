@@ -323,12 +323,21 @@ const refunds = createRefundsModule({
 const exportQueue = createExportQueue({ redisUrl: env.REDIS_URL });
 // D159 payments (read only until the gateway, D6), D173 COD settlement and D152 payouts; their lists export too (F4b)
 const payments = createPaymentsModule({ prisma });
+// D179, D182, D201 advertising and commission (built before settlements: payouts deduct the ad fees, D182 A2)
+const ads = createAdsModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  rules: (zoneId) => settings.reader.adsRules(zoneId),
+  services: zones.service,
+  storage,
+});
 const settlements = createSettlementsModule({
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
   codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
   partnerShare: (zoneId) => settings.reader.partnerSharePercent(zoneId), // D202
+  adFees: (payee, zoneId, period, now) => ads.service.adFeesForPayout(payee, zoneId, period, now), // D182 A2
   requireReauth: auth.requireReauth, // F4 mark-paid
   requireArea: (area) => controlAreas.require(area), // D178
 });
@@ -418,14 +427,7 @@ const app = createApp({
       }).router,
       // D188 vendor plans (catalogue writes Super Admin only)
       createPlansModule({ prisma, appOrigin: new URL(env.APP_URL).origin }).router,
-      // D179, D182, D201 advertising and commission
-      createAdsModule({
-        prisma,
-        appOrigin: new URL(env.APP_URL).origin,
-        rules: (zoneId) => settings.reader.adsRules(zoneId),
-        services: zones.service,
-        storage,
-      }).router,
+      ads.router,
       support.router,
     ],
   },

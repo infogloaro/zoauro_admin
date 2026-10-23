@@ -486,11 +486,21 @@ export async function createAuthTestEnv() {
     const exportGate: { run?: (id: string) => Promise<unknown> } = {};
     // as server.ts: payments and settlements before the exports, whose money lists they serve (F4b)
     const payments = createPaymentsModule({ prisma });
+    const ads = createAdsModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      rules: (zoneId) => settings.reader.adsRules(zoneId),
+      services: zones.service,
+      storage,
+      clock: clock.now,
+    });
     const settlements = createSettlementsModule({
       prisma,
       appOrigin: APP_ORIGIN,
       cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
       codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+      adFees: (payee, zoneId, period, now) =>
+        ads.service.adFeesForPayout(payee, zoneId, period, now),
       requireReauth: auth.requireReauth, // F4 mark-paid
       requireArea: (area) => controlAreas.require(area), // D178
       clock: clock.now,
@@ -562,14 +572,7 @@ export async function createAuthTestEnv() {
         clock: clock.now,
       }).router,
       createPlansModule({ prisma, appOrigin: APP_ORIGIN, clock: clock.now }).router,
-      createAdsModule({
-        prisma,
-        appOrigin: APP_ORIGIN,
-        rules: (zoneId) => settings.reader.adsRules(zoneId),
-        services: zones.service,
-        storage,
-        clock: clock.now,
-      }).router,
+      ads.router,
       support.router,
     ];
     const extraRouters = [
