@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RoleKey } from '@prisma/client';
-import type { Restaurant, UploadPresignResponse } from '@zoauro/shared';
+import type { DeliveryPartner, Restaurant, UploadPresignResponse } from '@zoauro/shared';
 import { prisma } from '../../lib/db';
 import {
   call,
@@ -27,6 +27,7 @@ const app = testApp();
 
 const createdZoneIds: string[] = [];
 const createdVendorIds: string[] = [];
+const createdPartnerIds: string[] = [];
 const testEmails: string[] = [];
 let superSession: Session;
 let zonalA: Session;
@@ -35,6 +36,7 @@ let zonalNone: Session;
 let zoneAId: string;
 let zoneBId: string;
 let restaurant: Restaurant;
+let partner: DeliveryPartner;
 
 let seq = 0;
 function stamp(): string {
@@ -71,12 +73,17 @@ beforeAll(async () => {
   zoneAId = await createZone(`Upload Zone A ${stamp()}`);
   zoneBId = await createZone(`Upload Zone B ${stamp()}`);
   restaurant = await createRestaurant(zoneAId, `Upload R ${stamp()}`);
+  partner = await createPartner(zoneAId, `Upload P ${stamp()}`);
 }, 90_000);
 
 afterAll(async () => {
   if (createdVendorIds.length > 0) {
     await prisma.auditLog.deleteMany({ where: { entityId: { in: createdVendorIds } } });
     await prisma.restaurant.deleteMany({ where: { id: { in: createdVendorIds } } });
+  }
+  if (createdPartnerIds.length > 0) {
+    await prisma.auditLog.deleteMany({ where: { entityId: { in: createdPartnerIds } } });
+    await prisma.deliveryPartner.deleteMany({ where: { id: { in: createdPartnerIds } } });
   }
   await cleanupZones(createdZoneIds);
   await cleanupUsers(testEmails);
@@ -117,6 +124,29 @@ async function createRestaurant(zoneId: string, name: string): Promise<Restauran
   expect(res.status).toBe(201);
   createdVendorIds.push(res.body.data.id as string);
   return res.body.data as Restaurant;
+}
+
+/** Time-based so a crashed prior run cannot poison the global phone guard. */
+let phoneSeq = 0;
+function uniquePhone(): string {
+  phoneSeq += 1;
+  return `98${String(Date.now() % 10_000_000).padStart(7, '0')}${phoneSeq % 10}`;
+}
+
+async function createPartner(zoneId: string, name: string): Promise<DeliveryPartner> {
+  const res = await call(app, 'post', '/api/v1/delivery-partners', {
+    session: superSession,
+    body: {
+      zoneId,
+      name,
+      phone: uniquePhone(),
+      vehicleType: 'Bike',
+      vehicleNo: `TN 09 CY ${String(1000 + phoneSeq).padStart(4, '0')}`,
+    },
+  });
+  expect(res.status).toBe(201);
+  createdPartnerIds.push(res.body.data.id as string);
+  return res.body.data as DeliveryPartner;
 }
 
 async function presign(
@@ -204,18 +234,73 @@ describe('POST /uploads/presign', () => {
     expect(bigImage.body.error?.code).toBe('VALIDATION_ERROR');
   });
 
-  it('422 for a content type outside the allow-list and for PARTNER_DOC', async () => {
+  it('422 for a content type outside the allow-list and for an unknown purpose', async () => {
     const gif = await presign(
       superSession,
       vendorDocPresign(zoneAId, restaurant.id, { contentType: 'image/gif' }),
     );
     expect(gif.status).toBe(422);
 
-    const partner = await presign(
+    const unknownPurpose = await presign(
       superSession,
-      vendorDocPresign(zoneAId, restaurant.id, { purpose: 'PARTNER_DOC' }),
+      vendorDocPresign(zoneAId, restaurant.id, { purpose: 'HOTEL_DOC' }),
     );
-    expect(partner.status).toBe(422);
+    expect(unknownPurpose.status).toBe(422);
+    expect(unknownPurpose.body.error?.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('200 for PARTNER_DOC against a DELIVERY_PARTNER entity; 404 on a mismatched entity (D131)', async () => {
+    const forPartner = await presign(superSession, {
+      purpose: 'PARTNER_DOC',
+      contentType: 'image/png',
+      sizeBytes: PNG_BYTES.length,
+      zoneId: zoneAId,
+      entityId: partner.id,
+    });
+    expect(forPartner.status).toBe(200);
+    expect(forPartner.body.data?.fileKey).toMatch(
+      new RegExp(`^zone/${zoneAId}/${partner.id}/[0-9a-f-]{36}\\.png$`),
+    );
+
+    // PARTNER_DOC never resolves vendor entities, and VENDOR_DOC never
+    // resolves partner entities — a mismatch is 404, never a signed key.
+    const partnerForVendor = await presign(superSession, {
+      purpose: 'PARTNER_DOC',
+      contentType: 'image/png',
+      sizeBytes: PNG_BYTES.length,
+      zoneId: zoneAId,
+      entityId: restaurant.id,
+    });
+    expect(partnerForVendor.status).toBe(404);
+
+    const vendorForPartner = await presign(superSession, {
+      purpose: 'VENDOR_DOC',
+      contentType: 'image/png',
+      sizeBytes: PNG_BYTES.length,
+      zoneId: zoneAId,
+      entityId: partner.id,
+    });
+    expect(vendorForPartner.status).toBe(404);
+
+    const unknownPartner = await presign(superSession, {
+      purpose: 'PARTNER_DOC',
+      contentType: 'image/png',
+      sizeBytes: PNG_BYTES.length,
+      zoneId: zoneAId,
+      entityId: '00000000-0000-4000-8000-000000000000',
+    });
+    expect(unknownPartner.status).toBe(404);
+  });
+
+  it('404 for a PARTNER_DOC key whose partner lives in another zone', async () => {
+    const crossZone = await presign(superSession, {
+      purpose: 'PARTNER_DOC',
+      contentType: 'image/png',
+      sizeBytes: PNG_BYTES.length,
+      zoneId: zoneBId,
+      entityId: partner.id,
+    });
+    expect(crossZone.status).toBe(404);
   });
 
   it('404 for an unknown entity and for an entity outside the claimed zone', async () => {
@@ -259,6 +344,25 @@ describe('POST /uploads/confirm round trip', () => {
       sizeBytes: PNG_BYTES.length,
       contentType: 'image/png',
     });
+  });
+
+  it('200 for a PARTNER_DOC key whose DELIVERY_PARTNER entity exists (D131)', async () => {
+    const signed = await presign(superSession, {
+      purpose: 'PARTNER_DOC',
+      contentType: 'image/png',
+      sizeBytes: PNG_BYTES.length,
+      zoneId: zoneAId,
+      entityId: partner.id,
+    });
+    expect(signed.status).toBe(200);
+    const data = signed.body.data as UploadPresignResponse;
+
+    const putStatus = await putToPresigned(data.uploadUrl, 'image/png', PNG_BYTES);
+    expect(putStatus).toBe(200);
+
+    const res = await confirm(superSession, data.fileKey);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ fileKey: data.fileKey, contentType: 'image/png' });
   });
 
   it('422 when the object content does not match its declared type (TC-UPL-1)', async () => {

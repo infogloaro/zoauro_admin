@@ -1,6 +1,14 @@
-import type { Customer, CustomerAddress, CustomerSource, ZoneStatus } from '@prisma/client';
+import type {
+  Customer,
+  CustomerAddress,
+  CustomerSource,
+  RewardEntryType,
+  RewardPointEntry,
+  WalletTransaction,
+  ZoneStatus,
+} from '@prisma/client';
 import { Prisma } from '@prisma/client';
-import type { ListCustomersQuery } from '@zoauro/shared';
+import type { ListCustomersQuery, ListRewardsQuery, ListWalletQuery } from '@zoauro/shared';
 import type { Db } from '../audit/audit.service';
 import { prisma } from '../../lib/db';
 
@@ -57,7 +65,31 @@ function customerWhere({ zoneIds, query }: ListOptions): Prisma.CustomerWhereInp
     });
   }
   if (query.q) and.push({ OR: customerSearch(query.q) });
+  if (query.from !== undefined || query.to !== undefined) {
+    and.push({ createdAt: createdAtRange(query.from, query.to) });
+  }
   return { AND: and };
+}
+
+/**
+ * Doc 09 `from`/`to` filter (same semantics as the dashboard registrations
+ * range): a date-only bound covers the whole UTC day inclusively
+ * (`gte` T00:00:00.000Z / `lte` T23:59:59.999Z); a full ISO datetime is
+ * applied as-is, inclusive on both ends.
+ */
+function createdAtRange(from?: string, to?: string): Prisma.DateTimeFilter {
+  const filter: Prisma.DateTimeFilter = {};
+  if (from) filter.gte = dayStart(from);
+  if (to) filter.lte = dayEnd(to);
+  return filter;
+}
+
+function dayStart(value: string): Date {
+  return value.length === 10 ? new Date(`${value}T00:00:00.000Z`) : new Date(value);
+}
+
+function dayEnd(value: string): Date {
+  return value.length === 10 ? new Date(`${value}T23:59:59.999Z`) : new Date(value);
 }
 
 /** Scope-only predicate: KPI counts and facets are filter-independent (doc 20). */
@@ -90,6 +122,7 @@ const customerScalarSelect = {
   source: true,
   userType: true,
   walletBalance: true,
+  rewardPoints: true,
   deletedAt: true,
   createdAt: true,
   updatedAt: true,
@@ -286,4 +319,175 @@ export async function existingZoneIds(ids: string[]): Promise<string[]> {
     select: { id: true },
   });
   return rows.map((r) => r.id);
+}
+
+/* ------------------------------------------------------------------ *
+ * Rewards ledger (D169, doc 09 `/customers/{id}/rewards`)
+ * ------------------------------------------------------------------ */
+
+export interface RewardEntryRow {
+  id: string;
+  type: RewardEntryType;
+  points: number;
+  orderId: string | null;
+  reason: string | null;
+  actorId: string | null;
+  zoneId: string | null;
+  createdAt: Date;
+}
+
+const rewardEntrySelect = {
+  id: true,
+  type: true,
+  points: true,
+  orderId: true,
+  reason: true,
+  actorId: true,
+  zoneId: true,
+  createdAt: true,
+} as const;
+
+/** Newest-first paginated ledger rows for one customer, optional type filter. */
+export async function listRewardEntries(
+  customerId: string,
+  query: ListRewardsQuery,
+): Promise<{ rows: RewardEntryRow[]; total: number }> {
+  const where: Prisma.RewardPointEntryWhereInput = {
+    customerId,
+    ...(query.type ? { type: query.type } : {}),
+  };
+  const skip = (query.page - 1) * query.pageSize;
+  const [rows, total] = await Promise.all([
+    prisma.rewardPointEntry.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: rewardEntrySelect,
+      skip,
+      take: query.pageSize,
+    }),
+    prisma.rewardPointEntry.count({ where }),
+  ]);
+  return { rows, total };
+}
+
+export interface RewardAdjustData {
+  type: 'MANUAL_GRANT' | 'MANUAL_DEDUCT';
+  points: number; // signed: grant > 0, deduct < 0 (doc 08 ledger convention)
+  balanceAfter: number;
+  remaining: number | null;
+  reason: string;
+  actorId: string;
+  zoneId: string | null;
+}
+
+/**
+ * One ledger row inside the caller's transaction (doc 07 §6: write + audit
+ * atomically). The append-only ledger never edits prior rows (doc 16); the
+ * balance flip is a separate guarded statement so a concurrent deduct cannot
+ * drive `reward_points` negative.
+ */
+export async function createRewardEntry(
+  db: Db,
+  customerId: string,
+  data: RewardAdjustData,
+): Promise<RewardPointEntry> {
+  return db.rewardPointEntry.create({
+    data: {
+      customerId,
+      zoneId: data.zoneId,
+      type: data.type,
+      points: data.points,
+      balanceAfter: data.balanceAfter,
+      remaining: data.remaining,
+      reason: data.reason,
+      actorId: data.actorId,
+    },
+  });
+}
+
+/**
+ * Race-safe deduct: the `rewardPoints >= points` guard makes a concurrent
+ * over-deduct miss the row (count 0 → 409 in the service) so the balance can
+ * never go negative.
+ */
+export async function deductRewardPoints(
+  db: Db,
+  customerId: string,
+  points: number,
+): Promise<boolean> {
+  const res = await db.customer.updateMany({
+    where: { id: customerId, rewardPoints: { gte: points } },
+    data: { rewardPoints: { decrement: points } },
+  });
+  return res.count > 0;
+}
+
+export async function grantRewardPoints(db: Db, customerId: string, points: number): Promise<void> {
+  await db.customer.update({
+    where: { id: customerId },
+    data: { rewardPoints: { increment: points } },
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Wallet ledger (D24/D169, doc 09 `/customers/{id}/wallet`)
+ * ------------------------------------------------------------------ */
+
+export interface WalletEntryRow {
+  id: string;
+  type: WalletTransaction['type'];
+  amountPaise: number;
+  balanceAfterPaise: number;
+  refType: string | null;
+  refId: string | null;
+  reason: string | null;
+  actorId: string | null;
+  zoneId: string | null;
+  createdAt: Date;
+}
+
+const walletEntrySelect = {
+  id: true,
+  type: true,
+  amountPaise: true,
+  balanceAfterPaise: true,
+  refType: true,
+  refId: true,
+  reason: true,
+  actorId: true,
+  zoneId: true,
+  createdAt: true,
+} as const;
+
+/** Newest-first paginated wallet rows for one customer. */
+export async function listWalletEntries(
+  customerId: string,
+  query: ListWalletQuery,
+): Promise<{ rows: WalletEntryRow[]; total: number }> {
+  const where: Prisma.WalletTransactionWhereInput = { customerId };
+  const skip = (query.page - 1) * query.pageSize;
+  const [rows, total] = await Promise.all([
+    prisma.walletTransaction.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: walletEntrySelect,
+      skip,
+      take: query.pageSize,
+    }),
+    prisma.walletTransaction.count({ where }),
+  ]);
+  return { rows, total };
+}
+
+/**
+ * Balance = sum of the signed `amount_paise` ledger (credits > 0, debits
+ * < 0 — the same sign convention as `reward_point_entries.points`). Matches
+ * `customers.wallet_balance` while nothing else writes the ledger yet.
+ */
+export async function walletBalancePaise(customerId: string): Promise<number> {
+  const agg = await prisma.walletTransaction.aggregate({
+    where: { customerId },
+    _sum: { amountPaise: true },
+  });
+  return agg._sum.amountPaise ?? 0;
 }

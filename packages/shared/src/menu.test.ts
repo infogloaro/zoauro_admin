@@ -19,6 +19,9 @@ const form: MenuItemFormValues = {
   description: 'Creamy tomato gravy',
   category: 'Main course',
   price: '260',
+  stock: '40',
+  isAvailable: true,
+  isFeatured: false,
   dietary: 'VEGETARIAN',
 };
 
@@ -54,6 +57,9 @@ describe('menuItemFormToUpdate', () => {
       description: null,
       category: 'Mains',
       price: 27_500,
+      stock: 40,
+      isAvailable: true,
+      isFeatured: false,
       dietary: 'NON_VEG',
     });
   });
@@ -67,7 +73,16 @@ describe('menuItemFormToUpdate', () => {
   it('never emits owner, zone or approval fields (immutable on edit)', () => {
     const update = menuItemFormToUpdate(form) as Record<string, unknown>;
     expect(Object.keys(update).sort()).toEqual(
-      ['category', 'description', 'dietary', 'name', 'price'].sort(),
+      [
+        'category',
+        'description',
+        'dietary',
+        'isAvailable',
+        'isFeatured',
+        'name',
+        'price',
+        'stock',
+      ].sort(),
     );
   });
 });

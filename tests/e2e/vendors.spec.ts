@@ -6,6 +6,11 @@ import { expect, test, type Page } from '@playwright/test';
  * with a 409 toast → tab walk between the two canonical routes → homemaker
  * create → detail reveal → opening-hours edit → SA-2.1 documents (presigned
  * upload, signed view, verify).
+ *
+ * A second journey covers the doc 22 §bulk status change, the server CSV
+ * export (doc 13 T15/T16), the real Menu tab (M08 contract) and the A1
+ * onboarding tab/queue (doc 09, doc 45) — none of which need MinIO, so it
+ * runs without the upload infra.
  */
 
 const EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@zoauro.test';
@@ -166,4 +171,87 @@ test('super admin manages restaurants and homemakers end to end', async ({ page 
   await page.getByRole('button', { name: 'Verify document' }).click();
   await expect(toasts(page).filter({ hasText: 'FSSAI document verified' })).toBeVisible();
   await expect(fssaiRow.getByText('Verified')).toBeVisible();
+});
+
+test('bulk status, CSV export and the menu tab work against the real APIs', async ({ page }) => {
+  test.setTimeout(180_000);
+  const name = `Bulk ${stamp}`;
+  const phone = `7${String(stamp).slice(-9)}`;
+
+  await loginVia(page, '/super-admin/restaurants');
+
+  // Create one restaurant, then verify and activate it from the detail dialog.
+  await page.getByRole('button', { name: 'Add Restaurant' }).first().click();
+  const createDialog = page.getByRole('dialog');
+  await pickZone(page, 'Chennai');
+  await createDialog.locator('#vendor-name').fill(name);
+  await createDialog.locator('#vendor-owner').fill('Bulk Tester');
+  await createDialog.locator('#vendor-phone').fill(phone);
+  await createDialog.locator('#vendor-address').fill('9, Main Road');
+  await createDialog.locator('#vendor-area').fill('Tambaram');
+  await createDialog.locator('#vendor-cuisines').fill('Biryani');
+  await createDialog.getByRole('button', { name: 'Create restaurant' }).click();
+  await expect(createDialog).toBeHidden();
+  await expect(toasts(page).filter({ hasText: 'Restaurant created' })).toBeVisible();
+
+  await page.getByLabel('Search restaurants').fill(name);
+  await expect(page).toHaveURL(/q=/);
+  const row = page.getByRole('row', { name: new RegExp(name) });
+  await row.getByRole('button', { name: 'View', exact: true }).click();
+  let detail = page.getByRole('dialog');
+  await detail.getByRole('button', { name: 'Verify', exact: true }).click();
+  await page.getByRole('button', { name: 'Verify vendor' }).click();
+  await expect(toasts(page).filter({ hasText: `${name} verified` })).toBeVisible();
+  await expect(detail.getByRole('button', { name: 'Activate' })).toBeVisible();
+  await detail.getByRole('button', { name: 'Activate' }).click();
+  await expect(toasts(page).filter({ hasText: `${name} activated` })).toBeVisible();
+  await expect(
+    detail.getByRole('heading', { name: new RegExp(name) }).getByText('Active'),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(detail).toBeHidden();
+
+  // Doc 22 §bulk: select the row, deactivate with a confirm, get counts.
+  await page.getByLabel(`Select ${name}`).check();
+  const bulkBar = page.getByRole('toolbar', { name: 'Bulk actions' });
+  await expect(bulkBar.getByText('1 selected')).toBeVisible();
+  await bulkBar.getByRole('button', { name: 'Deactivate', exact: true }).click();
+  const confirm = page.getByRole('dialog');
+  await expect(confirm.getByText('Deactivate 1 vendor')).toBeVisible();
+  await confirm.getByRole('button', { name: 'Deactivate', exact: true }).click();
+  await expect(toasts(page).filter({ hasText: '1 vendor updated, 0 skipped' })).toBeVisible();
+  await expect(bulkBar).toBeHidden();
+  await expect(row.getByText('Inactive')).toBeVisible();
+
+  // Doc 13 T15/T16: the export streams from the server with masked contact.
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export CSV' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('restaurants.csv');
+
+  // Menu tab renders the real M08-backed list (empty until a menu exists).
+  await row.getByRole('button', { name: 'View', exact: true }).click();
+  detail = page.getByRole('dialog');
+  await detail.getByRole('tab', { name: 'Menu' }).click();
+  await expect(detail.getByText(`No menu items yet for ${name}.`)).toBeVisible();
+  await expect(detail.getByRole('button', { name: 'Manage menu items' })).toBeVisible();
+
+  // A1 onboarding tab: the advisory readiness score with per-item reasons —
+  // it never gates activation (owner decision 2026-10-22).
+  await detail.getByRole('tab', { name: 'Onboarding' }).click();
+  await expect(detail.getByText('Readiness')).toBeVisible();
+  await expect(detail.getByText('Advisory only')).toBeVisible();
+  await expect(detail.getByText('No document uploaded').first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(detail).toBeHidden();
+
+  // A1 review queue section: pending reviews with reminders and the
+  // Super-Admin checklist configuration.
+  await page.getByRole('tab', { name: 'Onboarding' }).click();
+  await expect(page.getByRole('heading', { name: 'Needs review' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Manage checklist' })).toBeVisible();
+  await page.getByRole('button', { name: 'Send reminders' }).click();
+  // The dev database may already hold overdue reviews from earlier runs —
+  // the toast reports either the sent count or that nothing was overdue.
+  await expect(toasts(page).filter({ hasText: /Reminders sent|No overdue reviews/ })).toBeVisible();
 });

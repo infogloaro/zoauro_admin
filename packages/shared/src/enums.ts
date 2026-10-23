@@ -69,6 +69,38 @@ export type MenuApprovalStatus = (typeof MENU_APPROVAL_STATUSES)[number];
 export const MENU_BULK_ACTIONS = ['APPROVE', 'ARCHIVE'] as const;
 export type MenuBulkAction = (typeof MENU_BULK_ACTIONS)[number];
 
+/**
+ * Value bulk actions (doc 09 upstream row: `{action: availability |
+ * category | price, ids ≤ 500}` — lowercase on the wire, all-or-nothing per
+ * D124, preview at `/bulk/preview`). They run under `menu:edit`; the
+ * approval actions above stay under `menu:status`.
+ */
+export const MENU_BULK_VALUE_ACTIONS = ['availability', 'category', 'price'] as const;
+export type MenuBulkValueAction = (typeof MENU_BULK_VALUE_ACTIONS)[number];
+
+export const MENU_BULK_ALL_ACTIONS = [...MENU_BULK_ACTIONS, ...MENU_BULK_VALUE_ACTIONS] as const;
+export type MenuBulkAllAction = (typeof MENU_BULK_ALL_ACTIONS)[number];
+
+/** Doc 09 list filter `availability` (D126 live rule: live = available && in stock && not admin-disabled). */
+export const MENU_AVAILABILITY_FILTERS = [
+  'live',
+  'out_of_stock',
+  'vendor_off',
+  'admin_disabled',
+] as const;
+export type MenuAvailabilityFilter = (typeof MENU_AVAILABILITY_FILTERS)[number];
+
+/** R09 vendor menu change requests (doc 09, D119). */
+export const MENU_CHANGE_KINDS = ['CREATE', 'UPDATE', 'DELETE'] as const;
+export type MenuChangeKind = (typeof MENU_CHANGE_KINDS)[number];
+
+export const MENU_CHANGE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'SUPERSEDED'] as const;
+export type MenuChangeStatus = (typeof MENU_CHANGE_STATUSES)[number];
+
+/** Admin decision on a change request (doc 09: reject requires a reason). */
+export const MENU_CHANGE_DECISIONS = ['APPROVED', 'REJECTED'] as const;
+export type MenuChangeDecision = (typeof MENU_CHANGE_DECISIONS)[number];
+
 export const DIETARY_TYPES = ['VEGETARIAN', 'NON_VEG', 'EGG'] as const;
 export type DietaryType = (typeof DIETARY_TYPES)[number];
 
@@ -83,6 +115,36 @@ export type CustomerSource = (typeof CUSTOMER_SOURCES)[number];
 /** Doc 08 `user_type` — one value exists today. */
 export const USER_TYPES = ['CUSTOMER'] as const;
 export type UserType = (typeof USER_TYPES)[number];
+
+/**
+ * D169 reward-point ledger kinds (doc 09 /customers/{id}/rewards; append-only
+ * ledger — corrections are new rows). ORDER_* / CHECKOUT_REDEEM / EXPIRY are
+ * written by the orders/checkout flows; MANUAL_* / WALLET_CONVERT are the
+ * admin-panel actions.
+ */
+export const REWARD_ENTRY_TYPES = [
+  'ORDER_EARN',
+  'ORDER_REVERSAL',
+  'MANUAL_GRANT',
+  'MANUAL_DEDUCT',
+  'CHECKOUT_REDEEM',
+  'WALLET_CONVERT',
+  'EXPIRY',
+] as const;
+export type RewardEntryType = (typeof REWARD_ENTRY_TYPES)[number];
+
+/** The admin grant/deduct action (POST /customers/{id}/rewards/adjust). */
+export const REWARD_ADJUST_ACTIONS = ['grant', 'deduct'] as const;
+export type RewardAdjustAction = (typeof REWARD_ADJUST_ACTIONS)[number];
+
+/** D169(4) / D24 wallet ledger kinds (doc 16 append-only). */
+export const WALLET_ENTRY_TYPES = [
+  'REWARD_CONVERT',
+  'REFUND_CREDIT',
+  'ORDER_DEBIT',
+  'MANUAL_ADJUST',
+] as const;
+export type WalletEntryType = (typeof WALLET_ENTRY_TYPES)[number];
 
 /**
  * Delivery partner lifecycle (doc 10 §5): PENDING_VERIFICATION → VERIFIED →

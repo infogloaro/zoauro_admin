@@ -9,8 +9,9 @@ import {
   MENU_STATUS_TONES,
   type MenuItem,
 } from '@zoauro/shared';
-import { MoreVertical } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, MoreVertical, Shield, ShieldOff } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
 import {
   Table,
   TableBody,
@@ -19,9 +20,13 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import { formatRupees } from '../../lib/format';
+import { cn } from '../../lib/cn';
+import { formatDate, formatDateTime, formatRupees } from '../../lib/format';
 
 export type MenuItemRowAction = 'view' | 'edit' | 'approve' | 'reject' | 'archive' | 'delete';
+
+/** Sort fields the shared list schema accepts (`-?(createdAt|name|price)`). */
+export const MENU_TABLE_SORT_FIELDS = ['name', 'price', 'createdAt'] as const;
 
 /**
  * Row actions the approval workflow (doc 10 §4) allows from each status:
@@ -42,6 +47,173 @@ export function menuActionsFor(status: MenuItem['approvalStatus']): MenuItemRowA
 
 function Th({ children }: { children: ReactNode }) {
   return <TableHead className="text-[13px] font-medium text-slate-600">{children}</TableHead>;
+}
+
+/** Sortable header (zones-table pattern): cycles asc → desc on the fields
+ * the shared sort schema allows; a plain header when no handler is wired. */
+function SortTh({
+  field,
+  label,
+  sort,
+  onSort,
+}: {
+  field: string;
+  label: string;
+  sort?: string;
+  onSort?: (next: string) => void;
+}) {
+  if (!onSort) return <Th>{label}</Th>;
+  const active = sort === field || sort === `-${field}`;
+  const desc = sort === `-${field}`;
+  const Icon = !active ? ArrowUpDown : desc ? ArrowDown : ArrowUp;
+  return (
+    <Th>
+      <button
+        type="button"
+        onClick={() => onSort(active && !desc ? `-${field}` : field)}
+        className={cn('inline-flex items-center gap-1 hover:text-text', active && 'text-text')}
+        aria-label={`Sort by ${label}`}
+      >
+        {label}
+        <Icon className="size-3" />
+      </button>
+    </Th>
+  );
+}
+
+/**
+ * Inline stock editor: a number, or empty for "not tracked" (`null`, treated
+ * as in stock so the item stays live). Commits on blur or Enter and reverts
+ * when nothing changed; the parent PATCHes `{stock}`.
+ */
+function StockCell({
+  item,
+  onCommit,
+}: {
+  item: MenuItem;
+  onCommit: (stock: number | null) => void;
+}) {
+  const initial = item.stock === null ? '' : String(item.stock);
+  const [draft, setDraft] = useState(initial);
+
+  useEffect(() => {
+    setDraft(initial);
+  }, [initial]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed === initial) return;
+    if (trimmed === '') {
+      onCommit(null);
+      return;
+    }
+    if (!/^\d{1,6}$/.test(trimmed)) {
+      setDraft(initial);
+      return;
+    }
+    onCommit(Number(trimmed));
+  }
+
+  return (
+    <Input
+      type="number"
+      min={0}
+      max={1_000_000}
+      value={draft}
+      placeholder="—"
+      aria-label={`Stock for ${item.name} (empty = not tracked)`}
+      title="Stock count; leave empty for not tracked"
+      className="h-9 w-20 text-[13px]"
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') commit();
+      }}
+    />
+  );
+}
+
+/** Vendor availability shortcut (doc 44: the vendor owns `isAvailable`). */
+function AvailabilityToggle({
+  item,
+  onToggle,
+}: {
+  item: MenuItem;
+  onToggle: (next: boolean) => void;
+}) {
+  const on = item.isAvailable;
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(!on)}
+      className={cn(
+        'flex size-9 items-center justify-center rounded-md text-[12px] font-medium transition-colors',
+        on
+          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+          : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+      )}
+      aria-label={`${on ? 'Hide' : 'Show'} ${item.name}`}
+      title={on ? 'Hide from customers' : 'Show on menu'}
+    >
+      {on ? 'ON' : 'OFF'}
+    </button>
+  );
+}
+
+/** Featured flag toggle (no confirm — purely promotional). */
+function FeaturedToggle({ item, onToggle }: { item: MenuItem; onToggle: (next: boolean) => void }) {
+  const on = item.isFeatured;
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(!on)}
+      className={cn(
+        'flex size-9 items-center justify-center rounded-md text-[12px] font-medium transition-colors',
+        on
+          ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+          : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+      )}
+      aria-label={`${on ? 'Unfeature' : 'Feature'} ${item.name}`}
+      title={on ? 'Remove from featured' : 'Mark as featured'}
+    >
+      {on ? '★' : '☆'}
+    </button>
+  );
+}
+
+/**
+ * Admin disable control (D126): turning an item OFF opens the reason dialog
+ * in the screen; turning it back on is a direct PATCH. Never touches the
+ * vendor's `isAvailable`.
+ */
+function AdminDisableToggle({
+  item,
+  onToggle,
+}: {
+  item: MenuItem;
+  onToggle: (next: boolean) => void;
+}) {
+  const disabled = item.adminDisabled;
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(!disabled)}
+      className={cn(
+        'flex size-9 items-center justify-center rounded-md transition-colors',
+        disabled
+          ? 'bg-red-100 text-red-700 hover:bg-red-200'
+          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-red-600',
+      )}
+      aria-label={`${disabled ? 'Re-enable' : 'Admin-disable'} ${item.name}`}
+      title={
+        disabled
+          ? 'Re-enable (admin)'
+          : 'Admin disable — hides the item, requires a reason (does not change vendor availability)'
+      }
+    >
+      {disabled ? <ShieldOff className="size-4" /> : <Shield className="size-4" />}
+    </button>
+  );
 }
 
 function ActionMenu({
@@ -223,6 +395,12 @@ export function MenuItemsTable({
   onToggle,
   onToggleAll,
   showZoneChip,
+  sort,
+  onSort,
+  onAvailabilityToggle,
+  onFeaturedToggle,
+  onStockChange,
+  onAdminDisableToggle,
 }: {
   items: MenuItem[];
   onAction: (item: MenuItem, action: MenuItemRowAction) => void;
@@ -231,6 +409,12 @@ export function MenuItemsTable({
   onToggle?: (id: string) => void;
   onToggleAll?: (checked: boolean) => void;
   showZoneChip?: boolean;
+  sort?: string;
+  onSort?: (next: string) => void;
+  onAvailabilityToggle?: (item: MenuItem, next: boolean) => void;
+  onFeaturedToggle?: (item: MenuItem, next: boolean) => void;
+  onStockChange?: (item: MenuItem, stock: number | null) => void;
+  onAdminDisableToggle?: (item: MenuItem, next: boolean) => void;
 }) {
   const allSelected = items.length > 0 && items.every((item) => selectedIds?.has(item.id) ?? false);
 
@@ -257,13 +441,16 @@ export function MenuItemsTable({
             </Th>
           )}
 
-          <Th>Food Item</Th>
+          <SortTh field="name" label="Food Item" sort={sort} onSort={onSort} />
           <Th>Hotel &amp; Menu</Th>
           <Th>Zone/Admin</Th>
-          <Th>Price</Th>
+          <SortTh field="price" label="Price" sort={sort} onSort={onSort} />
           <Th>Type</Th>
+          <Th>Stock</Th>
+          <Th>Availability</Th>
+          <Th>Featured</Th>
           <Th>Status</Th>
-          <Th>Updated</Th>
+          <SortTh field="createdAt" label="Created" sort={sort} onSort={onSort} />
           <Th>Actions</Th>
         </TableRow>
       </TableHeader>
@@ -332,19 +519,78 @@ export function MenuItemsTable({
             </TableCell>
 
             <TableCell>
-              <Badge tone={MENU_STATUS_TONES[item.approvalStatus]}>
-                {MENU_STATUS_LABELS[item.approvalStatus] ?? item.approvalStatus}
-              </Badge>
+              {onStockChange ? (
+                <StockCell item={item} onCommit={(stock) => onStockChange(item, stock)} />
+              ) : item.stock === null ? (
+                <span className="text-[12px] text-slate-400" title="Not tracked">
+                  Untracked
+                </span>
+              ) : (
+                <span className="text-[13px] text-text">{item.stock}</span>
+              )}
+            </TableCell>
+
+            <TableCell>
+              {onAvailabilityToggle ? (
+                <AvailabilityToggle
+                  item={item}
+                  onToggle={(next) => onAvailabilityToggle(item, next)}
+                />
+              ) : item.isAvailable ? (
+                <Badge tone="success">On</Badge>
+              ) : (
+                <Badge tone="neutral">Off</Badge>
+              )}
+            </TableCell>
+
+            <TableCell>
+              {onFeaturedToggle ? (
+                <FeaturedToggle item={item} onToggle={(next) => onFeaturedToggle(item, next)} />
+              ) : item.isFeatured ? (
+                <Badge tone="warning">Featured</Badge>
+              ) : (
+                <span className="text-[12px] text-slate-400">—</span>
+              )}
+            </TableCell>
+
+            <TableCell>
+              <div className="flex flex-col items-start gap-1">
+                <Badge tone={MENU_STATUS_TONES[item.approvalStatus]}>
+                  {MENU_STATUS_LABELS[item.approvalStatus] ?? item.approvalStatus}
+                </Badge>
+                {item.live ? (
+                  <Badge tone="success">Live</Badge>
+                ) : (
+                  <Badge tone="neutral">Not live</Badge>
+                )}
+                {item.adminDisabled && <Badge tone="danger">Admin disabled</Badge>}
+                {item.adminOverrideAt && (
+                  <span
+                    className="text-[10px] text-amber-600"
+                    title="A vendor-owned field was changed by an admin"
+                  >
+                    Admin override · {formatDateTime(item.adminOverrideAt)}
+                  </span>
+                )}
+              </div>
             </TableCell>
 
             <TableCell>
               <span className="text-[11px] text-slate-400">
-                {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '—'}
+                {item.createdAt ? formatDate(item.createdAt) : '—'}
               </span>
             </TableCell>
 
             <TableCell>
-              <ActionMenu item={item} onAction={onAction} />
+              <div className="flex items-center justify-end gap-1">
+                {onAdminDisableToggle && (
+                  <AdminDisableToggle
+                    item={item}
+                    onToggle={(next) => onAdminDisableToggle(item, next)}
+                  />
+                )}
+                <ActionMenu item={item} onAction={onAction} />
+              </div>
             </TableCell>
           </TableRow>
         ))}

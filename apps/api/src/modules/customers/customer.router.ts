@@ -12,6 +12,10 @@ import { requireCustomerPermission } from './customer.scope';
  *   POST   /customers/{id}/block         customers:status  no body, audited
  *   POST   /customers/{id}/unblock       customers:status  no body, audited
  *   GET    /customers/{id}/reveal        customers:reveal  audited unmask (D26)
+ *   GET    /customers/{id}/rewards       customers:view    ledger page + balance (D169)
+ *   POST   /customers/{id}/rewards/adjust  customers:edit  grant/deduct, audited
+ *   POST   /customers/{id}/rewards/convert customers:edit  always 409 until D101 settings
+ *   GET    /customers/{id}/wallet        customers:view    ledger page + balance (D24)
  * Doc 09 lists no DELETE /customers — no delete route is offered.
  */
 export function createCustomersRouter(): Router {
@@ -27,6 +31,10 @@ export function createCustomersRouter(): Router {
   router.post('/:id/block', requireCustomerPermission('status'), h.block);
   router.post('/:id/unblock', requireCustomerPermission('status'), h.unblock);
   router.get('/:id/reveal', requireCustomerPermission('reveal'), h.reveal);
+  router.get('/:id/rewards', h.rewards);
+  router.post('/:id/rewards/adjust', requireCustomerPermission('edit'), h.adjustRewards);
+  router.post('/:id/rewards/convert', requireCustomerPermission('edit'), h.convertRewards);
+  router.get('/:id/wallet', h.wallet);
 
   return router;
 }

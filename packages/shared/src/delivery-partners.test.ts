@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { DELIVERY_PARTNER_STATUSES } from './enums';
 import {
+  DELIVERY_PARTNER_STATUS_TARGETS,
   deliveryPartnerCreateSchema,
+  deliveryPartnerDetailSchema,
   deliveryPartnerEditFormSchema,
   deliveryPartnerEditFormToUpdate,
   deliveryPartnerForceOfflineSchema,
   deliveryPartnerFormSchema,
   deliveryPartnerFormToPayload,
+  deliveryPartnerMoveZoneSchema,
+  deliveryPartnerRevealSchema,
+  deliveryPartnerStatusSchema,
   deliveryPartnerUpdateSchema,
   deliveryPartnerVerificationSchema,
   listDeliveryPartnersQuerySchema,
@@ -164,5 +169,77 @@ describe('doc 10 §5 state machine values', () => {
       'INACTIVE',
       'SUSPENDED',
     ]);
+  });
+});
+
+describe('deliveryPartnerStatusSchema (D131 status endpoint)', () => {
+  it('contracts exactly the doc 10 §5 status targets — verification is not one of them', () => {
+    expect(DELIVERY_PARTNER_STATUS_TARGETS).toEqual(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
+    expect(deliveryPartnerStatusSchema.parse({ status: 'SUSPENDED' })).toEqual({
+      status: 'SUSPENDED',
+    });
+    expect(deliveryPartnerStatusSchema.safeParse({ status: 'PENDING_VERIFICATION' }).success).toBe(
+      false,
+    );
+    expect(deliveryPartnerStatusSchema.safeParse({ status: 'VERIFIED' }).success).toBe(false);
+    expect(deliveryPartnerStatusSchema.safeParse({ status: 'PENDING' }).success).toBe(false);
+  });
+});
+
+describe('deliveryPartnerMoveZoneSchema (D131 move-zone)', () => {
+  it('requires a uuid zone and rejects a malformed one', () => {
+    expect(deliveryPartnerMoveZoneSchema.parse({ zoneId })).toEqual({ zoneId });
+    expect(deliveryPartnerMoveZoneSchema.safeParse({ zoneId: 'nope' }).success).toBe(false);
+    expect(deliveryPartnerMoveZoneSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('deliveryPartnerRevealSchema (D26 audited unmask)', () => {
+  it('contracts the full phone — partners carry no email column', () => {
+    expect(deliveryPartnerRevealSchema.parse({ phone: '9840012345' })).toEqual({
+      phone: '9840012345',
+    });
+    expect(deliveryPartnerRevealSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('deliveryPartnerDetailSchema (D131 vendor-mirror detail)', () => {
+  const partner = {
+    id: '22222222-2222-4222-8222-222222222222',
+    zoneId,
+    zone: { id: zoneId, name: 'Velachery', city: 'Chennai' },
+    name: 'Karthik Raja',
+    phone: '98****4321',
+    vehicleType: 'BIKE',
+    vehicleNo: 'TN 09 AB 1234',
+    area: 'Velachery',
+    status: 'ACTIVE',
+    isOnline: true,
+    forceOfflineUntil: null,
+    verifiedAt: '2026-10-01T10:00:00.000Z',
+    currentOrders: 0,
+    cashInHand: 0,
+    ratingAvg: null,
+    deliveriesCount: 0,
+    ordersAssigned: 0,
+    failedDeliveries: 0,
+    avgDeliveryMinutes: null,
+    onTimePct: null,
+    earningsPaise: 0,
+    settlementStatus: 'PENDING',
+    createdAt: '2026-10-01T09:00:00.000Z',
+    updatedAt: '2026-10-01T10:00:00.000Z',
+  } as const;
+
+  it('extends the partner with documents and activity arrays (vendor detail shape)', () => {
+    expect(deliveryPartnerDetailSchema.parse({ ...partner, documents: [], activity: [] })).toEqual({
+      ...partner,
+      documents: [],
+      activity: [],
+    });
+  });
+
+  it('rejects a detail without the documents or activity arrays', () => {
+    expect(deliveryPartnerDetailSchema.safeParse(partner).success).toBe(false);
   });
 });

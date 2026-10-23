@@ -379,6 +379,21 @@ export function vendorDocumentType(kind: VendorKind): VendorType {
   return kind === 'restaurant' ? 'RESTAURANT' : 'HOMEMAKER';
 }
 
+/** Bulk status (doc 22 §bulk): one updateMany per kind, inside the caller's transaction. */
+export async function updateManyStatus(
+  db: Db,
+  kind: VendorKind,
+  ids: string[],
+  status: Restaurant['status'],
+): Promise<number> {
+  if (kind === 'restaurant') {
+    const result = await db.restaurant.updateMany({ where: { id: { in: ids } }, data: { status } });
+    return result.count;
+  }
+  const result = await db.homemaker.updateMany({ where: { id: { in: ids } }, data: { status } });
+  return result.count;
+}
+
 /** doc 08 vendor_documents — rows appear once SA-2.1 uploads lands. */
 export async function listDocuments(kind: VendorKind, vendorId: string): Promise<VendorDocument[]> {
   return prisma.vendorDocument.findMany({
@@ -429,4 +444,118 @@ export async function listActivity(
     actorName: r.actor.name,
     createdAt: r.createdAt,
   }));
+}
+
+/* ------------------------------------------------------------------ *
+ * A1 onboarding (doc 08 onboarding_requirements; doc 09 checklist)
+ * ------------------------------------------------------------------ */
+
+export type OnboardingRequirementRow = {
+  id: string;
+  vendorType: VendorType;
+  docType: string;
+  label: string;
+  weight: number;
+  active: boolean;
+  sortOrder: number;
+};
+
+export async function listRequirements(
+  vendorType: VendorType,
+  db: Db = prisma,
+): Promise<OnboardingRequirementRow[]> {
+  return db.onboardingRequirement.findMany({
+    where: { vendorType },
+    orderBy: { sortOrder: 'asc' },
+  });
+}
+
+/**
+ * Replace one vendor type's checklist: every existing row is deactivated,
+ * then each payload row is upserted on (vendorType, docType) with its own
+ * active flag — deactivations and activations land in one transaction.
+ */
+export async function replaceRequirements(
+  db: Db,
+  vendorType: VendorType,
+  requirements: Array<{
+    docType: string;
+    label: string;
+    weight: number;
+    active: boolean;
+    sortOrder: number;
+  }>,
+): Promise<void> {
+  await db.onboardingRequirement.updateMany({
+    where: { vendorType },
+    data: { active: false },
+  });
+  for (const r of requirements) {
+    await db.onboardingRequirement.upsert({
+      where: { vendorType_docType: { vendorType, docType: r.docType } },
+      create: { vendorType, ...r },
+      update: { label: r.label, weight: r.weight, active: r.active, sortOrder: r.sortOrder },
+    });
+  }
+}
+
+/** Recipients for compliance reminders: every active Super Admin account. */
+export async function findActiveSuperAdminIds(): Promise<string[]> {
+  const rows = await prisma.user.findMany({
+    where: { deletedAt: null, status: 'ACTIVE', role: { name: 'SUPER_ADMIN' } },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
+export interface PendingReviewRow {
+  id: string;
+  name: string;
+  zoneId: string;
+  verificationStatus: string;
+  reviewDueAt: Date | null;
+  createdAt: Date;
+  zone: { name: string };
+}
+
+/** Pending-verification vendors for the review queue and overdue reminders. */
+export async function listPendingReviewVendors(
+  kind: VendorKind,
+  zoneIds: string[] | null,
+  limit: number,
+): Promise<PendingReviewRow[]> {
+  const where = {
+    ...scopeWhere(zoneIds),
+    verificationStatus: 'PENDING' as const,
+  };
+  if (kind === 'restaurant') {
+    return prisma.restaurant.findMany({
+      where,
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        zoneId: true,
+        verificationStatus: true,
+        reviewDueAt: true,
+        createdAt: true,
+        zone: { select: { name: true } },
+      },
+    });
+  }
+  return prisma.homemaker.findMany({
+    where,
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+    select: {
+      id: true,
+      name: true,
+      zoneId: true,
+      verificationStatus: true,
+      reviewDueAt: true,
+      createdAt: true,
+      zone: { select: { name: true } },
+    },
+  });
 }

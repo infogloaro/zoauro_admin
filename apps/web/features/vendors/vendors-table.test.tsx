@@ -182,4 +182,32 @@ describe('VendorsTable', () => {
     expect(html).toContain('title="Activate"');
     expect(html).not.toContain('title="Verify the vendor before activating"');
   });
+
+  it('adds a checkbox column only when bulk selection is enabled (doc 22 §bulk)', () => {
+    const withoutSelection = renderToStaticMarkup(
+      <VendorsTable
+        kind="restaurant"
+        vendors={[restaurant]}
+        onAction={noop}
+        showZoneChip={false}
+      />,
+    );
+    expect(withoutSelection).not.toContain('Select all records on this page');
+
+    const withSelection = renderToStaticMarkup(
+      <VendorsTable
+        kind="restaurant"
+        vendors={[restaurant, homemaker as Vendor]}
+        onAction={noop}
+        showZoneChip={false}
+        selected={new Set([restaurant.id])}
+        onToggleSelected={noop}
+        onToggleAll={noop}
+      />,
+    );
+    expect(withSelection).toContain('Select all records on this page');
+    expect(withSelection).toContain(`Select Anna Nagar Biryani Hut`);
+    // The pre-selected row renders checked; the other one does not.
+    expect(withSelection).toMatch(/checked=""/);
+  });
 });

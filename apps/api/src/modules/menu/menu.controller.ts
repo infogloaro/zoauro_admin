@@ -1,10 +1,15 @@
 import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 import {
+  listMenuItemChangeRequestsQuerySchema,
   listMenuItemsQuerySchema,
   menuItemApprovalSchema,
+  menuItemBulkPreviewSchema,
   menuItemBulkSchema,
+  menuItemChangeApproveSchema,
+  menuItemChangeRejectSchema,
   menuItemCreateSchema,
+  menuItemImportSchema,
   menuItemUpdateSchema,
 } from '@zoauro/shared';
 import { errors } from '../../lib/errors';
@@ -21,6 +26,14 @@ function itemId(req: Request): string {
   const raw = req.params.id;
   const id = Array.isArray(raw) ? raw[0] : raw;
   if (!id || !z.uuid().safeParse(id).success) throw errors.notFound('Menu item not found');
+  return id;
+}
+
+/** Same 404-not-422 rule for the nested change-request routes. */
+function changeRequestId(req: Request): string {
+  const raw = req.params.crId;
+  const id = Array.isArray(raw) ? raw[0] : raw;
+  if (!id || !z.uuid().safeParse(id).success) throw errors.notFound('Change request not found');
   return id;
 }
 
@@ -91,6 +104,70 @@ export const menuHandlers = {
     try {
       const input = menuItemBulkSchema.parse(req.body);
       res.json({ data: await service.bulkMenuAction(actor(req), input) });
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  /** D124 dry run: same validation and id resolution, zero writes. */
+  bulkPreview: (async (req, res, next) => {
+    try {
+      const input = menuItemBulkPreviewSchema.parse(req.body);
+      res.json(await service.bulkMenuPreview(input));
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  /** R09: vendor item-change requests, default status PENDING (doc 09). */
+  changeRequests: (async (req, res, next) => {
+    try {
+      const query = listMenuItemChangeRequestsQuerySchema.parse(req.query);
+      res.json(await service.listMenuItemChangeRequests(query));
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  changeRequest: (async (req, res, next) => {
+    try {
+      res.json({ data: await service.getMenuItemChangeRequest(changeRequestId(req)) });
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  changeRequestApprove: (async (req, res, next) => {
+    try {
+      const input = menuItemChangeApproveSchema.parse(req.body);
+      const data = await service.decideMenuItemChangeRequest(actor(req), changeRequestId(req), {
+        ...input,
+        decision: 'APPROVED',
+      });
+      res.json({ data });
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  changeRequestReject: (async (req, res, next) => {
+    try {
+      const input = menuItemChangeRejectSchema.parse(req.body);
+      const data = await service.decideMenuItemChangeRequest(actor(req), changeRequestId(req), {
+        ...input,
+        decision: 'REJECTED',
+      });
+      res.json({ data });
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  /** A6: dry-run report or transactional CSV import (doc 34 SA-2.5). */
+  importItems: (async (req, res, next) => {
+    try {
+      const input = menuItemImportSchema.parse(req.body);
+      res.json({ data: await service.importMenuItems(actor(req), input) });
     } catch (error) {
       next(error);
     }

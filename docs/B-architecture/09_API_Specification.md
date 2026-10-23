@@ -49,11 +49,19 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET/POST | /restaurants | restaurants:* | scoped; POST needs `zoneId` |
 | GET/PATCH/DELETE | /restaurants/{id} | | |
 | POST | /restaurants/{id}/status | restaurants:status | activate, deactivate, suspend |
+| POST | /restaurants/bulk | restaurants:status | `{ ids[1..100], status }`; per-vendor skip on illegal transition; one audit row `*.bulk.status` |
+| GET | /restaurants/export | restaurants:view | synchronous CSV (D26-masked contact, formula-safe, doc 13 T15/T16, max 5000 rows); audited `*.export` |
 | POST | /restaurants/{id}/verification | restaurants:status | verify / reject (note required) |
 | POST | /restaurants/{id}/move-zone | zones:assign | Super Admin only, R-VEN-3 |
 | POST | /restaurants/{id}/documents | restaurants:edit | attach a confirmed presigned upload `{ docType, fileKey }` |
 | GET | /restaurants/{id}/documents/{documentId}/url | restaurants:view | short-lived signed read `{ url, expiresInSec }`; the download itself is audited (doc 15), the URL is not |
 | POST | /restaurants/{id}/documents/{documentId}/verify | restaurants:status | `{ decision, note? }`; note required to reject |
+| GET | /restaurants/onboarding/checklist | restaurants:view | advisory requirement matrix (doc 45); never gates verification/activation |
+| PUT | /restaurants/onboarding/checklist | (Super Admin only) | replace the matrix `{ requirements[{ docType, label, weight, active }] }`; unique docType per kind |
+| GET | /restaurants/onboarding/review-queue | restaurants:view | pending-verification vendors oldest-first with `reviewDueAt` + derived review state (ON_TIME/DUE_SOON/OVERDUE/ESCALATED, 48 h SLA) |
+| POST | /restaurants/onboarding/reminders | restaurants:status | notifies OVERDUE/ESCALATED vendors; idempotency key `onboarding.overdue.{kind}.{vendorId}.{yyyy-mm-dd}`; returns `{ notified, deduped, overdue }` |
+| GET | /restaurants/{id}/onboarding | restaurants:view | active checklist + readiness score + per-item reasons + review state + `reviewDueAt` |
+| PUT | /restaurants/{id}/review-deadline | restaurants:status | set/clear the manual review deadline; audit `*.review-deadline` |
 | (same set) | /homemakers … | homemakers:* | |
 | GET/POST | /hotels | hotels:view/add | zone-scoped; POST needs `zoneId`; list meta carries counts + metrics (owner-authorized build, doc 32 TD-33) |
 | GET/PATCH/DELETE | /hotels/{id} | | |
@@ -66,12 +74,12 @@ Codes: UNAUTHENTICATED 401, FORBIDDEN 403, NOT_FOUND 404, ZONE_NOT_FOUND 404, VA
 | GET/POST | /hotels/dining | dining:view/add | venue (hotel or restaurant) must be in the same zone; unknown venue → 404 |
 | GET | /hotels/dining/{diningId} | dining:view | |
 | POST | /hotels/dining/{diningId}/status | dining:status | PENDING→CONFIRMED/CANCELLED; CONFIRMED→COMPLETED/CANCELLED/NO_SHOW |
-| GET/POST | /menu-items | menu:* | filter by vendor/category/status |
+| GET/POST | /menu-items | menu:* | filter by vendor / vendorId / category / status |
 | GET | /menu-items/menus | menu:view | aggregate (owner kind × approval status) for the All Menus tab |
 | PATCH/DELETE | /menu-items/{id} | | edits keep the stored approval status |
 | POST | /menu-items/{id}/approval | menu:status | `{ decision, reason? }`; reason required to REJECT |
 | POST | /menu-items/bulk | menu:status | `{ ids, action: APPROVE\|ARCHIVE }`; per-item skip on illegal transition |
-| POST | /menu-items/import | (P1) | |
+| POST | /menu-items/import | menu:add | `{ csv, dryRun }`; header `zone,provider,type,name,description,category,price,dietary` (first six required, extra columns ignored; rows ≤ 1000, CSV ≤ 400 000 chars, price = whole rupees 1–999999 → paise ×100). Dry-run returns the report only (no writes, no audit); a real run creates the valid rows PENDING + one `menu.import` audit row. Response `{ dryRun, total, valid, invalid, duplicates, created, errors: [{ row, field?, issue }] }`. Rows whose owner name is missing/ambiguous are errors; a (vendor, name) already on the menu counts as a duplicate (a re-run creates nothing, doc 44 §5); a category already live for that provider is a row error (D119 partial unique index — never a 500); cells starting `= + - @` are `'`-escaped on the way in (doc 13 T16). The permission cell carried the `(P1)` marker until this shipment — resolved to `menu:add` because the call creates items |
 | GET | /orders | orders:view | filters, search, scope |
 | GET | /orders/{id} | orders:view | items, timeline, payment panel |
 | POST | /orders/{id}/transition | orders:status | `{ to, note }` |

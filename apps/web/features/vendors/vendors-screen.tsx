@@ -6,7 +6,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
-  ListVendorsResponse,
   Vendor,
   VendorDocType,
   VendorKind,
@@ -26,11 +25,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { apiFetch, ApiError } from '../../lib/api';
+import { ApiError } from '../../lib/api';
 import { cn } from '../../lib/cn';
 import { useZonesList } from '../zones/api';
 import {
+  downloadVendorsCsv,
   useAddVendorDocument,
+  useBulkVendorStatus,
   useCreateVendor,
   useDeleteVendor,
   useMoveVendorZone,
@@ -40,16 +41,9 @@ import {
   useVendorStatus,
   useVendorVerification,
   useVendorsList,
-  vendorBase,
-  vendorQueryString,
   type VendorFilters,
 } from './api';
-import {
-  PREVIEW_ZONE_OPTIONS,
-  isVendorPreview,
-  mockVendorsList,
-  setVendorPreview,
-} from './preview';
+import { PREVIEW_ZONE_OPTIONS, isVendorPreview, setVendorPreview } from './preview';
 import { ConfirmDialog, VerificationDialog } from './vendor-actions';
 import {
   VendorDetailDialog,
@@ -58,6 +52,7 @@ import {
 } from './vendor-detail-dialog';
 import { VendorToolbar } from './vendor-filters';
 import { VendorFormDialog } from './vendor-form-dialog';
+import { VendorOnboardingSection } from './vendor-onboarding-section';
 import { VendorsTable, type VendorRowAction } from './vendors-table';
 import {
   DEFAULT_PAGE_SIZE,
@@ -73,31 +68,17 @@ const SECTIONS = [
   { id: 'orders', label: 'Orders' },
   { id: 'financials', label: 'Financials' },
   { id: 'performance', label: 'Performance' },
+  { id: 'onboarding', label: 'Onboarding' },
   { id: 'activity', label: 'Activity History' },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]['id'];
 
-const SECTION_EMPTY: Record<Exclude<SectionId, 'overview'>, string> = {
+const SECTION_EMPTY: Record<Exclude<SectionId, 'overview' | 'onboarding'>, string> = {
   orders: 'Order history appears here once orders start flowing.',
   financials: 'Settlements, commissions and payouts appear here.',
   performance: 'Performance metrics accrue with live order data.',
   activity: 'No activity recorded yet.',
 };
-
-const STATUS_TEXT: Record<string, string> = {
-  PENDING: 'Pending',
-  ACTIVE: 'Active',
-  INACTIVE: 'Inactive',
-  SUSPENDED: 'Suspended',
-};
-
-function shortId(kind: VendorKind, id: string): string {
-  return `${kind === 'restaurant' ? 'RST' : 'HFP'}-${id.slice(0, 4).toUpperCase()}`;
-}
-
-function csvRow(cells: Array<string | number>): string {
-  return cells.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',');
-}
 
 interface ConfirmRequest {
   title: string;
@@ -187,6 +168,7 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
   const create = useCreateVendor(kind);
   const update = useUpdateVendor(kind);
   const statusMutation = useVendorStatus(kind);
+  const bulkStatusMutation = useBulkVendorStatus(kind);
   const verificationMutation = useVendorVerification(kind);
   const moveMutation = useMoveVendorZone(kind);
   const deleteMutation = useDeleteVendor(kind);
@@ -198,6 +180,15 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
     null,
   );
   const [exporting, setExporting] = useState(false);
+  // Bulk status (doc 22): row checkboxes accumulate across pages; the header
+  // checkbox only toggles the current page, so page vs total selection stays
+  // distinguishable through the bar's count.
+  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
+
+  // Switching vendor kind must not carry another kind's selection along.
+  useEffect(() => {
+    setSelected(new Set());
+  }, [kind]);
 
   const busy =
     create.isPending ||
@@ -440,75 +431,74 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
   }
 
   /**
-   * Client-side CSV export (doc 22 exports): walks every filtered page of the
-   * real records, so the file mirrors exactly what the list shows.
+   * CSV export now runs on the server (doc 22 exports, doc 13 T15/T16): the
+   * API walks every filtered row, masks contacts like the list, escapes
+   * formulas and audits the download.
    */
   async function exportCsv() {
     if (exporting) return;
     setExporting(true);
     try {
-      const rows: Array<Array<string | number>> = [];
-      const perPage = 100;
-      for (let pageNumber = 1; pageNumber <= 50; pageNumber += 1) {
-        const response: ListVendorsResponse = isVendorPreview()
-          ? mockVendorsList(kind, { ...filters, page: pageNumber, pageSize: perPage })
-          : await apiFetch<ListVendorsResponse>(
-              `/${vendorBase(kind)}?${vendorQueryString({
-                ...filters,
-                page: pageNumber,
-                pageSize: perPage,
-              })}`,
-            );
-        for (const vendor of response.data) {
-          rows.push([
-            shortId(kind, vendor.id),
-            vendor.name,
-            vendor.kind === 'restaurant' ? vendor.ownerName : '',
-            vendor.phone,
-            vendor.zone.name,
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            STATUS_TEXT[vendor.status] ?? vendor.status,
-          ]);
-        }
-        if (response.data.length < perPage) break;
-      }
-      if (rows.length === 0) {
-        toast.error('No records to export.');
-        return;
-      }
-      const header = [
-        'ID',
-        'Name',
-        'Owner',
-        'Phone',
-        'Zone',
-        'Admin',
-        'Orders',
-        'Gross value',
-        'Commission',
-        'Refunds',
-        'Payout',
-        'Status',
-      ];
-      const csv = `\uFEFF${[csvRow(header), ...rows.map(csvRow)].join('\r\n')}`;
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = kind === 'restaurant' ? 'restaurants.csv' : 'homemakers.csv';
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success('CSV export ready');
+      const count = await downloadVendorsCsv(kind, filters);
+      toast.success(
+        count === 0
+          ? 'No records matched the current filters.'
+          : `CSV export ready — ${count} ${count === 1 ? 'record' : 'records'}`,
+      );
     } catch (error) {
       toastError(error, 'Could not export the records.');
     } finally {
       setExporting(false);
     }
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllOnPage() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const pageIds = vendors.map((v) => v.id);
+      const allSelected = pageIds.length > 0 && pageIds.every((id) => next.has(id));
+      for (const id of pageIds) {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  }
+
+  /** Doc 22 §bulk: confirm with the count, then report updated/skipped. */
+  function requestBulkStatus(target: VendorStatusTarget) {
+    const count = selected.size;
+    const label =
+      target === 'ACTIVE' ? 'Activate' : target === 'INACTIVE' ? 'Deactivate' : 'Suspend';
+    setConfirm({
+      title: `${label} ${count} ${count === 1 ? 'vendor' : 'vendors'}`,
+      description:
+        'Vendors whose current state cannot move to this status are skipped. The change is audited.',
+      confirmLabel: label,
+      run: async () => {
+        try {
+          const result = await bulkStatusMutation.mutateAsync({
+            ids: [...selected],
+            status: target,
+          });
+          setSelected(new Set());
+          toast.success(
+            `${result.data.updated} ${result.data.updated === 1 ? 'vendor' : 'vendors'} updated, ${result.data.skipped} skipped`,
+          );
+        } catch (error) {
+          toastError(error, 'Could not change the status.');
+        }
+      },
+    });
   }
 
   const formOpen = action === 'new';
@@ -636,7 +626,17 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
         ))}
       </div>
 
-      {section === 'overview' ? (
+      {section === 'onboarding' ? (
+        <div className="mb-6">
+          <Card className="p-5">
+            <VendorOnboardingSection
+              kind={kind}
+              {...(zoneId ? { zoneId } : {})}
+              onOpenVendor={(id) => setParams({ vendor: id, edit: null }, { resetPage: false })}
+            />
+          </Card>
+        </div>
+      ) : section === 'overview' ? (
         <div className="mb-6">
           <Card className="p-5">
             <h2 className="text-[15px] font-semibold text-text">
@@ -690,7 +690,7 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
         <div className="px-5 pb-4 pt-4">
           <VendorToolbar
             kind={kind}
-            value={{ q, status, zoneId, area }}
+            value={{ q, status, verification, zoneId, area }}
             zones={zoneOptions}
             areas={areaSuggestions}
             onChange={(patch) => setParams({ ...patch, vendor: null, edit: null, action: null })}
@@ -698,6 +698,46 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
             exportBusy={exporting}
           />
         </div>
+        {selected.size > 0 && (
+          <div
+            role="toolbar"
+            aria-label="Bulk actions"
+            className="mx-5 mb-4 flex flex-wrap items-center gap-2 rounded-[--radius-card] border border-border bg-bg px-4 py-3 text-sm"
+          >
+            <span className="font-medium text-text">{selected.size} selected</span>
+            <Button
+              size="sm"
+              onClick={() => requestBulkStatus('ACTIVE')}
+              disabled={bulkStatusMutation.isPending}
+            >
+              Activate
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => requestBulkStatus('INACTIVE')}
+              disabled={bulkStatusMutation.isPending}
+            >
+              Deactivate
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => requestBulkStatus('SUSPENDED')}
+              disabled={bulkStatusMutation.isPending}
+            >
+              Suspend
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelected(new Set())}
+              disabled={bulkStatusMutation.isPending}
+            >
+              Clear selection
+            </Button>
+          </div>
+        )}
         {list.isPending ? (
           <TableSkeleton />
         ) : list.isError ? (
@@ -756,6 +796,9 @@ export function VendorsScreen({ defaultTab }: { defaultTab?: 'restaurants' | 'ho
               vendors={vendors}
               onAction={onRowAction}
               showZoneChip={showZoneChip}
+              selected={selected}
+              onToggleSelected={toggleSelected}
+              onToggleAll={toggleAllOnPage}
             />
             <Pagination
               page={page}

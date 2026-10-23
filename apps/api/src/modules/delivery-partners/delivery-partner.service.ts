@@ -1,20 +1,36 @@
+import type { VendorDocument as VendorDocumentModel } from '@prisma/client';
 import type {
   DeliveryPartnerCreateInput,
+  DeliveryPartnerDetail,
   DeliveryPartnerForceOfflineInput,
+  DeliveryPartnerMoveZoneInput,
+  DeliveryPartnerReveal,
+  DeliveryPartnerStatusInput,
   DeliveryPartnerUpdateInput,
   DeliveryPartnerVerificationInput,
   DeliveryPartner as DeliveryPartnerDto,
   ListDeliveryPartnersQuery,
   ListDeliveryPartnersResponse,
+  VendorActivity,
+  VendorDocument,
+  VendorDocumentUploadInput,
+  VendorDocumentUrl,
+  VendorDocumentVerifyInput,
 } from '@zoauro/shared';
 import { requestedPartnerZoneIds } from '@zoauro/shared';
 import { prisma } from '../../lib/db';
 import type { AuthContext } from '../../lib/auth-context';
 import { errors } from '../../lib/errors';
 import { maskPhone } from '../../lib/contact-mask';
+import { PRESIGN_READ_TTL_SEC, presignRead } from '../../lib/storage';
 import { recordAudit } from '../audit/audit.service';
+import { assertUploadedObject, parseFileKey } from '../uploads/uploads.service';
 import * as repo from './delivery-partner.repository';
-import { assertVerificationDecision, isOnDuty } from './delivery-partner.state';
+import {
+  assertStatusTransition,
+  assertVerificationDecision,
+  isOnDuty,
+} from './delivery-partner.state';
 
 /**
  * M10 Delivery Partners service (doc 09 `/delivery-partners`, doc 10 §5
@@ -32,9 +48,9 @@ export interface ActorContext {
 }
 
 /**
- * Phone arrives masked (D26 / doc 15) — doc 09 documents no reveal endpoint
- * for partners, so the full number leaves the API only through the audited
- * reveal once that contract gap is closed (handoff).
+ * Phone arrives masked here (D26 / doc 15): lists and profile rows carry the
+ * masked number; the full value leaves the API only through the audited
+ * detail/reveal (D131).
  */
 function serializePartner(row: repo.PartnerRowWithZone): DeliveryPartnerDto {
   return {
@@ -320,4 +336,271 @@ export async function forceDeliveryPartnerOffline(
     );
     return after;
   });
+}
+
+/* ------------------------------------------------------------------ *
+ * Detail, status and reveal (D131 — vendor/customer mirrors)
+ * ------------------------------------------------------------------ */
+
+function toDocument(doc: VendorDocumentModel): VendorDocument {
+  return {
+    id: doc.id,
+    docType: doc.docType,
+    fileKey: doc.fileKey,
+    verified: doc.verified,
+    verifiedBy: doc.verifiedBy,
+    rejectionNote: doc.rejectionNote,
+    expiresOn: doc.expiresOn ? doc.expiresOn.toISOString().slice(0, 10) : null,
+    createdAt: doc.createdAt.toISOString(),
+  };
+}
+
+function toActivity(entry: {
+  id: string;
+  action: string;
+  actorName: string;
+  createdAt: Date;
+}): VendorActivity {
+  return {
+    id: entry.id,
+    action: entry.action,
+    actorName: entry.actorName,
+    createdAt: entry.createdAt.toISOString(),
+  };
+}
+
+/**
+ * GET /delivery-partners/{id} (D131): the partner plus its `vendor_documents`
+ * rows (vendorType DELIVERY_PARTNER) and audit trail, vendor-detail shape.
+ * Unlike the vendor detail, the phone stays masked here (D26: "reveal is an
+ * audited call") — partners have a dedicated audited reveal endpoint, so the
+ * full number leaves the API only through `revealDeliveryPartner`.
+ */
+export async function getDeliveryPartnerDetail(id: string): Promise<DeliveryPartnerDetail> {
+  const row = await requirePartner(id, null);
+  const [documents, activity] = await Promise.all([repo.listDocuments(id), repo.listActivity(id)]);
+  return {
+    ...serializePartner(row),
+    documents: documents.map(toDocument),
+    activity: activity.map(toActivity),
+  };
+}
+
+/**
+ * GET /delivery-partners/{id}/reveal (D26) — the only unmask path outside the
+ * detail view. Audited before the real phone leaves the API; the payload
+ * itself stays out of the audit log.
+ */
+export async function revealDeliveryPartner(
+  ctx: ActorContext,
+  id: string,
+): Promise<DeliveryPartnerReveal> {
+  const row = await requirePartner(id, null);
+  await recordAudit(
+    prisma,
+    auditEntry(ctx, id, row.zoneId, {
+      action: 'delivery-partners.reveal',
+      after: { revealed: ['phone'] },
+    }),
+  );
+  return { phone: row.phone };
+}
+
+/**
+ * POST /delivery-partners/{id}/status (D131 — vendor status mirror): doc 10
+ * §5 transitions between ACTIVE, INACTIVE and SUSPENDED, validated by the
+ * pure state machine. The model has no version column, so no optimistic
+ * version check applies (doc 08).
+ */
+export async function changeDeliveryPartnerStatus(
+  ctx: ActorContext,
+  id: string,
+  input: DeliveryPartnerStatusInput,
+): Promise<DeliveryPartnerDto> {
+  const before = await requirePartner(id, null);
+  const beforeDto = serializePartner(before);
+  assertStatusTransition(before.status, input.status);
+
+  return prisma.$transaction(async (tx) => {
+    const partner = await repo.updatePartner(tx, id, { status: input.status });
+    const after = serializePartner({ ...partner, zone: before.zone });
+    await recordAudit(
+      tx,
+      auditEntry(ctx, id, before.zoneId, {
+        action: 'delivery-partners.status',
+        before: beforeDto,
+        after,
+      }),
+    );
+    return after;
+  });
+}
+
+/**
+ * POST /delivery-partners/{id}/move-zone (D131 — vendor move-zone mirror,
+ * Super Admin + recent re-auth). Deactivated zones accept no partners
+ * (doc 36 §3, 409 CONFLICT — module convention from create); an unknown zone
+ * is 404 ZONE_NOT_FOUND; the same zone is 409 CONFLICT (vendor convention).
+ * No outbox event (D125: audit only).
+ */
+export async function moveDeliveryPartnerZone(
+  ctx: ActorContext,
+  id: string,
+  input: DeliveryPartnerMoveZoneInput,
+): Promise<DeliveryPartnerDto> {
+  const before = await requirePartner(id, null);
+  const beforeDto = serializePartner(before);
+  if (before.zoneId === input.zoneId) {
+    throw errors.conflict('Partner already belongs to this zone');
+  }
+  const zone = await requireWritableZoneRef(input.zoneId);
+  // D131: open-orders refusal activates at M11 (doc 32 dependency); vacuously true today
+
+  return prisma.$transaction(async (tx) => {
+    const partner = await repo.updatePartner(tx, id, { zoneId: input.zoneId });
+    const after = serializePartner({ ...partner, zone });
+    await recordAudit(
+      tx,
+      auditEntry(ctx, id, input.zoneId, {
+        action: 'delivery-partners.move-zone',
+        before: beforeDto,
+        after,
+      }),
+    );
+    return after;
+  });
+}
+
+/**
+ * DELETE /delivery-partners/{id} (D131 — Super Admin + recent re-auth). An
+ * ACTIVE partner must be deactivated first (409 CONFLICT, vendor delete
+ * convention). Soft delete only — the model has `deleted_at` (doc 08).
+ */
+export async function removeDeliveryPartner(
+  ctx: ActorContext,
+  id: string,
+): Promise<{ id: string }> {
+  const before = await requirePartner(id, null);
+  if (before.status === 'ACTIVE') {
+    throw errors.conflict('Partner must not be ACTIVE');
+  }
+  // D131: open-orders refusal activates at M11 (doc 32 dependency); vacuously true today
+  const beforeDto = serializePartner(before);
+
+  await prisma.$transaction(async (tx) => {
+    await repo.updatePartner(tx, id, { deletedAt: new Date() });
+    await recordAudit(
+      tx,
+      auditEntry(ctx, id, before.zoneId, {
+        action: 'delivery-partners.delete',
+        before: beforeDto,
+        after: { id, deletedAt: true },
+      }),
+    );
+  });
+  return { id };
+}
+
+/* ------------------------------------------------------------------ *
+ * Documents (D131 — vendor document mirror; vendor_documents rows with
+ * vendorType DELIVERY_PARTNER; doc 09 + doc 11 upload flow)
+ * ------------------------------------------------------------------ */
+
+/** The key must belong to this very partner in this very zone (else 404). */
+async function requireOwnedFileKey(row: repo.PartnerRowWithZone, fileKey: string): Promise<void> {
+  const parsed = parseFileKey(fileKey);
+  if (!parsed) {
+    throw errors.validation([{ field: 'fileKey', issue: 'Invalid file key' }], 'Invalid file key');
+  }
+  if (parsed.entityId !== row.id || parsed.zoneId !== row.zoneId) {
+    throw errors.notFound('Delivery partner not found');
+  }
+  // Full gate: object exists, stored type/size allow-listed, content sniffed.
+  await assertUploadedObject(fileKey);
+}
+
+/** POST /delivery-partners/{id}/documents — attach a confirmed upload. */
+export async function addDeliveryPartnerDocument(
+  ctx: ActorContext,
+  id: string,
+  input: VendorDocumentUploadInput,
+): Promise<VendorDocument> {
+  const row = await requirePartner(id, null);
+  await requireOwnedFileKey(row, input.fileKey);
+
+  const doc = await prisma.$transaction(async (tx) => {
+    const created = await repo.createDocument(tx, {
+      vendorId: id,
+      docType: input.docType,
+      fileKey: input.fileKey,
+    });
+    await recordAudit(
+      tx,
+      auditEntry(ctx, id, row.zoneId, {
+        action: 'delivery-partners.document.upload',
+        after: { documentId: created.id, docType: created.docType, fileKey: created.fileKey },
+      }),
+    );
+    return created;
+  });
+  return toDocument(doc);
+}
+
+/**
+ * GET /delivery-partners/{id}/documents/{documentId}/url — short-lived signed
+ * read (doc 11); every download is audited (doc 15), the URL itself never is.
+ */
+export async function getDeliveryPartnerDocumentUrl(
+  ctx: ActorContext,
+  id: string,
+  documentId: string,
+): Promise<VendorDocumentUrl> {
+  const row = await requirePartner(id, null);
+  const doc = await repo.findDocument(id, documentId);
+  if (!doc) throw errors.notFound('Document not found');
+
+  const url = await presignRead(doc.fileKey);
+  await recordAudit(prisma, {
+    actorId: ctx.auth.userId,
+    zoneId: row.zoneId,
+    module: 'delivery-partners',
+    action: 'delivery-partners.document.download',
+    entityType: 'delivery-partner',
+    entityId: id,
+    after: { documentId: doc.id, docType: doc.docType, fileKey: doc.fileKey },
+    ip: ctx.auth.ip,
+    requestId: ctx.requestId,
+  });
+  return { url, expiresInSec: PRESIGN_READ_TTL_SEC };
+}
+
+/** POST /delivery-partners/{id}/documents/{documentId}/verify — per-document review. */
+export async function setDeliveryPartnerDocumentVerification(
+  ctx: ActorContext,
+  id: string,
+  documentId: string,
+  input: VendorDocumentVerifyInput,
+): Promise<VendorDocument> {
+  const row = await requirePartner(id, null);
+  const before = await repo.findDocument(id, documentId);
+  if (!before) throw errors.notFound('Document not found');
+
+  const data =
+    input.decision === 'VERIFIED'
+      ? { verified: true, verifiedBy: ctx.auth.userId, rejectionNote: null }
+      : { verified: false, verifiedBy: null, rejectionNote: input.note ?? null };
+
+  const doc = await prisma.$transaction(async (tx) => {
+    const updated = await repo.updateDocument(tx, documentId, data);
+    await recordAudit(
+      tx,
+      auditEntry(ctx, id, row.zoneId, {
+        action: `delivery-partners.document.${input.decision === 'VERIFIED' ? 'verify' : 'reject'}`,
+        before: toDocument(before),
+        after: toDocument(updated),
+      }),
+    );
+    return updated;
+  });
+  return toDocument(doc);
 }

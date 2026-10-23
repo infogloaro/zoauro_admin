@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { CUSTOMER_SOURCES, CUSTOMER_STATUSES, USER_TYPES } from './enums';
+import {
+  CUSTOMER_SOURCES,
+  CUSTOMER_STATUSES,
+  REWARD_ADJUST_ACTIONS,
+  REWARD_ENTRY_TYPES,
+  USER_TYPES,
+  WALLET_ENTRY_TYPES,
+} from './enums';
 import { phoneSchema } from './vendor';
 
 /**
@@ -105,20 +112,43 @@ export type CustomerReveal = z.infer<typeof customerRevealSchema>;
  * ------------------------------------------------------------------ */
 
 /** doc 09 list conventions + doc 22 filters (status, area, user type, source). */
-export const listCustomersQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(25),
-  q: z.string().trim().min(1).max(120).optional(),
-  status: z.enum(CUSTOMER_STATUSES).optional(),
-  source: z.enum(CUSTOMER_SOURCES).optional(),
-  userType: z.enum(USER_TYPES).optional(),
-  area: z.string().trim().min(1).max(80).optional(),
-  zoneId: z.union([z.uuid(), z.array(z.uuid())]).optional(),
-  sort: z
-    .string()
-    .regex(/^-?(createdAt|name|totalSpent)$/u, 'Unsupported sort field')
-    .default('-createdAt'),
-});
+export const listCustomersQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(25),
+    q: z.string().trim().min(1).max(120).optional(),
+    status: z.enum(CUSTOMER_STATUSES).optional(),
+    source: z.enum(CUSTOMER_SOURCES).optional(),
+    userType: z.enum(USER_TYPES).optional(),
+    area: z.string().trim().min(1).max(80).optional(),
+    zoneId: z.union([z.uuid(), z.array(z.uuid())]).optional(),
+    /** createdAt lower bound — ISO date (YYYY-MM-DD) or full ISO datetime. */
+    from: z.iso
+      .date()
+      .or(z.iso.datetime({ offset: true }))
+      .optional(),
+    /** createdAt upper bound — date-only covers the whole day (doc 09). */
+    to: z.iso
+      .date()
+      .or(z.iso.datetime({ offset: true }))
+      .optional(),
+    sort: z
+      .string()
+      .regex(/^-?(createdAt|name|totalSpent)$/u, 'Unsupported sort field')
+      .default('-createdAt'),
+  })
+  .refine(
+    (v) =>
+      v.from === undefined ||
+      v.to === undefined ||
+      // Date-only `to` covers the whole day, so a same-day datetime `from` still fits.
+      Date.parse(v.from) <=
+        Date.parse(/^\d{4}-\d{2}-\d{2}$/u.test(v.to) ? `${v.to}T23:59:59.999Z` : v.to),
+    {
+      message: '`from` must not be after `to`',
+      path: ['from'],
+    },
+  );
 
 export type ListCustomersQuery = z.infer<typeof listCustomersQuerySchema>;
 
@@ -180,6 +210,113 @@ export const listCustomersResponseSchema = z.object({
 });
 
 export type ListCustomersResponse = z.infer<typeof listCustomersResponseSchema>;
+
+/* ------------------------------------------------------------------ *
+ * Rewards (D169, doc 09 `/customers/{id}/rewards|adjust|convert`)
+ * ------------------------------------------------------------------ */
+
+/** One `reward_point_entries` row (append-only ledger, signed `points`). */
+export const customerRewardEntrySchema = z.object({
+  id: z.uuid(),
+  type: z.enum(REWARD_ENTRY_TYPES),
+  points: z.number().int(),
+  orderId: z.uuid().nullable(),
+  reason: z.string().nullable(),
+  actorId: z.uuid().nullable(),
+  zoneId: z.uuid().nullable(),
+  createdAt: z.string(),
+});
+
+export type CustomerRewardEntry = z.infer<typeof customerRewardEntrySchema>;
+
+export const listRewardsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+  type: z.enum(REWARD_ENTRY_TYPES).optional(),
+});
+
+export type ListRewardsQuery = z.infer<typeof listRewardsQuerySchema>;
+
+/** `{ data: { rewardPoints, entries }, meta }` — module list envelope. */
+export const listRewardsResponseSchema = z.object({
+  data: z.object({
+    rewardPoints: z.number().int(),
+    entries: z.array(customerRewardEntrySchema),
+  }),
+  meta: z.object({
+    total: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+  }),
+});
+
+export type ListRewardsResponse = z.infer<typeof listRewardsResponseSchema>;
+
+/** POST /customers/{id}/rewards/adjust — `points` is a positive magnitude. */
+export const rewardAdjustSchema = z.object({
+  action: z.enum(REWARD_ADJUST_ACTIONS),
+  points: z.number().int().min(1, 'Points must be at least 1'),
+  reason: z.string().trim().min(3, 'Reason is required').max(300),
+});
+
+export type RewardAdjustInput = z.infer<typeof rewardAdjustSchema>;
+
+export const rewardAdjustResponseSchema = z.object({
+  data: z.object({
+    rewardPoints: z.number().int(),
+    entry: customerRewardEntrySchema,
+  }),
+});
+
+export type RewardAdjustResponse = z.infer<typeof rewardAdjustResponseSchema>;
+
+/** POST /customers/{id}/rewards/convert — body; the endpoint always 409s today (D101). */
+export const rewardConvertSchema = z.object({
+  points: z.number().int().min(1, 'Points must be at least 1'),
+});
+
+export type RewardConvertInput = z.infer<typeof rewardConvertSchema>;
+
+/* ------------------------------------------------------------------ *
+ * Wallet (D24/D169, doc 09 `/customers/{id}/wallet`)
+ * ------------------------------------------------------------------ */
+
+/** One `wallet_transactions` row; `amountPaise` is signed (credit > 0). */
+export const customerWalletEntrySchema = z.object({
+  id: z.uuid(),
+  type: z.enum(WALLET_ENTRY_TYPES),
+  amountPaise: z.number().int(),
+  balanceAfterPaise: z.number().int(),
+  refType: z.string().nullable(),
+  refId: z.uuid().nullable(),
+  reason: z.string().nullable(),
+  actorId: z.uuid().nullable(),
+  zoneId: z.uuid().nullable(),
+  createdAt: z.string(),
+});
+
+export type CustomerWalletEntry = z.infer<typeof customerWalletEntrySchema>;
+
+export const listWalletQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+export type ListWalletQuery = z.infer<typeof listWalletQuerySchema>;
+
+export const listWalletResponseSchema = z.object({
+  data: z.object({
+    balancePaise: z.number().int(),
+    entries: z.array(customerWalletEntrySchema),
+  }),
+  meta: z.object({
+    total: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+  }),
+});
+
+export type ListWalletResponse = z.infer<typeof listWalletResponseSchema>;
 
 /* ------------------------------------------------------------------ *
  * Add/Edit forms (doc 22) — all-string values for react-hook-form;

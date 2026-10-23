@@ -1,4 +1,10 @@
-import type { DiningReservation, Hotel, RoomBooking, ZoneStatus } from '@prisma/client';
+import type {
+  DiningReservation,
+  Hotel,
+  RoomBooking,
+  VendorDocument,
+  ZoneStatus,
+} from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import type { ListBookingsQuery, ListDiningQuery, ListHotelsQuery } from '@zoauro/shared';
 import type { Db } from '../audit/audit.service';
@@ -408,22 +414,25 @@ export async function findBooking(id: string): Promise<RoomBookingRowWithZone | 
   return prisma.roomBooking.findFirst({ where: { id }, include: BOOKING_ZONE_SELECT });
 }
 
-/** Overlapping blocking stays for a hotel (check-in inclusive, check-out exclusive). */
-export async function countOverlappingBookings(
+/**
+ * Blocking stays that overlap the window (check-in inclusive, check-out
+ * exclusive) — used for the D127(3) per-night capacity check, which counts
+ * how many of these cover each night of the requested stay.
+ */
+export async function findBlockingBookingsInRange(
   db: Db,
   hotelId: string,
   checkIn: Date,
   checkOut: Date,
-  excludeId?: string,
-): Promise<number> {
-  return db.roomBooking.count({
+): Promise<Array<{ id: string; checkIn: Date; checkOut: Date }>> {
+  return db.roomBooking.findMany({
     where: {
       hotelId,
       status: { in: [...BLOCKING_BOOKING_STATUSES] },
       checkIn: { lt: checkOut },
       checkOut: { gt: checkIn },
-      ...(excludeId ? { id: { not: excludeId } } : {}),
     },
+    select: { id: true, checkIn: true, checkOut: true },
   });
 }
 
@@ -443,12 +452,24 @@ export async function createBooking(db: Db, data: BookingCreateData): Promise<Ro
   return db.roomBooking.create({ data });
 }
 
-export async function updateBooking(
+/**
+ * Optimistic version update (D127(6)(7)): the write only lands when the
+ * stored `version` still equals `expectedVersion` and it bumps `version` in
+ * the same statement. Returns null on a version conflict so the service can
+ * answer 409 (the row was changed by someone else).
+ */
+export async function updateBookingWithVersion(
   db: Db,
   id: string,
+  expectedVersion: number,
   data: Prisma.RoomBookingUncheckedUpdateInput,
-): Promise<RoomBooking> {
-  return db.roomBooking.update({ where: { id }, data });
+): Promise<RoomBooking | null> {
+  const updated = await db.roomBooking.updateMany({
+    where: { id, version: expectedVersion },
+    data: { ...data, version: { increment: 1 } },
+  });
+  if (updated.count === 0) return null;
+  return db.roomBooking.findUnique({ where: { id } });
 }
 
 /* ------------------------------------------------------------------ *
@@ -533,12 +554,22 @@ export async function createDining(db: Db, data: DiningCreateData): Promise<Dini
   return db.diningReservation.create({ data });
 }
 
-export async function updateDining(
+/**
+ * Optimistic version update (D127(6)(7)) for dining reservations — same
+ * contract as `updateBookingWithVersion`: null on a version conflict.
+ */
+export async function updateDiningWithVersion(
   db: Db,
   id: string,
+  expectedVersion: number,
   data: Prisma.DiningReservationUncheckedUpdateInput,
-): Promise<DiningReservation> {
-  return db.diningReservation.update({ where: { id }, data });
+): Promise<DiningReservation | null> {
+  const updated = await db.diningReservation.updateMany({
+    where: { id, version: expectedVersion },
+    data: { ...data, version: { increment: 1 } },
+  });
+  if (updated.count === 0) return null;
+  return db.diningReservation.findUnique({ where: { id } });
 }
 
 export interface DiningVenueRef {
@@ -587,6 +618,54 @@ export async function findDiningVenue(ids: {
     hotel: hotel ? { id: hotel.id, name: hotel.name } : null,
     restaurant: restaurant ? { id: restaurant.id, name: restaurant.name } : null,
   };
+}
+
+/* ------------------------------------------------------------------ *
+ * Documents (vendor_documents with vendor_type=HOTEL, doc 09/11/21)
+ * ------------------------------------------------------------------ */
+
+/** Hotel documents for the detail view (vendor-style list, doc 20). */
+export async function listDocuments(hotelId: string): Promise<VendorDocument[]> {
+  return prisma.vendorDocument.findMany({
+    where: { vendorType: 'HOTEL', vendorId: hotelId },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
+/**
+ * One document scoped to its hotel — a foreign document answers 404.
+ * vendor_documents has no zone column; the hotel row resolved by the caller
+ * is the zone boundary (zonal scoping activates at SA-1.7).
+ */
+export async function findDocument(
+  hotelId: string,
+  documentId: string,
+): Promise<VendorDocument | null> {
+  return prisma.vendorDocument.findFirst({
+    where: { id: documentId, vendorType: 'HOTEL', vendorId: hotelId },
+  });
+}
+
+export async function createDocument(
+  db: Db,
+  data: { hotelId: string; docType: string; fileKey: string },
+): Promise<VendorDocument> {
+  return db.vendorDocument.create({
+    data: {
+      vendorType: 'HOTEL',
+      vendorId: data.hotelId,
+      docType: data.docType,
+      fileKey: data.fileKey,
+    },
+  });
+}
+
+export async function updateDocument(
+  db: Db,
+  documentId: string,
+  data: Prisma.VendorDocumentUncheckedUpdateInput,
+): Promise<VendorDocument> {
+  return db.vendorDocument.update({ where: { id: documentId }, data });
 }
 
 /** Activity tab: the entity's own audit trail (doc 04 §3). */

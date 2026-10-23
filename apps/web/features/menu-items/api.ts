@@ -2,13 +2,20 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  ListMenuItemChangeRequestsResponse,
   ListMenuItemsResponse,
   ListMenusResponse,
   MenuItem,
   MenuItemApprovalInput,
   MenuItemBulkInput,
+  MenuItemChangeApproveInput,
+  MenuItemChangeRejectInput,
+  MenuItemChangeRequestDetail,
   MenuItemCreateInput,
+  MenuItemImportInput,
+  MenuItemImportResponse,
   MenuItemUpdateInput,
+  MenuBulkPreviewResponse,
 } from '@zoauro/shared';
 import { apiFetch, type Envelope } from '../../lib/api';
 
@@ -18,6 +25,8 @@ export interface MenuFilters {
   vendorType?: string;
   dietary?: string;
   category?: string;
+  availability?: string;
+  featured?: string;
   zoneId?: string;
   page: number;
   pageSize: number;
@@ -123,6 +132,84 @@ export function useBulkMenuAction() {
       input: MenuItemBulkInput,
     ): Promise<Envelope<{ updated: number; skipped: number }>> =>
       apiFetch<Envelope<{ updated: number; skipped: number }>>('/menu-items/bulk', {
+        method: 'POST',
+        body: input,
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+/** POST /menu-items/bulk/preview — D124 dry run of the value actions, no writes. */
+export function useBulkMenuPreview() {
+  return useMutation<MenuBulkPreviewResponse, Error, MenuItemBulkInput>({
+    mutationFn: (input: MenuItemBulkInput) =>
+      apiFetch<MenuBulkPreviewResponse>('/menu-items/bulk/preview', {
+        method: 'POST',
+        body: input,
+      }),
+  });
+}
+
+export interface ChangeRequestFilters {
+  status: string;
+  zoneId?: string;
+  page: number;
+  pageSize: number;
+  sort: string;
+}
+
+/** GET /menu-items/change-requests — R09 vendor item-change proposals. */
+export function useMenuChangeRequestsList(filters: ChangeRequestFilters) {
+  return useQuery<ListMenuItemChangeRequestsResponse, Error>({
+    queryKey: ['menu', 'changeRequests', filters],
+    queryFn: () =>
+      apiFetch<ListMenuItemChangeRequestsResponse>(
+        `/menu-items/change-requests?${queryString({ ...filters })}`,
+      ),
+  });
+}
+
+/** GET /menu-items/change-requests/{id} — base/live/proposed field diff. */
+export function useMenuChangeRequestDetail(id: string | null) {
+  return useQuery<Envelope<MenuItemChangeRequestDetail>, Error>({
+    queryKey: ['menu', 'changeRequestDetail', id],
+    queryFn: () =>
+      apiFetch<Envelope<MenuItemChangeRequestDetail>>(`/menu-items/change-requests/${id}`),
+    enabled: Boolean(id),
+  });
+}
+
+/** POST .../approve {version} | .../reject {version, reason} — optimistic check. */
+export function useDecideMenuChangeRequest() {
+  const invalidate = useInvalidateMenu();
+  return useMutation({
+    mutationFn: ({
+      id,
+      decision,
+      input,
+    }: {
+      id: string;
+      decision: 'approve' | 'reject';
+      input: MenuItemChangeApproveInput | MenuItemChangeRejectInput;
+    }): Promise<Envelope<MenuItemChangeRequestDetail>> =>
+      apiFetch<Envelope<MenuItemChangeRequestDetail>>(
+        `/menu-items/change-requests/${id}/${decision}`,
+        { method: 'POST', body: input },
+      ),
+    onSuccess: invalidate,
+  });
+}
+
+/**
+ * A6 CSV import (doc 34 SA-2.5): `dryRun: true` returns the report without
+ * writing; `dryRun: false` creates the valid rows and returns the final
+ * report. Both answers share the same `MenuItemImportResponse` envelope.
+ */
+export function useImportMenuItems() {
+  const invalidate = useInvalidateMenu();
+  return useMutation({
+    mutationFn: (input: MenuItemImportInput): Promise<MenuItemImportResponse> =>
+      apiFetch<MenuItemImportResponse>('/menu-items/import', {
         method: 'POST',
         body: input,
       }),

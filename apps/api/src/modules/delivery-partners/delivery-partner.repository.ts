@@ -1,4 +1,4 @@
-import type { DeliveryPartner, ZoneStatus } from '@prisma/client';
+import type { DeliveryPartner, VendorDocument, VendorType, ZoneStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import type { ListDeliveryPartnersQuery } from '@zoauro/shared';
 import type { Db } from '../audit/audit.service';
@@ -264,4 +264,61 @@ export async function existingZoneIds(ids: string[]): Promise<string[]> {
     select: { id: true },
   });
   return rows.map((r) => r.id);
+}
+
+/* ------------------------------------------------------------------ *
+ * Documents (D131: vendor_documents rows with vendorType DELIVERY_PARTNER)
+ * ------------------------------------------------------------------ */
+
+/** D131: partner documents reuse the polymorphic vendor_documents table. */
+export const PARTNER_VENDOR_TYPE: VendorType = 'DELIVERY_PARTNER';
+
+export async function listDocuments(partnerId: string): Promise<VendorDocument[]> {
+  return prisma.vendorDocument.findMany({
+    where: { vendorType: PARTNER_VENDOR_TYPE, vendorId: partnerId },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
+/** One document scoped to its partner — a foreign document answers 404. */
+export async function findDocument(
+  partnerId: string,
+  documentId: string,
+): Promise<VendorDocument | null> {
+  return prisma.vendorDocument.findFirst({
+    where: { id: documentId, vendorType: PARTNER_VENDOR_TYPE, vendorId: partnerId },
+  });
+}
+
+export async function createDocument(
+  db: Db,
+  data: { vendorId: string; docType: string; fileKey: string },
+): Promise<VendorDocument> {
+  return db.vendorDocument.create({ data: { ...data, vendorType: PARTNER_VENDOR_TYPE } });
+}
+
+export async function updateDocument(
+  db: Db,
+  documentId: string,
+  data: Prisma.VendorDocumentUncheckedUpdateInput,
+): Promise<VendorDocument> {
+  return db.vendorDocument.update({ where: { id: documentId }, data });
+}
+
+/** Activity tab (doc 04 §3): the partner's own audit trail (vendor mirror). */
+export async function listActivity(
+  entityId: string,
+): Promise<Array<{ id: string; action: string; actorName: string; createdAt: Date }>> {
+  const rows = await prisma.auditLog.findMany({
+    where: { entityId },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    include: { actor: { select: { name: true } } },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    action: r.action,
+    actorName: r.actor.name,
+    createdAt: r.createdAt,
+  }));
 }

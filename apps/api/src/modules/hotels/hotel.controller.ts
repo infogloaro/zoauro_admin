@@ -12,6 +12,8 @@ import {
   listBookingsQuerySchema,
   listDiningQuerySchema,
   listHotelsQuerySchema,
+  vendorDocumentUploadSchema,
+  vendorDocumentVerifySchema,
 } from '@zoauro/shared';
 import { errors } from '../../lib/errors';
 import type { ActorContext } from './hotel.service';
@@ -44,6 +46,13 @@ function diningId(req: Request): string {
   return id;
 }
 
+function documentId(req: Request): string {
+  const raw = req.params.documentId;
+  const id = Array.isArray(raw) ? raw[0] : raw;
+  if (!id || !z.uuid().safeParse(id).success) throw errors.notFound('Document not found');
+  return id;
+}
+
 type Handler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
 export const hotelHandlers = {
@@ -68,6 +77,15 @@ export const hotelHandlers = {
   get: (async (req, res, next) => {
     try {
       res.json({ data: await service.getHotelDetail(hotelId(req)) });
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  /** GET /hotels/{id}/reveal — D26 audited unmask (doc 09). */
+  reveal: (async (req, res, next) => {
+    try {
+      res.json({ data: await service.revealHotel(actor(req), hotelId(req)) });
     } catch (error) {
       next(error);
     }
@@ -186,6 +204,45 @@ export const hotelHandlers = {
     try {
       const input = diningStatusSchema.parse(req.body);
       res.json({ data: await service.changeDiningStatus(actor(req), diningId(req), input) });
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  /* Documents (vendor-style, doc 09/11/21) */
+
+  addDocument: (async (req, res, next) => {
+    try {
+      const input = vendorDocumentUploadSchema.parse(req.body);
+      res
+        .status(201)
+        .json({ data: await service.addHotelDocument(actor(req), hotelId(req), input) });
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  documentUrl: (async (req, res, next) => {
+    try {
+      res.json({
+        data: await service.getHotelDocumentUrl(actor(req), hotelId(req), documentId(req)),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }) satisfies Handler,
+
+  verifyDocument: (async (req, res, next) => {
+    try {
+      const input = vendorDocumentVerifySchema.parse(req.body);
+      res.json({
+        data: await service.setHotelDocumentVerification(
+          actor(req),
+          hotelId(req),
+          documentId(req),
+          input,
+        ),
+      });
     } catch (error) {
       next(error);
     }

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { DeliveryPartnerStatus } from '@zoauro/shared';
+import type { DeliveryPartnerStatus, DeliveryPartnerStatusTarget } from '@zoauro/shared';
 import { AppError } from '../../lib/errors';
-import { assertVerificationDecision, isOnDuty } from './delivery-partner.state';
+import {
+  assertStatusTransition,
+  assertVerificationDecision,
+  isOnDuty,
+} from './delivery-partner.state';
 
 /**
  * Partner state rules (doc 10 §5, doc 44 §1) — pure unit tests, no database.
@@ -87,4 +91,50 @@ describe('assertVerificationDecision (doc 10 §5)', () => {
       'INVALID_STATE_TRANSITION',
     );
   });
+});
+
+describe('assertStatusTransition (doc 10 §5, D131)', () => {
+  it('activates a VERIFIED partner — the doc 10 §5 path after verification', () => {
+    expect(codeOf(() => assertStatusTransition('VERIFIED', 'ACTIVE'))).toBeNull();
+  });
+
+  it('restores an INACTIVE or SUSPENDED partner through ACTIVE', () => {
+    expect(codeOf(() => assertStatusTransition('INACTIVE', 'ACTIVE'))).toBeNull();
+    expect(codeOf(() => assertStatusTransition('SUSPENDED', 'ACTIVE'))).toBeNull();
+  });
+
+  it('deactivates or suspends only an ACTIVE partner', () => {
+    expect(codeOf(() => assertStatusTransition('ACTIVE', 'INACTIVE'))).toBeNull();
+    expect(codeOf(() => assertStatusTransition('ACTIVE', 'SUSPENDED'))).toBeNull();
+  });
+
+  it('refuses activating an already ACTIVE partner', () => {
+    expect(codeOf(() => assertStatusTransition('ACTIVE', 'ACTIVE'))).toBe(
+      'INVALID_STATE_TRANSITION',
+    );
+  });
+
+  it('refuses skipping verification — PENDING_VERIFICATION must be verified first', () => {
+    expect(codeOf(() => assertStatusTransition('PENDING_VERIFICATION', 'ACTIVE'))).toBe(
+      'INVALID_STATE_TRANSITION',
+    );
+  });
+
+  it.each<DeliveryPartnerStatusTarget>(['INACTIVE', 'SUSPENDED'])(
+    'refuses %s on a partner that is not ACTIVE',
+    (target) => {
+      expect(codeOf(() => assertStatusTransition('PENDING_VERIFICATION', target))).toBe(
+        'INVALID_STATE_TRANSITION',
+      );
+      expect(codeOf(() => assertStatusTransition('VERIFIED', target))).toBe(
+        'INVALID_STATE_TRANSITION',
+      );
+      expect(codeOf(() => assertStatusTransition('INACTIVE', target))).toBe(
+        'INVALID_STATE_TRANSITION',
+      );
+      expect(codeOf(() => assertStatusTransition('SUSPENDED', target))).toBe(
+        'INVALID_STATE_TRANSITION',
+      );
+    },
+  );
 });

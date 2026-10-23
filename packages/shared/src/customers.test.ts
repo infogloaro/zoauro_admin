@@ -90,6 +90,34 @@ describe('listCustomersQuerySchema', () => {
     expect(listCustomersQuerySchema.safeParse({ sort: 'walletBalance' }).success).toBe(false);
   });
 
+  it('accepts ISO date and datetime from/to bounds and rejects invalid ones', () => {
+    expect(listCustomersQuerySchema.parse({ from: '2026-01-01', to: '2026-01-31' })).toMatchObject({
+      from: '2026-01-01',
+      to: '2026-01-31',
+    });
+    expect(
+      listCustomersQuerySchema.parse({
+        from: '2026-01-01T00:00:00Z',
+        to: '2026-01-31T18:30:00+05:30',
+      }),
+    ).toMatchObject({ from: '2026-01-01T00:00:00Z' });
+    expect(listCustomersQuerySchema.safeParse({ from: 'yesterday' }).success).toBe(false);
+    expect(listCustomersQuerySchema.safeParse({ to: '2026-13-45' }).success).toBe(false);
+  });
+
+  it('rejects a from bound after the to bound (date-only to stays inclusive)', () => {
+    expect(
+      listCustomersQuerySchema.safeParse({ from: '2026-02-01', to: '2026-01-31' }).success,
+    ).toBe(false);
+    // Same-day datetime from inside a date-only to day is still in range.
+    expect(
+      listCustomersQuerySchema.safeParse({
+        from: '2026-01-31T10:00:00Z',
+        to: '2026-01-31',
+      }).success,
+    ).toBe(true);
+  });
+
   it('normalises a repeatable zoneId into an array', () => {
     expect(
       requestedCustomerZoneIds({ ...listCustomersQuerySchema.parse({}), zoneId: [zoneId] }),

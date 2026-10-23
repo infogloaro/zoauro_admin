@@ -187,6 +187,21 @@ export const vendorStatusSchema = z.object({
 
 export type VendorStatusInput = z.infer<typeof vendorStatusSchema>;
 
+/** POST /restaurants/{id}/bulk (doc 22 §bulk): change status on up to 100 vendors. */
+export const vendorBulkStatusSchema = z.object({
+  ids: z.array(z.uuid()).min(1, 'Select at least one vendor').max(100),
+  status: z.enum(VENDOR_STATUS_TARGETS),
+});
+
+export type VendorBulkStatusInput = z.infer<typeof vendorBulkStatusSchema>;
+
+export const vendorBulkStatusResponseSchema = z.object({
+  updated: z.number().int(),
+  skipped: z.number().int(),
+});
+
+export type VendorBulkStatusResponse = z.infer<typeof vendorBulkStatusResponseSchema>;
+
 /** POST /restaurants/{id}/verification (doc 09): reject needs a note (doc 10 §4). */
 export const vendorVerificationSchema = z
   .object({
@@ -275,6 +290,8 @@ const vendorBaseShape = {
   verificationNote: z.string().nullable(),
   verifiedAt: z.string().nullable(),
   verifiedBy: z.string().nullable(),
+  /** A1: manual review deadline (null → default48 h SLA, doc 45). */
+  reviewDueAt: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 };
@@ -313,6 +330,8 @@ export const vendorDocumentSchema = z.object({
   verified: z.boolean(),
   verifiedBy: z.string().nullable(),
   rejectionNote: z.string().nullable(),
+  /** A1: optional expiry date (yyyy-mm-dd, doc 08). */
+  expiresOn: z.string().nullable().optional(),
   createdAt: z.string(),
 });
 

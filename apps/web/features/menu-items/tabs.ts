@@ -15,6 +15,7 @@ export const MENU_TAB_IDS = [
   'approvedItems',
   'rejectedItems',
   'archivedItems',
+  'changeRequests',
 ] as const;
 export type MenuTabId = (typeof MENU_TAB_IDS)[number];
 
@@ -25,6 +26,7 @@ export const MENU_TABS: ReadonlyArray<{ id: MenuTabId; label: string }> = [
   { id: 'approvedItems', label: 'Approved Items' },
   { id: 'rejectedItems', label: 'Rejected Items' },
   { id: 'archivedItems', label: 'Archived Items' },
+  { id: 'changeRequests', label: 'Change requests' },
 ];
 
 /** Approval status each item tab shows; `menus`/`allItems` pin none. */

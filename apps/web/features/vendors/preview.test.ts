@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { listVendorsResponseSchema, vendorDetailSchema } from '@zoauro/shared';
+import {
+  listVendorsResponseSchema,
+  onboardingRequirementSchema,
+  vendorDetailSchema,
+  vendorOnboardingSchema,
+  vendorReviewQueueItemSchema,
+} from '@zoauro/shared';
 import {
   PREVIEW_ZONE_OPTIONS,
   isVendorPreview,
+  mockOnboarding,
+  mockOnboardingChecklist,
+  mockReviewQueue,
   mockVendorDetail,
   mockVendorsList,
   setVendorPreview,
@@ -76,5 +85,20 @@ describe('vendor preview mode', () => {
     const detail = mockVendorDetail('homemaker', '00000000-0000-4000-8000-000000000000');
     expect(() => vendorDetailSchema.parse(detail)).not.toThrow();
     expect(detail.kind).toBe('homemaker');
+  });
+
+  it('A1 onboarding mocks satisfy the shared contracts', () => {
+    const checklist = mockOnboardingChecklist('restaurant');
+    for (const row of checklist) expect(() => onboardingRequirementSchema.parse(row)).not.toThrow();
+    const onboarding = mockOnboarding('restaurant', 'a1000001-0000-4000-8000-000000000001');
+    expect(() => vendorOnboardingSchema.parse(onboarding)).not.toThrow();
+    expect(onboarding.readiness.provisional).toBe(true);
+    expect(onboarding.checklist.every((item) => item.state === 'MISSING')).toBe(true);
+  });
+
+  it('A1 review queue mock satisfies the shared contract', () => {
+    const queue = mockReviewQueue('homemaker');
+    expect(queue.length).toBeGreaterThan(0);
+    for (const row of queue) expect(() => vendorReviewQueueItemSchema.parse(row)).not.toThrow();
   });
 });

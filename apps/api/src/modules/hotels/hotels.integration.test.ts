@@ -28,6 +28,7 @@ const createdHotelIds: string[] = [];
 const createdBookingIds: string[] = [];
 const createdDiningIds: string[] = [];
 const createdRestaurantIds: string[] = [];
+const seededDocumentIds: string[] = [];
 const testEmails: string[] = [];
 let superSession: Session;
 let zonalA: Session;
@@ -72,6 +73,7 @@ afterAll(async () => {
   await prisma.auditLog.deleteMany({ where: { entityId: { in: auditTargets } } });
   await prisma.diningReservation.deleteMany({ where: { id: { in: createdDiningIds } } });
   await prisma.roomBooking.deleteMany({ where: { id: { in: createdBookingIds } } });
+  await prisma.vendorDocument.deleteMany({ where: { id: { in: seededDocumentIds } } });
   await prisma.hotel.deleteMany({ where: { id: { in: createdHotelIds } } });
   await prisma.restaurant.deleteMany({ where: { id: { in: createdRestaurantIds } } });
   await cleanupZones(createdZoneIds);
@@ -97,22 +99,27 @@ async function createZone(name: string): Promise<string> {
   return id;
 }
 
-const hotelBody = (zoneId: string, name: string) => ({
+const hotelBody = (zoneId: string, name: string, totalRooms = 40) => ({
   zoneId,
   name,
   ownerName: 'Meera Nair',
   phone: '9876504321',
+  email: 'meera@example.in',
   address: '44 Beach Road',
   area: 'Besant Nagar',
-  totalRooms: 40,
+  totalRooms,
   commissionPct: 12,
   gstNo: 'GSTIN33AAAAA0000A1Z5',
 });
 
-async function createHotel(zoneId = zoneAId, name = `Hotel ${stamp()}`): Promise<Hotel> {
+async function createHotel(
+  zoneId = zoneAId,
+  name = `Hotel ${stamp()}`,
+  totalRooms = 40,
+): Promise<Hotel> {
   const res = await call(app, 'post', '/api/v1/hotels', {
     session: superSession,
-    body: hotelBody(zoneId, name),
+    body: hotelBody(zoneId, name, totalRooms),
   });
   expect(res.status).toBe(201);
   createdHotelIds.push(res.body.data.id as string);
@@ -321,8 +328,8 @@ describe('hotel lifecycle (doc 10 §4 reused)', () => {
 });
 
 describe('room bookings', () => {
-  it('creates a booking, blocks an overlapping stay and allows an adjacent one', async () => {
-    const hotel = await createHotel();
+  it('enforces per-night capacity (D127(3)): blocks a night at total_rooms, allows an adjacent stay', async () => {
+    const hotel = await createHotel(zoneAId, `Hotel ${stamp()}`, 1);
     await verifyAndActivate(hotel.id);
 
     const first = await createBooking(hotel.id, '2026-11-01', '2026-11-03');
@@ -330,6 +337,8 @@ describe('room bookings', () => {
     expect(first.checkIn).toBe('2026-11-01');
     expect(first.checkOut).toBe('2026-11-03');
 
+    // [2026-11-02, 2026-11-04) covers nights Nov 2 and Nov 3; night Nov 2 is
+    // already occupied by `first` and the hotel has one room → sold out.
     const overlap = await call(app, 'post', `/api/v1/hotels/${hotel.id}/bookings`, {
       session: superSession,
       body: bookingBody('2026-11-02', '2026-11-04'),
@@ -337,8 +346,29 @@ describe('room bookings', () => {
     expect(overlap.status).toBe(409);
     expect(overlap.body.error.code).toBe('CONFLICT');
 
+    // Check-out is exclusive: a stay starting on `first`'s checkout day fits.
     const adjacent = await createBooking(hotel.id, '2026-11-03', '2026-11-05');
     expect(adjacent.id).not.toBe(first.id);
+  });
+
+  it('allows parallel bookings under total_rooms and rejects the one that crosses it', async () => {
+    const hotel = await createHotel(zoneAId, `Hotel ${stamp()}`, 2);
+    await verifyAndActivate(hotel.id);
+
+    const a = await createBooking(hotel.id, '2026-12-10', '2026-12-13');
+    const b = await createBooking(hotel.id, '2026-12-11', '2026-12-14');
+    expect(a.id).not.toBe(b.id);
+
+    const c = await call(app, 'post', `/api/v1/hotels/${hotel.id}/bookings`, {
+      session: superSession,
+      body: bookingBody('2026-12-12', '2026-12-13'),
+    });
+    expect(c.status).toBe(409);
+    expect(c.body.error.message).toContain('No rooms available');
+
+    // A stay entirely after both checkouts is fine.
+    const d = await createBooking(hotel.id, '2026-12-14', '2026-12-16');
+    expect(d.id).toBeDefined();
   });
 
   it('rejects a same-or-reversed stay window with 422', async () => {
@@ -351,34 +381,65 @@ describe('room bookings', () => {
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
-  it('walks PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT and locks the pipeline', async () => {
+  it('walks PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT with the version lock', async () => {
     const hotel = await createHotel();
     await verifyAndActivate(hotel.id);
     const booking = await createBooking(hotel.id, '2026-11-10', '2026-11-12');
+    expect(booking.version).toBe(1);
 
     const skip = await call(app, 'post', `/api/v1/hotels/bookings/${booking.id}/status`, {
       session: superSession,
-      body: { status: 'CHECKED_IN' },
+      body: { status: 'CHECKED_IN', version: booking.version },
     });
     expect(skip.status).toBe(409);
 
+    let version = booking.version;
     for (const status of ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'] as const) {
       const res = await call(app, 'post', `/api/v1/hotels/bookings/${booking.id}/status`, {
         session: superSession,
-        body: { status },
+        body: { status, version },
       });
       expect(res.status).toBe(200);
       expect(res.body.data.status).toBe(status);
+      expect(res.body.data.version).toBe(version + 1);
+      version = res.body.data.version as number;
     }
 
     const afterCheckout = await call(app, 'post', `/api/v1/hotels/bookings/${booking.id}/status`, {
       session: superSession,
-      body: { status: 'CANCELLED' },
+      body: { status: 'CANCELLED', version },
     });
     expect(afterCheckout.status).toBe(409);
   });
 
-  it('marks a PAID booking REFUNDED when it is cancelled', async () => {
+  it('answers 409 on a stale version (D127(6)(7) optimistic lock)', async () => {
+    const hotel = await createHotel();
+    await verifyAndActivate(hotel.id);
+    const booking = await createBooking(hotel.id, '2027-02-01', '2027-02-03');
+
+    const wrong = await call(app, 'post', `/api/v1/hotels/bookings/${booking.id}/status`, {
+      session: superSession,
+      body: { status: 'CONFIRMED', version: 99 },
+    });
+    expect(wrong.status).toBe(409);
+    expect(wrong.body.error.code).toBe('CONFLICT');
+
+    const ok = await call(app, 'post', `/api/v1/hotels/bookings/${booking.id}/status`, {
+      session: superSession,
+      body: { status: 'CONFIRMED', version: 1 },
+    });
+    expect(ok.status).toBe(200);
+    expect(ok.body.data.version).toBe(2);
+
+    // Replaying the same (now stale) version must fail.
+    const stale = await call(app, 'post', `/api/v1/hotels/bookings/${booking.id}/status`, {
+      session: superSession,
+      body: { status: 'CHECKED_IN', version: 1 },
+    });
+    expect(stale.status).toBe(409);
+  });
+
+  it('does not flip any payment or refund marker when a PAID booking is cancelled (D127(3))', async () => {
     const hotel = await createHotel();
     await verifyAndActivate(hotel.id);
     const booking = await createBooking(hotel.id, '2026-11-20', '2026-11-22', {
@@ -388,10 +449,15 @@ describe('room bookings', () => {
 
     const cancel = await call(app, 'post', `/api/v1/hotels/bookings/${booking.id}/status`, {
       session: superSession,
-      body: { status: 'CANCELLED' },
+      body: { status: 'CANCELLED', version: booking.version },
     });
     expect(cancel.status).toBe(200);
-    expect(cancel.body.data.paymentStatus).toBe('REFUNDED');
+    expect(cancel.body.data.status).toBe('CANCELLED');
+    // D127(3): cancel never auto-refunds — the payment fields stay untouched.
+    expect(cancel.body.data.paymentStatus).toBe('PAID');
+
+    const row = await prisma.roomBooking.findUnique({ where: { id: booking.id } });
+    expect(row?.paymentStatus).toBe('PAID');
   });
 
   it('masks the customer phone in booking lists (D26)', async () => {
@@ -454,21 +520,61 @@ describe('dining reservations', () => {
 
     const confirm = await call(app, 'post', `/api/v1/hotels/dining/${dining.id}/status`, {
       session: superSession,
-      body: { status: 'CONFIRMED' },
+      body: { status: 'CONFIRMED', version: 1 },
     });
     expect(confirm.status).toBe(200);
+    expect(confirm.body.data.version).toBe(2);
 
     const complete = await call(app, 'post', `/api/v1/hotels/dining/${dining.id}/status`, {
       session: superSession,
-      body: { status: 'COMPLETED' },
+      body: { status: 'COMPLETED', version: 2 },
     });
     expect(complete.status).toBe(200);
+    expect(complete.body.data.version).toBe(3);
 
     const late = await call(app, 'post', `/api/v1/hotels/dining/${dining.id}/status`, {
       session: superSession,
-      body: { status: 'CANCELLED' },
+      body: { status: 'CANCELLED', version: 3 },
     });
     expect(late.status).toBe(409);
+
+    const stale = await call(app, 'post', `/api/v1/hotels/dining/${dining.id}/status`, {
+      session: superSession,
+      body: { status: 'CANCELLED', version: 1 },
+    });
+    expect(stale.status).toBe(409);
+  });
+
+  it('does not flip a PAID reservation to REFUNDED on cancel (D127(3))', async () => {
+    const hotel = await createHotel();
+    await verifyAndActivate(hotel.id);
+    const res = await call(app, 'post', '/api/v1/hotels/dining', {
+      session: superSession,
+      body: {
+        hotelId: hotel.id,
+        customerName: 'Paid Guest',
+        customerPhone: '9884019999',
+        reservedDate: '2026-11-21',
+        reservedTime: '20:00',
+        guests: 2,
+        amount: 300000,
+        paymentStatus: 'PAID',
+      },
+    });
+    expect(res.status).toBe(201);
+    const dining = res.body.data as DiningReservation;
+    createdDiningIds.push(dining.id);
+    expect(dining.paymentStatus).toBe('PAID');
+
+    const cancel = await call(app, 'post', `/api/v1/hotels/dining/${dining.id}/status`, {
+      session: superSession,
+      body: { status: 'CANCELLED', version: dining.version },
+    });
+    expect(cancel.status).toBe(200);
+    expect(cancel.body.data.paymentStatus).toBe('PAID');
+
+    const row = await prisma.diningReservation.findUnique({ where: { id: dining.id } });
+    expect(row?.paymentStatus).toBe('PAID');
   });
 
   it('accepts a restaurant venue and rejects cross-zone pairings', async () => {
@@ -517,5 +623,353 @@ describe('dining reservations', () => {
       },
     });
     expect(res.status).toBe(404);
+  });
+});
+
+describe('audited phone reveal (D26)', () => {
+  it('returns the full phone and email for a Super Admin and writes an audit row', async () => {
+    const hotel = await createHotel();
+    const res = await call(app, 'get', `/api/v1/hotels/${hotel.id}/reveal`, {
+      session: superSession,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.data.phone).toBe('9876504321');
+    expect(res.body.data.email).toBe(hotel.email);
+
+    const audits = await prisma.auditLog.findMany({
+      where: { action: 'hotels.reveal', entityId: hotel.id },
+    });
+    expect(audits.length).toBe(1);
+    expect(audits[0]?.afterJson).toEqual({ revealed: ['phone', 'email'] });
+  });
+
+  it('masks the phone and email in the list while the detail keeps the full value', async () => {
+    const hotel = await createHotel();
+    const list = await call(app, 'get', `/api/v1/hotels?q=${hotel.name}`, {
+      session: superSession,
+    });
+    const row = (list.body.data as Hotel[]).find((h) => h.id === hotel.id);
+    expect(row?.phone.includes('*')).toBe(true);
+    expect(row?.email).toContain('*');
+
+    const detail = await call(app, 'get', `/api/v1/hotels/${hotel.id}`, {
+      session: superSession,
+    });
+    expect(detail.status).toBe(200);
+    expect(detail.body.data.phone).toBe('9876504321');
+    expect(detail.body.data.email).toBe('meera@example.in');
+    expect(detail.body.data.documents).toEqual([]);
+  });
+});
+
+describe('zone scope 404s (D127(1))', () => {
+  const unknownId = '00000000-0000-4000-8000-000000000000';
+
+  it('answers 404 (not 403) for unknown and malformed ids on every id-scoped route', async () => {
+    type RouteProbe = { method: 'get' | 'post' | 'patch' | 'delete'; path: string; body?: unknown };
+    const idRoutes: RouteProbe[] = [
+      { method: 'get', path: `/api/v1/hotels/${unknownId}` },
+      { method: 'get', path: '/api/v1/hotels/not-a-uuid' },
+      { method: 'get', path: `/api/v1/hotels/${unknownId}/reveal` },
+      { method: 'get', path: '/api/v1/hotels/not-a-uuid/reveal' },
+      { method: 'patch', path: `/api/v1/hotels/${unknownId}`, body: { name: 'Renamed Hotel' } },
+      { method: 'delete', path: `/api/v1/hotels/${unknownId}` },
+      { method: 'post', path: `/api/v1/hotels/${unknownId}/status`, body: { status: 'INACTIVE' } },
+      {
+        method: 'post',
+        path: `/api/v1/hotels/${unknownId}/verification`,
+        body: { decision: 'VERIFIED' },
+      },
+      { method: 'get', path: `/api/v1/hotels/${unknownId}/bookings` },
+      {
+        method: 'post',
+        path: `/api/v1/hotels/${unknownId}/bookings`,
+        body: bookingBody('2027-05-01', '2027-05-03'),
+      },
+      { method: 'get', path: `/api/v1/hotels/${unknownId}/documents/${unknownId}/url` },
+      {
+        method: 'post',
+        path: `/api/v1/hotels/${unknownId}/documents`,
+        body: { docType: 'FSSAI', fileKey: 'x' },
+      },
+      {
+        method: 'post',
+        path: `/api/v1/hotels/${unknownId}/documents/${unknownId}/verify`,
+        body: { decision: 'VERIFIED' },
+      },
+      { method: 'get', path: `/api/v1/hotels/bookings/${unknownId}` },
+      { method: 'get', path: '/api/v1/hotels/bookings/not-a-uuid' },
+      {
+        method: 'post',
+        path: `/api/v1/hotels/bookings/${unknownId}/status`,
+        body: { status: 'CONFIRMED', version: 1 },
+      },
+      { method: 'get', path: `/api/v1/hotels/dining/${unknownId}` },
+      {
+        method: 'post',
+        path: `/api/v1/hotels/dining/${unknownId}/status`,
+        body: { status: 'CONFIRMED', version: 1 },
+      },
+    ];
+
+    for (const { method, path, body } of idRoutes) {
+      const res = await call(app, method, path, { session: superSession, body });
+      expect(res.status, `${method.toUpperCase()} ${path}`).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    }
+  });
+
+  it('answers 404 ZONE_NOT_FOUND for an unassigned zoneId query filter', async () => {
+    const res = await call(
+      app,
+      'get',
+      '/api/v1/hotels?zoneId=00000000-0000-4000-8000-000000000000',
+      { session: superSession },
+    );
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('ZONE_NOT_FOUND');
+  });
+
+  it('answers 404 for a malformed documentId on document routes', async () => {
+    const hotel = await createHotel();
+    const url = await call(app, 'get', `/api/v1/hotels/${hotel.id}/documents/not-a-uuid/url`, {
+      session: superSession,
+    });
+    expect(url.status).toBe(404);
+
+    const verify = await call(
+      app,
+      'post',
+      `/api/v1/hotels/${hotel.id}/documents/not-a-uuid/verify`,
+      {
+        session: superSession,
+        body: { decision: 'VERIFIED' },
+      },
+    );
+    expect(verify.status).toBe(404);
+  });
+});
+
+describe('vendor documents (D127(2))', () => {
+  async function seedDocument(hotelId: string, zoneId: string, fileKey?: string): Promise<string> {
+    const row = await prisma.vendorDocument.create({
+      data: {
+        vendorType: 'HOTEL',
+        vendorId: hotelId,
+        docType: 'FSSAI',
+        fileKey: fileKey ?? `zone/${zoneId}/${hotelId}/11111111-1111-4111-8111-111111111111.png`,
+        verified: false,
+      },
+    });
+    seededDocumentIds.push(row.id);
+    return row.id;
+  }
+
+  it('lists seeded documents on the hotel detail', async () => {
+    const hotel = await createHotel();
+    const documentId = await seedDocument(hotel.id, hotel.zoneId);
+
+    const detail = await call(app, 'get', `/api/v1/hotels/${hotel.id}`, {
+      session: superSession,
+    });
+    expect(detail.status).toBe(200);
+    const docs = detail.body.data.documents as Array<{
+      id: string;
+      docType: string;
+      verified: boolean;
+    }>;
+    expect(docs).toHaveLength(1);
+    expect(docs[0]?.id).toBe(documentId);
+    expect(docs[0]?.docType).toBe('FSSAI');
+    expect(docs[0]?.verified).toBe(false);
+  });
+
+  it('signs a download URL and writes an audited download row', async () => {
+    const hotel = await createHotel();
+    const documentId = await seedDocument(hotel.id, hotel.zoneId);
+
+    const res = await call(app, 'get', `/api/v1/hotels/${hotel.id}/documents/${documentId}/url`, {
+      session: superSession,
+    });
+    expect(res.status).toBe(200);
+    expect(typeof res.body.data.url).toBe('string');
+    expect(res.body.data.url).toContain('X-Amz-Signature');
+    expect(res.body.data.expiresInSec).toBeGreaterThan(0);
+
+    const audits = await prisma.auditLog.findMany({
+      where: { action: 'hotels.document.download', entityId: hotel.id },
+    });
+    expect(audits.length).toBe(1);
+  });
+
+  it('verifies and rejects a document with audit rows', async () => {
+    const hotel = await createHotel();
+    const documentId = await seedDocument(hotel.id, hotel.zoneId);
+
+    const ok = await call(
+      app,
+      'post',
+      `/api/v1/hotels/${hotel.id}/documents/${documentId}/verify`,
+      {
+        session: superSession,
+        body: { decision: 'VERIFIED' },
+      },
+    );
+    expect(ok.status).toBe(200);
+    expect(ok.body.data.verified).toBe(true);
+    expect(ok.body.data.rejectionNote).toBeNull();
+
+    const reject = await call(
+      app,
+      'post',
+      `/api/v1/hotels/${hotel.id}/documents/${documentId}/verify`,
+      { session: superSession, body: { decision: 'REJECTED', note: 'Blurry scan' } },
+    );
+    expect(reject.status).toBe(200);
+    expect(reject.body.data.verified).toBe(false);
+    expect(reject.body.data.rejectionNote).toBe('Blurry scan');
+
+    const audits = await prisma.auditLog.findMany({
+      where: {
+        entityId: hotel.id,
+        action: { in: ['hotels.document.verify', 'hotels.document.reject'] },
+      },
+    });
+    expect(audits.map((a) => a.action).sort()).toEqual([
+      'hotels.document.reject',
+      'hotels.document.verify',
+    ]);
+
+    const late = await call(
+      app,
+      'post',
+      `/api/v1/hotels/${hotel.id}/documents/${documentId}/verify`,
+      {
+        session: superSession,
+        body: { decision: 'REJECTED' },
+      },
+    );
+    expect(late.status).toBe(422);
+  });
+
+  it('answers 404 for an unknown document on url and verify', async () => {
+    const hotel = await createHotel();
+    const unknownDoc = '00000000-0000-4000-8000-000000000000';
+
+    const url = await call(app, 'get', `/api/v1/hotels/${hotel.id}/documents/${unknownDoc}/url`, {
+      session: superSession,
+    });
+    expect(url.status).toBe(404);
+
+    const verify = await call(
+      app,
+      'post',
+      `/api/v1/hotels/${hotel.id}/documents/${unknownDoc}/verify`,
+      {
+        session: superSession,
+        body: { decision: 'VERIFIED' },
+      },
+    );
+    expect(verify.status).toBe(404);
+  });
+
+  it('answers 404 when the document belongs to another hotel', async () => {
+    const hotelA = await createHotel(zoneAId);
+    const hotelB = await createHotel(zoneAId);
+    const docOfB = await seedDocument(hotelB.id, hotelB.zoneId);
+
+    const url = await call(app, 'get', `/api/v1/hotels/${hotelA.id}/documents/${docOfB}/url`, {
+      session: superSession,
+    });
+    expect(url.status).toBe(404);
+
+    const verify = await call(
+      app,
+      'post',
+      `/api/v1/hotels/${hotelA.id}/documents/${docOfB}/verify`,
+      {
+        session: superSession,
+        body: { decision: 'VERIFIED' },
+      },
+    );
+    expect(verify.status).toBe(404);
+  });
+
+  it('rejects a malformed fileKey with 422 on upload', async () => {
+    const hotel = await createHotel();
+    const res = await call(app, 'post', `/api/v1/hotels/${hotel.id}/documents`, {
+      session: superSession,
+      body: { docType: 'FSSAI', fileKey: 'uploads/fssai.pdf' },
+    });
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('rejects a fileKey owned by a different hotel or zone with 404', async () => {
+    const hotelA = await createHotel(zoneAId);
+    const hotelB = await createHotel(zoneAId);
+    const fileId = '11111111-1111-4111-8111-111111111111.png';
+    const foreign = await call(app, 'post', `/api/v1/hotels/${hotelA.id}/documents`, {
+      session: superSession,
+      body: { docType: 'FSSAI', fileKey: `zone/${zoneAId}/${hotelB.id}/${fileId}` },
+    });
+    expect(foreign.status).toBe(404);
+
+    const wrongZone = await call(app, 'post', `/api/v1/hotels/${hotelA.id}/documents`, {
+      session: superSession,
+      body: { docType: 'FSSAI', fileKey: `zone/${zoneBId}/${hotelA.id}/${fileId}` },
+    });
+    expect(wrongZone.status).toBe(404);
+  });
+
+  // NOTE: the attach happy path (POST /hotels/:id/documents → 201) is blocked until
+  // the uploads lane adds HOTEL support to requireEntity (uploads.service.ts) —
+  // assertUploadedObject 404s 'Vendor not found' for hotel file keys. When that lands,
+  // add the signedUpload → attach → url round-trip test here (copy vendors.integration.test.ts).
+  it.skip('attaches a freshly uploaded document (blocked on uploads HOTEL entity support)', () => {
+    expect(true).toBe(true);
+  });
+
+  it('answers 403 for every document and reveal route on all three zonal admins', async () => {
+    const hotel = await createHotel();
+    const documentId = await seedDocument(hotel.id, hotel.zoneId);
+    const matrix: Array<['get' | 'post', string, unknown]> = [
+      ['get', `/api/v1/hotels/${hotel.id}/reveal`, undefined],
+      ['post', `/api/v1/hotels/${hotel.id}/documents`, { docType: 'FSSAI', fileKey: 'x' }],
+      ['get', `/api/v1/hotels/${hotel.id}/documents/${documentId}/url`, undefined],
+      [
+        'post',
+        `/api/v1/hotels/${hotel.id}/documents/${documentId}/verify`,
+        { decision: 'VERIFIED' },
+      ],
+    ];
+
+    for (const session of [zonalA, zonalB, zonalNone]) {
+      for (const [method, path, body] of matrix) {
+        const res = await call(app, method, path, { session, body });
+        expect(res.status).toBe(403);
+        expect(res.body.error.message).toMatch(/^Missing permission hotels:/);
+      }
+    }
+  });
+
+  it('answers 401 without a session on reveal and document routes', async () => {
+    const hotel = await createHotel();
+    const documentId = await seedDocument(hotel.id, hotel.zoneId);
+    const matrix: Array<['get' | 'post', string, unknown]> = [
+      ['get', `/api/v1/hotels/${hotel.id}/reveal`, undefined],
+      ['post', `/api/v1/hotels/${hotel.id}/documents`, { docType: 'FSSAI', fileKey: 'x' }],
+      ['get', `/api/v1/hotels/${hotel.id}/documents/${documentId}/url`, undefined],
+      [
+        'post',
+        `/api/v1/hotels/${hotel.id}/documents/${documentId}/verify`,
+        { decision: 'VERIFIED' },
+      ],
+    ];
+
+    for (const [method, path, body] of matrix) {
+      const res = await call(app, method, path, { body });
+      expect(res.status).toBe(401);
+    }
   });
 });

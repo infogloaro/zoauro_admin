@@ -4,8 +4,11 @@ import {
   homemakerCreateSchema,
   homemakerUpdateSchema,
   listVendorsQuerySchema,
+  onboardingChecklistInputSchema,
   restaurantCreateSchema,
   restaurantUpdateSchema,
+  setReviewDeadlineSchema,
+  vendorBulkStatusSchema,
   vendorDocumentUploadSchema,
   vendorDocumentVerifySchema,
   vendorMoveZoneSchema,
@@ -14,6 +17,7 @@ import {
   type VendorKind,
 } from '@zoauro/shared';
 import { errors } from '../../lib/errors';
+import * as onboarding from './vendor.onboarding';
 import type { ActorContext } from './vendor.service';
 import * as service from './vendor.service';
 
@@ -39,9 +43,21 @@ function documentId(req: Request): string {
 
 type Handler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
+/** Optional zone filter shared by the A1 reminders/review-queue endpoints. */
+const zoneFilterSchema = z.object({
+  zoneId: z.union([z.uuid(), z.array(z.uuid())]).optional(),
+});
+
+function zoneIdsOf(query: { zoneId?: string | string[] }): string[] | undefined {
+  if (query.zoneId === undefined) return undefined;
+  return Array.isArray(query.zoneId) ? query.zoneId : [query.zoneId];
+}
+
 /** One controller per vendor kind; the schemas differ, the flow does not (doc 09). */
 export function createVendorHandlers(kind: VendorKind): {
   list: Handler;
+  exportCsv: Handler;
+  bulk: Handler;
   create: Handler;
   get: Handler;
   patch: Handler;
@@ -52,6 +68,12 @@ export function createVendorHandlers(kind: VendorKind): {
   addDocument: Handler;
   documentUrl: Handler;
   verifyDocument: Handler;
+  getChecklist: Handler;
+  updateChecklist: Handler;
+  getOnboarding: Handler;
+  reviewDeadline: Handler;
+  reviewQueue: Handler;
+  sendReminders: Handler;
 } {
   const createSchema = kind === 'restaurant' ? restaurantCreateSchema : homemakerCreateSchema;
   const updateSchema = kind === 'restaurant' ? restaurantUpdateSchema : homemakerUpdateSchema;
@@ -60,6 +82,29 @@ export function createVendorHandlers(kind: VendorKind): {
     try {
       const query = listVendorsQuerySchema.parse(req.query);
       res.json(await service.listVendors(kind, query));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /** GET /{module}/export — filtered CSV (doc 22, doc 13 T15/T16), audited. */
+  const exportCsv: Handler = async (req, res, next) => {
+    try {
+      const query = listVendorsQuerySchema.parse(req.query);
+      const { filename, csv } = await service.exportVendorsCsv(actor(req), kind, query);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(csv);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /** POST /{module}/bulk — bulk status change with partial-failure counts. */
+  const bulk: Handler = async (req, res, next) => {
+    try {
+      const input = vendorBulkStatusSchema.parse(req.body);
+      res.json({ data: await service.bulkChangeVendorStatus(actor(req), kind, input) });
     } catch (error) {
       next(error);
     }
@@ -77,7 +122,7 @@ export function createVendorHandlers(kind: VendorKind): {
 
   const get: Handler = async (req, res, next) => {
     try {
-      res.json({ data: await service.getVendorDetail(kind, vendorId(req)) });
+      res.json({ data: await service.getVendorDetail(actor(req), kind, vendorId(req)) });
     } catch (error) {
       next(error);
     }
@@ -167,8 +212,68 @@ export function createVendorHandlers(kind: VendorKind): {
     }
   };
 
+  /* A1 onboarding (doc 09 checklist/onboarding/review-deadline/reminders) */
+
+  const getChecklist: Handler = async (req, res, next) => {
+    try {
+      res.json({ data: await onboarding.getOnboardingChecklist(kind) });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const updateChecklist: Handler = async (req, res, next) => {
+    try {
+      const input = onboardingChecklistInputSchema.parse(req.body);
+      res.json({ data: await onboarding.updateOnboardingChecklist(actor(req), kind, input) });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const getOnboarding: Handler = async (req, res, next) => {
+    try {
+      res.json({ data: await onboarding.getVendorOnboarding(kind, vendorId(req)) });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const reviewDeadline: Handler = async (req, res, next) => {
+    try {
+      const input = setReviewDeadlineSchema.parse(req.body);
+      res.json({
+        data: await onboarding.setVendorReviewDeadline(actor(req), kind, vendorId(req), input),
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const reviewQueue: Handler = async (req, res, next) => {
+    try {
+      const query = zoneFilterSchema.parse(req.query);
+      const zoneIds = await service.resolveZoneScope(zoneIdsOf(query));
+      res.json({ data: await onboarding.listReviewQueue(kind, zoneIds) });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const sendReminders: Handler = async (req, res, next) => {
+    try {
+      const query = zoneFilterSchema.parse(req.query);
+      const zoneIds = await service.resolveZoneScope(zoneIdsOf(query));
+      res.json({ data: await onboarding.sendOnboardingReminders(actor(req), kind, zoneIds) });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   return {
     list,
+    exportCsv,
+    bulk,
     create,
     get,
     patch,
@@ -179,5 +284,11 @@ export function createVendorHandlers(kind: VendorKind): {
     addDocument,
     documentUrl,
     verifyDocument,
+    getChecklist,
+    updateChecklist,
+    getOnboarding,
+    reviewDeadline,
+    reviewQueue,
+    sendReminders,
   };
 }

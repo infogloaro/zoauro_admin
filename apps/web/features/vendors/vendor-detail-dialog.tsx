@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import {
   OPENING_DAYS,
   openingHoursSchema,
+  deriveDocState,
   VENDOR_DOC_TYPES,
   type OpeningDay,
   type OpeningDayKey,
@@ -39,6 +40,8 @@ import { cn } from '../../lib/cn';
 import { fetchVendorDocumentUrl } from './api';
 import { ConfirmDialog, VerificationDialog } from './vendor-actions';
 import type { ZoneOption } from './vendor-filters';
+import { VendorMenuTab } from './vendor-menu-tab';
+import { VendorOnboardingTab } from './vendor-onboarding-tab';
 
 export type VendorDetailAction =
   | 'verify'
@@ -64,7 +67,15 @@ export type VendorDetailActionOptions = {
   fileKey?: string;
 };
 
-const TABS = ['Overview', 'Documents', 'Menu', 'Orders', 'Commission & hours', 'Activity'] as const;
+const TABS = [
+  'Overview',
+  'Documents',
+  'Onboarding',
+  'Menu',
+  'Orders',
+  'Commission & hours',
+  'Activity',
+] as const;
 type Tab = (typeof TABS)[number];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -85,6 +96,18 @@ function verificationTone(status: string): 'success' | 'danger' | 'warning' | 'n
   if (status === 'REJECTED') return 'danger';
   if (status === 'PENDING') return 'warning';
   return 'neutral';
+}
+
+/** A1: warn when a document is expired or expiring within30 days (doc 08). */
+function expiryBadge(doc: VendorDocument) {
+  if (!doc.expiresOn) return null;
+  const state = deriveDocState(
+    { verified: doc.verified, rejectionNote: doc.rejectionNote, expiresOn: doc.expiresOn },
+    new Date(),
+  );
+  if (state === 'EXPIRED') return <Badge tone="danger">Expired {doc.expiresOn}</Badge>;
+  if (state === 'EXPIRING_SOON') return <Badge tone="warning">Expires {doc.expiresOn}</Badge>;
+  return null;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -463,6 +486,7 @@ export function VendorDetailDialog({
                         )}
                       </div>
                       <div className="flex items-center gap-2">
+                        {expiryBadge(doc)}
                         <Badge tone={doc.verified ? 'success' : 'warning'}>
                           {doc.verified ? 'Verified' : 'Pending'}
                         </Badge>
@@ -510,8 +534,12 @@ export function VendorDetailDialog({
             </div>
           )}
 
+          {tab === 'Onboarding' && (
+            <VendorOnboardingTab vendor={{ kind: vendor.kind, id: vendor.id, name: vendor.name }} />
+          )}
+
           {tab === 'Menu' && (
-            <EmptyState message="Menu items arrive with M08 (Menu / Food Items)." />
+            <VendorMenuTab vendor={{ kind: vendor.kind, id: vendor.id, name: vendor.name }} />
           )}
 
           {tab === 'Orders' && <EmptyState message="Orders arrive with M11." />}

@@ -9,7 +9,7 @@ import {
   VENDOR_STATUSES,
   VENDOR_STATUS_TARGETS,
 } from './enums';
-import { phoneSchema } from './vendor';
+import { phoneSchema, vendorDocumentSchema } from './vendor';
 
 /**
  * Hotel Room Booking contracts (task: match Hotel Room Booking Management,
@@ -17,8 +17,10 @@ import { phoneSchema } from './vendor';
  * verification, doc 10 §4); bookings and dining reservations are new tables.
  *
  * Booking dates are calendar days (check-in inclusive, check-out exclusive)
- * stored as UTC midnights. Money is integer paise. Double-booking is
- * prevented server-side (transaction + row lock + overlap check → 409).
+ * stored as UTC midnights. Money is integer paise. Inventory is guarded by
+ * per-night capacity (D127(3)): a booking is refused when any night of its
+ * stay would reach hotel.total_rooms (transaction + row lock → 409).
+ * Status changes carry an optimistic `version` (D127(6)(7)).
  */
 
 const nameSchema = z.string().trim().min(2, 'Name must be at least 2 characters').max(80);
@@ -152,9 +154,17 @@ export const hotelActivitySchema = z.object({
 export type HotelActivity = z.infer<typeof hotelActivitySchema>;
 
 export const hotelDetailSchema = hotelSchema.extend({
+  documents: z.array(vendorDocumentSchema),
   activity: z.array(hotelActivitySchema),
 });
 export type HotelDetail = z.infer<typeof hotelDetailSchema>;
+
+/** GET /hotels/{id}/reveal (D26) — audited unmask of the hotel contact. */
+export const hotelRevealSchema = z.object({
+  phone: z.string(),
+  email: z.string().nullable(),
+});
+export type HotelReveal = z.infer<typeof hotelRevealSchema>;
 
 /* ------------------------------------------------------------------ *
  * Room bookings
@@ -181,9 +191,13 @@ export const bookingCreateSchema = z
 
 export type BookingCreateInput = z.infer<typeof bookingCreateSchema>;
 
-/** POST /hotels/{id}/bookings/{bookingId}/status — transitions in doc 10 style. */
+/**
+ * POST /bookings/{bookingId}/status — transitions in doc 10 style. `version`
+ * is the optimistic lock (D127(6)(7)): it must match the stored row version.
+ */
 export const bookingStatusSchema = z.object({
   status: z.enum(BOOKING_STATUS_TARGETS),
+  version: z.number().int().min(1, 'A version is required'),
   note: noteSchema,
 });
 export type BookingStatusInput = z.infer<typeof bookingStatusSchema>;
@@ -232,6 +246,8 @@ export const roomBookingSchema = z.object({
   paymentStatus: z.enum(PAYMENT_STATUSES),
   amount: z.number().int(),
   note: z.string().nullable(),
+  /** Optimistic lock (D127(6)(7)); bumped by every status change. */
+  version: z.number().int(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -265,8 +281,13 @@ export const diningCreateSchema = z
 
 export type DiningCreateInput = z.infer<typeof diningCreateSchema>;
 
+/**
+ * POST /dining/{diningId}/status — transitions in doc 10 style. `version`
+ * is the optimistic lock (D127(6)(7)): it must match the stored row version.
+ */
 export const diningStatusSchema = z.object({
   status: z.enum(DINING_STATUSES),
+  version: z.number().int().min(1, 'A version is required'),
   note: noteSchema,
 });
 export type DiningStatusInput = z.infer<typeof diningStatusSchema>;
@@ -313,6 +334,8 @@ export const diningReservationSchema = z.object({
   paymentStatus: z.enum(PAYMENT_STATUSES),
   amount: z.number().int().nullable(),
   note: z.string().nullable(),
+  /** Optimistic lock (D127(6)(7)); bumped by every status change. */
+  version: z.number().int(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

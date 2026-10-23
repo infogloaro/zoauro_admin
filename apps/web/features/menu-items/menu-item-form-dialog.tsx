@@ -97,6 +97,9 @@ export function MenuItemFormDialog({
     description: item?.description ?? '',
     category: item?.category ?? '',
     price: item ? String(Math.round(item.price / 100)) : '',
+    stock: item?.stock != null ? String(item.stock) : '',
+    isAvailable: item?.isAvailable ?? true,
+    isFeatured: item?.isFeatured ?? false,
     dietary: item?.dietary ?? 'VEGETARIAN',
   };
 

@@ -3,6 +3,14 @@ import type {
   CustomerDetail,
   CustomerReveal,
   CustomerUpdateInput,
+  CustomerRewardEntry,
+  CustomerWalletEntry,
+  ListRewardsQuery,
+  ListRewardsResponse,
+  ListWalletQuery,
+  ListWalletResponse,
+  RewardAdjustInput,
+  RewardConvertInput,
   Customer as CustomerDto,
   ListCustomersQuery,
   ListCustomersResponse,
@@ -358,4 +366,169 @@ export async function revealCustomer(
     }),
   });
   return { phone: row.phone, email: row.email };
+}
+
+/* ------------------------------------------------------------------ *
+ * Rewards (D169, doc 09 `/customers/{id}/rewards`)
+ * ------------------------------------------------------------------ */
+
+function serializeRewardEntry(row: repo.RewardEntryRow): CustomerRewardEntry {
+  return {
+    id: row.id,
+    type: row.type,
+    points: row.points,
+    orderId: row.orderId,
+    reason: row.reason,
+    actorId: row.actorId,
+    zoneId: row.zoneId,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+/**
+ * GET /customers/{id}/rewards — the customer's current balance plus its
+ * append-only ledger (newest first, paginated, optional type filter).
+ * Contact never rides along (D26 masking covers the list; this payload is
+ * ledger-shaped and carries no phone/email at all).
+ */
+export async function getCustomerRewards(
+  id: string,
+  query: ListRewardsQuery,
+  zoneIds: string[] | null = null, // zonal scoping activates at SA-1.7
+): Promise<ListRewardsResponse> {
+  const row = await requireRow(id, zoneIds);
+  const page = await repo.listRewardEntries(id, query);
+  return {
+    data: {
+      rewardPoints: row.rewardPoints,
+      entries: page.rows.map(serializeRewardEntry),
+    },
+    meta: { total: page.total, page: query.page, pageSize: query.pageSize },
+  };
+}
+
+/**
+ * POST /customers/{id}/rewards/adjust (`customers:edit`) — one transaction:
+ * guarded balance flip + append-only ledger row + audit (before/after
+ * rewardPoints). A deduct that would go below 0 answers 409 and changes
+ * nothing; the `rewardPoints >= points` guard also closes the concurrent
+ * over-deduct race (doc 07 §6).
+ */
+export async function adjustRewards(
+  ctx: ActorContext,
+  id: string,
+  input: RewardAdjustInput,
+  zoneIds: string[] | null = null, // zonal scoping activates at SA-1.7
+): Promise<{ rewardPoints: number; entry: CustomerRewardEntry }> {
+  const before = await requireRow(id, zoneIds);
+  const grant = input.action === 'grant';
+  const signedPoints = grant ? input.points : -input.points;
+  const zoneId = auditZoneId(before, zoneIds);
+
+  return prisma.$transaction(async (tx) => {
+    if (grant) {
+      await repo.grantRewardPoints(tx, id, input.points);
+    } else if (!(await repo.deductRewardPoints(tx, id, input.points))) {
+      throw errors.conflict(
+        `Deducting ${input.points} points would take the balance below zero (current balance: ${before.rewardPoints})`,
+      );
+    }
+    const balanceAfter = await tx.customer
+      .findUniqueOrThrow({ where: { id }, select: { rewardPoints: true } })
+      .then((c) => c.rewardPoints);
+    const entry = await repo.createRewardEntry(tx, id, {
+      type: grant ? 'MANUAL_GRANT' : 'MANUAL_DEDUCT',
+      points: signedPoints,
+      balanceAfter,
+      // Credits carry their unspent magnitude (doc 08); spend-down of the
+      // remaining pool belongs to the orders checkout flow (M11+).
+      remaining: grant ? input.points : null,
+      reason: input.reason,
+      actorId: ctx.auth.userId,
+      zoneId,
+    });
+    await recordAudit(
+      tx,
+      auditEntry(ctx, id, zoneId, {
+        action: 'customers.reward.adjust',
+        before: { rewardPoints: before.rewardPoints },
+        after: { rewardPoints: balanceAfter, action: input.action, points: input.points },
+      }),
+    );
+    return { rewardPoints: balanceAfter, entry: serializeRewardEntry(entry) };
+  });
+}
+
+/**
+ * POST /customers/{id}/rewards/convert — gated off by D101: loyalty is off
+ * until Super Admin configures settings, and the settings module is an empty
+ * placeholder locally, so no settings row can exist. Every well-formed
+ * attempt therefore answers 409 (insufficient balance first when applicable)
+ * with an audit row for the attempt; nothing is written to any ledger.
+ */
+export async function convertRewards(
+  ctx: ActorContext,
+  id: string,
+  input: RewardConvertInput,
+  zoneIds: string[] | null = null, // zonal scoping activates at SA-1.7
+): Promise<never> {
+  const row = await requireRow(id, zoneIds);
+  const zoneId = auditZoneId(row, zoneIds);
+  const insufficient = input.points > row.rewardPoints;
+  await recordAudit(prisma, {
+    ...auditEntry(ctx, id, zoneId, {
+      action: 'customers.reward.convert',
+      after: {
+        attemptedPoints: input.points,
+        rewardPoints: row.rewardPoints,
+        result: insufficient ? 'INSUFFICIENT_POINTS' : 'LOYALTY_NOT_CONFIGURED',
+      },
+    }),
+  });
+  if (insufficient) throw errors.conflict('Insufficient reward points');
+  // D101: gate opens when settings module lands (doc 32 dependency)
+  throw errors.conflict('Loyalty settings are not configured');
+}
+
+/* ------------------------------------------------------------------ *
+ * Wallet (D24/D169, doc 09 `/customers/{id}/wallet`)
+ * ------------------------------------------------------------------ */
+
+function serializeWalletEntry(row: repo.WalletEntryRow): CustomerWalletEntry {
+  return {
+    id: row.id,
+    type: row.type,
+    amountPaise: row.amountPaise,
+    balanceAfterPaise: row.balanceAfterPaise,
+    refType: row.refType,
+    refId: row.refId,
+    reason: row.reason,
+    actorId: row.actorId,
+    zoneId: row.zoneId,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+/**
+ * GET /customers/{id}/wallet — newest-first ledger page plus the computed
+ * balance (sum of the signed `amount_paise` entries, per the doc 08 ledger
+ * convention). No contact fields ride along (D26).
+ */
+export async function getCustomerWallet(
+  id: string,
+  query: ListWalletQuery,
+  zoneIds: string[] | null = null, // zonal scoping activates at SA-1.7
+): Promise<ListWalletResponse> {
+  await requireRow(id, zoneIds);
+  const [page, balancePaise] = await Promise.all([
+    repo.listWalletEntries(id, query),
+    repo.walletBalancePaise(id),
+  ]);
+  return {
+    data: {
+      balancePaise,
+      entries: page.rows.map(serializeWalletEntry),
+    },
+    meta: { total: page.total, page: query.page, pageSize: query.pageSize },
+  };
 }

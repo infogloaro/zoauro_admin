@@ -4,7 +4,7 @@ import {
   PARTNER_SETTLEMENT_STATUSES,
   VERIFICATION_DECISIONS,
 } from './enums';
-import { phoneSchema } from './vendor';
+import { phoneSchema, vendorActivitySchema, vendorDocumentSchema } from './vendor';
 
 /**
  * M10 Delivery Partners contracts — doc 08 (`delivery_partners`), doc 09
@@ -12,15 +12,12 @@ import { phoneSchema } from './vendor';
  * form), doc 42 + `intake.openapi.yaml` `PartnerPatch` (the only documented
  * patch shape for a partner).
  *
- * Two doc gaps shape this file and are logged in doc 32 / the handoff:
- * - doc 09 lists no `GET /delivery-partners/{id}`, so the profile dialog is
- *   fed from the list row (every other entity does have a detail endpoint);
- * - doc 09 lists no status endpoint, so only the documented actions exist
- *   here: edit, verification, force-offline. Activate/suspend needs an owner
- *   decision before it can be contracted.
+ * D131 closes the two doc 09 gaps that shaped earlier versions of this file
+ * (status endpoint, detail/reveal) by mirroring the vendor routes; the new
+ * rows are logged in doc 32 / the handoff.
  *
- * `phone` arrives masked (doc 15 / D26) and doc 09 has no reveal endpoint
- * for partners, so no unmask call is contracted — see the handoff gap note.
+ * `phone` arrives masked in lists (doc 15 / D26); the full number leaves the
+ * API only through the audited detail/reveal (D26), same as customers.
  */
 
 export const DELIVERY_PARTNER_SORT_FIELDS = ['createdAt', 'name', 'rating'] as const;
@@ -143,6 +140,39 @@ export const deliveryPartnerForceOfflineSchema = z.object({
 });
 
 export type DeliveryPartnerForceOfflineInput = z.infer<typeof deliveryPartnerForceOfflineSchema>;
+
+/**
+ * POST /delivery-partners/{id}/status (D131 — vendor status mirror). Doc 10
+ * §5 targets: the endpoint moves a partner between ACTIVE, INACTIVE and
+ * SUSPENDED; PENDING_VERIFICATION → VERIFIED stays with the verification
+ * endpoint above.
+ */
+export const DELIVERY_PARTNER_STATUS_TARGETS = ['ACTIVE', 'INACTIVE', 'SUSPENDED'] as const;
+export type DeliveryPartnerStatusTarget = (typeof DELIVERY_PARTNER_STATUS_TARGETS)[number];
+
+export const deliveryPartnerStatusSchema = z.object({
+  status: z.enum(DELIVERY_PARTNER_STATUS_TARGETS),
+});
+
+export type DeliveryPartnerStatusInput = z.infer<typeof deliveryPartnerStatusSchema>;
+
+/** POST /delivery-partners/{id}/move-zone (D131): Super Admin only, recent re-auth. */
+export const deliveryPartnerMoveZoneSchema = z.object({ zoneId: z.uuid('Choose a zone') });
+
+export type DeliveryPartnerMoveZoneInput = z.infer<typeof deliveryPartnerMoveZoneSchema>;
+
+/** GET /delivery-partners/{id}/reveal (D26) — partners carry a phone only. */
+export const deliveryPartnerRevealSchema = z.object({ phone: z.string() });
+
+export type DeliveryPartnerReveal = z.infer<typeof deliveryPartnerRevealSchema>;
+
+/** GET /delivery-partners/{id} (D131) — partner + documents + activity, vendor mirror. */
+export const deliveryPartnerDetailSchema = deliveryPartnerSchema.extend({
+  documents: z.array(vendorDocumentSchema),
+  activity: z.array(vendorActivitySchema),
+});
+
+export type DeliveryPartnerDetail = z.infer<typeof deliveryPartnerDetailSchema>;
 
 /* ------------------------------------------------------------------ *
  * List query

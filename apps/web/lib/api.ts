@@ -47,7 +47,7 @@ const MUTATING = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 
 export async function apiFetch<T>(
   path: string,
-  options: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown } = {},
+  options: { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown } = {},
 ): Promise<T> {
   const method = options.method ?? 'GET';
   const headers: Record<string, string> = {};

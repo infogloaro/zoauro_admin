@@ -8,11 +8,13 @@ import {
   type UploadConfirmResponse,
   type UploadPresignInput,
   type UploadPresignResponse,
+  type UploadPurpose,
 } from '@zoauro/shared';
 import type { AuthContext } from '../../lib/auth-context';
 import { errors } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import * as storage from '../../lib/storage';
+import * as partnerRepo from '../delivery-partners/delivery-partner.repository';
 import * as vendorRepo from '../vendors/vendor.repository';
 
 /**
@@ -25,7 +27,9 @@ import * as vendorRepo from '../vendors/vendor.repository';
  *
  * `assertUploadedObject` is the shared gate every caller of a `fileKey`
  * (confirm, document attach) must pass, so a never-uploaded or disguised file
- * can never become a `vendor_documents` row.
+ * can never become a `vendor_documents` row. Entity resolution is purpose-aware
+ * (D131): PARTNER_DOC resolves DELIVERY_PARTNER rows, VENDOR_DOC/MENU_IMAGE
+ * resolve restaurant/homemaker vendors.
  */
 
 const UUID_PATTERN = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -95,29 +99,50 @@ function matchesMagic(contentType: string, bytes: Buffer): boolean {
 
 /**
  * The entity must exist and live in the zone the key claims — a cross-zone or
- * unknown entity answers 404 (AGENTS.md scope rules).
+ * unknown entity answers 404 (AGENTS.md scope rules). Resolution follows the
+ * upload purpose (D131): PARTNER_DOC owns DELIVERY_PARTNER rows, VENDOR_DOC
+ * and MENU_IMAGE keep owning restaurants and homemakers — a mismatched
+ * entity is 404, never a signed key for the wrong owner.
  */
-async function requireEntity(entityId: string, zoneId: string): Promise<void> {
+async function requireEntity(
+  entityId: string,
+  zoneId: string,
+  purpose: UploadPurpose,
+): Promise<void> {
+  if (purpose === 'PARTNER_DOC') {
+    // zonal scoping activates at SA-1.7
+    const partner = await partnerRepo.findPartner(entityId, null);
+    if (!partner || partner.zoneId !== zoneId) throw errors.notFound('Delivery partner not found');
+    return;
+  }
   const row =
     (await vendorRepo.findVendor('restaurant', entityId)) ??
     (await vendorRepo.findVendor('homemaker', entityId));
   if (!row || row.zoneId !== zoneId) throw errors.notFound('Vendor not found');
 }
 
+/**
+ * Purpose-less gate for a stored fileKey (confirm, document attach): the key's
+ * entity must exist in the key's zone under any documented owner type —
+ * restaurant, homemaker or delivery partner (D131).
+ */
+async function requireKeyEntity(entityId: string, zoneId: string): Promise<void> {
+  const vendor =
+    (await vendorRepo.findVendor('restaurant', entityId)) ??
+    (await vendorRepo.findVendor('homemaker', entityId));
+  if (vendor) {
+    if (vendor.zoneId !== zoneId) throw errors.notFound('Vendor not found');
+    return;
+  }
+  // zonal scoping activates at SA-1.7
+  const partner = await partnerRepo.findPartner(entityId, null);
+  if (!partner || partner.zoneId !== zoneId) throw errors.notFound('Delivery partner not found');
+}
+
 export async function presignUpload(
   ctx: AuthContext,
   input: UploadPresignInput,
 ): Promise<UploadPresignResponse> {
-  // Partner documents belong to the delivery-partner module (not built yet);
-  // without its table the entity cannot be validated, so refuse rather than
-  // sign an unscoped key.
-  if (input.purpose === 'PARTNER_DOC') {
-    throw errors.validation(
-      [{ issue: 'Partner document uploads arrive with the delivery-partner module' }],
-      'Unsupported upload purpose',
-    );
-  }
-
   const contentType = normalizeContentType(input.contentType);
   const maxBytes = maxBytesFor(contentType);
   if (maxBytes === null) {
@@ -133,7 +158,7 @@ export async function presignUpload(
     );
   }
 
-  await requireEntity(input.entityId, input.zoneId);
+  await requireEntity(input.entityId, input.zoneId, input.purpose);
 
   const ext = EXT_BY_CONTENT_TYPE[contentType];
   const fileKey = `zone/${input.zoneId}/${input.entityId}/${randomUUID()}.${ext}`;
@@ -154,7 +179,7 @@ export async function assertUploadedObject(fileKey: string): Promise<{
   if (!parsed) {
     throw errors.validation([{ field: 'fileKey', issue: 'Invalid file key' }], 'Invalid file key');
   }
-  await requireEntity(parsed.entityId, parsed.zoneId);
+  await requireKeyEntity(parsed.entityId, parsed.zoneId);
 
   const head = await storage.headObject(fileKey);
   if (!head) {

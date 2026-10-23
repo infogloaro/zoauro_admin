@@ -1012,4 +1012,177 @@ describe('authorization matrix (doc 24 × doc 04 — vendors SA-only until SA-1.
     });
     expect(detail.status).toBe(200);
   });
+
+  it('Admin roles: bulk and export answer 403 too', async () => {
+    for (const admin of [zonalA, zonalB, zonalNone]) {
+      const bulk = await call(app, 'post', '/api/v1/restaurants/bulk', {
+        session: admin,
+        body: { ids: [id], status: 'INACTIVE' },
+      });
+      expect(bulk.status).toBe(403);
+      const exportCsv = await call(app, 'get', '/api/v1/restaurants/export', {
+        session: admin,
+      });
+      expect(exportCsv.status).toBe(403);
+    }
+  });
+});
+
+describe('bulk status (doc 22 §bulk, TD-20)', () => {
+  it('SuperAdmin: bulk-activates verified vendors and audits the batch', async () => {
+    const r1 = await createRestaurant(zoneAId, `Bulk A ${stamp()}`);
+    const r2 = await createRestaurant(zoneAId, `Bulk B ${stamp()}`);
+    for (const vendor of [r1, r2]) {
+      const verify = await call(app, 'post', `/api/v1/restaurants/${vendor.id}/verification`, {
+        session: superSession,
+        body: { decision: 'VERIFIED' },
+      });
+      expect(verify.status).toBe(200);
+    }
+
+    const res = await call(app, 'post', '/api/v1/restaurants/bulk', {
+      session: superSession,
+      body: { ids: [r1.id, r2.id], status: 'ACTIVE' },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({ updated: 2, skipped: 0 });
+
+    for (const vendor of [r1, r2]) {
+      const detail = await call(app, 'get', `/api/v1/restaurants/${vendor.id}`, {
+        session: superSession,
+      });
+      expect(detail.body.data.status).toBe('ACTIVE');
+    }
+
+    const audit = await prisma.auditLog.findFirst({
+      where: { action: 'restaurants.bulk.status', entityId: 'bulk' },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(audit).not.toBeNull();
+    const after = audit?.afterJson as { ids: string[]; status: string };
+    expect(after.ids).toContain(r1.id);
+    expect(after.ids).toContain(r2.id);
+    expect(after.status).toBe('ACTIVE');
+  });
+
+  it('skips missing ids and rows whose state cannot move to the target', async () => {
+    const unverified = await createRestaurant(zoneAId, `Bulk Skip ${stamp()}`);
+    const missingId = '00000000-0000-4000-8000-0000000000ff';
+
+    const res = await call(app, 'post', '/api/v1/restaurants/bulk', {
+      session: superSession,
+      body: { ids: [unverified.id, missingId], status: 'ACTIVE' },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({ updated: 0, skipped: 2 });
+
+    const detail = await call(app, 'get', `/api/v1/restaurants/${unverified.id}`, {
+      session: superSession,
+    });
+    expect(detail.body.data.status).toBe('PENDING');
+  });
+
+  it('homemakers: bulk deactivate works after activation', async () => {
+    const h = await createHomemaker(zoneAId, `Bulk H ${stamp()}`);
+    await call(app, 'post', `/api/v1/homemakers/${h.id}/verification`, {
+      session: superSession,
+      body: { decision: 'VERIFIED' },
+    });
+    const activate = await call(app, 'post', '/api/v1/homemakers/bulk', {
+      session: superSession,
+      body: { ids: [h.id], status: 'ACTIVE' },
+    });
+    expect(activate.body.data).toEqual({ updated: 1, skipped: 0 });
+
+    const deactivate = await call(app, 'post', '/api/v1/homemakers/bulk', {
+      session: superSession,
+      body: { ids: [h.id], status: 'INACTIVE' },
+    });
+    expect(deactivate.body.data).toEqual({ updated: 1, skipped: 0 });
+  });
+
+  it('validates the payload', async () => {
+    const empty = await call(app, 'post', '/api/v1/restaurants/bulk', {
+      session: superSession,
+      body: { ids: [], status: 'ACTIVE' },
+    });
+    expect(empty.status).toBe(422);
+
+    const badTarget = await call(app, 'post', '/api/v1/restaurants/bulk', {
+      session: superSession,
+      body: { ids: ['00000000-0000-4000-8000-000000000001'], status: 'PENDING' },
+    });
+    expect(badTarget.status).toBe(422);
+  });
+});
+
+describe('CSV export (doc 22, doc 13 T15/T16, D26)', () => {
+  it('SuperAdmin: exports the filtered rows with masked phones and audited access', async () => {
+    const area = `Export Area ${stamp()}`;
+    const created = await createRestaurant(zoneAId, `Export Candidate ${stamp()}`);
+    await call(app, 'patch', `/api/v1/restaurants/${created.id}`, {
+      session: superSession,
+      body: { area },
+    });
+
+    const res = await call(
+      app,
+      'get',
+      `/api/v1/restaurants/export?area=${encodeURIComponent(area)}`,
+      {
+        session: superSession,
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/csv');
+    expect(res.headers['content-disposition']).toContain('restaurants.csv');
+
+    const text = res.text ?? '';
+    expect(text).toContain('Export Candidate');
+    expect(text).toContain('Verification');
+    // D26: the export mirrors the list — the raw phone never leaves the API.
+    expect(text).not.toContain(created.phone);
+    expect(text).toContain('98');
+
+    const audit = await prisma.auditLog.findFirst({
+      where: { action: 'restaurants.export' },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(audit).not.toBeNull();
+  });
+
+  it('neutralises spreadsheet formula injection (doc 13 T16)', async () => {
+    const created = await createRestaurant(zoneAId, `=SUM(A1)${stamp()}`);
+    const res = await call(
+      app,
+      'get',
+      `/api/v1/restaurants/export?q=${encodeURIComponent(created.name)}`,
+      {
+        session: superSession,
+      },
+    );
+    expect(res.status).toBe(200);
+    // The cell must be prefixed so spreadsheets treat it as text.
+    expect(res.text).toContain(`'=SUM(A1)`);
+  });
+});
+
+describe('detail contact reveal audit (D26, doc 15 §privacy)', () => {
+  it('records an audited reveal row whenever the detail view opens', async () => {
+    const created = await createRestaurant(zoneAId, `Reveal ${stamp()}`);
+    const res = await call(app, 'get', `/api/v1/restaurants/${created.id}`, {
+      session: superSession,
+    });
+    expect(res.status).toBe(200);
+    // Detail reveals the full contact (D26 policy)…
+    expect(res.body.data.phone).toBe(created.phone);
+
+    const audit = await prisma.auditLog.findFirst({
+      where: { action: 'restaurants.reveal', entityId: created.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(audit).not.toBeNull();
+    const after = audit?.afterJson as { revealed: string[] };
+    expect(after.revealed).toEqual(expect.arrayContaining(['phone', 'email']));
+  });
 });

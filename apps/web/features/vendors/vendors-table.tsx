@@ -4,6 +4,7 @@ import { Eye, Edit } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { Vendor, VendorKind } from '@zoauro/shared';
 import { Badge } from '../../components/ui/badge';
+import { Checkbox } from '../../components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -211,24 +212,44 @@ function VendorCells({
  * kebab menu is gone — verify/reject/suspend/delete live in the detail dialog
  * opened by View). Financial columns have no backend yet, so they show "—".
  * The Verification column follows doc 10 §4 (rejected vendors show Rejected).
+ * When `selected` is provided a checkbox column appears for bulk status
+ * changes (doc 22 §bulk, TD-20).
  */
 export function VendorsTable({
   kind,
   vendors,
   onAction,
   showZoneChip,
+  selected,
+  onToggleSelected,
+  onToggleAll,
 }: {
   kind: VendorKind;
   vendors: Vendor[];
   onAction: (vendor: Vendor, action: VendorRowAction) => void;
   showZoneChip: boolean;
+  selected?: ReadonlySet<string>;
+  onToggleSelected?: (id: string) => void;
+  onToggleAll?: () => void;
 }) {
   const isRestaurant = kind === 'restaurant';
+  const selectable = selected !== undefined && onToggleSelected !== undefined;
+  const allOnPageSelected =
+    selectable && vendors.length > 0 && vendors.every((v) => selected.has(v.id));
 
   return (
     <Table>
       <TableHeader className="bg-slate-50">
         <TableRow className="hover:bg-transparent">
+          {selectable && (
+            <Th>
+              <Checkbox
+                aria-label="Select all records on this page"
+                checked={allOnPageSelected}
+                onChange={() => onToggleAll?.()}
+              />
+            </Th>
+          )}
           <Th>{isRestaurant ? 'Restaurant' : 'Provider'}</Th>
           <Th>Owner & contact</Th>
           <Th>Zone / area</Th>
@@ -245,6 +266,15 @@ export function VendorsTable({
       <TableBody>
         {vendors.map((vendor) => (
           <TableRow key={vendor.id} className="h-[72px] border-b border-slate-200">
+            {selectable && (
+              <TableCell>
+                <Checkbox
+                  aria-label={`Select ${vendor.name}`}
+                  checked={selected.has(vendor.id)}
+                  onChange={() => onToggleSelected(vendor.id)}
+                />
+              </TableCell>
+            )}
             <VendorCells
               vendor={vendor}
               kind={kind}

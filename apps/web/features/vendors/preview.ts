@@ -4,6 +4,7 @@ import type {
   Homemaker,
   ListVendorsResponse,
   Me,
+  OnboardingRequirement,
   Restaurant,
   Vendor,
   VendorDetail,
@@ -11,6 +12,8 @@ import type {
   VendorDocumentUploadInput,
   VendorDocumentVerifyInput,
   VendorKind,
+  VendorOnboarding,
+  VendorReviewQueueItem,
 } from '@zoauro/shared';
 
 /**
@@ -430,4 +433,151 @@ export function previewDocumentVerification(
     rejectionNote: input.decision === 'REJECTED' ? (input.note ?? null) : null,
     createdAt: new Date().toISOString(),
   };
+}
+
+/* ------------------------------------------------------------------ *
+ * A1 onboarding preview (mirrors the seeded advisory checklist)
+ * ------------------------------------------------------------------ */
+
+const PREVIEW_CHECKLIST: Record<VendorKind, OnboardingRequirement[]> = {
+  restaurant: [
+    {
+      vendorType: 'RESTAURANT',
+      docType: 'FSSAI',
+      label: 'FSSAI license',
+      weight: 30,
+      active: true,
+      sortOrder: 0,
+    },
+    {
+      vendorType: 'RESTAURANT',
+      docType: 'GST',
+      label: 'GST registration (if registered)',
+      weight: 20,
+      active: true,
+      sortOrder: 1,
+    },
+    {
+      vendorType: 'RESTAURANT',
+      docType: 'PAN',
+      label: 'PAN card',
+      weight: 15,
+      active: true,
+      sortOrder: 2,
+    },
+    {
+      vendorType: 'RESTAURANT',
+      docType: 'BANK',
+      label: 'Bank account for payouts',
+      weight: 20,
+      active: true,
+      sortOrder: 3,
+    },
+    {
+      vendorType: 'RESTAURANT',
+      docType: 'ID',
+      label: 'Owner ID proof',
+      weight: 15,
+      active: true,
+      sortOrder: 4,
+    },
+  ],
+  homemaker: [
+    {
+      vendorType: 'HOMEMAKER',
+      docType: 'ID',
+      label: 'Owner ID proof',
+      weight: 35,
+      active: true,
+      sortOrder: 0,
+    },
+    {
+      vendorType: 'HOMEMAKER',
+      docType: 'FSSAI',
+      label: 'FSSAI registration (if applicable)',
+      weight: 25,
+      active: true,
+      sortOrder: 1,
+    },
+    {
+      vendorType: 'HOMEMAKER',
+      docType: 'BANK',
+      label: 'Bank account for payouts',
+      weight: 25,
+      active: true,
+      sortOrder: 2,
+    },
+    {
+      vendorType: 'HOMEMAKER',
+      docType: 'PAN',
+      label: 'PAN (if registered)',
+      weight: 15,
+      active: true,
+      sortOrder: 3,
+    },
+  ],
+};
+
+/** Simulates GET /{module}/onboarding/checklist. */
+export function mockOnboardingChecklist(kind: VendorKind): OnboardingRequirement[] {
+  return PREVIEW_CHECKLIST[kind];
+}
+
+/** Simulates GET /{module}/{id}/onboarding — all requirements missing. */
+export function mockOnboarding(kind: VendorKind, id: string): VendorOnboarding {
+  const created = new Date('2026-10-22T08:00:00.000Z');
+  return {
+    vendorId: id || kindRows(kind)[0]?.id || crypto.randomUUID(),
+    kind,
+    checklist: PREVIEW_CHECKLIST[kind].map((req) => ({
+      docType: req.docType,
+      label: req.label,
+      weight: req.weight,
+      active: req.active,
+      sortOrder: req.sortOrder,
+      state: 'MISSING',
+      document: null,
+      points: 0,
+      maxPoints: req.weight,
+      reason: 'No document uploaded',
+    })),
+    readiness: {
+      score: 0,
+      band: 'INCOMPLETE',
+      provisional: true,
+      note: 'No documents uploaded yet — score is provisional',
+      earnedPoints: 0,
+      maxPoints: PREVIEW_CHECKLIST[kind].reduce((sum, r) => sum + r.weight, 0),
+    },
+    review: {
+      dueAt: new Date(created.getTime() + 48 * 3600 * 1000).toISOString(),
+      source: 'SLA',
+      state: 'ON_TIME',
+      dueInHours: 41,
+    },
+  };
+}
+
+/** Simulates GET /{module}/onboarding/review-queue with one pending vendor. */
+export function mockReviewQueue(kind: VendorKind): VendorReviewQueueItem[] {
+  const vendor = kindRows(kind)[0];
+  if (!vendor) return [];
+  return [
+    {
+      id: vendor.id,
+      name: vendor.name,
+      kind,
+      zoneId: vendor.zoneId,
+      zoneName: vendor.zone.name,
+      verificationStatus: 'PENDING',
+      readinessScore: null,
+      readinessBand: null,
+      review: {
+        dueAt: new Date('2026-10-23T08:00:00.000Z').toISOString(),
+        source: 'SLA',
+        state: 'DUE_SOON',
+        dueInHours: 6,
+      },
+    },
+  ];
 }

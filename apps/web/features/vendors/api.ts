@@ -6,23 +6,34 @@ import type {
   HomemakerCreateInput,
   HomemakerUpdateInput,
   ListVendorsResponse,
+  OnboardingChecklistInput,
+  OnboardingRemindersResponse,
+  OnboardingRequirement,
   Restaurant,
   RestaurantCreateInput,
   RestaurantUpdateInput,
+  SetReviewDeadlineInput,
+  VendorBulkStatusInput,
+  VendorBulkStatusResponse,
   VendorDetail,
   VendorDocument,
   VendorDocumentUploadInput,
   VendorDocumentUrl,
   VendorDocumentVerifyInput,
   VendorKind,
+  VendorOnboarding,
+  VendorReviewQueueItem,
   VendorStatusInput,
   VendorVerificationInput,
 } from '@zoauro/shared';
 import { apiFetch, type Envelope } from '../../lib/api';
 import {
   isVendorPreview,
+  mockOnboarding,
+  mockOnboardingChecklist,
   mockVendorDetail,
   mockVendorsList,
+  mockReviewQueue,
   previewDocument,
   previewDocumentVerification,
   previewMutationVendor,
@@ -143,6 +154,21 @@ export function useVendorStatus(kind: VendorKind) {
   });
 }
 
+/** POST /{module}/bulk — bulk status change (doc 22), partial-failure counts. */
+export function useBulkVendorStatus(kind: VendorKind) {
+  const invalidate = useInvalidateVendors();
+  return useMutation({
+    mutationFn: (input: VendorBulkStatusInput): Promise<Envelope<VendorBulkStatusResponse>> =>
+      isVendorPreview()
+        ? Promise.resolve({ data: { updated: input.ids.length, skipped: 0 } })
+        : apiFetch<Envelope<VendorBulkStatusResponse>>(`/${vendorBase(kind)}/bulk`, {
+            method: 'POST',
+            body: input,
+          }),
+    onSuccess: invalidate,
+  });
+}
+
 export function useVendorVerification(kind: VendorKind) {
   const invalidate = useInvalidateVendors();
   return useMutation({
@@ -254,4 +280,142 @@ export async function fetchVendorDocumentUrl(
   return apiFetch<Envelope<VendorDocumentUrl>>(
     `/${vendorBase(kind)}/${id}/documents/${documentId}/url`,
   );
+}
+
+/**
+ * GET /{module}/export — the server walks every filtered row (not one page),
+ * masks contacts like the list, escapes formulas and audits the download
+ * (doc 22, doc 13 T15/T16, D26). Returns the record count for the toast.
+ */
+export async function downloadVendorsCsv(
+  kind: VendorKind,
+  filters: VendorFilters,
+): Promise<number> {
+  if (isVendorPreview()) {
+    throw new Error('CSV export is unavailable in preview mode.');
+  }
+  const response = await fetch(
+    `/api/v1/${vendorBase(kind)}/export?${vendorQueryString({ ...filters, page: 1, pageSize: 100 })}`,
+    { credentials: 'same-origin' },
+  );
+  if (!response.ok) {
+    let message = `Export failed (${response.status}).`;
+    try {
+      const body = (await response.json()) as { error?: { message?: string } };
+      if (body.error?.message) message = body.error.message;
+    } catch {
+      // Non-JSON error body — keep the status message.
+    }
+    throw new Error(message);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const match = /filename="?([^";]+)"?/i.exec(disposition);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = match?.[1] ?? (kind === 'restaurant' ? 'restaurants.csv' : 'homemakers.csv');
+  link.click();
+  URL.revokeObjectURL(url);
+  // Count the data rows (header excluded) so the toast can report the size.
+  const text = await blob.text();
+  return Math.max(
+    0,
+    text
+      .replace(/^\uFEFF/, '')
+      .trim()
+      .split('\r\n').length - 1,
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * A1 onboarding (doc 09 checklist/onboarding/review-deadline/reminders)
+ * ------------------------------------------------------------------ */
+
+/** GET /{module}/{id}/onboarding — readiness score, checklist and review state. */
+export function useVendorOnboarding(kind: VendorKind, id: string | null) {
+  return useQuery<Envelope<VendorOnboarding>, Error>({
+    queryKey: ['vendors', 'onboarding', kind, id],
+    queryFn: () =>
+      isVendorPreview()
+        ? Promise.resolve({ data: mockOnboarding(kind, id ?? '') })
+        : apiFetch<Envelope<VendorOnboarding>>(`/${vendorBase(kind)}/${id}/onboarding`),
+    enabled: Boolean(id),
+  });
+}
+
+/** GET /{module}/onboarding/checklist — the advisory requirements (doc 08). */
+export function useOnboardingChecklist(kind: VendorKind) {
+  return useQuery<Envelope<OnboardingRequirement[]>, Error>({
+    queryKey: ['vendors', 'onboarding', kind, 'checklist'],
+    queryFn: () =>
+      isVendorPreview()
+        ? Promise.resolve({ data: mockOnboardingChecklist(kind) })
+        : apiFetch<Envelope<OnboardingRequirement[]>>(`/${vendorBase(kind)}/onboarding/checklist`),
+  });
+}
+
+/** GET /{module}/onboarding/review-queue — pending-verification vendors. */
+export function useOnboardingQueue(kind: VendorKind, zoneId?: string) {
+  return useQuery<Envelope<VendorReviewQueueItem[]>, Error>({
+    queryKey: ['vendors', 'onboarding', kind, 'queue', zoneId ?? ''],
+    queryFn: () => {
+      if (isVendorPreview()) return Promise.resolve({ data: mockReviewQueue(kind) });
+      const qs = zoneId ? `?zoneId=${encodeURIComponent(zoneId)}` : '';
+      return apiFetch<Envelope<VendorReviewQueueItem[]>>(
+        `/${vendorBase(kind)}/onboarding/review-queue${qs}`,
+      );
+    },
+  });
+}
+
+/** PUT /{module}/onboarding/checklist — Super Admin only (doc 09). */
+export function useUpdateOnboardingChecklist(kind: VendorKind) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: OnboardingChecklistInput): Promise<Envelope<OnboardingRequirement[]>> =>
+      isVendorPreview()
+        ? Promise.resolve({ data: mockOnboardingChecklist(kind) })
+        : apiFetch<Envelope<OnboardingRequirement[]>>(`/${vendorBase(kind)}/onboarding/checklist`, {
+            method: 'PUT',
+            body: input,
+          }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vendors', 'onboarding'] }),
+  });
+}
+
+/** PUT /{module}/{id}/review-deadline — null clears back to the48 h SLA. */
+export function useSetReviewDeadline(kind: VendorKind) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: SetReviewDeadlineInput;
+    }): Promise<Envelope<VendorOnboarding>> =>
+      isVendorPreview()
+        ? Promise.resolve({ data: mockOnboarding(kind, id) })
+        : apiFetch<Envelope<VendorOnboarding>>(`/${vendorBase(kind)}/${id}/review-deadline`, {
+            method: 'PUT',
+            body: input,
+          }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vendors', 'onboarding'] }),
+  });
+}
+
+/** POST /{module}/onboarding/reminders — notify overdue vendor reviews. */
+export function useOnboardingReminders(kind: VendorKind) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (): Promise<Envelope<OnboardingRemindersResponse>> =>
+      isVendorPreview()
+        ? Promise.resolve({ data: { scanned: 0, overdue: 0, notified: 0, deduped: 0 } })
+        : apiFetch<Envelope<OnboardingRemindersResponse>>(
+            `/${vendorBase(kind)}/onboarding/reminders`,
+            { method: 'POST' },
+          ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vendors', 'onboarding'] }),
+  });
 }

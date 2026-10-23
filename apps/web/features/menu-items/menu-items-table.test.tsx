@@ -22,6 +22,13 @@ function item(overrides: Partial<MenuItem>): MenuItem {
     description: 'Crisp dosa with podi and ghee',
     category: 'South Indian',
     price: 12_000,
+    stock: null,
+    isAvailable: true,
+    isFeatured: false,
+    imageKey: null,
+    adminDisabled: false,
+    adminOverrideAt: null,
+    live: true,
     dietary: 'NON_VEG',
     approvalStatus: 'PENDING',
     rejectionReason: null,
@@ -97,5 +104,87 @@ describe('menuActionsFor — only workflow-legal actions are offered (doc 10 §4
 
   it('offers restore on ARCHIVED items and never archive or reject again', () => {
     expect(menuActionsFor('ARCHIVED')).toEqual(['view', 'edit', 'approve', 'delete']);
+  });
+});
+
+describe('stock, live status and admin disable affordances (D126)', () => {
+  it('renders an empty stock editor for an untracked item and the number when tracked', () => {
+    const untracked = renderToStaticMarkup(
+      <MenuItemsTable items={[item({ stock: null })]} onAction={noop} onStockChange={noop} />,
+    );
+    expect(untracked).toContain('Stock for Ghee Podi Dosa (empty = not tracked)');
+    const tracked = renderToStaticMarkup(
+      <MenuItemsTable items={[item({ stock: 12 })]} onAction={noop} onStockChange={noop} />,
+    );
+    expect(tracked).toContain('value="12"');
+  });
+
+  it('shows a plain Untracked label when no stock editor is wired', () => {
+    const html = renderToStaticMarkup(
+      <MenuItemsTable items={[item({ stock: null })]} onAction={noop} />,
+    );
+    expect(html).toContain('Untracked');
+    expect(html).not.toContain('type="number"');
+  });
+
+  it('shows the server-computed live badge and an Admin disabled badge', () => {
+    const html = renderToStaticMarkup(
+      <MenuItemsTable items={[item({ live: false, adminDisabled: true })]} onAction={noop} />,
+    );
+    expect(html).toContain('>Not live<');
+    expect(html).toContain('>Admin disabled<');
+  });
+
+  it('shows the admin override hint when a vendor-owned field was overridden', () => {
+    const html = renderToStaticMarkup(
+      <MenuItemsTable
+        items={[item({ adminOverrideAt: '2026-07-02T10:00:00.000Z' })]}
+        onAction={noop}
+      />,
+    );
+    expect(html).toContain('Admin override');
+  });
+
+  it('offers the availability and admin-disable toggles only when handlers are wired', () => {
+    const withToggles = renderToStaticMarkup(
+      <MenuItemsTable
+        items={[item({ isAvailable: true, adminDisabled: false })]}
+        onAction={noop}
+        onAvailabilityToggle={noop}
+        onAdminDisableToggle={noop}
+      />,
+    );
+    expect(withToggles).toContain('title="Hide from customers"');
+    expect(withToggles).toContain('Admin disable');
+    const without = renderToStaticMarkup(<MenuItemsTable items={[item({})]} onAction={noop} />);
+    expect(without).not.toContain('Hide from customers');
+    expect(without).not.toContain('Admin-disable');
+  });
+
+  it('shows the featured star toggle when a handler is wired', () => {
+    const html = renderToStaticMarkup(
+      <MenuItemsTable
+        items={[item({ isFeatured: true })]}
+        onAction={noop}
+        onFeaturedToggle={noop}
+      />,
+    );
+    expect(html).toContain('Unfeature Ghee Podi Dosa');
+  });
+});
+
+describe('sortable headers (shared sort schema: -?(createdAt|name|price))', () => {
+  it('renders sort buttons for the food item, price and created columns', () => {
+    const html = renderToStaticMarkup(
+      <MenuItemsTable items={[item({})]} onAction={noop} sort="-createdAt" onSort={noop} />,
+    );
+    expect(html).toContain('aria-label="Sort by Food Item"');
+    expect(html).toContain('aria-label="Sort by Price"');
+    expect(html).toContain('aria-label="Sort by Created"');
+  });
+
+  it('falls back to plain headers when no sort handler is wired', () => {
+    const html = renderToStaticMarkup(<MenuItemsTable items={[item({})]} onAction={noop} />);
+    expect(html).not.toContain('Sort by');
   });
 });

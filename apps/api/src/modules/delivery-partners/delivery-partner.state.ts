@@ -1,4 +1,8 @@
-import type { DeliveryPartnerStatus, VerificationDecision } from '@zoauro/shared';
+import type {
+  DeliveryPartnerStatus,
+  DeliveryPartnerStatusTarget,
+  VerificationDecision,
+} from '@zoauro/shared';
 import { errors } from '../../lib/errors';
 
 /**
@@ -56,4 +60,35 @@ export function assertVerificationDecision(
     throw errors.invalidStateTransition('Only a pending partner can be rejected');
   }
   throw errors.invalidStateTransition('Partner is already verified');
+}
+
+/**
+ * Status transition (doc 10 §5, D131 — vendor machine of doc 10 §4 applied to
+ * the single status column): the status endpoint moves a partner between
+ * ACTIVE, INACTIVE and SUSPENDED. VERIFIED → ACTIVE is the doc 10 §5 path
+ * after the verification endpoint; PENDING_VERIFICATION must be verified
+ * first; only an ACTIVE partner can be deactivated or suspended, and a
+ * SUSPENDED/INACTIVE partner restores through ACTIVE.
+ */
+export function assertStatusTransition(
+  current: DeliveryPartnerStatus,
+  target: DeliveryPartnerStatusTarget,
+): void {
+  if (target === 'ACTIVE') {
+    if (current === 'ACTIVE') {
+      throw errors.invalidStateTransition('Partner is already active');
+    }
+    if (current === 'PENDING_VERIFICATION') {
+      throw errors.invalidStateTransition('Verify the partner before activating it (doc 10 §5)');
+    }
+    return;
+  }
+
+  if (current !== 'ACTIVE') {
+    throw errors.invalidStateTransition(
+      target === 'INACTIVE'
+        ? 'Only an active partner can be deactivated'
+        : 'Only an active partner can be suspended',
+    );
+  }
 }

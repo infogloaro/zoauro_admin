@@ -1,4 +1,4 @@
-import type { MenuApprovalStatus } from '@zoauro/shared';
+import type { MenuApprovalStatus, MenuChangeDecision, MenuChangeStatus } from '@zoauro/shared';
 import { errors } from '../../lib/errors';
 
 /**
@@ -36,3 +36,22 @@ export const BULK_EFFECTIVE_STATUSES: Record<'APPROVE' | 'ARCHIVE', readonly Men
     APPROVE: ['PENDING', 'REJECTED'],
     ARCHIVE: ['PENDING', 'APPROVED', 'REJECTED'],
   };
+
+/**
+ * Vendor menu change requests (R09, doc 09 `/menu-items/change-requests/{id}`
+ * decision endpoints): only a PENDING request may be approved or rejected —
+ * a decided or superseded request is 409 INVALID_STATE_TRANSITION.
+ */
+export function assertChangeDecisionAllowed(current: MenuChangeStatus): void {
+  if (current !== 'PENDING') {
+    throw errors.invalidStateTransition(
+      `A ${current.toLowerCase()} change request cannot be decided again`,
+    );
+  }
+}
+
+/** Both decisions are explicit writes (never silent), reject requires a reason (contract). */
+export const CHANGE_DECISION_TARGET: Record<MenuChangeDecision, MenuChangeStatus> = {
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+};

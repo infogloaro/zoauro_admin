@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma, VendorDocument as VendorDocumentModel } from '@prisma/client';
 import type {
   BookingCreateInput,
   BookingStatusInput,
@@ -11,6 +11,7 @@ import type {
   HotelDetail,
   HotelFacets,
   HotelMetrics,
+  HotelReveal,
   HotelStatusInput,
   HotelUpdateInput,
   HotelVerificationInput,
@@ -22,6 +23,10 @@ import type {
   ListHotelsResponse,
   RoomBooking as RoomBookingDto,
   DiningReservation as DiningDto,
+  VendorDocument,
+  VendorDocumentUploadInput,
+  VendorDocumentUrl,
+  VendorDocumentVerifyInput,
 } from '@zoauro/shared';
 import {
   requestedBookingZoneIds,
@@ -31,7 +36,9 @@ import {
 import { prisma } from '../../lib/db';
 import type { AuthContext } from '../../lib/auth-context';
 import { errors } from '../../lib/errors';
+import { PRESIGN_READ_TTL_SEC, presignRead } from '../../lib/storage';
 import { recordAudit } from '../audit/audit.service';
+import { assertUploadedObject, parseFileKey } from '../uploads/uploads.service';
 import { maskEmail, maskPhone } from '../vendors/vendor.service';
 import * as repo from './hotel.repository';
 import { assertBookingTransition, assertDiningTransition } from './hotel.state';
@@ -110,6 +117,7 @@ export function serializeBooking(row: RoomBookingRowWithZone): RoomBookingDto {
     paymentStatus: row.paymentStatus,
     amount: row.amount,
     note: row.note,
+    version: row.version,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -134,6 +142,7 @@ export function serializeDining(row: DiningRowWithVenue): DiningDto {
     paymentStatus: row.paymentStatus,
     amount: row.amount,
     note: row.note,
+    version: row.version,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -145,6 +154,19 @@ function maskHotel(row: HotelDto): HotelDto {
     ...row,
     phone: maskPhone(row.phone),
     email: row.email === null ? null : maskEmail(row.email),
+  };
+}
+
+function toDocument(doc: VendorDocumentModel): VendorDocument {
+  return {
+    id: doc.id,
+    docType: doc.docType,
+    fileKey: doc.fileKey,
+    verified: doc.verified,
+    verifiedBy: doc.verifiedBy,
+    rejectionNote: doc.rejectionNote,
+    expiresOn: doc.expiresOn ? doc.expiresOn.toISOString().slice(0, 10) : null,
+    createdAt: doc.createdAt.toISOString(),
   };
 }
 
@@ -190,6 +212,12 @@ async function requireWritableZoneRef(zoneId: string): Promise<ZoneRef> {
   return { id: zone.id, name: zone.name, city: zone.city };
 }
 
+/**
+ * One hotel inside the zone scope — unknown/cross-zone is 404, not 403
+ * (doc 09 / doc 36 §1). `zoneIds` is `null` (every zone) while only Super
+ * Admins can call these routes; zonal scoping activates at SA-1.7, which
+ * passes the member's effective zones here.
+ */
 async function requireHotelRow(id: string): Promise<HotelRowWithZone> {
   const row = await repo.findHotel(id);
   if (!row) throw errors.notFound('Hotel not found');
@@ -234,18 +262,45 @@ export async function getHotel(id: string): Promise<HotelDto> {
   return serializeHotel(row, finance.get(row.id) ?? {});
 }
 
-/** Detail view: the hotel plus its recent audit trail (documents land later). */
+/**
+ * GET /hotels/{id}/reveal (doc 09, D26) — the only unmask path. The route is
+ * gated by `hotels:view` first (hotel.scope.ts); this writes the audit row
+ * (actor, target hotel, timestamp, action) before returning the real contact.
+ * The payload itself stays out of the audit log (D26: no PII spread beyond
+ * the authorized response).
+ */
+export async function revealHotel(ctx: ActorContext, id: string): Promise<HotelReveal> {
+  const row = await requireHotelRow(id);
+  await recordAudit(prisma, {
+    ...auditEntry(ctx, 'hotels', 'hotel', id, {
+      action: 'hotels.reveal',
+      zoneId: row.zoneId,
+      after: { revealed: ['phone', 'email'] },
+    }),
+  });
+  return { phone: row.phone, email: row.email };
+}
+
+/** Detail view: the hotel plus its documents and recent audit trail. */
 export async function getHotelDetail(id: string): Promise<HotelDetail> {
   const row = await requireHotelRow(id);
-  const finance = await repo.pageHotelFinance([row.id]);
-  const activity = await repo.listActivity(id);
+  const [finance, documents, activity] = await Promise.all([
+    repo.pageHotelFinance([row.id]),
+    repo.listDocuments(row.id),
+    repo.listActivity(id),
+  ]);
   return {
     ...serializeHotel(row, finance.get(row.id) ?? {}),
+    documents: documents.map(toDocument),
     activity: activity.map(toActivity),
   };
 }
 
 export async function listBookings(query: ListBookingsQuery): Promise<ListBookingsResponse> {
+  // Id-scoped list (GET /hotels/{id}/bookings): an unknown/cross-zone hotel
+  // answers 404 rather than an empty page (doc 09 id-scoped convention; same
+  // `zoneIds: null` seam as requireHotelRow until SA-1.7).
+  if (query.hotelId) await requireHotelRow(query.hotelId);
   const zoneIds = await resolveZoneScope(requestedBookingZoneIds(query));
   const [page, counts] = await Promise.all([
     repo.listBookings(zoneIds, query),
@@ -506,10 +561,21 @@ export async function removeHotel(ctx: ActorContext, id: string): Promise<{ id: 
  * Bookings
  * ------------------------------------------------------------------ */
 
+/** D127(3): stay nights are [checkIn, checkOut) — check-in inclusive, exclusive out. */
+function eachNight(checkIn: Date, checkOut: Date): Date[] {
+  const nights: Date[] = [];
+  for (let d = new Date(checkIn); d < checkOut; d.setUTCDate(d.getUTCDate() + 1)) {
+    nights.push(new Date(d));
+  }
+  return nights;
+}
+
 /**
- * POST /hotels/{id}/bookings — the hotel row is locked and the overlap
- * re-checked inside the same transaction, so two concurrent creates for the
- * same room and dates serialise and the second one answers 409.
+ * POST /hotels/{id}/bookings — D127(3) capacity, not overlap: the hotel row
+ * is locked and the per-night occupancy re-checked inside the same
+ * transaction, so two concurrent creates cannot oversell. For each night of
+ * [checkIn, checkOut) we count blocking stays (PENDING/CONFIRMED/CHECKED_IN)
+ * that cover it; if any night's count reaches hotel.total_rooms → 409.
  */
 export async function createBooking(
   ctx: ActorContext,
@@ -522,11 +588,13 @@ export async function createBooking(
 
   return prisma.$transaction(async (tx) => {
     await repo.lockHotelForBooking(tx, hotel.id);
-    const overlap = await repo.countOverlappingBookings(tx, hotel.id, checkIn, checkOut);
-    if (overlap > 0) {
-      throw errors.conflict(
-        'The hotel has no rooms free for those dates — another booking covers this stay',
-      );
+    const blocking = await repo.findBlockingBookingsInRange(tx, hotel.id, checkIn, checkOut);
+    const soldOut = eachNight(checkIn, checkOut).some(
+      (night) =>
+        blocking.filter((b) => b.checkIn <= night && b.checkOut > night).length >= hotel.totalRooms,
+    );
+    if (soldOut) {
+      throw errors.conflict('No rooms available for the selected dates');
     }
     const booking = await repo.createBooking(tx, {
       zoneId: hotel.zoneId,
@@ -560,8 +628,10 @@ export async function createBooking(
 
 /**
  * POST /bookings/{id}/status — transitions validated server-side (task:
- * "payment status transitions must be server-validated"). Cancelling a PAID
- * booking marks the payment REFUNDED so the refunds KPI stays truthful.
+ * "payment status transitions must be server-validated"). Optimistic
+ * version (D127(6)(7)): the client's `version` must match the stored row.
+ * D127(3): cancelling a booking never flips any payment/refund marker —
+ * it only changes booking state; refunds are handled in the payments module.
  */
 export async function changeBookingStatus(
   ctx: ActorContext,
@@ -570,18 +640,22 @@ export async function changeBookingStatus(
 ): Promise<RoomBookingDto> {
   const row = await repo.findBooking(id);
   if (!row) throw errors.notFound('Booking not found');
+  if (row.version !== input.version) {
+    throw errors.conflict('This booking has changed since you loaded it — reload and try again');
+  }
   assertBookingTransition(row.status, input.status);
   const beforeDto = serializeBooking(row);
 
-  const paymentStatus =
-    input.status === 'CANCELLED' && row.paymentStatus === 'PAID' ? 'REFUNDED' : row.paymentStatus;
-  const note =
-    input.status === 'CANCELLED' && row.paymentStatus === 'PAID'
-      ? (input.note ?? 'Cancelled — payment refunded')
-      : (input.note ?? row.note);
+  const note = input.note ?? row.note;
 
   return prisma.$transaction(async (tx) => {
-    const booking = await repo.updateBooking(tx, id, { status: input.status, paymentStatus, note });
+    const booking = await repo.updateBookingWithVersion(tx, id, input.version, {
+      status: input.status,
+      note,
+    });
+    if (!booking) {
+      throw errors.conflict('This booking has changed since you loaded it — reload and try again');
+    }
     const after = serializeBooking({ ...booking, zone: row.zone, hotel: row.hotel });
     await recordAudit(
       tx,
@@ -662,6 +736,11 @@ export async function createDining(
   });
 }
 
+/**
+ * POST /dining/{diningId}/status — optimistic version (D127(6)(7)) and no
+ * auto-refund on cancel (D127(3)): only booking/reservation state changes;
+ * payment fields stay untouched.
+ */
 export async function changeDiningStatus(
   ctx: ActorContext,
   id: string,
@@ -669,21 +748,25 @@ export async function changeDiningStatus(
 ): Promise<DiningDto> {
   const row = await repo.findDining(id);
   if (!row) throw errors.notFound('Reservation not found');
+  if (row.version !== input.version) {
+    throw errors.conflict(
+      'This reservation has changed since you loaded it — reload and try again',
+    );
+  }
   assertDiningTransition(row.status, input.status);
   const beforeDto = serializeDining(row);
-  const paymentStatus =
-    input.status === 'CANCELLED' && row.paymentStatus === 'PAID' ? 'REFUNDED' : row.paymentStatus;
-  const note =
-    input.status === 'CANCELLED' && row.paymentStatus === 'PAID'
-      ? (input.note ?? 'Cancelled — payment refunded')
-      : (input.note ?? row.note);
+  const note = input.note ?? row.note;
 
   return prisma.$transaction(async (tx) => {
-    const dining = await repo.updateDining(tx, id, {
+    const dining = await repo.updateDiningWithVersion(tx, id, input.version, {
       status: input.status,
-      paymentStatus,
       note,
     });
+    if (!dining) {
+      throw errors.conflict(
+        'This reservation has changed since you loaded it — reload and try again',
+      );
+    }
     const after = serializeDining({
       ...dining,
       zone: row.zone,
@@ -701,4 +784,106 @@ export async function changeDiningStatus(
     );
     return after;
   });
+}
+
+/* ------------------------------------------------------------------ *
+ * Documents (vendor-style, doc 09/11/21 — HOTEL rows in vendor_documents)
+ * ------------------------------------------------------------------ */
+
+/** The key must belong to this very hotel in this very zone (else 404). */
+async function requireOwnedFileKey(row: HotelRowWithZone, fileKey: string): Promise<void> {
+  const parsed = parseFileKey(fileKey);
+  if (!parsed) {
+    throw errors.validation([{ field: 'fileKey', issue: 'Invalid file key' }], 'Invalid file key');
+  }
+  if (parsed.entityId !== row.id || parsed.zoneId !== row.zoneId) {
+    throw errors.notFound('Hotel not found');
+  }
+  // Full gate: object exists, stored type/size allow-listed, content sniffed.
+  await assertUploadedObject(fileKey);
+}
+
+/** POST /hotels/{id}/documents (doc 09) — attach a confirmed upload. */
+export async function addHotelDocument(
+  ctx: ActorContext,
+  id: string,
+  input: VendorDocumentUploadInput,
+): Promise<VendorDocument> {
+  const row = await requireHotelRow(id);
+  await requireOwnedFileKey(row, input.fileKey);
+
+  const doc = await prisma.$transaction(async (tx) => {
+    const created = await repo.createDocument(tx, {
+      hotelId: id,
+      docType: input.docType,
+      fileKey: input.fileKey,
+    });
+    await recordAudit(
+      tx,
+      auditEntry(ctx, 'hotels', 'hotel', id, {
+        action: 'hotels.document.upload',
+        zoneId: row.zoneId,
+        after: { documentId: created.id, docType: created.docType, fileKey: created.fileKey },
+      }),
+    );
+    return created;
+  });
+  return toDocument(doc);
+}
+
+/**
+ * GET /hotels/{id}/documents/{documentId}/url — short-lived signed read
+ * (doc 11 "reads use short-lived signed URLs"); every download is audited
+ * (doc 15), the URL itself never is.
+ */
+export async function getHotelDocumentUrl(
+  ctx: ActorContext,
+  id: string,
+  documentId: string,
+): Promise<VendorDocumentUrl> {
+  const row = await requireHotelRow(id);
+  const doc = await repo.findDocument(id, documentId);
+  if (!doc) throw errors.notFound('Document not found');
+
+  const url = await presignRead(doc.fileKey);
+  await recordAudit(prisma, {
+    ...auditEntry(ctx, 'hotels', 'hotel', id, {
+      action: 'hotels.document.download',
+      zoneId: row.zoneId,
+      after: { documentId: doc.id, docType: doc.docType, fileKey: doc.fileKey },
+    }),
+  });
+  return { url, expiresInSec: PRESIGN_READ_TTL_SEC };
+}
+
+/** POST /hotels/{id}/documents/{documentId}/verify — per-document review (doc 21 §2). */
+export async function setHotelDocumentVerification(
+  ctx: ActorContext,
+  id: string,
+  documentId: string,
+  input: VendorDocumentVerifyInput,
+): Promise<VendorDocument> {
+  const row = await requireHotelRow(id);
+  const before = await repo.findDocument(id, documentId);
+  if (!before) throw errors.notFound('Document not found');
+
+  const data =
+    input.decision === 'VERIFIED'
+      ? { verified: true, verifiedBy: ctx.auth.userId, rejectionNote: null }
+      : { verified: false, verifiedBy: null, rejectionNote: input.note ?? null };
+
+  const doc = await prisma.$transaction(async (tx) => {
+    const updated = await repo.updateDocument(tx, documentId, data);
+    await recordAudit(
+      tx,
+      auditEntry(ctx, 'hotels', 'hotel', id, {
+        action: `hotels.document.${input.decision === 'VERIFIED' ? 'verify' : 'reject'}`,
+        zoneId: row.zoneId,
+        before: toDocument(before),
+        after: toDocument(updated),
+      }),
+    );
+    return updated;
+  });
+  return toDocument(doc);
 }

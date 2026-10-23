@@ -1,13 +1,15 @@
 'use client';
 
-import { Download, Filter, Loader2, Plus, Search } from 'lucide-react';
+import { Download, Filter, Loader2, Plus, Search, Upload } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   DIETARY_LABELS,
   DIETARY_TYPES,
   MENU_APPROVAL_STATUSES,
+  MENU_AVAILABILITY_FILTERS,
   MENU_OWNER_KINDS,
   MENU_STATUS_LABELS,
+  type MenuAvailabilityFilter,
   type MenuOwnerKind,
 } from '@zoauro/shared';
 import { Button } from '../../components/ui/button';
@@ -30,34 +32,59 @@ const OWNER_KIND_LABELS: Record<MenuOwnerKind, string> = {
   hotel: 'Hotel',
 };
 
+/** Humanised labels for the doc 09 `availability` filter (D126 live rule). */
+export const MENU_AVAILABILITY_LABELS: Record<MenuAvailabilityFilter, string> = {
+  live: 'Live',
+  out_of_stock: 'Out of stock',
+  vendor_off: 'Vendor turned off',
+  admin_disabled: 'Admin disabled',
+};
+
 /**
  * Menu & Food Items toolbar (reference image).
  * Layout on desktop: Search (expands), All Zones, All Status, More Filters,
  * Export CSV — horizontal row, responsive wrap. The status select mirrors the
- * active tab (see tabs.ts); More Filters reveals provider type + dietary,
- * which combine with the tab and the other filters. Filter changes reset
- * pagination to page 1.
+ * active tab (see tabs.ts); More Filters reveals provider type, dietary,
+ * category, availability and the featured toggle, which combine with the tab
+ * and the other filters. Filter changes reset pagination to page 1.
  */
 export function MenuItemsToolbar({
   value,
   zones,
+  categories,
   onChange,
   onExport,
   exportBusy = false,
+  onImport,
   showAddItem = true,
   onAddItem,
 }: {
-  value: { q: string; status: string; zoneId: string; vendorType: string; dietary: string };
+  value: {
+    q: string;
+    status: string;
+    zoneId: string;
+    vendorType: string;
+    dietary: string;
+    category?: string;
+    availability?: string;
+    featured?: string;
+  };
   zones: ZoneOption[];
+  /** Distinct categories from the list facets (doc 20). */
+  categories?: string[];
   onChange: (patch: {
     q?: string;
     status?: string;
     zoneId?: string;
     vendorType?: string;
     dietary?: string;
+    category?: string;
+    availability?: string;
+    featured?: string;
   }) => void;
   onExport: () => void;
   exportBusy?: boolean;
+  onImport?: () => void;
   showAddItem?: boolean;
   onAddItem?: () => void;
 }) {
@@ -83,6 +110,17 @@ export function MenuItemsToolbar({
       if (timer.current) clearTimeout(timer.current);
     };
   }, [search, value.q]);
+
+  // Keep a deep-linked category visible even when it dropped out of the facets.
+  const facetCategories = categories ?? [];
+  const categoryOptions =
+    value.category && !facetCategories.includes(value.category)
+      ? [value.category, ...facetCategories]
+      : facetCategories;
+
+  const hasMoreFilters = Boolean(
+    value.vendorType || value.dietary || value.category || value.availability || value.featured,
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -160,6 +198,18 @@ export function MenuItemsToolbar({
             Export CSV
           </Button>
 
+          {onImport && (
+            <Button
+              variant="outline"
+              className="h-12 gap-2 whitespace-nowrap"
+              onClick={onImport}
+              aria-label="Import CSV"
+            >
+              <Upload className="size-4" />
+              Import
+            </Button>
+          )}
+
           {showAddItem && onAddItem && (
             <Button className="h-12 gap-2 whitespace-nowrap" onClick={onAddItem}>
               <Plus className="size-4" />
@@ -207,13 +257,71 @@ export function MenuItemsToolbar({
             </SelectContent>
           </Select>
 
-          {(value.vendorType || value.dietary) && (
+          <Select
+            value={value.category || 'ALL'}
+            onValueChange={(v) => onChange({ category: v === 'ALL' ? '' : v })}
+            aria-label="Filter by category"
+          >
+            <SelectTrigger className="h-10 min-w-[160px]" aria-label="Filter by category">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All categories</SelectItem>
+              {categoryOptions.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={value.availability || 'ALL'}
+            onValueChange={(v) => onChange({ availability: v === 'ALL' ? '' : v })}
+            aria-label="Filter by availability"
+          >
+            <SelectTrigger className="h-10 min-w-[160px]" aria-label="Filter by availability">
+              <SelectValue placeholder="All availability" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All availability</SelectItem>
+              {MENU_AVAILABILITY_FILTERS.map((filter) => (
+                <SelectItem key={filter} value={filter}>
+                  {MENU_AVAILABILITY_LABELS[filter]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={value.featured === 'true' ? 'FEATURED' : 'ALL'}
+            onValueChange={(v) => onChange({ featured: v === 'FEATURED' ? 'true' : '' })}
+            aria-label="Filter by featured"
+          >
+            <SelectTrigger className="h-10 min-w-[140px]" aria-label="Filter by featured">
+              <SelectValue placeholder="All items" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All items</SelectItem>
+              <SelectItem value="FEATURED">Featured only</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {hasMoreFilters && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onChange({ vendorType: '', dietary: '' })}
+              onClick={() =>
+                onChange({
+                  vendorType: '',
+                  dietary: '',
+                  category: '',
+                  availability: '',
+                  featured: '',
+                })
+              }
             >
-              Clear provider &amp; dietary
+              Clear filters
             </Button>
           )}
         </div>

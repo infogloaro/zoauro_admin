@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import type { MenuItem, MenuOwnerKind } from '@zoauro/shared';
+import type { MenuItem, MenuItemUpdateInput, MenuOwnerKind } from '@zoauro/shared';
 import { PageHeader } from '../../components/shared/page-header';
 import { StatCard } from '../../components/shared/stat-card';
 import {
@@ -36,6 +36,7 @@ import {
   useBulkMenuAction,
   useCreateMenuItem,
   useDeleteMenuItem,
+  useMenuChangeRequestDetail,
   useMenuItemDetail,
   useMenuItemsList,
   useMenusAggregate,
@@ -43,9 +44,14 @@ import {
   useUpdateMenuItem,
   type MenuFilters,
 } from './api';
+import { AdminDisableDialog } from './admin-disable-dialog';
 import { ApprovalDialog } from './approval-dialog';
+import { BulkValueDialog } from './bulk-value-dialog';
+import { ChangeRequestDetailDialog } from './change-request-detail-dialog';
+import { ChangeRequestsTab } from './change-requests-tab';
 import { MenuItemDetailDialog } from './menu-item-detail-dialog';
 import { MenuItemFormDialog } from './menu-item-form-dialog';
+import { MenuImportDialog } from './menu-import-dialog';
 import { MenuItemsTable, type MenuItemRowAction } from './menu-items-table';
 import { MenuItemsToolbar } from './menu-items-toolbar';
 import { MENU_TABS, menuTabForStatus, menuTabStatus, normalizeMenuTab } from './tabs';
@@ -81,14 +87,19 @@ export function MenuItemsScreen() {
   const vendorType = searchParams.get('vendorType') ?? '';
   const dietary = searchParams.get('dietary') ?? '';
   const category = searchParams.get('category') ?? '';
+  const availability = searchParams.get('availability') ?? '';
+  const featured = searchParams.get('featured') ?? '';
   const zoneId = searchParams.get('zoneId') ?? '';
   const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
   const pageSizeParam = Number(searchParams.get('pageSize') ?? PAGE_SIZE) || PAGE_SIZE;
   const pageSize = PAGE_SIZE_OPTIONS.includes(pageSizeParam) ? pageSizeParam : PAGE_SIZE;
-  const sort = searchParams.get('sort') ?? '-createdAt';
+  // Only the fields the shared sort schema accepts; anything else falls back.
+  const sortRaw = searchParams.get('sort') ?? '-createdAt';
+  const sort = /^-?(createdAt|name|price)$/.test(sortRaw) ? sortRaw : '-createdAt';
   const action = searchParams.get('action');
   const viewId = searchParams.get('item');
   const editId = searchParams.get('edit');
+  const crViewId = searchParams.get('cr');
 
   const filters: MenuFilters = {
     q,
@@ -96,6 +107,8 @@ export function MenuItemsScreen() {
     vendorType,
     dietary,
     category,
+    availability,
+    featured,
     zoneId,
     page,
     pageSize,
@@ -105,6 +118,8 @@ export function MenuItemsScreen() {
   const list = useMenuItemsList(filters);
   /** One detail fetch serves both the View dialog and the Edit form. */
   const detail = useMenuItemDetail(editId ?? viewId);
+  /** Change-request detail only loads while its tab is open (R09). */
+  const crDetail = useMenuChangeRequestDetail(tab === 'changeRequests' ? crViewId : null);
   const menus = useMenusAggregate();
   const zonesList = useZonesList({ page: 1, pageSize: 100, sort: 'name' });
   const zoneOptions = (zonesList.data?.data ?? []).map((zone) => ({
@@ -154,6 +169,11 @@ export function MenuItemsScreen() {
   } | null>(null);
   const [bulkDecision, setBulkDecision] = useState<'APPROVED' | 'ARCHIVED' | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  /** Bulk value actions (availability/category/price) over the selection. */
+  const [bulkValueOpen, setBulkValueOpen] = useState(false);
+  /** D126 admin disable: enabling the toggle demands a reason first. */
+  const [adminDisableFor, setAdminDisableFor] = useState<MenuItem | null>(null);
 
   const busy =
     create.isPending ||
@@ -196,7 +216,9 @@ export function MenuItemsScreen() {
   const counts = list.data?.meta.counts;
   const facets = list.data?.meta.facets;
   const showZoneChip = (facets?.zones.length ?? 0) > 1;
-  const hasAnyFilters = Boolean(q || filters.status || vendorType || dietary || category || zoneId);
+  const hasAnyFilters = Boolean(
+    q || filters.status || vendorType || dietary || category || availability || featured || zoneId,
+  );
 
   function toastError(error: unknown, fallback: string) {
     toast.error(error instanceof ApiError ? error.message : fallback);
@@ -286,6 +308,72 @@ export function MenuItemsScreen() {
     } catch (error) {
       toastError(error, 'Could not apply the bulk action.');
     }
+  }
+
+  /** Row-level PATCH helper; server validation (422) surfaces as a toast. */
+  async function patchItem(item: MenuItem, input: MenuItemUpdateInput, successMessage: string) {
+    try {
+      await update.mutateAsync({ id: item.id, input });
+      toast.success(successMessage);
+    } catch (error) {
+      toastError(error, 'Could not save the change.');
+    }
+  }
+
+  /**
+   * Vendor availability (doc 44: the vendor owns the field; hiding the item
+   * is live-immediate, so turning it OFF asks for a confirm first). The admin
+   * disable toggle is a separate field and is never touched here (D126).
+   */
+  function onAvailabilityToggle(item: MenuItem, next: boolean) {
+    if (next) {
+      void patchItem(item, { isAvailable: true }, `${item.name} is available again`);
+      return;
+    }
+    setConfirm({
+      title: `Hide ${item.name}`,
+      description:
+        'The item disappears from customer menus until it is switched back on. This changes the vendor’s availability and is audited.',
+      confirmLabel: 'Hide item',
+      run: async () => {
+        await patchItem(item, { isAvailable: false }, `${item.name} is hidden from the menu`);
+      },
+    });
+  }
+
+  function onFeaturedToggle(item: MenuItem, next: boolean) {
+    void patchItem(
+      item,
+      { isFeatured: next },
+      next ? `${item.name} featured` : `${item.name} unfeatured`,
+    );
+  }
+
+  function onStockChange(item: MenuItem, stock: number | null) {
+    void patchItem(
+      item,
+      { stock },
+      stock === null ? `Stock tracking cleared for ${item.name}` : `Stock updated for ${item.name}`,
+    );
+  }
+
+  function onAdminDisableToggle(item: MenuItem, next: boolean) {
+    if (next) {
+      setAdminDisableFor(item);
+      return;
+    }
+    void patchItem(item, { adminDisabled: false }, `${item.name} re-enabled by admin`);
+  }
+
+  async function submitAdminDisable(reason: string) {
+    const item = adminDisableFor;
+    setAdminDisableFor(null);
+    if (!item) return;
+    await patchItem(
+      item,
+      { adminDisabled: true, reason },
+      `${item.name} disabled by admin — hidden until re-enabled`,
+    );
   }
 
   async function exportCsv() {
@@ -437,14 +525,16 @@ export function MenuItemsScreen() {
               aria-selected={isActive}
               onClick={() => {
                 // Switching tabs resets the dataset: drop any toolbar status
-                // (so All Food Items never keeps a previous status filter),
-                // close dialogs and clear cross-tab row selections.
+                // (so All Food Items never keeps a stale status filter),
+                // close dialogs and clear cross-tab row selections. The
+                // default tab (All Food Items) is the only one with no param.
                 setSelected(new Set());
                 setParams({
-                  tab: entry.id === 'menus' ? null : entry.id,
+                  tab: entry.id === 'allItems' ? null : entry.id,
                   status: null,
                   item: null,
                   edit: null,
+                  cr: null,
                 });
               }}
               className={
@@ -495,119 +585,158 @@ export function MenuItemsScreen() {
         </Card>
       ) : null}
 
-      <Card className="overflow-hidden">
-        <div className="px-5 pb-4 pt-4">
-          <MenuItemsToolbar
-            value={{ q, status: menuTabStatus(tab, status), zoneId, vendorType, dietary }}
-            zones={zoneOptions}
-            onChange={(patch) => {
-              if ('status' in patch) {
-                // The status dropdown and the tabs are two views of the
-                // same filter: picking a status activates its tab (and
-                // clears the free-standing status param), "All statuses"
-                // returns to All Food Items.
-                const nextTab = menuTabForStatus(patch.status ?? '');
-                setSelected(new Set());
-                setParams({
-                  tab: nextTab === 'allItems' ? null : nextTab,
-                  status: null,
-                  action: null,
-                  item: null,
-                  edit: null,
-                });
-                return;
-              }
-              setParams({ ...patch, action: null });
-            }}
-            onExport={() => void exportCsv()}
-            exportBusy={exporting}
-            showAddItem={false}
-          />
-        </div>
-
-        {selected.size > 0 && (
-          <div className="flex items-center gap-3 border-b border-slate-200 bg-orange-50 px-5 py-3">
-            <span className="text-[13px] text-text">{selected.size} selected</span>
-            <Button size="sm" onClick={() => setBulkDecision('APPROVED')}>
-              Approve
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setBulkDecision('ARCHIVED')}>
-              Archive
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
-              Clear
-            </Button>
+      {tab === 'changeRequests' ? (
+        <ChangeRequestsTab
+          status={status}
+          zoneId={zoneId}
+          page={page}
+          pageSize={pageSize}
+          openId={crViewId}
+          onOpen={(id) => setParams({ cr: id }, { resetPage: false })}
+          onChange={(patch) => setParams({ ...patch, action: null, item: null, edit: null })}
+        />
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="px-5 pb-4 pt-4">
+            <MenuItemsToolbar
+              value={{
+                q,
+                status: menuTabStatus(tab, status),
+                zoneId,
+                vendorType,
+                dietary,
+                category,
+                availability,
+                featured,
+              }}
+              zones={zoneOptions}
+              categories={facets?.categories ?? []}
+              onChange={(patch) => {
+                if ('status' in patch) {
+                  // The status dropdown and the tabs are two views of the
+                  // same filter: picking a status activates its tab (and
+                  // clears the free-standing status param), "All statuses"
+                  // returns to All Food Items.
+                  const nextTab = menuTabForStatus(patch.status ?? '');
+                  setSelected(new Set());
+                  setParams({
+                    tab: nextTab === 'allItems' ? null : nextTab,
+                    status: null,
+                    action: null,
+                    item: null,
+                    edit: null,
+                    cr: null,
+                  });
+                  return;
+                }
+                setParams({ ...patch, action: null });
+              }}
+              onExport={() => void exportCsv()}
+              exportBusy={exporting}
+              onImport={() => setImporting(true)}
+              showAddItem={false}
+            />
           </div>
-        )}
 
-        {list.isPending ? (
-          <TableSkeleton />
-        ) : list.isError ? (
-          <ErrorState
-            message={
-              list.error instanceof ApiError ? list.error.message : 'Could not load menu items.'
-            }
-            requestId={list.error instanceof ApiError ? list.error.requestId : undefined}
-            onRetry={() => void list.refetch()}
-          />
-        ) : items.length === 0 ? (
-          hasAnyFilters ? (
-            <EmptyState
-              message="No matches. Try different search or filters."
-              action={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setParams({
-                      tab: null,
-                      q: null,
-                      status: null,
-                      vendorType: null,
-                      dietary: null,
-                      category: null,
-                      zoneId: null,
-                    })
-                  }
-                >
-                  Clear filters
-                </Button>
+          {selected.size > 0 && (
+            <div
+              role="toolbar"
+              aria-label="Bulk actions"
+              className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-orange-50 px-5 py-3"
+            >
+              <span className="text-[13px] text-text">{selected.size} selected</span>
+              <Button size="sm" onClick={() => setBulkDecision('APPROVED')}>
+                Approve
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setBulkDecision('ARCHIVED')}>
+                Archive
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setBulkValueOpen(true)}>
+                Availability / category / price…
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+                Clear
+              </Button>
+            </div>
+          )}
+
+          {list.isPending ? (
+            <TableSkeleton />
+          ) : list.isError ? (
+            <ErrorState
+              message={
+                list.error instanceof ApiError ? list.error.message : 'Could not load menu items.'
               }
+              requestId={list.error instanceof ApiError ? list.error.requestId : undefined}
+              onRetry={() => void list.refetch()}
             />
+          ) : items.length === 0 ? (
+            hasAnyFilters ? (
+              <EmptyState
+                message="No matches. Try different search or filters."
+                action={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setParams({
+                        tab: null,
+                        q: null,
+                        status: null,
+                        vendorType: null,
+                        dietary: null,
+                        category: null,
+                        availability: null,
+                        featured: null,
+                        zoneId: null,
+                      })
+                    }
+                  >
+                    Clear filters
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                message="No menu items yet. Create the first one."
+                action={
+                  <Button
+                    size="sm"
+                    onClick={() => setParams({ action: 'new' }, { resetPage: false })}
+                  >
+                    <Plus className="size-4" /> Add item
+                  </Button>
+                }
+              />
+            )
           ) : (
-            <EmptyState
-              message="No menu items yet. Create the first one."
-              action={
-                <Button
-                  size="sm"
-                  onClick={() => setParams({ action: 'new' }, { resetPage: false })}
-                >
-                  <Plus className="size-4" /> Add item
-                </Button>
-              }
-            />
-          )
-        ) : (
-          <>
-            <MenuItemsTable
-              items={items}
-              onAction={onRowAction}
-              selectable
-              selectedIds={selected}
-              onToggle={toggleOne}
-              onToggleAll={toggleAll}
-              showZoneChip={showZoneChip}
-            />
-            <Pagination
-              page={page}
-              pageSize={pageSize}
-              total={list.data?.meta.total ?? 0}
-              entity={{ one: 'item', many: 'items' }}
-              onPage={(next) => setParams({ page: String(next) }, { resetPage: false })}
-            />
-          </>
-        )}
-      </Card>
+            <>
+              <MenuItemsTable
+                items={items}
+                onAction={onRowAction}
+                selectable
+                selectedIds={selected}
+                onToggle={toggleOne}
+                onToggleAll={toggleAll}
+                showZoneChip={showZoneChip}
+                sort={sort}
+                onSort={(next) => setParams({ sort: next })}
+                onAvailabilityToggle={onAvailabilityToggle}
+                onFeaturedToggle={onFeaturedToggle}
+                onStockChange={onStockChange}
+                onAdminDisableToggle={onAdminDisableToggle}
+              />
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                total={list.data?.meta.total ?? 0}
+                entity={{ one: 'item', many: 'items' }}
+                onPage={(next) => setParams({ page: String(next) }, { resetPage: false })}
+              />
+            </>
+          )}
+        </Card>
+      )}
 
       {action === 'new' && (
         <MenuItemFormDialog
@@ -727,6 +856,8 @@ export function MenuItemsScreen() {
         />
       )}
 
+      {importing && <MenuImportDialog onClose={() => setImporting(false)} />}
+
       {bulkDecision && (
         <ApprovalDialog
           itemName={`${selected.size} selected items`}
@@ -736,6 +867,79 @@ export function MenuItemsScreen() {
           onClose={() => setBulkDecision(null)}
         />
       )}
+
+      {bulkValueOpen && selected.size > 0 && (
+        <BulkValueDialog
+          ids={Array.from(selected)}
+          onApplied={() => {
+            setBulkValueOpen(false);
+            setSelected(new Set());
+          }}
+          onRefresh={() => void list.refetch()}
+          onClose={() => setBulkValueOpen(false)}
+        />
+      )}
+
+      {adminDisableFor && (
+        <AdminDisableDialog
+          itemName={adminDisableFor.name}
+          busy={update.isPending}
+          onSubmit={(reason) => void submitAdminDisable(reason)}
+          onClose={() => setAdminDisableFor(null)}
+        />
+      )}
+
+      {/* Change requests (R09): the open row's detail with approve/reject. */}
+      {tab === 'changeRequests' && crViewId && crDetail.isPending && (
+        <Dialog
+          open
+          onOpenChange={(open) => !open && setParams({ cr: null }, { resetPage: false })}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change request</DialogTitle>
+              <DialogDescription>Fetching the proposal.</DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      )}
+      {tab === 'changeRequests' && crViewId && crDetail.isError && (
+        <Dialog
+          open
+          onOpenChange={(open) => !open && setParams({ cr: null }, { resetPage: false })}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change request</DialogTitle>
+              <DialogDescription>
+                {crDetail.error instanceof ApiError
+                  ? crDetail.error.message
+                  : 'Could not load the change request.'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setParams({ cr: null }, { resetPage: false })}
+              >
+                Close
+              </Button>
+              <Button onClick={() => void crDetail.refetch()}>Retry</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      {tab === 'changeRequests' &&
+        crViewId &&
+        crDetail.data?.data &&
+        crDetail.data.data.id === crViewId && (
+          <ChangeRequestDetailDialog
+            detail={crDetail.data.data}
+            onDecided={() => setParams({ cr: null }, { resetPage: false })}
+            onReload={() => void crDetail.refetch()}
+            onClose={() => setParams({ cr: null }, { resetPage: false })}
+          />
+        )}
 
       {confirm && (
         <ConfirmDialog

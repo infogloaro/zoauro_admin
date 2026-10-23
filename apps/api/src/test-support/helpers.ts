@@ -95,7 +95,7 @@ export async function login(
   };
 }
 
-type Method = 'get' | 'post' | 'patch' | 'delete';
+type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 /** Authenticated request with cookie + CSRF header (unless session is null). */
 export function call(

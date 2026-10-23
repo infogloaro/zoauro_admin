@@ -4,6 +4,8 @@ import {
   customerDetailSchema,
   customerSchema,
   listCustomersResponseSchema,
+  listRewardsResponseSchema,
+  listWalletResponseSchema,
   type Customer,
   type CustomerDetail,
 } from '@zoauro/shared';
@@ -84,6 +86,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma.auditLog.deleteMany({ where: { entityId: { in: createdCustomerIds } } });
+  await prisma.rewardPointEntry.deleteMany({ where: { customerId: { in: createdCustomerIds } } });
+  await prisma.walletTransaction.deleteMany({ where: { customerId: { in: createdCustomerIds } } });
   await prisma.customerAddress.deleteMany({ where: { customerId: { in: createdCustomerIds } } });
   await prisma.customer.deleteMany({ where: { id: { in: createdCustomerIds } } });
   await cleanupZones(createdZoneIds);
@@ -251,6 +255,56 @@ describe('list endpoint', () => {
     expect(
       (await call(app, 'get', '/api/v1/customers?sort=walletBalance', { session: superSession }))
         .status,
+    ).toBe(422);
+  });
+
+  it('filters by ?from and ?to on createdAt (doc 09 date conventions)', async () => {
+    const name = `DateFilter C ${stamp()}`;
+    const created = await createCustomer(zoneAId, name);
+
+    // Inclusive whole-day UTC bounds: today's range contains a just-created row.
+    const today = new Date().toISOString().slice(0, 10);
+    const inRange = await call(
+      app,
+      'get',
+      `/api/v1/customers?q=${encodeURIComponent(name)}&from=${today}&to=${today}`,
+      { session: superSession },
+    );
+    expect(inRange.status).toBe(200);
+    expect(inRange.body.data.map((row: Customer) => row.id)).toContain(created.id);
+
+    // A past range excludes the same customer.
+    const outOfRange = await call(
+      app,
+      'get',
+      `/api/v1/customers?q=${encodeURIComponent(name)}&from=2020-01-01&to=2020-01-31`,
+      { session: superSession },
+    );
+    expect(outOfRange.status).toBe(200);
+    expect(outOfRange.body.data).toHaveLength(0);
+
+    // Full ISO datetimes are accepted too.
+    const withDatetimes = await call(
+      app,
+      'get',
+      `/api/v1/customers?q=${encodeURIComponent(name)}&from=${new Date(Date.now() - 60_000).toISOString()}&to=${new Date(Date.now() + 60_000).toISOString()}`,
+      { session: superSession },
+    );
+    expect(withDatetimes.status).toBe(200);
+    expect(withDatetimes.body.data.map((row: Customer) => row.id)).toContain(created.id);
+  });
+
+  it('422 for an invalid from/to value or from after to', async () => {
+    expect(
+      (await call(app, 'get', '/api/v1/customers?from=not-a-date', { session: superSession }))
+        .status,
+    ).toBe(422);
+    expect(
+      (
+        await call(app, 'get', '/api/v1/customers?from=2026-12-31&to=2026-01-01', {
+          session: superSession,
+        })
+      ).status,
     ).toBe(422);
   });
 });
@@ -490,6 +544,343 @@ describe('reveal endpoint (D26, customers:reveal)', () => {
     expect(audits[0]?.afterJson).toMatchObject({ revealed: ['phone', 'email'] });
     expect(JSON.stringify(audits[0]?.afterJson ?? {})).not.toContain(phone);
   });
+
+  it('401 without a session', async () => {
+    expect(
+      (await call(app, 'get', '/api/v1/customers/00000000-0000-4000-8000-000000000000/reveal'))
+        .status,
+    ).toBe(401);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Rewards + wallet (D169, doc 09 `/customers/{id}/rewards|wallet`)
+ * ------------------------------------------------------------------ */
+
+/** Seeds ledger rows with distinct timestamps so `createdAt desc` is deterministic. */
+async function seedRewardEntries(
+  customerId: string,
+  rows: Array<{
+    type: 'MANUAL_GRANT' | 'ORDER_EARN' | 'MANUAL_DEDUCT';
+    points: number;
+    balanceAfter: number;
+    ageMs: number;
+    reason?: string;
+  }>,
+): Promise<string[]> {
+  const ids: string[] = [];
+  for (const row of rows) {
+    const entry = await prisma.rewardPointEntry.create({
+      data: {
+        customerId,
+        type: row.type,
+        points: row.points,
+        balanceAfter: row.balanceAfter,
+        reason: row.reason ?? 'seeded',
+        createdAt: new Date(Date.now() - row.ageMs),
+      },
+    });
+    ids.push(entry.id);
+  }
+  return ids;
+}
+
+describe('rewards read (GET /customers/{id}/rewards)', () => {
+  it('200 returns newest-first entries, balance and totals; type filter narrows', async () => {
+    const created = await createCustomer(zoneAId, `RewardsRead C ${stamp()}`);
+    const [oldId, midId, newId] = await seedRewardEntries(created.id, [
+      { type: 'ORDER_EARN', points: 100, balanceAfter: 100, ageMs: 30_000 },
+      { type: 'MANUAL_GRANT', points: 50, balanceAfter: 150, ageMs: 20_000 },
+      { type: 'MANUAL_DEDUCT', points: -20, balanceAfter: 130, ageMs: 10_000 },
+    ]);
+    await prisma.customer.update({ where: { id: created.id }, data: { rewardPoints: 130 } });
+
+    const res = await call(app, 'get', `/api/v1/customers/${created.id}/rewards`, {
+      session: superSession,
+    });
+    expect(res.status).toBe(200);
+    expect(listRewardsResponseSchema.parse(res.body)).toBeTruthy();
+    expect(res.body.data.rewardPoints).toBe(130);
+    expect(res.body.data.entries).toHaveLength(3);
+    expect(res.body.meta).toMatchObject({ total: 3, page: 1, pageSize: 25 });
+    expect(res.body.data.entries.map((e: { id: string }) => e.id)).toEqual([newId, midId, oldId]);
+    expect(res.body.data.entries[0]).toMatchObject({
+      type: 'MANUAL_DEDUCT',
+      points: -20,
+      orderId: null,
+      reason: 'seeded',
+      actorId: null,
+      zoneId: null,
+    });
+
+    const filtered = await call(
+      app,
+      'get',
+      `/api/v1/customers/${created.id}/rewards?type=ORDER_EARN`,
+      { session: superSession },
+    );
+    expect(filtered.status).toBe(200);
+    expect(filtered.body.data.entries).toHaveLength(1);
+    expect(filtered.body.data.entries[0].id).toBe(oldId);
+    expect(filtered.body.meta).toMatchObject({ total: 1 });
+  });
+
+  it('422 for an invalid type filter, 404 for unknown ids, 401 without a session', async () => {
+    const created = await createCustomer(zoneAId, `RewardsGuard C ${stamp()}`);
+    expect(
+      (
+        await call(app, 'get', `/api/v1/customers/${created.id}/rewards?type=NOT_A_TYPE`, {
+          session: superSession,
+        })
+      ).status,
+    ).toBe(422);
+    expect(
+      (
+        await call(app, 'get', '/api/v1/customers/00000000-0000-4000-8000-000000000000/rewards', {
+          session: superSession,
+        })
+      ).status,
+    ).toBe(404);
+    expect((await call(app, 'get', `/api/v1/customers/${created.id}/rewards`)).status).toBe(401);
+  });
+});
+
+describe('rewards adjust (POST /customers/{id}/rewards/adjust)', () => {
+  it('grant increases the balance, writes a MANUAL_GRANT row and audits', async () => {
+    const created = await createCustomer(zoneAId, `AdjustGrant C ${stamp()}`);
+    const res = await call(app, 'post', `/api/v1/customers/${created.id}/rewards/adjust`, {
+      session: superSession,
+      body: { action: 'grant', points: 100, reason: 'Festival bonus' },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.data.rewardPoints).toBe(100);
+    expect(res.body.data.entry).toMatchObject({
+      type: 'MANUAL_GRANT',
+      points: 100,
+      reason: 'Festival bonus',
+      actorId: expect.any(String),
+      zoneId: zoneAId,
+    });
+
+    const row = await prisma.customer.findUnique({ where: { id: created.id } });
+    expect(row?.rewardPoints).toBe(100);
+    const entry = await prisma.rewardPointEntry.findUnique({
+      where: { id: res.body.data.entry.id },
+    });
+    expect(entry).toMatchObject({ type: 'MANUAL_GRANT', points: 100, balanceAfter: 100 });
+
+    const audits = await prisma.auditLog.findMany({
+      where: { entityId: created.id, action: 'customers.reward.adjust' },
+    });
+    expect(audits).toHaveLength(1);
+    expect(audits[0]?.beforeJson).toMatchObject({ rewardPoints: 0 });
+    expect(audits[0]?.afterJson).toMatchObject({
+      rewardPoints: 100,
+      action: 'grant',
+      points: 100,
+    });
+  });
+
+  it('deduct decreases the balance and writes a signed MANUAL_DEDUCT row', async () => {
+    const created = await createCustomer(zoneAId, `AdjustDeduct C ${stamp()}`);
+    await prisma.customer.update({ where: { id: created.id }, data: { rewardPoints: 80 } });
+
+    const res = await call(app, 'post', `/api/v1/customers/${created.id}/rewards/adjust`, {
+      session: superSession,
+      body: { action: 'deduct', points: 30, reason: 'Correction for double credit' },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.data.rewardPoints).toBe(50);
+    expect(res.body.data.entry).toMatchObject({ type: 'MANUAL_DEDUCT', points: -30 });
+
+    const entry = await prisma.rewardPointEntry.findUnique({
+      where: { id: res.body.data.entry.id },
+    });
+    expect(entry).toMatchObject({ points: -30, balanceAfter: 50, remaining: null });
+  });
+
+  it('409 on an over-deduct with the balance unchanged', async () => {
+    const created = await createCustomer(zoneAId, `AdjustOver C ${stamp()}`);
+    await prisma.customer.update({ where: { id: created.id }, data: { rewardPoints: 40 } });
+
+    const res = await call(app, 'post', `/api/v1/customers/${created.id}/rewards/adjust`, {
+      session: superSession,
+      body: { action: 'deduct', points: 100, reason: 'Too much' },
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('CONFLICT');
+
+    const row = await prisma.customer.findUnique({ where: { id: created.id } });
+    expect(row?.rewardPoints).toBe(40);
+    expect(await prisma.rewardPointEntry.count({ where: { customerId: created.id } })).toBe(0);
+    expect(
+      await prisma.auditLog.count({
+        where: { entityId: created.id, action: 'customers.reward.adjust' },
+      }),
+    ).toBe(0);
+  });
+
+  it('422 for a missing/short reason, non-integer points or a bad action', async () => {
+    const created = await createCustomer(zoneAId, `AdjustValidation C ${stamp()}`);
+    const post = (body: Record<string, unknown>) =>
+      call(app, 'post', `/api/v1/customers/${created.id}/rewards/adjust`, {
+        session: superSession,
+        body,
+      });
+
+    expect((await post({ action: 'grant', points: 10 })).status).toBe(422);
+    expect((await post({ action: 'grant', points: 10, reason: 'x' })).status).toBe(422);
+    expect((await post({ action: 'grant', points: 0, reason: 'valid reason' })).status).toBe(422);
+    expect((await post({ action: 'steal', points: 10, reason: 'valid reason' })).status).toBe(422);
+    expect(
+      await prisma.customer.findUnique({ where: { id: created.id } }).then((r) => r?.rewardPoints),
+    ).toBe(0);
+  });
+
+  it('404 for an unknown customer id', async () => {
+    const res = await call(
+      app,
+      'post',
+      '/api/v1/customers/00000000-0000-4000-8000-000000000000/rewards/adjust',
+      { session: superSession, body: { action: 'grant', points: 10, reason: 'valid reason' } },
+    );
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('rewards convert (POST /customers/{id}/rewards/convert, D101)', () => {
+  it('409 for a Super Admin even with sufficient points, with an audit row', async () => {
+    const created = await createCustomer(zoneAId, `Convert C ${stamp()}`);
+    await prisma.customer.update({ where: { id: created.id }, data: { rewardPoints: 100 } });
+
+    const res = await call(app, 'post', `/api/v1/customers/${created.id}/rewards/convert`, {
+      session: superSession,
+      body: { points: 10 },
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('CONFLICT');
+    expect(res.body.error.message).toContain('Loyalty settings are not configured');
+
+    const row = await prisma.customer.findUnique({ where: { id: created.id } });
+    expect(row?.rewardPoints).toBe(100);
+    expect(await prisma.walletTransaction.count({ where: { customerId: created.id } })).toBe(0);
+
+    const audits = await prisma.auditLog.findMany({
+      where: { entityId: created.id, action: 'customers.reward.convert' },
+    });
+    expect(audits).toHaveLength(1);
+    expect(audits[0]?.afterJson).toMatchObject({
+      attemptedPoints: 10,
+      result: 'LOYALTY_NOT_CONFIGURED',
+    });
+  });
+
+  it('409 when points exceed the balance, 401 without a session, 422 without points', async () => {
+    const created = await createCustomer(zoneAId, `ConvertInsuff C ${stamp()}`);
+
+    const over = await call(app, 'post', `/api/v1/customers/${created.id}/rewards/convert`, {
+      session: superSession,
+      body: { points: 50 },
+    });
+    expect(over.status).toBe(409);
+    expect(over.body.error.message).toContain('Insufficient reward points');
+
+    expect(
+      (
+        await call(
+          app,
+          'post',
+          '/api/v1/customers/00000000-0000-4000-8000-000000000000/rewards/convert',
+          {
+            session: superSession,
+            body: { points: 1 },
+          },
+        )
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await call(app, 'post', `/api/v1/customers/${created.id}/rewards/convert`, {
+          session: null,
+          body: { points: 1 },
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await call(app, 'post', `/api/v1/customers/${created.id}/rewards/convert`, {
+          session: superSession,
+          body: {},
+        })
+      ).status,
+    ).toBe(422);
+  });
+});
+
+describe('wallet read (GET /customers/{id}/wallet)', () => {
+  it('200 with an empty ledger envelope and zero balance for a fresh customer', async () => {
+    const created = await createCustomer(zoneAId, `WalletEmpty C ${stamp()}`);
+    const res = await call(app, 'get', `/api/v1/customers/${created.id}/wallet`, {
+      session: superSession,
+    });
+    expect(res.status).toBe(200);
+    expect(listWalletResponseSchema.parse(res.body)).toBeTruthy();
+    expect(res.body.data).toMatchObject({ balancePaise: 0, entries: [] });
+    expect(res.body.meta).toMatchObject({ total: 0, page: 1, pageSize: 25 });
+  });
+
+  it('200 lists newest-first entries and the signed-amount balance', async () => {
+    const created = await createCustomer(zoneAId, `WalletLedger C ${stamp()}`);
+    await prisma.walletTransaction.create({
+      data: {
+        customerId: created.id,
+        type: 'REWARD_CONVERT',
+        amountPaise: 5000,
+        balanceAfterPaise: 5000,
+        createdAt: new Date(Date.now() - 20_000),
+      },
+    });
+    const debit = await prisma.walletTransaction.create({
+      data: {
+        customerId: created.id,
+        type: 'ORDER_DEBIT',
+        amountPaise: -1200,
+        balanceAfterPaise: 3800,
+        createdAt: new Date(Date.now() - 10_000),
+      },
+    });
+
+    const res = await call(app, 'get', `/api/v1/customers/${created.id}/wallet`, {
+      session: superSession,
+    });
+    expect(res.status).toBe(200);
+    expect(listWalletResponseSchema.parse(res.body)).toBeTruthy();
+    expect(res.body.data.balancePaise).toBe(3800);
+    expect(res.body.data.entries).toHaveLength(2);
+    expect(res.body.data.entries[0].id).toBe(debit.id);
+    expect(res.body.data.entries[0]).toMatchObject({
+      type: 'ORDER_DEBIT',
+      amountPaise: -1200,
+      balanceAfterPaise: 3800,
+      refType: null,
+      refId: null,
+    });
+    expect(res.body.meta).toMatchObject({ total: 2, page: 1, pageSize: 25 });
+  });
+
+  it('404 for an unknown id and 401 without a session', async () => {
+    expect(
+      (
+        await call(app, 'get', '/api/v1/customers/00000000-0000-4000-8000-000000000000/wallet', {
+          session: superSession,
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (await call(app, 'get', '/api/v1/customers/00000000-0000-4000-8000-000000000000/wallet'))
+        .status,
+    ).toBe(401);
+  });
 });
 
 describe('authorization matrix (doc 24 × doc 04 — customers SA-only until SA-1.7)', () => {
@@ -535,10 +926,32 @@ describe('authorization matrix (doc 24 × doc 04 — customers SA-only until SA-
       const reveal = await call(app, 'get', `/api/v1/customers/${id}/reveal`, { session });
       expect(reveal.status).toBe(403);
       expect(reveal.body.error.message).toContain('customers:');
+
+      const rewards = await call(app, 'get', `/api/v1/customers/${id}/rewards`, { session });
+      expect(rewards.status).toBe(403);
+      expect(rewards.body.error.message).toContain('Missing permission customers:');
+
+      const adjust = await call(app, 'post', `/api/v1/customers/${id}/rewards/adjust`, {
+        session,
+        body: { action: 'grant', points: 10, reason: 'valid reason' },
+      });
+      expect(adjust.status).toBe(403);
+      expect(adjust.body.error.message).toContain('Missing permission customers:');
+
+      const convert = await call(app, 'post', `/api/v1/customers/${id}/rewards/convert`, {
+        session,
+        body: { points: 10 },
+      });
+      expect(convert.status).toBe(403);
+      expect(convert.body.error.message).toContain('Missing permission customers:');
+
+      const wallet = await call(app, 'get', `/api/v1/customers/${id}/wallet`, { session });
+      expect(wallet.status).toBe(403);
+      expect(wallet.body.error.message).toContain('Missing permission customers:');
     });
   }
 
-  it('SuperAdmin: list, detail, reveal and writes are allowed', async () => {
+  it('SuperAdmin: list, detail, reveal, rewards, wallet and writes are allowed', async () => {
     const list = await call(app, 'get', '/api/v1/customers', { session: superSession });
     expect(list.status).toBe(200);
 
@@ -551,5 +964,18 @@ describe('authorization matrix (doc 24 × doc 04 — customers SA-only until SA-
       session: superSession,
     });
     expect(reveal.status).toBe(200);
+    const rewards = await call(app, 'get', `/api/v1/customers/${created.id}/rewards`, {
+      session: superSession,
+    });
+    expect(rewards.status).toBe(200);
+    const wallet = await call(app, 'get', `/api/v1/customers/${created.id}/wallet`, {
+      session: superSession,
+    });
+    expect(wallet.status).toBe(200);
+    const adjust = await call(app, 'post', `/api/v1/customers/${created.id}/rewards/adjust`, {
+      session: superSession,
+      body: { action: 'grant', points: 5, reason: 'matrix smoke' },
+    });
+    expect(adjust.status).toBe(200);
   });
 });

@@ -2,7 +2,7 @@
 
 import { Download, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { VENDOR_STATUSES, type VendorKind } from '@zoauro/shared';
+import { VERIFICATION_STATUSES, VENDOR_STATUSES, type VendorKind } from '@zoauro/shared';
 import { Button } from '../../components/ui/button';
 import {
   Select,
@@ -34,15 +34,22 @@ const STATUS_LABELS: Record<string, string> = {
   SUSPENDED: 'Suspended',
 };
 
+const VERIFICATION_LABELS: Record<string, string> = {
+  PENDING: 'Pending',
+  VERIFIED: 'Verified',
+  REJECTED: 'Rejected',
+};
+
 /**
- * Records toolbar (Figma "Restaurant records" state): search, zone + status
- * filters and the client-side CSV export share one horizontal row — the
- * search input grows on the left while the filter group stays right-aligned
- * (reference layout). Advanced filters (verification, area, tag, food
- * category) stay supported through URL params (doc 22) but are no longer
- * rendered — the reference toolbar shows only these controls. Search is
- * debounced 300 ms with the same latest-value guard as before so a late
- * debounce cannot patch the wrong route after a tab switch.
+ * Records toolbar (Figma "Restaurant records" state): search, zone, area,
+ * status and verification filters plus the CSV export share one horizontal
+ * row — the search input grows on the left while the filter group stays
+ * right-aligned (reference layout). The verification filter is rendered so
+ * the pending-verification work queue of doc 45 is one click away from the
+ * list. Advanced filters (tag, food category) stay supported through URL
+ * params (doc 22) but are not rendered. Search is debounced 300 ms with the
+ * same latest-value guard as before so a late debounce cannot patch the
+ * wrong route after a tab switch.
  */
 export function VendorToolbar({
   kind,
@@ -54,7 +61,7 @@ export function VendorToolbar({
   exportBusy,
 }: {
   kind: VendorKind;
-  value: Pick<FilterValues, 'q' | 'status' | 'zoneId' | 'area'>;
+  value: Pick<FilterValues, 'q' | 'status' | 'verification' | 'zoneId' | 'area'>;
   zones: ZoneOption[];
   /** Real areas stored for this kind (list facets, doc 20). */
   areas: string[];
@@ -156,6 +163,23 @@ export function VendorToolbar({
             {VENDOR_STATUSES.map((status) => (
               <SelectItem key={status} value={status}>
                 {STATUS_LABELS[status] ?? status}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={value.verification || 'ALL'}
+          onValueChange={(v) => onChange({ verification: v === 'ALL' ? '' : v })}
+        >
+          <SelectTrigger className="h-12 min-w-[150px]" aria-label="Filter by verification">
+            <SelectValue placeholder="All verifications" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All verifications</SelectItem>
+            {VERIFICATION_STATUSES.map((status) => (
+              <SelectItem key={status} value={status}>
+                {VERIFICATION_LABELS[status] ?? status}
               </SelectItem>
             ))}
           </SelectContent>

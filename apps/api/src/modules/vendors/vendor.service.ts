@@ -10,6 +10,8 @@ import type {
   Restaurant as RestaurantDto,
   RestaurantUpdateInput,
   VendorActivity,
+  VendorBulkStatusInput,
+  VendorBulkStatusResponse,
   VendorDetail,
   VendorDocument,
   VendorDocumentUploadInput,
@@ -103,6 +105,7 @@ export function serializeRestaurant(row: RestaurantRowWithZone): RestaurantDto {
     verificationNote: row.verificationNote,
     verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
     verifiedBy: row.verifiedBy,
+    reviewDueAt: row.reviewDueAt ? row.reviewDueAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -136,6 +139,7 @@ export function serializeHomemaker(row: HomemakerRowWithZone): HomemakerDto {
     verificationNote: row.verificationNote,
     verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
     verifiedBy: row.verifiedBy,
+    reviewDueAt: row.reviewDueAt ? row.reviewDueAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -184,6 +188,7 @@ function toDocument(doc: VendorDocumentModel): VendorDocument {
     verified: doc.verified,
     verifiedBy: doc.verifiedBy,
     rejectionNote: doc.rejectionNote,
+    expiresOn: doc.expiresOn ? doc.expiresOn.toISOString().slice(0, 10) : null,
     createdAt: doc.createdAt.toISOString(),
   };
 }
@@ -211,7 +216,7 @@ function toActivity(entry: {
  * When SA-1.7 lands, intersect with the member's assignments and answer 404
  * `ZONE_NOT_FOUND` for zones outside them (doc 09, doc 36 §1).
  */
-async function resolveZoneScope(requested: string[] | undefined): Promise<string[] | null> {
+export async function resolveZoneScope(requested: string[] | undefined): Promise<string[] | null> {
   if (requested === undefined || requested.length === 0) return null;
   const existing = await repo.existingZoneIds(requested);
   if (existing.length !== requested.length) throw errors.zoneNotFound();
@@ -298,13 +303,32 @@ export async function getVendor(
   return serializeVendor(await requireRow(kind, id));
 }
 
-/** Detail view (doc 20/22): the vendor plus its documents and audit trail. */
-export async function getVendorDetail(kind: VendorKind, id: string): Promise<VendorDetail> {
+/**
+ * Detail view (doc 20/22): the vendor plus its documents and audit trail.
+ * The detail response reveals phone/email in full (D26: lists mask, detail
+ * reveals), so every open writes an auditable reveal row (doc 15 §privacy).
+ */
+export async function getVendorDetail(
+  ctx: ActorContext,
+  kind: VendorKind,
+  id: string,
+): Promise<VendorDetail> {
   const row = await requireRow(kind, id);
   const [documents, activity] = await Promise.all([
     repo.listDocuments(kind, id),
     repo.listActivity(id),
   ]);
+  await recordAudit(prisma, {
+    actorId: ctx.auth.userId,
+    zoneId: row.zoneId,
+    module: auditModule(kind),
+    action: `${auditModule(kind)}.reveal`,
+    entityType: entityType(kind),
+    entityId: id,
+    after: { revealed: ['phone', 'email'] },
+    ip: ctx.auth.ip,
+    requestId: ctx.requestId,
+  });
   const extras = { documents: documents.map(toDocument), activity: activity.map(toActivity) };
 
   if ('foodCategory' in row) return { ...serializeHomemaker(row), ...extras };
@@ -530,6 +554,48 @@ export async function changeVendorStatus(
   });
 }
 
+/**
+ * POST /{module}/bulk (doc 22 §bulk, TD-20): change status on up to 100
+ * vendors. Missing ids and rows whose current state cannot legally move to
+ * the target are skipped, not errored (partial-failure semantics; when the
+ * zone-scope seam lands, out-of-scope ids fall out the same way, TC-MZ-4).
+ */
+export async function bulkChangeVendorStatus(
+  ctx: ActorContext,
+  kind: VendorKind,
+  input: VendorBulkStatusInput,
+): Promise<VendorBulkStatusResponse> {
+  const rows = await Promise.all(input.ids.map((id) => repo.findVendor(kind, id)));
+  const found = rows.filter((r): r is VendorRowWithZone => r !== null);
+  const skippedMissing = input.ids.length - found.length;
+
+  const touchable = found.filter((row) => {
+    try {
+      assertStatusTransition(row.status, row.verificationStatus, input.status);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  const skipped = skippedMissing + (found.length - touchable.length);
+  const first = touchable[0];
+  if (!first) return { updated: 0, skipped };
+
+  const ids = touchable.map((r) => r.id);
+  await prisma.$transaction(async (tx) => {
+    await repo.updateManyStatus(tx, kind, ids, input.status);
+    await recordAudit(
+      tx,
+      auditEntry(ctx, kind, 'bulk', {
+        action: `${auditModule(kind)}.bulk.status`,
+        zoneId: first.zoneId,
+        after: { ids, status: input.status },
+      }),
+    );
+  });
+  return { updated: ids.length, skipped };
+}
+
 export async function setVendorVerification(
   ctx: ActorContext,
   kind: VendorKind,
@@ -731,4 +797,103 @@ export async function setVendorDocumentVerification(
     return updated;
   });
   return toDocument(doc);
+}
+
+/* ------------------------------------------------------------------ *
+ * CSV export (doc 22 exports, doc 13 T15/T16, doc 15 §privacy)
+ * ------------------------------------------------------------------ */
+
+/** Hard cap so one request cannot stream an unbounded table. */
+const EXPORT_MAX_ROWS = 5000;
+
+const EXPORT_HEADER = ['ID', 'Name', 'Owner', 'Phone', 'Zone', 'Area', 'Status', 'Verification'];
+
+/** Doc 13 T16: quote every cell and neutralise spreadsheet formula injection. */
+function csvCell(value: string | number): string {
+  const text = String(value);
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
+function csvRow(cells: Array<string | number>): string {
+  return cells.map(csvCell).join(',');
+}
+
+/**
+ * GET /{module}/export — the caller's current list filters, all matching
+ * rows (not one page), zone-scoped, phone masked exactly like the list
+ * (D26 — the export mirrors list privacy), audited (doc 15). Contacts and
+ * documents beyond the list columns are never included.
+ */
+export async function exportVendorsCsv(
+  ctx: ActorContext,
+  kind: VendorKind,
+  query: ListVendorsQuery,
+): Promise<{ filename: string; csv: string }> {
+  const zoneIds = await resolveZoneScope(requestedZoneIds(query));
+  // Export walks the same filtered set as the list, page by page, so the
+  // repository's where-clauses stay the single source of truth.
+  const pageSize = 100;
+  const rows: VendorRowWithZone[] = [];
+  let total = 0;
+  for (let page = 1; ; page += 1) {
+    const result = await repo.listVendors(kind, { zoneIds, query: { ...query, page, pageSize } });
+    total = result.total;
+    rows.push(...result.rows);
+    if (result.rows.length < pageSize || rows.length >= Math.min(total, EXPORT_MAX_ROWS)) break;
+  }
+  if (total > EXPORT_MAX_ROWS) {
+    throw errors.conflict(
+      `Too many records to export (${total}; the limit is ${EXPORT_MAX_ROWS}). Narrow the filters and try again.`,
+    );
+  }
+
+  const lines = [csvRow(EXPORT_HEADER)];
+  for (const row of rows) {
+    const dto = maskContact(serializeVendor(row));
+    lines.push(
+      csvRow([
+        shortExportId(kind, dto.id),
+        dto.name,
+        dto.kind === 'restaurant' ? dto.ownerName : '',
+        dto.phone,
+        dto.zone.name,
+        dto.area ?? '',
+        dto.status,
+        dto.verificationStatus,
+      ]),
+    );
+  }
+
+  await recordAudit(prisma, {
+    actorId: ctx.auth.userId,
+    module: auditModule(kind),
+    action: `${auditModule(kind)}.export`,
+    entityType: auditModule(kind),
+    entityId: 'export',
+    after: {
+      count: rows.length,
+      filters: {
+        q: query.q ?? null,
+        status: query.status ?? null,
+        verification: query.verification ?? null,
+        area: query.area ?? null,
+        tag: query.tag ?? null,
+        foodCategory: query.foodCategory ?? null,
+        zoneId: query.zoneId ?? null,
+      },
+    },
+    ip: ctx.auth.ip,
+    requestId: ctx.requestId,
+  });
+
+  // BOM keeps Excel happy with UTF-8; CRLF is the CSV convention (doc 13).
+  return {
+    filename: kind === 'restaurant' ? 'restaurants.csv' : 'homemakers.csv',
+    csv: `\uFEFF${lines.join('\r\n')}\r\n`,
+  };
+}
+
+function shortExportId(kind: VendorKind, id: string): string {
+  return `${kind === 'restaurant' ? 'RST' : 'HFP'}-${id.slice(0, 4).toUpperCase()}`;
 }

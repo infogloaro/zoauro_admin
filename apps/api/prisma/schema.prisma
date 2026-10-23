@@ -80,6 +80,7 @@ model Payment {
   @@index([createdAt])
   @@map("payments")
 }
+
 model Role {
   id        String   @id @default(uuid()) @db.Uuid
   name      RoleKey  @unique
@@ -180,7 +181,10 @@ model Zone {
   roomBookings            RoomBooking[]
   diningReservations      DiningReservation[]
   menuItems               MenuItem[]
+  menuItemChangeRequests  MenuItemChangeRequest[]
   customerAddresses       CustomerAddress[]
+  rewardPointEntries      RewardPointEntry[]
+  walletTransactions      WalletTransaction[]
   deliveryPartners        DeliveryPartner[]
   thirdPartyProviderZones ThirdPartyProviderZone[]
 
@@ -246,6 +250,9 @@ enum VendorType {
   RESTAURANT
   HOMEMAKER
   HOTEL
+  /// D131: partner documents reuse the polymorphic vendor_documents table
+  /// with this owner type (mirrors upstream; no separate partner-doc table).
+  DELIVERY_PARTNER
 }
 
 /// M06 Restaurants (doc 08 "Vendors and menu"). Zone-owned: zone_id NOT NULL.
@@ -273,6 +280,7 @@ model Restaurant {
   minOrder           Int?               @map("min_order")
   gstNo              String?            @map("gst_no") @db.VarChar(20)
   fssaiNo            String?            @map("fssai_no") @db.VarChar(20)
+  reviewDueAt        DateTime?          @map("review_due_at")
   deletedAt          DateTime?          @map("deleted_at")
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
@@ -314,6 +322,7 @@ model Homemaker {
   photoKey           String?            @map("photo_key")
   minOrder           Int?               @map("min_order")
   fssaiNo            String?            @map("fssai_no") @db.VarChar(20)
+  reviewDueAt        DateTime?          @map("review_due_at")
   deletedAt          DateTime?          @map("deleted_at")
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
@@ -336,11 +345,31 @@ model VendorDocument {
   verified      Boolean    @default(false)
   verifiedBy    String?    @map("verified_by") @db.Uuid
   rejectionNote String?    @map("rejection_note") @db.VarChar(300)
+  expiresOn     DateTime?  @map("expires_on") @db.Date
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
 
   @@index([vendorType, vendorId])
   @@map("vendor_documents")
+}
+
+/// A1 Smart Vendor Onboarding (owner-authorized advisory checklist, doc 32
+/// change row 2026-10-22). One row per (vendor_type, doc_type); weight feeds
+/// the readiness score, `active` toggles the item off the checklist without
+/// losing history. Nothing here gates activation — D22 verification does.
+model OnboardingRequirement {
+  id         String     @id @default(uuid()) @db.Uuid
+  vendorType VendorType @map("vendor_type")
+  docType    String     @map("doc_type") @db.VarChar(40)
+  label      String     @db.VarChar(80)
+  weight     Int        @default(10)
+  active     Boolean    @default(true)
+  sortOrder  Int        @default(0) @map("sort_order")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@unique([vendorType, docType])
+  @@map("onboarding_requirements")
 }
 
 /// Hotel room-booking lifecycle (task: Hotel Room Booking Management).
@@ -376,6 +405,21 @@ enum MenuApprovalStatus {
   APPROVED
   REJECTED
   ARCHIVED
+}
+
+/// R09 / D119: vendor-submitted menu change requests. The live value stays
+/// until the admin approves; a newer PENDING request supersedes the older.
+enum MenuChangeKind {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum MenuChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUPERSEDED
 }
 
 enum DietaryType {
@@ -438,6 +482,7 @@ model RoomBooking {
   paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
   amount        Int
   note          String?       @db.VarChar(300)
+  version       Int           @default(1)
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -469,6 +514,7 @@ model DiningReservation {
   paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
   amount        Int?
   note          String?       @db.VarChar(300)
+  version       Int           @default(1)
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -480,7 +526,10 @@ model DiningReservation {
 
 /// Menu/food items (task: Menu & Food Items; doc 09 `/menu-items`). Exactly
 /// one owning provider (vendor_type + vendor_id); items enter PENDING and
-/// move through the approval workflow. Price is integer paise.
+/// move through the approval workflow. Price is integer paise. The
+/// availability/stock/featured/image/admin_disabled columns are the D119
+/// shape (owner-decided 2026-10-17): `stock` is nullable so an untracked
+/// item stays live until the vendor starts counting (D126 live rule).
 model MenuItem {
   id              String             @id @default(uuid()) @db.Uuid
   zoneId          String             @map("zone_id") @db.Uuid
@@ -491,6 +540,12 @@ model MenuItem {
   description     String?            @db.VarChar(300)
   category        String?            @db.VarChar(60)
   price           Int
+  stock           Int?
+  isAvailable     Boolean            @default(true) @map("is_available")
+  isFeatured      Boolean            @default(false) @map("is_featured")
+  imageKey        String?            @map("image_key")
+  adminDisabled   Boolean            @default(false) @map("admin_disabled")
+  adminOverrideAt DateTime?          @map("admin_override_at")
   dietary         DietaryType
   approvalStatus  MenuApprovalStatus @default(PENDING) @map("approval_status")
   rejectionReason String?            @map("rejection_reason") @db.VarChar(300)
@@ -500,10 +555,39 @@ model MenuItem {
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")
 
+  changeRequests MenuItemChangeRequest[]
+
   @@index([zoneId, approvalStatus])
   @@index([vendorType, vendorId])
   @@index([approvalStatus])
   @@map("menu_items")
+}
+
+/// R09 / D119 vendor menu change requests (admin approve/reject side).
+/// proposedJson holds the vendor's proposed field values; baseJson the
+/// snapshot at submission. Approve applies only the vendor-owned content
+/// fields (name, description, price, category, dietary, image — D127(1)).
+model MenuItemChangeRequest {
+  id             String           @id @default(uuid()) @db.Uuid
+  zoneId         String           @map("zone_id") @db.Uuid
+  zone           Zone             @relation(fields: [zoneId], references: [id])
+  menuItemId     String?          @map("menu_item_id") @db.Uuid
+  menuItem       MenuItem?        @relation(fields: [menuItemId], references: [id])
+  kind           MenuChangeKind
+  status         MenuChangeStatus @default(PENDING)
+  proposedJson   Json             @map("proposed_json")
+  baseJson       Json?            @map("base_json")
+  source         String           @default("APP")
+  decidedBy      String?          @map("decided_by") @db.Uuid
+  decidedAt      DateTime?        @map("decided_at")
+  decisionReason String?          @map("decision_reason") @db.VarChar(300)
+  version        Int              @default(1)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@index([zoneId, status, createdAt])
+  @@index([menuItemId])
+  @@map("menu_item_change_requests")
 }
 
 /// doc 08 People row — CustomerStatus/Source/UserType (doc 08 enums).
@@ -539,11 +623,14 @@ model Customer {
   source        CustomerSource @default(APP)
   userType      UserType       @default(CUSTOMER) @map("user_type")
   walletBalance Int            @default(0) @map("wallet_balance")
+  rewardPoints  Int            @default(0) @map("reward_points")
   deletedAt     DateTime?      @map("deleted_at")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
 
-  addresses CustomerAddress[]
+  addresses          CustomerAddress[]
+  rewardPointEntries RewardPointEntry[]
+  walletTransactions WalletTransaction[]
 
   @@index([status])
   @@index([source])
@@ -571,6 +658,78 @@ model CustomerAddress {
   @@index([zoneId])
   @@index([zoneId, area])
   @@map("customer_addresses")
+}
+
+/// D169 reward-point ledger kinds. Corrections are new rows, never edits of
+/// old ones (doc 16 append-only ledger rule). ORDER_EARN / ORDER_REVERSAL /
+/// CHECKOUT_REDEEM / EXPIRY are written by the orders/checkout flows (M11+);
+/// MANUAL_GRANT / MANUAL_DEDUCT / WALLET_CONVERT are the admin-panel actions.
+enum RewardEntryType {
+  ORDER_EARN
+  ORDER_REVERSAL
+  MANUAL_GRANT
+  MANUAL_DEDUCT
+  CHECKOUT_REDEEM
+  WALLET_CONVERT
+  EXPIRY
+}
+
+/// D169 wallet ledger kinds (doc 16). Wallet top-ups from the customer app
+/// and refund credits arrive with M12/M13; REWARD_CONVERT and MANUAL_ADJUST
+/// are written by the rewards module.
+enum WalletEntryType {
+  REWARD_CONVERT
+  REFUND_CREDIT
+  ORDER_DEBIT
+  MANUAL_ADJUST
+}
+
+/// Append-only reward-points ledger (D169, doc 16). `points` is signed
+/// (credits > 0, debits < 0); `balanceAfter` is the customer's running
+/// balance; credits carry `remaining` (unspent, oldest-first spend) and an
+/// optional expiry. No Order FK yet — `orderId` is a plain uuid until M11.
+model RewardPointEntry {
+  id           String          @id @default(uuid()) @db.Uuid
+  customerId   String          @map("customer_id") @db.Uuid
+  customer     Customer        @relation(fields: [customerId], references: [id])
+  zoneId       String?         @map("zone_id") @db.Uuid
+  zone         Zone?           @relation(fields: [zoneId], references: [id])
+  type         RewardEntryType
+  points       Int
+  balanceAfter Int             @map("balance_after")
+  remaining    Int?
+  expiresAt    DateTime?       @map("expires_at")
+  orderId      String?         @map("order_id") @db.Uuid
+  reason       String?         @db.VarChar(300)
+  actorId      String?         @map("actor_id") @db.Uuid
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([expiresAt])
+  @@index([orderId])
+  @@map("reward_point_entries")
+}
+
+/// Append-only wallet ledger (D24, D169, doc 16). `customers.wallet_balance`
+/// is the running balance; every change writes a row here.
+model WalletTransaction {
+  id                String          @id @default(uuid()) @db.Uuid
+  customerId        String          @map("customer_id") @db.Uuid
+  customer          Customer        @relation(fields: [customerId], references: [id])
+  zoneId            String?         @map("zone_id") @db.Uuid
+  zone              Zone?           @relation(fields: [zoneId], references: [id])
+  type              WalletEntryType
+  amountPaise       Int             @map("amount_paise")
+  balanceAfterPaise Int             @map("balance_after_paise")
+  refType           String?         @map("ref_type") @db.VarChar(40)
+  refId             String?         @map("ref_id") @db.Uuid
+  reason            String?         @db.VarChar(300)
+  actorId           String?         @map("actor_id") @db.Uuid
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([refType, refId])
+  @@map("wallet_transactions")
 }
 
 /// doc 08 DeliveryPartnerStatus (doc 10 §5): PENDING_VERIFICATION → VERIFIED

@@ -4,6 +4,10 @@ import {
   customerCreateSchema,
   customerUpdateSchema,
   listCustomersQuerySchema,
+  listRewardsQuerySchema,
+  listWalletQuerySchema,
+  rewardAdjustSchema,
+  rewardConvertSchema,
 } from '@zoauro/shared';
 import { errors } from '../../lib/errors';
 import type { ActorContext } from './customer.service';
@@ -32,6 +36,10 @@ export const customerHandlers: {
   block: Handler;
   unblock: Handler;
   reveal: Handler;
+  rewards: Handler;
+  adjustRewards: Handler;
+  convertRewards: Handler;
+  wallet: Handler;
 } = {
   list: async (req, res, next) => {
     try {
@@ -87,6 +95,43 @@ export const customerHandlers: {
   reveal: async (req, res, next) => {
     try {
       res.json({ data: await service.revealCustomer(actor(req), customerId(req)) });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  rewards: async (req, res, next) => {
+    try {
+      const query = listRewardsQuerySchema.parse(req.query);
+      res.json(await service.getCustomerRewards(customerId(req), query));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  adjustRewards: async (req, res, next) => {
+    try {
+      const input = rewardAdjustSchema.parse(req.body);
+      res.json({ data: await service.adjustRewards(actor(req), customerId(req), input) });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  convertRewards: async (req, res, next) => {
+    try {
+      const input = rewardConvertSchema.parse(req.body);
+      // Always rejects (D101) — the service throws after writing the audit row.
+      await service.convertRewards(actor(req), customerId(req), input);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  wallet: async (req, res, next) => {
+    try {
+      const query = listWalletQuerySchema.parse(req.query);
+      res.json(await service.getCustomerWallet(customerId(req), query));
     } catch (error) {
       next(error);
     }
