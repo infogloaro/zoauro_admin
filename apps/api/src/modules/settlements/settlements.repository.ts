@@ -393,6 +393,170 @@ export class SettlementsRepository {
     return new Map([...r, ...h, ...p].map((x) => [x.id, x.name]));
   }
 
+  // ---- payout detail (D202, D203) ------------------------------------------------------------------------------------
+
+  /** One payout inside the scope; null when missing or outside it (the caller says 404). */
+  async payoutInScope(scope: Scope, id: string): Promise<PayoutRecord | null> {
+    if (empty(scope)) return null;
+    return this.db.payout.findFirst({ where: { id, ...zoneWhere(scope) }, select: payoutSelect });
+  }
+
+  /** D202: a partner's delivered orders in [from, to): how many and the delivery fees on them. */
+  async partnerFees(partnerId: string, from: Date, to: Date) {
+    const r = await this.db.order.aggregate({
+      where: {
+        deliveryPartnerId: partnerId,
+        status: 'DELIVERED',
+        deliveredAt: { gte: from, lt: to },
+      },
+      _count: { _all: true },
+      _sum: { deliveryCharge: true },
+    });
+    return { deliveries: r._count._all, feesPaise: r._sum.deliveryCharge ?? 0 };
+  }
+
+  /**
+   * D202: the COD cash a partner still held at `end`: COD collected on their delivered COD orders before it, minus what
+   * they handed in before it (the D173 cash in hand, at a date). Never below 0.
+   */
+  async codHeldAt(partnerId: string, end: Date): Promise<number> {
+    const [collected, handedIn] = await Promise.all([
+      this.db.order.aggregate({
+        where: {
+          deliveryPartnerId: partnerId,
+          status: 'DELIVERED',
+          paymentMethod: 'COD',
+          deliveredAt: { lt: end },
+        },
+        _sum: { total: true },
+      }),
+      this.db.cashSettlement.aggregate({
+        where: { deliveryPartnerId: partnerId, settledAt: { lt: end } },
+        _sum: { handedInAmount: true },
+      }),
+    ]);
+    return Math.max((collected._sum.total ?? 0) - (handedIn._sum.handedInAmount ?? 0), 0);
+  }
+
+  /** The payee's DELIVERED orders in [from, to), newest first. */
+  async payoutOrders(
+    payee: { type: 'RESTAURANT' | 'HOMEMAKER' | 'DELIVERY_PARTNER'; id: string },
+    from: Date,
+    to: Date,
+    page: number,
+    pageSize: number,
+  ) {
+    const where: Prisma.OrderWhereInput = {
+      status: 'DELIVERED',
+      deliveredAt: { gte: from, lt: to },
+      ...(payee.type === 'RESTAURANT'
+        ? { restaurantId: payee.id }
+        : payee.type === 'HOMEMAKER'
+          ? { homemakerId: payee.id }
+          : { deliveryPartnerId: payee.id }),
+    };
+    const [rows, total] = await Promise.all([
+      this.db.order.findMany({
+        where,
+        orderBy: [{ deliveredAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          orderNo: true,
+          deliveredAt: true,
+          paymentMethod: true,
+          subtotal: true,
+          commissionPct: true,
+          commissionAmount: true,
+          deliveryCharge: true,
+        },
+      }),
+      this.db.order.count({ where }),
+    ]);
+    return { rows, total };
+  }
+
+  /**
+   * The vendor's refunds behind a payout (doc 16 §5, §7), newest first: the processed vendor-fault ones decided in the
+   * window (deducted) and the ones that hold Mark paid (as openVendorRefunds).
+   */
+  async payoutRefunds(vendorId: string, zoneId: string, from: Date, to: Date) {
+    return this.db.refund.findMany({
+      where: {
+        zoneId,
+        order: { OR: [{ restaurantId: vendorId }, { homemakerId: vendorId }] },
+        OR: [
+          {
+            status: 'PROCESSED',
+            fault: 'VENDOR',
+            vendorSharePaise: { gt: 0 },
+            decidedAt: { gte: from, lt: to },
+          },
+          {
+            status: 'APPROVED',
+            fault: 'VENDOR',
+            vendorSharePaise: { gt: 0 },
+            decidedAt: { gte: from, lt: to },
+          },
+          {
+            status: { in: ['REQUESTED', 'PENDING_APPROVAL'] },
+            decidedAt: null,
+            requestedAt: { gte: from, lt: to },
+          },
+        ],
+      },
+      orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }],
+      take: 50,
+      select: {
+        id: true,
+        orderId: true,
+        status: true,
+        amount: true,
+        vendorSharePaise: true,
+        reasonCode: true,
+        requestedAt: true,
+        decidedAt: true,
+        order: { select: { orderNo: true } },
+      },
+    });
+  }
+
+  /** D203 summary inputs: pending totals, recent paid rows and each zone's latest period end, for the list filters. */
+  async payoutSummary(scope: Scope, q: PayoutListQuery, paidSince: Date) {
+    if (empty(scope))
+      return { pendingCount: 0, pendingNet: 0, paid: [], pendingVendors: [], latest: [] };
+    const where = this.payoutWhere(scope, { ...q, status: undefined });
+    const [pending, paid, pendingVendors, latest] = await Promise.all([
+      this.db.payout.aggregate({
+        where: { AND: [where, { status: 'PENDING' }] },
+        _count: { _all: true },
+        _sum: { net: true },
+      }),
+      this.db.payout.findMany({
+        where: { AND: [where, { status: 'PAID', paidAt: { gte: paidSince } }] },
+        select: { zoneId: true, paidAt: true, net: true, paidAmount: true },
+      }),
+      this.db.payout.findMany({
+        where: {
+          AND: [where, { status: 'PENDING', payeeType: { in: ['RESTAURANT', 'HOMEMAKER'] } }],
+        },
+        select: { payeeId: true, zoneId: true, periodFrom: true, periodTo: true },
+        take: 300,
+      }),
+      this.db.payout.groupBy({ by: ['zoneId'], where, _max: { periodTo: true } }),
+    ]);
+    return {
+      pendingCount: pending._count._all,
+      pendingNet: pending._sum.net ?? 0,
+      paid,
+      pendingVendors,
+      latest: latest.flatMap((l) =>
+        l._max.periodTo ? [{ zoneId: l.zoneId, periodTo: l._max.periodTo }] : [],
+      ),
+    };
+  }
+
   /** D152: processed vendor-fault refunds of these vendors decided within [from, to) (to = the day after the last). */
   async vendorRefunds(vendorIds: string[], from: Date, to: Date) {
     if (vendorIds.length === 0) return [];

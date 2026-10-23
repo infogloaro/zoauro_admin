@@ -354,6 +354,11 @@ export const deliveryAutoAssignSchema = z
 /** D152 */
 export const payoutCycleSchema = z.object({ days: z.number().int().min(1).max(31) }).strict();
 
+/** D202: the delivery partner's share of the delivery fees on their delivered orders (the payout formula). */
+export const payoutPartnerShareSchema = z
+  .object({ sharePercent: z.number().int().min(0).max(100) })
+  .strict();
+
 /** D165 (D86): the most a zone's delivery charge may be; the zones module checks every create and edit against it. */
 /** At most the database ceiling (₹1 000) until a migration raises it. */
 export const zoneDeliveryChargeCapSchema = z
@@ -858,6 +863,20 @@ export const SETTINGS: readonly SettingDef[] = [
       'Days between vendor payouts. Vendor-fault refunds are deducted in the cycle in which they are decided.',
     schema: payoutCycleSchema,
     default: { days: 7 },
+    zoneOverride: true,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: { state: 'ENFORCED' },
+  },
+  {
+    key: 'payouts.partnerShare',
+    group: 'payouts',
+    label: 'Delivery partner share of delivery fees',
+    description:
+      'A delivery partner is paid this share of the delivery fees on their delivered orders in the cycle, minus the cash on delivery they still hold at the end of it (D202).',
+    schema: payoutPartnerShareSchema,
+    default: { sharePercent: 100 },
     zoneOverride: true,
     reauth: 'PASSWORD',
     editable: true,

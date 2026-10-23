@@ -226,6 +226,107 @@ export const payoutListResponseSchema = z.object({
     }),
     /** D152: the payout cycle (days) of each zone on the page */
     cycles: z.array(z.object({ zoneId: z.uuid(), days: z.number().int() })),
+    /** D203 summary tiles, for the list's filters and scope (all pages) */
+    summary: z.object({
+      pendingCount: count,
+      /** net of the pending payouts, before refund and fee deductions */
+      pendingPaise: paise,
+      /** paid within each zone's current cycle (payouts.cycleDays back from today) */
+      paidThisCycleCount: count,
+      paidThisCyclePaise: paise,
+      /** pending vendor payouts waiting on refunds still open in their period (doc 16 §7) */
+      blockedCount: count,
+      /** the latest period end of each zone plus its cycle */
+      nextPayoutDates: z.array(z.object({ zoneId: z.uuid(), date: day })),
+    }),
   }),
 });
 export type PayoutListResponse = z.infer<typeof payoutListResponseSchema>;
+
+// ---- payout detail (D152, D202, D203) ---------------------------------------------------------------------------------
+
+/** D202: a delivery partner's payout = max(0, delivery fees × payouts.partnerShare − COD cash held at period end). */
+export const partnerPayoutBreakdownSchema = z.object({
+  deliveries: count,
+  feesPaise: paise,
+  sharePercent: z.number().int().min(0).max(100),
+  sharePaise: paise,
+  /** COD collected on the partner's delivered COD orders up to period end, minus hand-ins up to then (≥ 0) */
+  codHeldPaise: paise,
+});
+export type PartnerPayoutBreakdown = z.infer<typeof partnerPayoutBreakdownSchema>;
+
+/** D182 A2: one ad campaign billed in the period (the ads module's figures). */
+export const payoutAdFeeSchema = z.object({
+  campaignId: z.uuid(),
+  slotLabel: z.string(),
+  pricing: z.enum(['FLAT_PER_DAY', 'COMMISSION']),
+  days: count,
+  earnedPaise: paise,
+});
+export type PayoutAdFee = z.infer<typeof payoutAdFeeSchema>;
+
+/** In GET /payouts/{id}: vendor-fault refunds counted in the deduction, and open ones that hold the payout. */
+export const payoutRefundRowSchema = z.object({
+  id: z.uuid(),
+  orderId: z.uuid(),
+  orderNo: z.string(),
+  status: z.string(),
+  amountPaise: paise,
+  /** the vendor's share (deducted once PROCESSED) */
+  vendorSharePaise: paise,
+  reasonCode: z.string(),
+  requestedAt: isoOut,
+  decidedAt: isoOut.nullable(),
+  /** COUNTED: deducted from this payout; OPEN: holds Mark paid until decided */
+  effect: z.enum(['COUNTED', 'OPEN']),
+});
+export type PayoutRefundRow = z.infer<typeof payoutRefundRowSchema>;
+
+/** GET /payouts/{id}: the row plus the money block and what is deducted. */
+export const payoutDetailSchema = payoutRowSchema.extend({
+  deductions: z.object({
+    /** vendor-fault refunds decided in the period (vendors; 0 for partners) */
+    vendorRefundsPaise: paise,
+    /** ad fees billed in the period (D182 A2; 0 until the ads module bills) */
+    adFeesPaise: paise,
+    /** D202: partners only, else 0 */
+    codHeldPaise: paise,
+  }),
+  /** what Mark paid would pay now (vendors: net − refunds − ad fees; partners: D202), never below 0 */
+  amountToPayPaise: paise,
+  /** vendor refunds still open in the period: Mark paid waits for them (doc 16 §7); 0 for partners */
+  openRefunds: count,
+  partner: partnerPayoutBreakdownSchema.nullable(),
+  adFees: z.array(payoutAdFeeSchema),
+  /** vendors: the refunds behind the deduction and any that hold the payout (newest first; none for partners) */
+  refunds: z.array(payoutRefundRowSchema),
+});
+export type PayoutDetail = z.infer<typeof payoutDetailSchema>;
+
+export const payoutOrdersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(25),
+});
+export type PayoutOrdersQuery = z.infer<typeof payoutOrdersQuerySchema>;
+
+/** GET /payouts/{id}/orders: the payee's DELIVERED orders in the period. */
+export const payoutOrderRowSchema = z.object({
+  id: z.uuid(),
+  orderNo: z.string(),
+  deliveredAt: isoOut,
+  paymentMethod: z.string(),
+  subtotalPaise: paise,
+  commissionPct: z.number(),
+  commissionPaise: paise,
+  /** vendors: subtotal − commission; partners: the delivery fee */
+  netPaise: paise,
+  /** partners: the delivery fee and their share of it (D202); null for vendors */
+  deliveryFeePaise: paise.nullable(),
+  partnerSharePaise: paise.nullable(),
+});
+export const payoutOrdersResponseSchema = z.object({
+  data: z.array(payoutOrderRowSchema),
+  meta: pageMetaSchema,
+});
+export type PayoutOrdersResponse = z.infer<typeof payoutOrdersResponseSchema>;

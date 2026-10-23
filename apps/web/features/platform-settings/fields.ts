@@ -372,6 +372,16 @@ export const KEY_SPECS: Record<string, KeySpec> = {
   'payouts.cycleDays': {
     fields: [{ path: 'days', label: 'Payout cycle (days)', kind: 'int', hint: '1 to 31 days' }],
   },
+  'payouts.partnerShare': {
+    fields: [
+      {
+        path: 'sharePercent',
+        label: 'Partner share of delivery fees (%)',
+        kind: 'int',
+        hint: '0 to 100; cash on delivery still held is deducted',
+      },
+    ],
+  },
   'zones.deliveryChargeCapPaise': {
     fields: [{ path: 'capPaise', label: 'Most a zone may charge for delivery', kind: 'money' }],
   },

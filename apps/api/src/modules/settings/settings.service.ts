@@ -8,6 +8,7 @@ import {
   orderUnpaidTimeoutSchema,
   adsRulesSchema,
   payoutCycleSchema,
+  payoutPartnerShareSchema,
   deliveryCodLimitSchema,
   orderCancelReasonsSchema,
   sessionRememberSchema,
@@ -583,6 +584,12 @@ export class SettingsReader {
   /** D152 */
   async payoutCycleDays(zoneId: string): Promise<number> {
     return (await this.effective('payouts.cycleDays', payoutCycleSchema, zoneId)).days;
+  }
+
+  /** D202: the delivery partner's share (%) of the delivery fees */
+  async partnerSharePercent(zoneId: string): Promise<number> {
+    return (await this.effective('payouts.partnerShare', payoutPartnerShareSchema, zoneId))
+      .sharePercent;
   }
 
   /** D190: the zone's order cancel reasons. */

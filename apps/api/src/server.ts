@@ -328,6 +328,7 @@ const settlements = createSettlementsModule({
   appOrigin: new URL(env.APP_URL).origin,
   cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
   codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+  partnerShare: (zoneId) => settings.reader.partnerSharePercent(zoneId), // D202
   requireReauth: auth.requireReauth, // F4 mark-paid
   requireArea: (area) => controlAreas.require(area), // D178
 });

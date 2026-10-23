@@ -7,6 +7,7 @@ import {
   payoutIfMatchSchema,
   payoutListQuerySchema,
   payoutMarkPaidSchema,
+  payoutOrdersQuerySchema,
 } from '@zoauro/shared';
 import { auditMeta } from '../../lib/audit';
 import { originCheck, requireCsrf, requireJsonBody } from '../../lib/auth/middleware';
@@ -16,9 +17,9 @@ import { AppError, parseBody } from '../../lib/errors';
 import { idempotency, IdempotencyRepository } from '../../lib/idempotency';
 import { auditOf } from '../../openapi/operations';
 import { SettlementsDatabase } from './settlements.repository';
-import { SettlementsService } from './settlements.service';
+import { SettlementsService, type AdFeesFor } from './settlements.service';
 
-export { SettlementsService } from './settlements.service';
+export { SettlementsService, type AdFeesFor } from './settlements.service';
 
 /**
  * COD settlement and payouts (doc 09, D152, D173): GET /cash-settlements and /cash-settlements/balances
@@ -36,12 +37,18 @@ export function createSettlementsModule(deps: {
   requireReauth?: (level: ReauthLevel) => RequestHandler;
   /** D178: the Control Panel area guard (mark-paid needs settings.payouts for a non-primary) */
   requireArea?: (area: string) => RequestHandler;
+  /** D202: settings payouts.partnerShare (SettingsReader.partnerSharePercent); absent: 100 % */
+  partnerShare?: (zoneId: string) => Promise<number>;
+  /** D182 A2: the ads module's fees for a vendor payout period; absent: none */
+  adFees?: AdFeesFor;
   clock?: () => Date;
 }): { router: Router; service: SettlementsService } {
   const service = new SettlementsService({
     db: new SettlementsDatabase(deps.prisma),
     cycleDays: deps.cycleDays,
     codLimit: deps.codLimit,
+    ...(deps.partnerShare ? { partnerShare: deps.partnerShare } : {}),
+    ...(deps.adFees ? { adFees: deps.adFees } : {}),
     clock: deps.clock ?? (() => new Date()),
   });
   const router = Router();
@@ -80,6 +87,21 @@ export function createSettlementsModule(deps: {
   router.get('/payouts', requirePermission('payouts', 'view'), async (req, res) => {
     res.json(
       await service.payouts(authContextOf(res), parseBody(payoutListQuerySchema, req.query)),
+    );
+  });
+  // D203: one payout's money block, partner breakdown (D202), refunds and ad fees; its delivered orders
+  router.get('/payouts/:id', requirePermission('payouts', 'view'), async (req, res) => {
+    res.json(
+      await service.payout(authContextOf(res), parseBody(payoutIdParamsSchema, req.params).id),
+    );
+  });
+  router.get('/payouts/:id/orders', requirePermission('payouts', 'view'), async (req, res) => {
+    res.json(
+      await service.payoutOrders(
+        authContextOf(res),
+        parseBody(payoutIdParamsSchema, req.params).id,
+        parseBody(payoutOrdersQuerySchema, req.query),
+      ),
     );
   });
   // F4: a Super Admin records a manual payout (payouts:edit is never grantable: Zonal Admins get 403)

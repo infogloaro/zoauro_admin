@@ -10,6 +10,9 @@ import {
   payoutMarkPaidSchema,
   payoutRowSchema,
   payoutListResponseSchema,
+  payoutDetailSchema,
+  payoutOrdersQuerySchema,
+  payoutOrdersResponseSchema,
 } from '@zoauro/shared';
 import type { OperationDef } from './operations';
 
@@ -63,12 +66,37 @@ export const SETTLEMENT_OPERATIONS: OperationDef[] = [
     response: { status: 200, schema: payoutListResponseSchema, description: 'One page' },
   },
   {
+    operationId: 'getPayout',
+    method: 'get',
+    path: '/payouts/{id}',
+    tags: ['payouts'],
+    summary:
+      'One payout (D203): the row plus the money block: vendor-fault refunds (D152), ad fees (D182 A2), COD held for a delivery partner (D202), the amount to pay, the refunds behind the deduction or holding it; 404 outside payouts:view',
+    access: { kind: 'permission', permission: 'payouts:view', zone: 'none' },
+    params: payoutIdParamsSchema,
+    response: { status: 200, schema: payoutDetailSchema, description: 'The payout' },
+    errors: ['NOT_FOUND'],
+  },
+  {
+    operationId: 'listPayoutOrders',
+    method: 'get',
+    path: '/payouts/{id}/orders',
+    tags: ['payouts'],
+    summary:
+      "The payee's DELIVERED orders in the payout period (25 a page, at most 50): commission per order for a vendor, the delivery fee and partner share for a delivery partner (D202); 404 outside payouts:view",
+    access: { kind: 'permission', permission: 'payouts:view', zone: 'none' },
+    params: payoutIdParamsSchema,
+    query: payoutOrdersQuerySchema,
+    response: { status: 200, schema: payoutOrdersResponseSchema, description: 'One page' },
+    errors: ['NOT_FOUND'],
+  },
+  {
     operationId: 'markPayoutPaid',
     method: 'post',
     path: '/payouts/{id}/mark-paid',
     tags: ['payouts'],
     summary:
-      'Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays net minus the vendor-fault refunds (kept as paidPaise); ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK',
+      'Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays the amount to pay (vendor: net − vendor-fault refunds − ad fees; delivery partner, D202: fees × payouts.partnerShare − COD held at period end), kept as paidPaise; ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK',
     access: { kind: 'permission', permission: 'payouts:edit', zone: 'none', reauth: 'PASSWORD' },
     audit: { module: 'payouts', action: 'payout.marked_paid' },
     params: payoutIdParamsSchema,
