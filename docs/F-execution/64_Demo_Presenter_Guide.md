@@ -20,7 +20,13 @@ For the owner. Updated with every demo build. Newest first.
 - **New: Advertising is live** in the menu (Support & Engagement → Advertising), with Dashboard, Requests, Campaigns and Slots, and its sample data (Part 17).
 - **New:** a primary can **Reset 2-step** for another Super Admin (Part 7).
 - **Changed:** suspending or reactivating a Zonal Admin now asks for the password.
-- **Coming:** the payout detail page, statement and partner payouts on screen (Part 16). The server side is in; ad fees are deducted from vendor payouts.
+- **New:** the payout detail page (money block, Orders, Refunds and Ad fees tabs), summary tiles, Export CSV, Print statement, and partner payouts with Mark paid (Part 16). Ad fees are deducted from vendor payouts.
+- **Fixed:** a vendor with no zone offers "assign a zone first" instead of Start review.
+
+**Lands in the "final-2" build (13:00, checked 13:25–14:15; the 11:30 build is the fallback):**
+
+- payout **Hold / Release / Adjust** with reasons, and **Make payout** (method, reference, "made by") with an Activity list (Part 16);
+- **Edit responsibility** on a decided refund, so ZOAURO can take the cost (Part 15).
 
 **Morning build `3f9dc30` (2026-10-23, about 09:40), fresh sample data:**
 
@@ -654,6 +660,7 @@ flowchart LR
 
 - **Limits:** each Zonal Admin has a per-refund and a per-day limit in each zone. The zone also has caps that no admin can go above.
 - **Vendor-fault refunds:** these are taken from the vendor's next payout, in the cycle in which the refund was decided.
+- **Edit responsibility** (lands in the "final-2" build): on a decided refund, a Super Admin can change who pays: the vendor (with a share %), ZOAURO, or the customer. A reason and the password are required. The dialog shows "Vendor deduction: ₹x → ₹y", and the vendor's payout follows at once. It is refused once that vendor's payout for the period is paid. Say: "If the mistake was ours, ZOAURO takes the cost, and the vendor isn't charged."
 
 **Payments**
 
@@ -713,6 +720,21 @@ flowchart LR
 
 **Say:**
 > "This is the statement we can send the vendor: the period, the money block and every order line."
+
+**Hold, adjust and make the payout (lands in the "final-2" build at 13:00; show only if its QA is green, otherwise show Mark paid as above)**
+
+**Do:** open a vendor payout and walk through the full details. Then:
+
+1. **Hold** it with a reason, for example "Bank details do not match the GST certificate". A yellow banner says "On hold: … by Arun, time", and paying is blocked.
+2. **Adjust amount** with a reason, for example +₹150 "Packaging reimbursement". The preview shows the new amount to pay, and the money block gains an "Adjustment" line.
+3. **Release hold** with a reason.
+4. **Make payout**: choose the method (NEFT, IMPS, RTGS, UPI or cheque), enter the bank reference (UTR or cheque number) and the date. The dialog shows the amount and "Recorded as made by: you".
+5. The **Activity** list on the payout shows each step: who, when, why, before and after.
+
+Each step asks for your password.
+
+**Say:**
+> "If anything doesn't match, finance holds the payout, corrects it with a reason, and only then pays. Every step is recorded with who did it and why."
 
 **Do:** go back to the list and open **Sree Krishna Sweets**. Click **Mark paid**.
 

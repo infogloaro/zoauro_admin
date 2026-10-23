@@ -9,9 +9,11 @@ Version 0.4, 2026-10-22. Owner: docs lane. **Demo: Thursday 2026-10-23 at 15:00 
 | 2026-10-22, 13:30 and 18:12 | Demo rebuilt from the latest code; QA walk of every role, timings and live actions after each (§5). The laptop was off overnight |
 | 2026-10-23, morning | Rebuilds as the advertising and payouts work lands; the owner's live access check |
 | 2026-10-23, 11:15 | **Code freeze** |
-| 11:30 | The final demo build: the build of record |
-| about 12:00 to 13:30 | Final QA on a quiet machine (only Docker, demo API and demo web running) |
-| by 13:45 | Sample data reset to a fresh state |
+| 11:30 | The final demo build: the fallback build of record |
+| about 11:40 to 13:00 | Final QA of that build |
+| 13:00 | "final-2" build with the owner's payout hold, adjust and make-payout flows and refund responsibility (D204) |
+| 13:25 to 14:15 | QA of final-2; if it isn't green, the 11:30 build is the demo |
+| by 14:30 | Sample data reset to a fresh state |
 | after the reset | All build sessions stopped |
 | 15:00 | Demo |
 
@@ -153,7 +155,9 @@ Talking point: management can change prices, limits and rules any time, per zone
 No payment gateway in the demo: refunds are processed manually or to the customer's wallet.
 1. **Refunds** — Ready (raise, approve, above-limit approval all checked). Raise a refund on an order (full, partial or goodwill, with a reason). Within the member's limit it is approved at once; above it, it waits in the Super Admin approval queue; the requester can never approve their own.
 2. **Payments** — Ready. Payments by method (UPI, card, COD, wallet) with filters; "Refund processing" status. **COD cash settlement** — Ready: cash in hand per partner, record a hand-in (a different amount needs a note), settlement history with variances, partners over the ₹5,000 COD limit flagged "no COD orders". **Payouts** — Ready: per-payee tabs with gross, commission, vendor refunds and net, status and cycle days (read only).
-3. Talking point: Razorpay connects when management provides the keys; the flow and rules are already in place.
+3. **Payout detail** (f68ed3d, final build): open a payout; money block; Orders, Refunds and Ad fees tabs; Print statement; partner payouts with Mark paid (D202).
+4. **Hold / Adjust / Release / Make payout** and **Edit refund responsibility** (D204, spec PAYOUT-HOLD): lands in the "final-2" build at 13:00; show only if its QA (13:25–14:15) is green. Steps: open a vendor payout → Hold (reason) → Adjust amount (reason, preview) → Release → Make payout (method, UTR, date, "made by you") → Activity list; Refunds → a decided refund → Edit responsibility → ZOAURO with a reason → the vendor deduction drops to ₹0.
+5. Talking point: Razorpay connects when management provides the keys; the flow and rules are already in place.
 
 ### Act 9. Packages (4 min)
 1. **Service Management → Vendor Plans** — Ready. The Super Admin plan catalogue: create a plan as a draft, edit features and prices, activate or retire it; put an active vendor on a plan or cancel a vendor's plan. A Zonal Admin with plans view sees the active plans and their zones' vendors, read only.
