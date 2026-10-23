@@ -20,11 +20,12 @@ import {
 } from './labels';
 import type { RefundPageProps } from './refund-page-props';
 import { DecideDialog, NoteActionDialog } from './RefundDialogs';
+import { canEditResponsibility, RefundResponsibilityDialog } from './RefundResponsibilityDialog';
 
 // One refund (D180, D187, D95): amount, reason, who pays and the vendor's share, where the money goes, the order's
 // refunded and refundable totals, who requested, approved and second-approved it, the UPI reference once paid, and the
 // actions its status allows the member (decide a report; a Super Admin approves or rejects, never their own, and
-// records a UPI payment; a failed one can be retried).
+// records a UPI payment; a failed one can be retried; D204: refunds:edit re-assigns who bears a decided refund).
 
 const when = (iso: string | null) =>
   iso
@@ -40,9 +41,9 @@ const when = (iso: string | null) =>
 
 export function RefundDetailPage({ id, role, meId, can }: RefundPageProps & { id: string }) {
   const refund = useRefund(id);
-  const [dialog, setDialog] = useState<'decide' | 'approve' | 'reject' | 'pay' | 'retry' | null>(
-    null,
-  );
+  const [dialog, setDialog] = useState<
+    'decide' | 'approve' | 'reject' | 'pay' | 'retry' | 'responsibility' | null
+  >(null);
   const listPath = refundsPath(role);
   const base = role === 'SUPER_ADMIN' ? '/super-admin' : '/zone';
 
@@ -65,7 +66,14 @@ export function RefundDetailPage({ id, role, meId, can }: RefundPageProps & { id
   if (!refund.data) return <CardSkeleton rows={8} />;
   const r = refund.data;
   const acts = refundActions(r, { id: meId, superAdmin: role === 'SUPER_ADMIN', canAdd: can.add });
-  const any = acts.decide || acts.approve || acts.reject || acts.recordPayment || acts.retry;
+  const editResponsibility = canEditResponsibility(r, can.editZones);
+  const any =
+    acts.decide ||
+    acts.approve ||
+    acts.reject ||
+    acts.recordPayment ||
+    acts.retry ||
+    editResponsibility;
 
   const facts: [string, React.ReactNode][] = [
     [
@@ -174,6 +182,11 @@ export function RefundDetailPage({ id, role, meId, can }: RefundPageProps & { id
                 Retry
               </Button>
             ) : null}
+            {editResponsibility ? (
+              <Button variant="secondary" onClick={() => setDialog('responsibility')}>
+                Edit responsibility
+              </Button>
+            ) : null}
           </CardBody>
         </Card>
       ) : r.status === 'PENDING_APPROVAL' && r.requestedBy?.id === meId ? (
@@ -213,6 +226,8 @@ export function RefundDetailPage({ id, role, meId, can }: RefundPageProps & { id
 
       {dialog === 'decide' ? (
         <DecideDialog refund={r} onClose={() => setDialog(null)} />
+      ) : dialog === 'responsibility' ? (
+        <RefundResponsibilityDialog refund={r} onClose={() => setDialog(null)} />
       ) : dialog ? (
         <NoteActionDialog refund={r} kind={dialog} onClose={() => setDialog(null)} />
       ) : null}

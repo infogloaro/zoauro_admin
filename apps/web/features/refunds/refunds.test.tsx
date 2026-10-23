@@ -11,6 +11,7 @@ import { ApiClientProvider } from '../../lib/api-client';
 import { allowedTargets, refundActions, refundTabFromParam } from './labels';
 import { RefundDetailPage } from './RefundDetailPage';
 import { RequestRefundDialog } from './RefundDialogs';
+import { canEditResponsibility } from './RefundResponsibilityDialog';
 import { RefundsPage } from './RefundsPage';
 
 // Refunds (D180, D187, D95): queues and actions per role, a request with an Idempotency-Key and the order's refund
@@ -38,12 +39,12 @@ const asSuperAdmin = (meId: string) => ({
   role: 'SUPER_ADMIN' as const,
   meId,
   myZones: [],
-  can: { add: true, export: false },
+  can: { add: true, export: false, editZones: 'ALL' as const },
 });
 const zone = { id: '0192f1d2-0000-7000-8000-00000000000a', name: 'Anna Nagar', code: 'ANN' };
 
-function wrap(get: ReturnType<typeof vi.fn>, post = vi.fn()) {
-  const client = { get, post } as unknown as ApiClient;
+function wrap(get: ReturnType<typeof vi.fn>, post = vi.fn(), patch = vi.fn()) {
+  const client = { get, post, patch } as unknown as ApiClient;
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -277,6 +278,126 @@ describe('Refund page', () => {
         body: { reference: 'UTR123456789' },
       }),
     );
+  });
+});
+
+describe('Edit responsibility (D204)', () => {
+  const asZonalAdmin = (editZones: readonly string[]) => ({
+    role: 'ZONAL_ADMIN' as const,
+    meId: ME,
+    myZones: [{ ...zone, colorHex: '#2563EB' }],
+    can: { add: true, export: false, editZones },
+  });
+  const BUTTON = { name: 'Edit responsibility' };
+
+  it('only decided refunds, and only with refunds:edit in the refund’s zone', async () => {
+    const at = (status: string) => ({ status: status as 'APPROVED', order: { zone } });
+    expect(canEditResponsibility(at('APPROVED'), 'ALL')).toBe(true);
+    expect(canEditResponsibility(at('PROCESSED'), [zone.id])).toBe(true);
+    for (const s of ['REQUESTED', 'PENDING_APPROVAL', 'FAILED', 'REJECTED'])
+      expect(canEditResponsibility(at(s), 'ALL')).toBe(false);
+    expect(canEditResponsibility(at('APPROVED'), ['0192f1d2-0000-7000-8000-00000000000b'])).toBe(
+      false,
+    );
+    expect(canEditResponsibility(at('APPROVED'), undefined)).toBe(false);
+
+    render(<RefundDetailPage id={REFUND} {...asSuperAdmin(ME)} />, {
+      wrapper: wrap(vi.fn(async () => detail({ status: 'PROCESSED', target: 'WALLET' }))),
+    });
+    expect(await screen.findByRole('button', BUTTON)).toBeTruthy();
+    cleanup();
+
+    render(<RefundDetailPage id={REFUND} {...asSuperAdmin(ME)} />, {
+      wrapper: wrap(vi.fn(async () => detail())),
+    });
+    expect(await screen.findByRole('button', { name: 'Reject' })).toBeTruthy();
+    expect(screen.queryByRole('button', BUTTON)).toBeNull();
+    cleanup();
+
+    render(<RefundDetailPage id={REFUND} {...asZonalAdmin([])} />, {
+      wrapper: wrap(vi.fn(async () => detail({ status: 'PROCESSED', target: 'WALLET' }))),
+    });
+    expect(await screen.findByText('Who pays')).toBeTruthy();
+    expect(screen.queryByRole('button', BUTTON)).toBeNull();
+    cleanup();
+
+    render(<RefundDetailPage id={REFUND} {...asZonalAdmin([zone.id])} />, {
+      wrapper: wrap(vi.fn(async () => detail({ status: 'PROCESSED', target: 'WALLET' }))),
+    });
+    expect(await screen.findByRole('button', BUTTON)).toBeTruthy();
+  });
+
+  it('previews the vendor deduction; sends the reason with If-Match of the version it opened with', async () => {
+    const user = userEvent.setup();
+    const patch = vi.fn(async () => detail({ status: 'PROCESSED', fault: 'PLATFORM' }));
+    render(<RefundDetailPage id={REFUND} {...asSuperAdmin(ME)} />, {
+      wrapper: wrap(
+        vi.fn(async () =>
+          detail({ status: 'PROCESSED', target: 'WALLET', amountPaise: 99_999, version: 7 }),
+        ),
+        vi.fn(),
+        patch,
+      ),
+    });
+    await user.click(await screen.findByRole('button', BUTTON));
+    const dialog = await screen.findByRole('dialog');
+    const preview = () => within(dialog).getByText(/^Vendor deduction:/).textContent;
+    // the fixture's share is ₹12,500.00 at 100 %
+    expect(preview()).toBe('Vendor deduction: ₹12,500.00 → ₹999.99');
+    const pct = within(dialog).getByLabelText('Vendor share %');
+    await user.clear(pct);
+    await user.type(pct, '50');
+    // round(99,999 × 50 / 100) = 50,000 paise
+    expect(preview()).toBe('Vendor deduction: ₹12,500.00 → ₹500.00');
+    await user.click(within(dialog).getByRole('radio', { name: 'ZOAURO (platform)' }));
+    expect(preview()).toBe('Vendor deduction: ₹12,500.00 → ₹0.00');
+    expect(within(dialog).queryByLabelText('Vendor share %')).toBeNull();
+
+    // a reason is required
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(await within(dialog).findByText('Use 5 to 500 characters.')).toBeTruthy();
+    expect(patch).not.toHaveBeenCalled();
+
+    await user.type(within(dialog).getByLabelText('Reason'), 'Partner delay, ZOAURO bears it');
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/refunds/{id}/responsibility', {
+        params: { id: REFUND },
+        body: { fault: 'PLATFORM', vendorSharePct: 0, reason: 'Partner delay, ZOAURO bears it' },
+        ifMatch: 7,
+      }),
+    );
+    // the toast (its text is also in the live region)
+    expect((await screen.findAllByText('Responsibility updated')).length).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('a paid payout for the period is explained in the dialog', async () => {
+    const user = userEvent.setup();
+    const patch = vi.fn(async () => {
+      throw new ApiError(409, 'CONFLICT', 'Payout already paid', [
+        { field: 'id', issue: 'payout_paid' },
+      ]);
+    });
+    render(<RefundDetailPage id={REFUND} {...asSuperAdmin(ME)} />, {
+      wrapper: wrap(
+        vi.fn(async () => detail({ status: 'APPROVED', target: 'WALLET' })),
+        vi.fn(),
+        patch,
+      ),
+    });
+    await user.click(await screen.findByRole('button', BUTTON));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Reason'), 'The vendor sent the wrong dish');
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(
+      await within(dialog).findByText('The vendor’s payout for this period is already paid'),
+    ).toBeTruthy();
+    expect(patch).toHaveBeenCalledWith('/refunds/{id}/responsibility', {
+      params: { id: REFUND },
+      body: { fault: 'VENDOR', vendorSharePct: 100, reason: 'The vendor sent the wrong dish' },
+      ifMatch: 2,
+    });
   });
 });
 

@@ -12,7 +12,12 @@ export interface RefundPageProps {
   /** zones where the member may view refunds (or payments, on the payment pages) */
   myZones: ScopeZone[];
   /** add: raise a refund; export: the list's CSV export (D149, F4b: <module>:export and the zone's export switch) */
-  can: { add: boolean; export: boolean };
+  can: {
+    add: boolean;
+    export: boolean;
+    /** refunds:edit (D204, who bears a decided refund): 'ALL' for a Super Admin, else the zones that grant it */
+    editZones?: 'ALL' | readonly string[];
+  };
 }
 
 export function refundPageProps(me: MeResponse, module: 'refunds' | 'payments'): RefundPageProps {
@@ -21,7 +26,7 @@ export function refundPageProps(me: MeResponse, module: 'refunds' | 'payments'):
       role: 'SUPER_ADMIN',
       meId: me.user.id,
       myZones: [],
-      can: { add: true, export: canExportList(me, module) },
+      can: { add: true, export: canExportList(me, module), editZones: 'ALL' },
     };
   const zones = me.permissions.zones;
   return {
@@ -33,6 +38,7 @@ export function refundPageProps(me: MeResponse, module: 'refunds' | 'payments'):
     can: {
       add: zones.some((z) => z.permissions.includes('refunds:add')),
       export: canExportList(me, module),
+      editZones: zones.filter((z) => z.permissions.includes('refunds:edit')).map((z) => z.zoneId),
     },
   };
 }
