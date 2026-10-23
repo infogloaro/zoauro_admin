@@ -16,6 +16,7 @@ import { seedHotels, seedNotifications, seedSupport } from './extras';
 import { ensurePendingRefund, seedRefunds } from './refunds';
 import { seedOnboarding } from './onboarding';
 import { ensureCodLimitPartner, ensurePayoutCases, seedMoney, seedPlans } from './finance';
+import { seedAds } from './ads';
 import { createSecretBox } from '../../src/modules/auth/mfa/secret-box';
 
 // `pnpm --filter @zoauro/api demo:data` (env from .env.demo): sample data for the demo, through the RUNNING demo API
@@ -221,6 +222,20 @@ async function main(): Promise<void> {
       log,
     );
     await refreshPartnerLocations(db, log);
+    console.log(
+      '15 advertising: slots, terms, requests in every status, campaigns live, scheduled, paused, ended and cancelled',
+    );
+    await seedAds(
+      db,
+      { sa, suresh: people.clients.suresh },
+      people.zoneId,
+      {
+        primary: people.userId.primary,
+        karthik: people.userId.karthik,
+        suresh: people.userId.suresh,
+      },
+      log,
+    );
   } finally {
     await db.$disconnect();
   }

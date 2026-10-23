@@ -235,6 +235,11 @@ export async function seedPeople(
           { module: 'support', action: 'edit', effect: 'GRANT' },
           { module: 'notifications', action: 'view', effect: 'GRANT' },
           { module: 'notifications', action: 'add', effect: 'GRANT' },
+          // D201 advertising: the zone lead runs the zone's ads
+          { module: 'ads', action: 'view', effect: 'GRANT' },
+          { module: 'ads', action: 'add', effect: 'GRANT' },
+          { module: 'ads', action: 'edit', effect: 'GRANT' },
+          { module: 'ads', action: 'status', effect: 'GRANT' },
         ],
         limits: limits(50_000, 200_000),
         note: 'Zone lead for Coimbatore Central',
@@ -246,6 +251,8 @@ export async function seedPeople(
           { module: 'menu', action: 'edit', effect: 'DENY' },
           { module: 'menu', action: 'delete', effect: 'DENY' },
           { module: 'refunds', action: 'edit', effect: 'DENY' },
+          // D201: CBN ads are read only for him (the demo's read-only zone)
+          { module: 'ads', action: 'view', effect: 'GRANT' },
         ],
         limits: limits(20_000, 50_000),
         note: 'Covers Coimbatore North: no menu edits, no refunds',
@@ -266,6 +273,12 @@ export async function seedPeople(
       {
         zoneId: zoneId['TUP'],
         profileId: profileId['Zone Manager'],
+        // D201 advertising: quotes, rejects and campaign moves in Tiruppur
+        overrides: [
+          { module: 'ads', action: 'view', effect: 'GRANT' },
+          { module: 'ads', action: 'edit', effect: 'GRANT' },
+          { module: 'ads', action: 'status', effect: 'GRANT' },
+        ],
         limits: limits(30_000, 100_000),
         note: 'Zone lead for Tiruppur',
       },
