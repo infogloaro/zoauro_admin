@@ -33,6 +33,19 @@ function buildSchema(entry: EntryPoint) {
       // Reverse proxies in front of the API (Express `trust proxy`): 0 = use the socket address; 1 behind one Nginx.
       TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
       APP_URL: text.pipe(z.url()),
+      // More web origins allowed for writes and sockets besides APP_URL's (comma-separated URLs; exact origin match),
+      // e.g. the local address while APP_URL is the demo tunnel (10-22). Default: none.
+      APP_EXTRA_ORIGINS: z
+        .string()
+        .default('')
+        .transform((v) =>
+          v
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0),
+        )
+        .pipe(z.array(z.url()))
+        .transform((urls) => urls.map((u) => new URL(u).origin)),
       DATABASE_URL: postgresUrl.refine(
         (v) => !PRIVILEGED_DB_USERS.includes(dbUser(v)),
         'must connect as the application role zoauro_app, not zoauro_owner or zoauro_purge',

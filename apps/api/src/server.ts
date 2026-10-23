@@ -1,6 +1,7 @@
 import { Redis } from 'ioredis';
 import { createApp } from './app';
 import { createAudit, RedisDeniedRateLimiter } from './lib/audit';
+import { allowExtraOrigins } from './lib/auth/middleware';
 import { loadEnvOrExit } from './lib/env';
 import { auditTransaction, createPrismaClient, currentDatabaseRole } from './lib/db';
 import { assertDatabaseRole, DatabaseRoleError } from './lib/db-role-guard';
@@ -49,6 +50,8 @@ import { createSettlementsModule } from './modules/settlements';
 import { createRefundsModule } from './modules/refunds';
 
 const env = loadEnvOrExit('api');
+// writes and sockets from these web origins are allowed besides APP_URL's (e.g. local while APP_URL is the tunnel)
+allowExtraOrigins(env.APP_EXTRA_ORIGINS);
 
 const prisma = createPrismaClient(env.DATABASE_URL);
 const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 2 });

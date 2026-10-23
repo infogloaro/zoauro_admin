@@ -12,6 +12,7 @@
 |---|---|---|
 | NODE_ENV | no | |
 | APP_URL | no | Public base URL (web and API share it) |
+| APP_EXTRA_ORIGINS | no | Optional, comma-separated: more web origins allowed for writes and sockets besides APP_URL's, exact match (e.g. the local address while APP_URL is the demo tunnel, 10-22). Default none |
 | WEB_INTERNAL_API_URL | no | Web → API URL for Server Components (web only) |
 | DATABASE_URL | yes | Postgres connection (role `zoauro_app`: SELECT/INSERT on the audit tables) |
 | DATABASE_ALLOWED_ROLES | no | Comma-separated, default `zoauro_app`. Boot guard: after connecting, `select current_user` must equal the role in `DATABASE_URL` and be in this list, or the API refuses to start (the message names roles only). `zoauro_owner` and `zoauro_purge` are rejected |

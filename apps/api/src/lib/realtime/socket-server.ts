@@ -1,6 +1,7 @@
 import type { Server as HttpServer } from 'node:http';
 import type { PermissionModule } from '@zoauro/shared';
 import { Server, type Socket } from 'socket.io';
+import { isAllowedOrigin } from '../auth/middleware';
 import type { AuthContext } from '../authz';
 import { allZonesRoom, userRoom, zoneRoom, type RealtimeMessage } from './events';
 
@@ -57,9 +58,16 @@ export function attachRealtime(httpServer: HttpServer, deps: RealtimeDeps): Real
   const io = new Server(httpServer, {
     path: '/socket.io',
     serveClient: false,
-    cors: { origin: deps.appOrigin, credentials: true },
-    // cookies make a cross-site socket possible: only our own origin may open one (as originCheck for writes)
-    allowRequest: (req, cb) => cb(null, req.headers.origin === deps.appOrigin),
+    cors: {
+      origin: (origin, cb) =>
+        cb(null, origin === undefined || isAllowedOrigin(origin, deps.appOrigin)),
+      credentials: true,
+    },
+    // cookies make a cross-site socket possible: only our own origins may open one (as originCheck for writes)
+    allowRequest: (req, cb) => {
+      const origin = req.headers.origin;
+      cb(null, typeof origin === 'string' && isAllowedOrigin(origin, deps.appOrigin));
+    },
   });
 
   async function join(socket: Socket, caller: RealtimeCaller): Promise<string[]> {

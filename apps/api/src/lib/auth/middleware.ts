@@ -96,11 +96,22 @@ export function requirePreSessionCsrf(secret: string): RequestHandler {
  * T5 for requests without a session (login, forgot/reset password): a cross-site browser request carries an Origin that
  * is not ours. Requests without an Origin header (server-to-server, curl) pass; browsers always send it on cross-site POSTs.
  */
+/**
+ * Origins allowed besides each module's own appOrigin, exact match (APP_EXTRA_ORIGINS, e.g. the local address while
+ * APP_URL is the demo tunnel, 10-22). Set once at boot by server.ts; empty by default.
+ */
+let extraOrigins: ReadonlySet<string> = new Set();
+export function allowExtraOrigins(origins: readonly string[]): void {
+  extraOrigins = new Set(origins);
+}
+export const isAllowedOrigin = (origin: string, appOrigin: string): boolean =>
+  origin === appOrigin || extraOrigins.has(origin);
+
 export function originCheck(appOrigin: string): RequestHandler {
   return (req: Request, _res, next) => {
     if (STATE_CHANGING.has(req.method)) {
       const origin = req.get('origin');
-      if (origin !== undefined && origin !== appOrigin)
+      if (origin !== undefined && !isAllowedOrigin(origin, appOrigin))
         throw new AppError('FORBIDDEN', 'Origin not allowed');
     }
     next();
