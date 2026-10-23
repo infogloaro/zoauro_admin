@@ -754,10 +754,10 @@ flowchart LR
 **Do:** open a vendor payout and walk through the full details. Then:
 
 1. **Hold** it with a reason, for example "Bank details do not match the GST certificate". A yellow banner says "On hold: … by Arun, time", and paying is blocked.
-2. **Adjust amount** with a reason, for example +₹150 "Packaging reimbursement". The preview shows the new amount to pay, and the money block gains an "Adjustment" line.
+2. **Adjust amount**: an amount in ₹ (+150 adds, −150 deducts; it replaces any earlier adjustment) and a reason, for example +₹150 "Packaging reimbursement". The preview shows "Amount to pay ₹x → ₹y" and warns if the result would go below zero. The money block gains an "Adjustment (reason)" line.
 3. **Release hold** with a reason.
-4. **Make payout**: choose the method (NEFT, IMPS, RTGS, UPI or cheque), enter the bank reference (UTR or cheque number) and the date. The dialog shows the amount and "Recorded as made by: you".
-5. The **Activity** list on the payout shows each step: who, when, why, before and after.
+4. **Make payout**: **Paid by** (NEFT, IMPS, RTGS, UPI or Cheque), **Reference** (UTR or cheque no.), **Paid on** and an optional note. The dialog shows the amount and "Recorded as made by: <your name>". The button is disabled while the payout is on hold.
+5. The **Activity** card below the payout lists each step, newest first (Held payout, Adjusted, Released, Made), with who did it and the reason. The sample data also has a Coimbatore Central payout already on hold ("Bank details do not match the GST certificate") and one with a +₹150 adjustment.
 
 Each step asks for your password.
 
