@@ -20,6 +20,7 @@
 | TD-15 | Hosting starts single-host; ECS/Terraform/Multi-AZ/WAF deferred (D31) | Architecture | DevOps | After pilot |
 | TD-16 | Partner sharing across zones not supported (R-DEL-2) | Limitation | Product owner | If operations need it |
 | TD-17 | Theme toggle, Hotels tab not in v1 (D23, D33). **SMS OTP is no longer deferred: built in v1 behind a provider interface, off until a provider and DLT template exist (D67, doc 52). The real provider adapter is deferred (D68)** | Scope | Product owner | Post launch |
+| TD-18 | The Next.js 16.4.0 build (apps/web, `next` ^16.4.0) printed a warning about a known security issue in that version (demo builds of 2026-10-23). Upgrading Next.js is a stack change (D16) and needs the owner's OK, so it is a post-demo task: upgrade, rebuild, run the full test suite and the demo QA. Until then the demo tunnel link is shared only with trusted people and closed after the demo; nothing is deployed to production. | Security | Owner (approval), web lane (upgrade) | Right after the demo (2026-10-23) |
 
 ## 2. Architecture decision records
 | ADR | Date | Decision | Status |
