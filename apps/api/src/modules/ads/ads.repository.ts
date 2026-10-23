@@ -362,6 +362,25 @@ export class AdsRepository {
     });
   }
 
+  /** D182 A2: a vendor's campaigns in the zone still to be deducted (billing PENDING) that were live before `before`. */
+  async pendingCampaignsOfVendor(
+    v: { restaurantId: string } | { homemakerId: string },
+    zoneId: string,
+    before: Date,
+  ): Promise<CampaignRow[]> {
+    return this.db.adCampaign.findMany({
+      where: {
+        ...v,
+        zoneId,
+        billingStatus: 'PENDING',
+        status: { in: ['LIVE', 'PAUSED', 'ENDED', 'CANCELLED'] },
+        startAt: { lt: before },
+      },
+      include: campaignInclude,
+      orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
+    });
+  }
+
   async userNames(ids: readonly (string | null)[]): Promise<Map<string, string>> {
     const wanted = [...new Set(ids.filter((i): i is string => i !== null))];
     if (wanted.length === 0) return new Map();

@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAuthTestEnv, type AuthTestEnv, type TestUser } from '../auth/support/auth-env';
 import { uuidv7 } from '../audit/support/db';
 import { client, type Signed } from '../zones/support';
+import { createAdsModule } from '../../src/modules/ads';
+import { DEFAULT_ADS_RULES } from '@zoauro/shared';
 
 // D179, D182, D201 advertising on a real database: list and dashboard scope for SuperAdmin, Admin(A), Admin(A full +
 // B view-only) and Admin(none); objects 404 out of scope, writes 403 without the action; If-Match first; quote rules
@@ -453,5 +455,66 @@ describe('slots (D201)', () => {
       .set('If-Match', '2');
     expect(r.status).toBe(409);
     expect(r.body.error.code).toBe('INVALID_STATE_TRANSITION');
+  });
+});
+
+describe('payout ad fees (D182 A2)', () => {
+  it('a vendor payout deducts the pending campaigns of its zone, clipped to the period; hotels never', async () => {
+    const service = createAdsModule({
+      prisma: env.prisma,
+      appOrigin: 'http://localhost:3000',
+      rules: async () => DEFAULT_ADS_RULES,
+      services: { assertServiceEnabled: async () => undefined },
+      storage: { presignRead: async (k) => k },
+      clock: () => now,
+    }).service;
+    const kitchen = await restaurant(zoneA, 'Payout kitchen');
+    const flat = await campaign(zoneA, await slot(zoneA), kitchen, { fromDays: -6, toDays: 4 });
+    const comm = await campaign(
+      zoneA,
+      await slot(zoneA, { pricing: 'COMMISSION', pct: 4 }),
+      kitchen,
+      {
+        fromDays: -6,
+        toDays: 4,
+        pricing: 'COMMISSION',
+      },
+    );
+    await deliveredOrder(zoneA, kitchen, 1.5, 10_000); // inside the period
+    await deliveredOrder(zoneA, kitchen, 5, 90_000); // live, but before the period
+    await deliveredOrder(zoneB, kitchen, 1, 50_000); // another zone
+    const fees = await service.adFeesForPayout(
+      { type: 'RESTAURANT', id: kitchen },
+      zoneA,
+      { from: new Date(now.getTime() - 3 * DAY), to: new Date(now.getTime() - 1 * DAY) },
+      now,
+    );
+    expect(fees.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          campaignId: flat,
+          pricing: 'FLAT_PER_DAY',
+          days: 2,
+          earnedPaise: 200_000,
+        }),
+        expect.objectContaining({
+          campaignId: comm,
+          pricing: 'COMMISSION',
+          days: 2,
+          earnedPaise: 400,
+        }),
+      ]),
+    );
+    expect(fees.totalPaise).toBe(200_400);
+    expect(
+      (
+        await service.adFeesForPayout(
+          { type: 'HOMEMAKER', id: kitchen },
+          zoneA,
+          { from: new Date(0), to: now },
+          now,
+        )
+      ).totalPaise,
+    ).toBe(0);
   });
 });

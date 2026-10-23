@@ -505,6 +505,55 @@ export class AdsService {
     };
   }
 
+  // ---- payouts (D182 A2) ----
+
+  /**
+   * The ad fees to deduct from a vendor's payout for [period.from, period.to): flat = live days inside the period ×
+   * price; commission = delivered orders inside the live windows ∩ period × %. Hotels have no payout payee (D201).
+   */
+  async adFeesForPayout(
+    payee: { type: 'RESTAURANT' | 'HOMEMAKER'; id: string },
+    zoneId: string,
+    period: { from: Date; to: Date },
+    now: Date,
+  ): Promise<{
+    totalPaise: number;
+    rows: {
+      campaignId: string;
+      slotLabel: string;
+      pricing: 'FLAT_PER_DAY' | 'COMMISSION';
+      days: number;
+      earnedPaise: number;
+    }[];
+  }> {
+    const repo = this.deps.db.repo;
+    const vendor =
+      payee.type === 'RESTAURANT' ? { restaurantId: payee.id } : { homemakerId: payee.id };
+    const campaigns = await repo.pendingCampaignsOfVendor(vendor, zoneId, period.to);
+    const rows = [];
+    for (const c of campaigns) {
+      const windows = clip(liveWindows({ ...c, pauses: pausesOf(c.pausesJson) }, now), period);
+      if (windows.length === 0) continue;
+      const days = Math.ceil(
+        windows.reduce((t, [a, b]) => t + (b.getTime() - a.getTime()), 0) / DAY_MS,
+      );
+      let earnedPaise: number;
+      if (c.pricing === 'FLAT_PER_DAY') earnedPaise = days * (c.pricePerDayPaise ?? 0);
+      else {
+        const orders = await repo.deliveredInWindows(vendorKey(c), c.zoneId, windows);
+        earnedPaise = commissionPaise(orders.subtotalPaise, pctToBp(pct(c.commissionPct)) ?? 0);
+      }
+      rows.push({
+        campaignId: c.id,
+        slotLabel: slotLabel(c.slot),
+        pricing: c.pricing,
+        days,
+        earnedPaise,
+      });
+    }
+    return { totalPaise: rows.reduce((t, r) => t + r.earnedPaise, 0), rows };
+  }
+
   // ---- dashboard ----
 
   /** The zones come from the request scope (?zoneId is resolved by the auth context middleware). */
@@ -583,6 +632,15 @@ const verb = (to: 'PAUSED' | 'LIVE' | 'CANCELLED') =>
   to === 'PAUSED' ? 'paused' : to === 'LIVE' ? 'resumed' : 'cancelled';
 
 /** Flat: billed days × price. Commission: floor(Σ delivered subtotal in the live windows × bp / 10000). */
+/** The parts of the windows inside [period.from, period.to). */
+function clip(windows: [Date, Date][], period: { from: Date; to: Date }): [Date, Date][] {
+  return windows.flatMap(([a, b]): [Date, Date][] => {
+    const from = Math.max(a.getTime(), period.from.getTime());
+    const to = Math.min(b.getTime(), period.to.getTime());
+    return from < to ? [[new Date(from), new Date(to)]] : [];
+  });
+}
+
 async function earned(repo: AdsRepository, r: CampaignRow, pauses: Pause[], now: Date) {
   const times = { ...r, pauses };
   if (r.pricing === 'FLAT_PER_DAY') {
