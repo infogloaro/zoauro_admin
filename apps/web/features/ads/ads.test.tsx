@@ -8,7 +8,9 @@ import { ApiError, type ApiClient } from '@zoauro/api-client';
 import { ToastProvider } from '../../components/ui/toast';
 import { ApiClientProvider } from '../../lib/api-client';
 import { adsPageProps, type AdsPageProps } from './ads-page-props';
+import { AdCampaignsPage } from './AdCampaignsPage';
 import { AdRequestsPage } from './AdRequestsPage';
+import { AdSlotsPage } from './AdSlotsPage';
 import { AdsDashboardPage } from './AdsDashboardPage';
 import {
   adsErrorText,
@@ -257,6 +259,118 @@ describe('ad requests', () => {
         params: { id: request(CBE).id },
         body: { reason: 'Slot booked for Diwali' },
         ifMatch: 3,
+      }),
+    );
+  });
+});
+
+const campaign = (zone: typeof CBE, status: 'LIVE' | 'PAUSED', moneyVisible = true) => ({
+  id:
+    zone === CBE ? '0192f1d2-7777-7000-8000-000000000001' : '0192f1d2-7777-7000-8000-000000000002',
+  zone,
+  vendor: { type: 'RESTAURANT', id: '0192f1d2-4444-7000-8000-000000000002', name: 'Annapoorna' },
+  slot: {
+    id: slot(1).id,
+    label: 'Restaurants · Top listing #1',
+    page: 'RESTAURANTS',
+    placement: 'TOP_LISTING',
+  },
+  requestId: null,
+  startAt: '2026-10-12T18:30:00.000Z',
+  endAt: '2026-10-26T18:30:00.000Z',
+  status,
+  pricing: 'COMMISSION',
+  pricePerDayPaise: null,
+  commissionPct: '4.00',
+  terms: null,
+  billingStatus: 'PENDING',
+  pauses: [],
+  bookedDays: 14,
+  liveDays: 11,
+  moneyVisible,
+  billedPaise: null,
+  orders: moneyVisible ? { count: 42, subtotalPaise: 1_250_000 } : null,
+  commissionPaise: moneyVisible ? 50_000 : null,
+  earnedPaise: moneyVisible ? 50_000 : null,
+  cancelReason: null,
+  cancelledAt: null,
+  version: 5,
+});
+const campaignCounts = { SCHEDULED: 0, LIVE: 1, PAUSED: 0, ENDED: 0, CANCELLED: 0 };
+
+describe('ad campaigns', () => {
+  it('live first with billed days, orders and commission; pause sends a reason with If-Match', async () => {
+    const user = userEvent.setup();
+    const get = vi.fn(async () => ({
+      data: [campaign(CBE, 'LIVE')],
+      meta,
+      counts: campaignCounts,
+    }));
+    const post = vi.fn(async () => ({}));
+    mount(<AdCampaignsPage {...karthik} />, get, post);
+    expect(await screen.findByText('Annapoorna')).toBeTruthy();
+    expect(screen.getByText('11 of 14 billed')).toBeTruthy();
+    expect(screen.getByText('₹500.00')).toBeTruthy();
+    expect(screen.getByText('Deducted from the next payout')).toBeTruthy();
+    expect(get).toHaveBeenCalledWith('/ads/campaigns', {
+      query: { page: 1, pageSize: 25, sort: '-startAt', status: 'LIVE' },
+      signal: expect.any(AbortSignal),
+    });
+    await user.click(screen.getByRole('button', { name: 'Pause Annapoorna’s campaign' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Reason'), 'Kitchen closed for a week');
+    await user.click(within(dialog).getByRole('button', { name: 'Pause campaign' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/ads/campaigns/{id}/pause', {
+        params: { id: campaign(CBE, 'LIVE').id },
+        body: { reason: 'Kitchen closed for a week' },
+        ifMatch: 5,
+      }),
+    );
+  });
+
+  it('resume needs no reason; money hidden without payments view; a view-only zone has no actions', async () => {
+    const user = userEvent.setup();
+    const get = vi.fn(async () => ({
+      data: [campaign(CBE, 'PAUSED', false), campaign(CBN, 'PAUSED')],
+      meta: { ...meta, total: 2 },
+      counts: campaignCounts,
+    }));
+    const post = vi.fn(async () => ({}));
+    window.history.replaceState(null, '', '/zone/ads/campaigns?status=PAUSED');
+    mount(<AdCampaignsPage {...karthik} />, get, post);
+    expect((await screen.findAllByText('Annapoorna')).length).toBe(2);
+    expect(screen.getByText('Needs payments view')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Resume Annapoorna’s campaign' })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Resume Annapoorna’s campaign' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/ads/campaigns/{id}/resume', {
+        params: { id: campaign(CBE, 'PAUSED').id },
+        body: {},
+        ifMatch: 5,
+      }),
+    );
+  });
+});
+
+describe('ad slots', () => {
+  it('read-only catalogue; pause a slot with its version', async () => {
+    const user = userEvent.setup();
+    const get = vi.fn(async () => ({ data: [slot(2)], meta }));
+    const post = vi.fn(async () => ({}));
+    mount(<AdSlotsPage {...karthik} />, get, post);
+    expect(await screen.findByText('Restaurants · Top listing #2')).toBeTruthy();
+    expect(screen.getByText('3% of delivered orders')).toBeTruthy();
+    await user.click(
+      screen.getByRole('button', { name: 'Pause Restaurants · Top listing #2 in CBE' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Pause' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/ads/slots/{id}/status', {
+        params: { id: slot(2).id },
+        body: { status: 'PAUSED' },
+        ifMatch: 1,
       }),
     );
   });

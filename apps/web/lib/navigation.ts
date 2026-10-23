@@ -466,28 +466,17 @@ export const NAV_MODULES: readonly NavModule[] = [
     },
   },
   {
-    // ADS W0 (owner priority, 2026-10-22): the safe fallback until the Advertising screens go live (ADS W6)
+    // ADS (owner priority, D179, D182, D201): live since W6; the Coming Soon entry of W0 (f16e9fb) was its fallback
     id: 'NEW-ADS',
     slug: 'ads',
     label: 'Advertising',
     group: 'engagement',
     icon: 'trend',
     description:
-      'Paid placements for restaurants, Home Food and hotels per zone, page and placement, and the ranking commission (D179, D182).',
-    status: 'coming-soon',
-    blueprint: {
-      phase: 'Phase 1',
-      screens: [
-        'Dashboard: live campaigns, ad revenue and ranking commission',
-        'Requests: vendor ad requests with Quote and Reject',
-        'Campaigns: live, scheduled and paused, with Pause, Resume and Cancel',
-        'Slots: the catalogue per zone, page and placement, with price and commission',
-      ],
-      rules: [
-        'D179: specs and contracts before any screen',
-        'D182: billed per day live (a started day counts in full, paused days are not billed), deducted from the vendor payout',
-      ],
-    },
+      'Ad slots per zone and page, vendor ad requests with quotes, time-boxed campaigns, and ad revenue with ranking commission (D179, D182).',
+    status: 'live',
+    superAdminHref: '/super-admin/ads',
+    zonal: { href: '/zone/ads', permission: 'ads' },
   },
 
   // ---- Administration -----------------------------------------------------------------------------------------------

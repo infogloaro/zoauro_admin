@@ -78,6 +78,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M19-HIST',
       'M19-SEC',
       'M20-SUP',
+      'NEW-ADS',
       'NEW-HOTEL',
       'NEW-PLANS',
       'R01',
@@ -140,6 +141,19 @@ describe('menu by role', () => {
         (m) => m.id === 'NEW-PLANS',
       ),
     ).toMatchObject({ status: 'live', href: '/zone/vendor-plans' });
+  });
+
+  it('Advertising (D201): live for Super Admins; a Zonal Admin sees it only with ads:view in some zone', () => {
+    expect(menuFor('SUPER_ADMIN', []).find((m) => m.id === 'NEW-ADS')).toMatchObject({
+      status: 'live',
+      href: '/super-admin/ads',
+    });
+    expect(menuFor('ZONAL_ADMIN', [zone('A', ['orders:view'])]).map((m) => m.id)).not.toContain(
+      'NEW-ADS',
+    );
+    expect(
+      menuFor('ZONAL_ADMIN', [zone('A', ['ads:view'])]).find((m) => m.id === 'NEW-ADS'),
+    ).toMatchObject({ status: 'live', href: '/zone/ads' });
   });
 
   it('Zonal Admin: never Zones, Audit, Access, Settings, Integrations, nor Hotels without a hotels grant; modules only where viewable in some zone', () => {
