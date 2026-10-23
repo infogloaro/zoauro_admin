@@ -73,8 +73,8 @@ Status: **Built** = API and screens; **API only** = no screen yet; **Paused** = 
 | Refunds: requested, pending approval, second approval, approved, processed, rejected, failed; to source, wallet or UPI; vendor share (D146, D180, D187) | Built | no payment gateway yet |
 | Payments list and detail | Built | read only until the gateway (D6, Razorpay parked) |
 | COD settlement (cash hand-overs, cash in hand) and payouts to vendors and partners | Built | |
-| Mark a vendor payout paid with the bank reference, held back while a refund is open (F4a, D152) | Built | Super Admin, password; partner payouts, payout detail and statement in progress (D202, D203) |
-| Advertising & Commission: slots, requests and quotes, campaigns, ad revenue dashboard (D179, D182, D201) | In progress | menu shows "Soon" until the screens land (f16e9fb); API contract 28c42d3 |
+| Payouts complete: summary tiles, payout page (money block; Orders, Refunds and Ad fees tabs), Mark paid with the bank reference (vendors and delivery partners), printable statement, Export CSV; partner payout = delivery fees × partner share − COD cash held (D152, D202, D203) | Built | Super Admin pays with the password; held while a vendor refund is open; ad fees deducted (a1abc91); setting payouts.partnerShare. Hold / adjust / make payout and refund responsibility (D204) land in final-2 |
+| Advertising & Commission: ad slots, vendor ad requests with quote and reject, campaigns with pause, resume and cancel, ad revenue dashboard, Advertising rules setting (D179, D182, D201) | Built | Support & Engagement → Advertising (e501700); sample data 88b38e0; vendor app intake, slot editing and the campaign sweep after the demo |
 
 ## 10. Operations
 | Feature | Status | Notes |

@@ -124,7 +124,8 @@ Talking point: management can change prices, limits and rules any time, per zone
 2. **Member access** — Ready. Add a zone with an access profile; set refund limits; grant or deny single actions (deny wins); reveal and export switches; **Preview** shows exactly which menu and tiles the member will see.
 3. **Access profiles** — Ready. The permission matrix; Super Admin-only rows are locked.
 4. **Zone teams** (Zone Operations) and **Audit & Logs → Access History** — Ready. Who works where; every access change with before and after.
-5. **Super Admins** — Ready. Arun carries the Primary badge; each Super Admin shows the Control Panel areas granted; only a primary adds, removes or changes them (D178).
+5. **Super Admins** — Ready. Arun carries the Primary badge; each Super Admin shows the Control Panel areas granted; only a primary adds, removes or changes them (D178). Row actions for a primary: Areas, Make primary, **Reset 2-step** (ec5014c), Suspend, Remove. The last primary can't be removed. Adding a Super Admin with only Zones + Settings: Refunds was checked live on 10-23: they see only those areas, no Export, and can't manage Super Admins.
+5a. **Suspend / reactivate** a Zonal Admin asks for the password (23fda2b); a suspended admin can't sign in. **Reset 2-step verification** is on the Zonal Admin's page.
 6. **Commission** — Ready. Set on the vendor by the Super Admin; a Zonal Admin can edit it only where the Super Admin enables it (D155).
 
 ### Act 4. Vendors: onboarding and managing (10 min)
@@ -159,6 +160,15 @@ No payment gateway in the demo: refunds are processed manually or to the custome
 4. **Hold / Adjust / Release / Make payout** and **Edit refund responsibility** (D204, spec PAYOUT-HOLD): lands in the "final-2" build at 13:00; show only if its QA (13:25–14:15) is green. Steps: open a vendor payout → Hold (reason) → Adjust amount (reason, preview) → Release → Make payout (method, UTR, date, "made by you") → Activity list; Refunds → a decided refund → Edit responsibility → ZOAURO with a reason → the vendor deduction drops to ₹0.
 5. Talking point: Razorpay connects when management provides the keys; the flow and rules are already in place.
 
+### Act 8a. Advertising (10 min) — Ready (owner: mandatory, D203)
+**Support & Engagement → Advertising** (e501700; sample data 88b38e0). Super Admins always; Zonal Admins with ads view (Karthik yes, Priya no). Doc 64 Part 17 has the script.
+1. **Dashboard** — requests waiting, quotes with vendors, live / paused / scheduled campaigns, active slots, "Booked today X of Y"; money cards (flat fees, ranking commission, total, due from next vendor payouts, billed to hotels, top 5 vendors). Follows the top-bar zone.
+2. **Slots** — list price, capacity, booked now, min–max days; Pause / Activate / Retire (Retire refused while a campaign holds it: "Campaigns still hold this slot"). Tiruppur has no hotel slot (hotel booking off).
+3. **Requests** — Haribhavanam: Quote on Top listing #1 → "This slot is full on …"; then Top listing #2 at 3% → "Quote sent". Sree Krishna Sweets → "Banners need an uploaded image". Lakshmi's Home Kitchen → Reject with a reason.
+4. **Campaigns** — "X of Y billed", Earned, "Deducted from the next payout"; Pause Tiruppur Kongu Kitchen (reason), then Resume.
+5. **Platform Settings → Advertising rules** — "A quote stays valid (hours)" 72 → 48 (password).
+6. Karthik: only CBE and CBN, CBN read only, commission % locked. Meena runs Advertising but has no Advertising settings. Read rupee totals from the seed log; don't hard-code them.
+
 ### Act 9. Packages (4 min)
 1. **Service Management → Vendor Plans** — Ready. The Super Admin plan catalogue: create a plan as a draft, edit features and prices, activate or retire it; put an active vendor on a plan or cancel a vendor's plan. A Zonal Admin with plans view sees the active plans and their zones' vendors, read only.
 2. Customer weekly and monthly meal plans — Design (doc 60 §10.5).
@@ -178,7 +188,7 @@ Sign out; sign in as the **Zonal Admin** on the Zonal Admin tab.
 Sign in as the **Admin** (Super Admin with granted areas) — Ready (dashboard fixed in 796e13a). All-zone operations, but the menu shows only her granted areas, and the Super Admins list is view-only. Her Control Panel is filtered to her granted areas by a fix landing before the 14:00 freeze; until it is confirmed on the final build, don't pick a zone in Platform settings while signed in as Meena.
 
 ### Act 13. Audit trail (2 min)
-**Audit & Logs → Audit & Logs** — Ready (the Audit & Logs group, 86bf37f, also holds Recent Activities, Access History and Settings History; hidden for Zonal Admins and for Meena without those areas). Every action from this demo is listed: who, what, which zone, before and after, denied attempts.
+**Audit & Logs → Audit & Logs** — Ready. Tabs **Activity** (each row: View details with before/after) and **Sign-ins**. (The Audit & Logs group, 86bf37f, also holds Recent Activities, Access History and Settings History; hidden for Zonal Admins and for Meena without those areas). Every action from this demo is listed: who, what, which zone, before and after, denied attempts.
 
 ### Act 14. What comes next (3 min) — Design
 The "Soon" entries in the menu open each module's plan page (owner's choice: show the roadmap, not hide it). From the workflow map and doc 60: app integration (customer, vendor, partner apps), Razorpay payments, advertising and commission, customer meal plans, offers, maps and automatic partner assignment, multi-restaurant checkout.
@@ -260,3 +270,48 @@ Page timings tonight are **not valid**: the laptop had 0.27–0.95 GB of memory 
   - the primary Super Admin's 55 pages show no errors;
   - list headers are tinted and hovered rows coloured, as the owner asked.
 - **Sample data:** reset after these live actions, before the owner's evening look.
+
+### Final QA: 2026-10-23, 11:34 to 12:30, final demo build `548a09f`
+
+Run on 127.0.0.1 (the guests' tunnel link was not loaded). Timings are valid this time: the build sessions paused their heavy jobs between QA steps.
+
+| Account | Pages | Errors | Typical page | Slowest page |
+|---|---|---|---|---|
+| Arun | 57 | 0 visible (one hidden `/claims/mine` 500 on Refunds, not repeated) | 0.37 s | 0.66 s |
+| Meena | 47 | 0 | 0.38 s | 0.66 s |
+| Karthik | 33 | 0 | 0.35 s | 0.73 s |
+| Priya | 15 | 0 | 0.28 s | 0.50 s |
+| Suresh | 28 | 0 | 0.41 s | 0.70 s |
+
+Every page is within the 2 s budget. Only a few calls take over 800 ms, at sign-in (up to 933 ms). No layout overlaps at 1440 or 1280 pixels.
+
+- **Advertising (Act 8a):** pass.
+  - Dashboard tiles and money cards (total ad revenue ₹27,764.05 on this data); follows the zone.
+  - Tiruppur has no hotel slot; a held slot can't be retired.
+  - A full slot is refused with its dates; the quote on a free slot is sent.
+  - A banner without an image is refused; reject works.
+  - Billing lines; pause and resume.
+  - Advertising rules saved with the password.
+  - Karthik CBE/CBN only; Priya no menu entry; Meena no Advertising settings.
+- **Payouts (Act 8):** pass.
+  - Tiles, Export CSV and Print statement.
+  - Partner payout: 5 deliveries × ₹40, minus ₹87.25 cash held = ₹112.75; Mark paid with the password.
+- **Access (Act 3, Act 11, owner's live check):** pass.
+  - Create a Zonal Admin, access with overrides and limits, preview.
+  - First sign-in: email code, backup codes, password change.
+  - Zone isolation; no refund button where refunds are denied.
+  - Access request approved, with the access history.
+  - Suspend with the password, and the suspended admin can't sign in; reactivate.
+  - Create a Super Admin with two areas: restricted Control Panel, 403 on Zonal Admins and Access profiles, no Export, can't manage Super Admins; make primary.
+  - Zonal 2-step reset; Meena sees no Reset 2-step.
+  - Audit & Logs list the new members; every email reached Mailpit.
+- **Also pass:**
+  - dashboards follow the zone (150 / 90 / 41 / 19);
+  - table headers stay light in dark mode;
+  - Cancel hidden out for delivery;
+  - zone isolation 12 of 12;
+  - releasing a review claim.
+- **Notes:**
+  - All Coimbatore North menu items are seeded "Out of stock" (sent to the seed lane for final-2). Show menus from Coimbatore Central.
+  - A Super Admin without the access area who opens the Zonal Admins page by its address sees an empty page with an error (the server refuses; parked until after the demo).
+- **Final-2 (13:00):** payout hold / adjust / make payout and refund responsibility (D204); checked 13:25–14:15. If not green, this build is the demo.

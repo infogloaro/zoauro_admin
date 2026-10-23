@@ -76,6 +76,16 @@ For the owner. Updated with every demo build. Newest first.
 - payout **Hold / Release / Adjust** with reasons, and **Make payout** (method, reference, "made by") with an Activity list (Part 16);
 - **Edit responsibility** on a decided refund, so ZOAURO can take the cost (Part 15).
 
+**Final build `548a09f` (2026-10-23, 11:30), fresh sample data, final QA passed (doc 61 §5):**
+
+- **New:**
+  - Advertising is live (Part 17);
+  - the payout page, tiles, export, statement and partner payouts (Part 16);
+  - Reset 2-step for Super Admins;
+  - suspend asks for the password;
+  - every list has Export CSV.
+- **Tip:** all Coimbatore North menu items are "Out of stock" in this data; show menus from Coimbatore Central.
+
 **Morning build `3f9dc30` (2026-10-23, about 09:40), fresh sample data:**
 
 - **Changed:** a new **Audit & Logs** menu group holds Audit & Logs, Recent Activities, Access History and Settings History. Search is in the top bar only ("See all results for …").
@@ -240,7 +250,7 @@ flowchart LR
 - charts: Orders over time, Orders by status, top restaurants and more.
 
 **Say:**
-> "This is the morning view. Without opening anything, I can see how many orders came in, how many were delivered or cancelled, which zones have no team, and what is waiting for my decision. Every tile is a link to the list behind it."
+> "This is the morning view. Without opening anything, I can see how many orders came in, how many were delivered or cancelled, which zones have no team, and what is waiting for my decision. Every tile is a link to the list behind it. It updates by itself: new orders, approvals and status changes arrive live, without reloading."
 
 **Do:** in the top bar, change the zone picker from **All zones** to **Coimbatore Central**.
 
@@ -372,6 +382,17 @@ flowchart LR
 **Say:**
 > "Arun is the Primary Super Admin, the owner's account. Meena is also a Super Admin, but she has only some Control Panel areas. Only the primary can add Super Admins or change what they control."
 
+**Do (live, optional): add a Zonal Admin.**
+
+1. Click **Add Zonal Admin** and fill in Full name, Email, Mobile and a Temporary password (or "Generate a strong password"). Click **Create account**. The access page opens.
+2. Click **Add zone**, choose a zone and an Access profile, and click **Add zone**.
+3. Set the refund limits and the reveal and export switches, and use **Overrides** to grant or deny single actions.
+4. Click **Save** and enter your password. Then click **Preview access in …**.
+
+The new admin signs in on the Zonal Admin tab: 2-step by email code, then backup codes, then a new password. To stop someone at once, use **Suspend** in the row's actions menu. It asks for your password, and a suspended admin can't sign in. A lost phone is handled with **Reset 2-step verification** on the admin's page.
+
+**Do (live, optional): add a Super Admin.** **Administration → Super Admins → Add Super Admin**. Tick only the Control Panel areas they need, for example Zones and Settings: Refunds, give a reason, and confirm with your password and authenticator code. They see only those areas, can't export without the Exports area, and can't manage Super Admins.
+
 **Point at** the Actions column on Meena's row: **Areas**, **Make primary**, **Reset 2-step**, **Suspend** and **Remove**. Only a primary sees these, never on their own row. Each asks for the password and an authenticator code. There must always be at least one primary: the last primary can't be removed.
 
 **Do:** **Administration → Zonal Admins**. Open **Karthik Raj**, then click through to his access page.
@@ -454,7 +475,7 @@ flowchart LR
 **Do:** on a Submitted row, click **Start review**.
 
 **Say:**
-> "When I start a review, the record is mine. If another admin opens it, they see that I am working on it, and they can ask me to hand it over. Two people never decide the same vendor at the same time."
+> "When I start a review, the record is mine. If another admin opens it, they see that I am working on it, and they can ask me to hand it over. Two people never decide the same vendor at the same time. When I'm done, or need to leave it, I click **Release** on the banner and others can pick it up."
 
 **Do:** open a submitted restaurant, for example **Kovai Biryani House** or **Arya Bhavan**. Go through the documents: FSSAI, GST, PAN, bank details. Open one, then accept it, or reject it with a note.
 
@@ -676,7 +697,9 @@ flowchart LR
 **Do:** on the customer, show **Reward points**: balance and history.
 
 **Say:**
-> "Customers earn points on orders. The earn rate, the value of a point, the expiry and the limits are Control Panel settings for each zone. In Coimbatore Central, for example, customers earn 5% of the order value, a point is worth ₹1, and points expire after a year. An admin can add or deduct points, always with a reason."
+> "Customers earn points on orders. The earn rate, the value of a point, the expiry and the limits are Control Panel settings for each zone. In Coimbatore Central, for example, customers earn 5% of the order value, a point is worth ₹1, and points expire after a year. An admin can add or deduct points, always with a reason, and a customer can convert points to wallet money where the zone allows it."
+
+**Also there:** **Add customer** on the list (for phone orders), and **Export CSV** on the list.
 
 ---
 
@@ -708,7 +731,12 @@ flowchart LR
 
 - **Limits:** each Zonal Admin has a per-refund and a per-day limit in each zone. The zone also has caps that no admin can go above.
 - **Vendor-fault refunds:** these are taken from the vendor's next payout, in the cycle in which the refund was decided.
-- **Edit responsibility** (lands in the "final-2" build): on a decided refund, a Super Admin can change who pays: the vendor (with a share %), ZOAURO, or the customer. A reason and the password are required. The dialog shows "Vendor deduction: ₹x → ₹y", and the vendor's payout follows at once. It is refused once that vendor's payout for the period is paid. Say: "If the mistake was ours, ZOAURO takes the cost, and the vendor isn't charged."
+- **Edit responsibility** (lands in the "final-2" build, web c42a20b):
+  1. Open an approved or processed refund.
+  2. In the **Actions** card, click **Edit responsibility**.
+  3. Choose **ZOAURO**, or **Vendor** with a share %, or **Customer**; type a reason; click **Save**; enter your password.
+
+  "Who pays" becomes ZOAURO, the vendor deduction drops to ₹0, and the vendor's payout shows the change. Once that payout is paid, the panel refuses with "The vendor's payout for this period is already paid". Super Admins only. Say: "If the mistake was ours, ZOAURO takes the cost, and the vendor isn't charged."
 
 **Payments**
 
@@ -719,7 +747,7 @@ flowchart LR
 
 **Exports**
 
-- Payments, Refunds and Payouts can be exported to a spreadsheet file. The export runs in the background, and the file appears when it is ready.
+- Every list (orders, restaurants, Home Food, menu items, customers, delivery partners, hotels, support, notifications, payments, refunds, payouts) has **Export CSV**. The export runs in the background, the file appears when it is ready, and it holds only the zones and fields the admin may see. A Super Admin without the Exports area, or a Zonal Admin without export in that zone, doesn't see the button.
 
 ---
 
@@ -814,6 +842,7 @@ flowchart LR
 **How it works**
 
 - **Vendor amount to pay:** net (gross minus commission), minus vendor-fault refunds decided in the period, minus ad fees billed in the period.
+- **Partner share setting:** Control Panel → Payouts → "Delivery partner share of delivery fees (%)", 100% by default, per zone.
 - **Partner amount to pay:** delivery fees on delivered orders × the partner share, minus the cash-on-delivery money the partner still holds at the end of the period. It is never below zero.
 - **Who can pay:** Mark paid is for Super Admins with the payouts area. A Zonal Admin with payouts view sees their zones' payouts read only. Meena does not see Mark paid.
 - **Safe to click twice:** each payment is recorded once, even if someone double-clicks or retries. If two admins open the same payout, the second is told it changed and must reload.
@@ -1038,6 +1067,8 @@ sequenceDiagram
 > - even the attempts that were refused.
 >
 > For each: who, what, which zone, before and after. Nothing changes in this panel without a trace."
+
+**Do:** open the **Sign-ins** tab: every sign-in and failed attempt, with the device. Click a row's **View details** for the before-and-after table.
 
 ---
 
