@@ -343,6 +343,18 @@ export async function createMatrixFixtures(env: AuthTestEnv): Promise<MatrixFixt
     );
   }
 
+  // D182 offers: one ZONE offer per zone A, B, C (the zone A one has the placeholder id), so GET /offers shows which
+  // zones an actor reached. FULL does not grant offers, so Zonal Admins see none (scope per actor: tests/offers/)
+  for (const [i, z] of (['A', 'B', 'C'] as const).entries()) {
+    const id = i === 0 ? PLACEHOLDER_ID : `0192f1d2-0000-7000-8000-00000000e1${i}0`;
+    await env.db.owner.query(
+      `INSERT INTO offers (id, scope, zone_ids, title, type, value, funded_by, valid_from, valid_to, source, updated_at)
+       VALUES ($1, 'ZONE', ARRAY[$2]::uuid[], 'Matrix offer', 'PERCENT', 10, 'PLATFORM', now(),
+         now() + interval '7 days', 'ADMIN', now())`,
+      [id, zones[z]],
+    );
+  }
+
   const byId = new Map(Object.entries(zones).map(([label, id]) => [id, label as ZoneLabel]));
   return {
     zones,

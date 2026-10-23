@@ -30,6 +30,7 @@ export const EXPORT_MODULES = [
   'hotels',
   'bookings',
   'dining',
+  'offers',
   'audit',
 ] as const;
 export type ExportModule = (typeof EXPORT_MODULES)[number];
@@ -54,6 +55,7 @@ export const EXPORT_LIST_PATHS = {
   hotels: '/hotels',
   bookings: '/hotels/bookings',
   dining: '/hotels/dining',
+  offers: '/offers', // D182 F1
   audit: null,
 } as const satisfies Record<ExportModule, string | null>;
 

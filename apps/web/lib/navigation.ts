@@ -101,8 +101,11 @@ export interface NavModule {
   /** Zonal Admin entry (doc 18 section 3); absent = never shown to a Zonal Admin */
   zonal?: {
     href?: string;
-    /** shown only when the member may view this module in at least one zone; absent = always shown */
-    permission?: PermissionModule;
+    /**
+     * shown only when the member may view this module in at least one zone (a list: any one of them, for a page that
+     * gathers several modules); absent = always shown
+     */
+    permission?: PermissionModule | readonly PermissionModule[];
   };
   /**
    * D178: the Control Panel area a non-primary Super Admin needs to see this entry ('settings' = any settings group).
@@ -150,7 +153,11 @@ export const NAV_MODULES: readonly NavModule[] = [
       'One queue for restaurant, shop, Home Food and hotel applications: start a review, ask for more information, decide (D170).',
     status: 'live',
     superAdminHref: '/super-admin/vendor-onboarding',
-    zonal: { href: '/zone/vendor-onboarding', permission: 'restaurants' },
+    // the queue holds restaurants, Home Food and hotels: any one of them viewable opens it
+    zonal: {
+      href: '/zone/vendor-onboarding',
+      permission: ['restaurants', 'homemakers', 'hotels'],
+    },
   },
   {
     id: 'R09',
@@ -225,7 +232,20 @@ export const NAV_MODULES: readonly NavModule[] = [
       'Hotels, room bookings and table bookings (D91, D118, D127): verification, status, stays and tables.',
     status: 'live',
     superAdminHref: '/super-admin/hotels',
-    zonal: { href: '/zone/hotels', permission: 'hotels' },
+    // hotels, room bookings and table bookings are tabs of one page: any one of them viewable opens it
+    zonal: { href: '/zone/hotels', permission: ['hotels', 'bookings', 'dining'] },
+  },
+  {
+    id: 'NEW-PLANS',
+    slug: 'vendor-plans',
+    label: 'Vendor Plans',
+    group: 'services',
+    icon: 'gift',
+    description:
+      'The plans ZOAURO sells to restaurants, Home Food and hotels (price, cycle, trial, features, zones) and the vendors on each (D188).',
+    status: 'live',
+    superAdminHref: '/super-admin/vendor-plans',
+    zonal: { href: '/zone/vendor-plans', permission: 'plans' },
   },
   {
     id: 'M08',
@@ -333,7 +353,8 @@ export const NAV_MODULES: readonly NavModule[] = [
     label: 'COD Cash Settlement',
     group: 'delivery',
     icon: 'banknote',
-    description: 'Delivery partners’ cash in hand against cash handed in, with variances.',
+    description:
+      'Delivery partners’ cash in hand against cash handed in, with variances (read only until the settlement form, D173).',
     status: 'live',
     superAdminHref: '/super-admin/cod-settlement',
     zonal: { href: '/zone/cod-settlement', permission: 'settlements' },
@@ -371,12 +392,10 @@ export const NAV_MODULES: readonly NavModule[] = [
     group: 'finance',
     icon: 'wallet',
     description:
-      'Weekly vendor and delivery partner payouts, mark as paid, daily reconciliation and mismatch report.',
-    status: 'coming-soon',
-    blueprint: {
-      phase: 'Phase 1',
-      screens: ['Payout runs', 'Daily reconciliation and mismatch report'],
-    },
+      'Vendor and delivery partner payouts per cycle with commission and vendor-fault refunds (read only until the payout job, D152).',
+    status: 'live',
+    superAdminHref: '/super-admin/payouts',
+    zonal: { href: '/zone/payouts', permission: 'payouts' },
   },
 
   // ---- Support & Engagement ----------------------------------------------------------------------------------------
@@ -435,26 +454,16 @@ export const NAV_MODULES: readonly NavModule[] = [
   },
   {
     id: 'M20-OFF',
-    slug: 'offers-loyalty',
-    label: 'Offers & Loyalty',
+    slug: 'offers',
+    label: 'Offers & Coupons',
     group: 'engagement',
     icon: 'gift',
-    description: 'Coupons, loyalty points and rewards (Phase 2 roadmap only).',
-    status: 'coming-soon',
-    blueprint: {
-      phase: 'Phase 2',
-      roadmap: ['R22', 'R23'],
-      screens: [
-        'Loyalty profile in customer detail',
-        'Coupon builder',
-        'Earning and redemption rules',
-        'Campaign analytics',
-      ],
-      rules: [
-        'A points ledger, never an editable balance',
-        'Nothing of Phase 2 is shown as working functionality in Phase 1',
-      ],
-    },
+    description:
+      'Discounts for every zone, a zone or one vendor, with or without a code; Zonal Admins’ offers need a Super Admin’s approval (D182). Reward points live on each customer’s page.',
+    status: 'live',
+    superAdminHref: '/super-admin/offers',
+    // D182 F1: grantable to Zonal Admins (view, add, edit, status, export)
+    zonal: { href: '/zone/offers', permission: 'offers' },
   },
 
   // ---- Administration -----------------------------------------------------------------------------------------------
@@ -680,7 +689,8 @@ export function visibleModules(
     if (!m.zonal) return false;
     const needed = m.zonal.permission;
     if (!needed) return true;
-    return zones.some((z) => z.permissions.includes(`${needed}:view`));
+    const any: readonly PermissionModule[] = typeof needed === 'string' ? [needed] : needed;
+    return zones.some((z) => any.some((p) => z.permissions.includes(`${p}:view`)));
   });
 }
 

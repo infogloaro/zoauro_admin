@@ -53,7 +53,10 @@ export function readContractSchema(
   for (const l of block) {
     const ind = indentOf(l);
     const t = l.trim();
-    if (ind === 6) {
+    if (ind === 6 && section === 'required' && t.startsWith('- ')) {
+      // the contract writes required lists at the same indent as `required:`
+      required.push(t.slice(2).trim());
+    } else if (ind === 6) {
       inEnum = false;
       current = null;
       if (t === 'type: object') continue;

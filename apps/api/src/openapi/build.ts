@@ -59,6 +59,8 @@ const ERROR_DESCRIPTION: Record<ErrorCode, string> = {
   IDEMPOTENCY_IN_PROGRESS: 'The first request with this Idempotency-Key is still running',
   DUPLICATE_ORDER: 'This order id was already sent (error.meta.orderId)',
   OFFER_EXPIRED: 'The auto-assign offer is no longer open (D154)',
+  OFFER_INVALID:
+    'The promotion cannot be applied to this order (error.meta.reason, doc 10 section 8)',
   NOT_SERVICEABLE: 'The address is outside the vendor zone, or the zone is not active',
   VENDOR_UNAVAILABLE: 'The vendor is inactive, suspended or closed',
   PRICE_MISMATCH: 'A price or total differs from the menu (error.details lists the items)',

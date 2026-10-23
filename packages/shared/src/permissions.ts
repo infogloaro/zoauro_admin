@@ -54,7 +54,7 @@ const NONE: readonly PermissionAction[] = [];
 /**
  * What Super Admin may give a Zonal Admin, per module (doc 04 section 3, column "Grantable to Zonal Admin").
  * Anything not listed here is never grantable: zones, admins/access, settings, commission, integrations (D57),
- * offers/analytics/reviews (D15; support became grantable with D93, notifications with D94) and audit (entity Activity is derived from the entity module).
+ * analytics/reviews (D15; support became grantable with D93, notifications with D94, offers with D182 F1) and audit (entity Activity is derived from the entity module).
  * Super Admin is not limited by this table; it only limits what can reach a Zonal Admin.
  */
 export const GRANTABLE_ACTIONS: Readonly<Record<PermissionModule, readonly PermissionAction[]>> = {
@@ -73,7 +73,9 @@ export const GRANTABLE_ACTIONS: Readonly<Record<PermissionModule, readonly Permi
   zones: NONE,
   admins: NONE,
   access: NONE,
-  offers: NONE,
+  // D182 F1 (owner, 2026-10-20; reverses D15 for offers): view, add, edit, status, export; never delete. A Zonal
+  // Admin's own offers still need a Super Admin's approval (enforced by the offers module)
+  offers: ['view', 'add', 'edit', 'status', 'export'],
   // D94 (owner, 2026-10-14): any action the Super Admin gives in the profile, own zones only; promotions still need
   // Super Admin approval (enforced by the notifications module)
   notifications: ALL_ACTIONS,

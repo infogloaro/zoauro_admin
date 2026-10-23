@@ -1,4 +1,5 @@
 import {
+  CANCELLATION_STAGES,
   ONBOARDING_DOCUMENT_TYPES,
   REFUND_COST_BEARERS,
   REFUND_TARGETS,
@@ -27,11 +28,11 @@ export type FieldKind =
   | 'checks'
   | 'rows';
 
-/** A column of a "rows" field. A code column is upper case (A–Z, 0–9, _). */
+/** A column of a "rows" field. A code column is upper case (A–Z, 0–9, _); a checks column picks any of its options. */
 export interface ColumnSpec {
   key: string;
   label: string;
-  kind: 'text' | 'code' | 'select' | 'bool';
+  kind: 'text' | 'code' | 'select' | 'bool' | 'checks';
   options?: readonly string[];
 }
 
@@ -76,6 +77,15 @@ export const OPTION_LABEL: Record<string, string> = {
   SOURCE: 'Original payment method',
   WALLET: 'ZOAURO wallet',
   UPI: 'UPI',
+  ADMIN: 'Admins',
+  SYSTEM: 'System',
+  // order stages (who may cancel until when, D156)
+  ACCEPTED: 'Accepted',
+  PREPARING: 'Preparing',
+  READY: 'Ready',
+  ASSIGNED: 'Partner assigned',
+  OUT_FOR_DELIVERY: 'Out for delivery',
+  DELIVERED: 'Delivered',
 };
 
 const REASON_COLUMNS: readonly ColumnSpec[] = [
@@ -204,6 +214,29 @@ export const KEY_SPECS: Record<string, KeySpec> = {
       },
     ],
   },
+  // D190 (2017b87): the reasons an order may be cancelled with, who may use each, and whether it needs a note
+  'orders.cancelReasons': {
+    fields: [
+      {
+        path: 'reasons',
+        label: 'Cancel reasons',
+        kind: 'rows',
+        columns: [
+          { key: 'code', label: 'Code', kind: 'code' },
+          { key: 'label', label: 'Reason', kind: 'text' },
+          {
+            key: 'usableBy',
+            label: 'Who may use it',
+            kind: 'checks',
+            options: ['ADMIN', 'VENDOR', 'CUSTOMER', 'SYSTEM'],
+          },
+          { key: 'noteRequired', label: 'Note required', kind: 'bool' },
+        ],
+        newRow: { code: '', label: '', usableBy: ['ADMIN'], noteRequired: false },
+        hint: 'Admins pick from the reasons they may use when they cancel an order',
+      },
+    ],
+  },
   'delivery.maxConcurrentOrders': {
     fields: [
       {
@@ -211,6 +244,35 @@ export const KEY_SPECS: Record<string, KeySpec> = {
         label: 'Orders a partner can carry at once',
         kind: 'int',
         hint: '1 = one order at a time; up to 5',
+      },
+    ],
+  },
+  // D173 (50bf799): at or above this much cash in hand a partner takes no new cash-on-delivery orders until settled
+  'offers.rules': {
+    fields: [
+      { path: 'maxPercent', label: 'Most percent off', kind: 'int', hint: 'For percent offers' },
+      { path: 'maxFlatPaise', label: 'Most amount off', kind: 'money', hint: 'For amount offers' },
+      { path: 'maxValidityDays', label: 'Longest an offer may run (days)', kind: 'int' },
+      { path: 'maxUsesPerCustomer', label: 'Most uses one customer may get', kind: 'int' },
+      {
+        path: 'returnOnCancel',
+        label: 'Give a use back when the order is cancelled before delivery',
+        kind: 'bool',
+      },
+      {
+        path: 'approvalAgeWarningHours',
+        label: 'Flag an approval waiting longer than (hours)',
+        kind: 'int',
+      },
+    ],
+  },
+  'delivery.codLimitPaise': {
+    fields: [
+      {
+        path: 'limitPaise',
+        label: 'Cash a partner may hold',
+        kind: 'money',
+        hint: 'At or above it: no new cash-on-delivery orders until the cash is handed in',
       },
     ],
   },
@@ -227,12 +289,138 @@ export const KEY_SPECS: Record<string, KeySpec> = {
       { path: 'earnRatePercent', label: 'Earn rate (% of order value)', kind: 'number' },
       { path: 'pointsExpiryDays', label: 'Points expire after (days)', kind: 'int' },
       { path: 'pointValuePaise', label: 'Value of one point', kind: 'money' },
+      { path: 'minRedeemPoints', label: 'Fewest points a customer can redeem', kind: 'int' },
+      {
+        path: 'maxRedeemPercentPerOrder',
+        label: 'Most of an order paid with points (%)',
+        kind: 'int',
+      },
+      {
+        path: 'monthlyEarnCapPoints',
+        label: 'Most points earned in a month',
+        kind: 'int',
+        nullable: true,
+        hint: 'Leave empty for no monthly cap',
+      },
+      {
+        path: 'walletConversionEnabled',
+        label: 'Customers may convert points to wallet money',
+        kind: 'bool',
+      },
+    ],
+  },
+  'orders.unpaidTimeoutMinutes': {
+    fields: [
+      { path: 'ONLINE', label: 'Online payment: cancel when unpaid after', kind: 'minutes' },
+      { path: 'WALLET', label: 'Wallet payment: cancel when unpaid after', kind: 'minutes' },
+    ],
+  },
+  'orders.cancellationRules': {
+    fields: [
+      {
+        path: 'CUSTOMER.allowedBefore',
+        label: 'A customer may cancel until before',
+        kind: 'select',
+        options: CANCELLATION_STAGES,
+      },
+      { path: 'CUSTOMER.reasonRequired', label: 'A customer must give a reason', kind: 'bool' },
+      {
+        path: 'VENDOR.allowedBefore',
+        label: 'A vendor may cancel until before',
+        kind: 'select',
+        options: CANCELLATION_STAGES,
+      },
+      { path: 'VENDOR.reasonRequired', label: 'A vendor must give a reason', kind: 'bool' },
+      {
+        path: 'ADMIN.allowedBefore',
+        label: 'An admin may cancel until before',
+        kind: 'select',
+        options: CANCELLATION_STAGES,
+      },
+      { path: 'ADMIN.reasonRequired', label: 'An admin must give a reason', kind: 'bool' },
+    ],
+  },
+  'orders.preorder': {
+    fields: [
+      { path: 'minLeadMinutes', label: 'Placed at least this long ahead', kind: 'minutes' },
+      { path: 'maxAheadDays', label: 'Placed at most this many days ahead', kind: 'int' },
+      { path: 'travelBufferMinutes', label: 'Travel buffer', kind: 'minutes' },
+      {
+        path: 'prepMinutes',
+        label: 'Preparation time when the vendor has no average',
+        kind: 'minutes',
+      },
+      {
+        path: 'cancelCutoffMinutes',
+        label: 'Cancel up to this long before dispatch',
+        kind: 'minutes',
+      },
+      {
+        path: 'rescheduleCutoffMinutes',
+        label: 'Reschedule up to this long before dispatch',
+        kind: 'minutes',
+      },
+      { path: 'maxReschedules', label: 'Most reschedules per pre-order', kind: 'int' },
+    ],
+  },
+  'delivery.autoAssign': {
+    fields: [
+      { path: 'enabled', label: 'Assign partners automatically', kind: 'bool' },
+      { path: 'radiusKm', label: 'Search radius (km)', kind: 'number' },
+      { path: 'offerTimeoutSeconds', label: 'Seconds a partner has to accept', kind: 'int' },
+    ],
+  },
+  'payouts.cycleDays': {
+    fields: [{ path: 'days', label: 'Payout cycle (days)', kind: 'int', hint: '1 to 31 days' }],
+  },
+  'zones.deliveryChargeCapPaise': {
+    fields: [{ path: 'capPaise', label: 'Most a zone may charge for delivery', kind: 'money' }],
+  },
+  'access.commissionEditGrantable': {
+    fields: [
+      {
+        path: 'enabled',
+        label: 'Commission editing may be granted to Zonal Admins',
+        kind: 'bool',
+        hint: 'Per member and zone, in the member access editor (D155)',
+      },
+    ],
+  },
+  'orders.sla': {
+    fields: [
+      { path: 'acceptMinutes', label: 'Accept', kind: 'minutes' },
+      { path: 'prepareMinutes', label: 'Prepare', kind: 'minutes' },
+      { path: 'readyToAssignMinutes', label: 'Ready to partner assigned', kind: 'minutes' },
+      { path: 'assignedToPickupMinutes', label: 'Assigned to picked up', kind: 'minutes' },
+      { path: 'outForDeliveryMinutes', label: 'Out for delivery to delivered', kind: 'minutes' },
+    ],
+  },
+  'onboarding.ageWarnings': {
+    fields: [
+      { path: 'warnHours', label: 'Amber after (hours without a decision)', kind: 'int' },
+      { path: 'lateHours', label: 'Red after (hours without a decision)', kind: 'int' },
+    ],
+  },
+  'claims.timing': {
+    fields: [
+      { path: 'ttlMinutes', label: 'A claim lasts without activity (minutes)', kind: 'int' },
+      {
+        path: 'takeoverTimeoutMinutes',
+        label: 'A takeover request waits for the claimer (minutes)',
+        kind: 'int',
+      },
+    ],
+  },
+  'sessions.remember': {
+    fields: [
+      { path: 'rememberDays', label: '"Remember me" lasts (days)', kind: 'int' },
+      { path: 'rememberIdleHours', label: 'Signed out after idle (hours)', kind: 'int' },
     ],
   },
 };
 
-/** One row of a "rows" field: text cells and switches. */
-export type DraftRow = Record<string, string | boolean>;
+/** One row of a "rows" field: text cells, switches and picked options. */
+export type DraftRow = Record<string, string | boolean | string[]>;
 /** The form state: text for numbers and strings, booleans, picked options, table rows; null = "not configured". */
 export type DraftValue = string | boolean | string[] | DraftRow[] | null;
 export interface Draft {
@@ -289,7 +477,12 @@ export function toDraft(key: string, value: unknown): Draft {
               const r = record(row);
               const out: DraftRow = {};
               for (const c of f.columns ?? [])
-                out[c.key] = c.kind === 'bool' ? r[c.key] === true : String(r[c.key] ?? '');
+                out[c.key] =
+                  c.kind === 'bool'
+                    ? r[c.key] === true
+                    : c.kind === 'checks'
+                      ? (Array.isArray(r[c.key]) ? (r[c.key] as unknown[]) : []).map(String)
+                      : String(r[c.key] ?? '');
               return out;
             })
           : f.nullable
@@ -319,7 +512,7 @@ export function fromDraft(key: string, draft: Draft): unknown {
       case 'minutes':
       case 'int':
       case 'number':
-        setPath(out, f.path, num(v));
+        setPath(out, f.path, f.nullable && (v === null || String(v).trim() === '') ? null : num(v));
         break;
       case 'bool':
         setPath(out, f.path, v === true);
@@ -356,11 +549,13 @@ export function fromDraft(key: string, draft: Draft): unknown {
                   r[c.key] =
                     c.kind === 'bool'
                       ? cell === true
-                      : c.kind === 'code'
-                        ? String(cell ?? '')
-                            .trim()
-                            .toUpperCase()
-                        : String(cell ?? '').trim();
+                      : c.kind === 'checks'
+                        ? (c.options ?? []).filter((o) => Array.isArray(cell) && cell.includes(o))
+                        : c.kind === 'code'
+                          ? String(cell ?? '')
+                              .trim()
+                              .toUpperCase()
+                          : String(cell ?? '').trim();
                 }
                 return r;
               })

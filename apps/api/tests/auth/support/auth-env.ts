@@ -28,6 +28,7 @@ import { createPreordersModule } from '../../../src/modules/orders/preorders.rou
 import { createMenuModule } from '../../../src/modules/menu';
 import { createOnboardingModule } from '../../../src/modules/onboarding';
 import { createPlansModule } from '../../../src/modules/plans';
+import { createOffersModule } from '../../../src/modules/offers';
 import { createOrdersModule } from '../../../src/modules/orders';
 import { createSettingsModule } from '../../../src/modules/settings';
 import { createCustomersModule } from '../../../src/modules/customers';
@@ -49,6 +50,7 @@ import { createFakeStorage } from '../../uploads/fake-storage';
 import {
   createZonesModule,
   stubImpactSources,
+  createZoneCountPorts,
   type ImpactSources,
 } from '../../../src/modules/zones';
 import type { ZonesCacheVersion } from '../../../src/modules/zones/zones.events';
@@ -255,6 +257,8 @@ export async function createAuthTestEnv() {
     };
     /** D139 support desk service of this app (tests drive the SLA sweep with it) */
     support: ReturnType<typeof createSupportModule>['service'];
+    /** D182 offers of this app: the staff service and redemption (doc 10 §8; intake mounts the apps' side) */
+    offers: ReturnType<typeof createOffersModule>;
   } {
     let appRedis = redis;
     if (scope) {
@@ -316,9 +320,10 @@ export async function createAuthTestEnv() {
       appOrigin: APP_ORIGIN,
       requireReauth: auth.requireReauth,
       clock: clock.now,
-      // as server.ts: the real zone team (M03), every other source a stub, unless a test brings its own
+      // as server.ts: the real zone team and counts, unless a test brings its own
       impactSources: extra.zones?.impactSources ?? {
         ...stubImpactSources(),
+        counts: createZoneCountPorts(prisma),
         team: createZoneTeamPort(prisma),
       },
       ...(extra.zones?.cache ? { cache: extra.zones.cache } : {}),
@@ -362,6 +367,7 @@ export async function createAuthTestEnv() {
       appOrigin: APP_ORIGIN,
       requireReauth: auth.requireReauth,
       maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+      codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
       checklist: settings.reader,
       storage,
       uploads: {
@@ -398,13 +404,22 @@ export async function createAuthTestEnv() {
       rules: (zoneId) => settings.reader.preorderRules(zoneId),
       clock: clock.now,
     });
+    const offers = createOffersModule({
+      prisma,
+      appOrigin: APP_ORIGIN,
+      requireReauth: auth.requireReauth,
+      rules: () => settings.reader.offerRules(),
+      clock: clock.now,
+    });
     const orders = createOrdersModule({
       sla: (zoneId) => settings.reader.orderSla(zoneId ?? ''),
       onDelivered: (orderId) => rewards.service.earnForDeliveredOrder(orderId),
+      onCancelled: (orderId) => offers.redemptions.reverseForOrder(orderId), // D182 F4
       prisma,
       appOrigin: APP_ORIGIN,
       maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
-      codFloatLimit: (zoneId) => settings.reader.codFloatLimit(zoneId),
+      codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
+      cancelReasons: (zoneId) => settings.reader.cancelReasons(zoneId), // D190
       clock: clock.now,
     });
     const customers = createCustomersModule({
@@ -466,6 +481,7 @@ export async function createAuthTestEnv() {
         notifications: notifications.service,
         support: support.service,
         customers: customers.service,
+        offers: offers.service,
       },
       files: exportFiles,
       enqueue: async (id) => {
@@ -494,7 +510,7 @@ export async function createAuthTestEnv() {
         prisma,
         appOrigin: APP_ORIGIN,
         cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
-        floatLimit: (zoneId) => settings.reader.codFloatLimit(zoneId),
+        codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
         clock: clock.now,
       }).router,
       partners.router,
@@ -513,9 +529,11 @@ export async function createAuthTestEnv() {
         prisma,
         appOrigin: APP_ORIGIN,
         claims: accessControl.claims,
+        ageWarnings: () => settings.reader.onboardingAgeWarnings(),
         clock: clock.now,
       }).router,
       createPlansModule({ prisma, appOrigin: APP_ORIGIN, clock: clock.now }).router,
+      offers.router,
       support.router,
     ];
     const extraRouters = [
@@ -539,6 +557,7 @@ export async function createAuthTestEnv() {
       extraRouters,
       exports: { service: exportsModule.service, files: exportFiles.files, queue: exportQueue },
       support: support.service,
+      offers,
     };
   }
   function makeApp(

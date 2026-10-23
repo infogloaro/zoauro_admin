@@ -30,6 +30,7 @@ import { createRewardsModule } from './modules/rewards';
 import { createSupportService, startSupportJobs } from './modules/support';
 import { buildWorkerListServices } from './worker.lists';
 import { startRewardsExpiryJob } from './worker.rewards';
+import { createOffersModule, startOfferJobs } from './modules/offers';
 
 // BullMQ worker process (doc 06). Processors: outbox publisher + webhook delivery (SA-4.5, IH-5 delivery part), export
 // jobs for every list (doc 09, D129, D149), notification sends (M17), pre-order dispatch (D167), the support SLA sweep
@@ -113,14 +114,22 @@ const exportsService = createExportsService({
     ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT } : {}),
   }),
   enqueue: (id) => exportQueue.enqueue(id),
-  lists: buildWorkerListServices({
-    prisma,
-    redis,
-    env,
-    settings: workerSettings,
-    notifications: notificationsService,
-    support: supportService,
-  }),
+  lists: {
+    ...buildWorkerListServices({
+      prisma,
+      redis,
+      env,
+      settings: workerSettings,
+      notifications: notificationsService,
+      support: supportService,
+    }),
+    // D182 F1: offers export (list only)
+    offers: createOffersModule({
+      prisma,
+      appOrigin: env.APP_URL,
+      rules: () => workerSettings.offerRules(),
+    }).service,
+  },
   contexts: accessService,
 });
 
@@ -140,6 +149,14 @@ const preordersService = createPreordersModule({
   rules: (zoneId) => preorderSettings.preorderRules(zoneId),
 }).service;
 let preorderJobs: { close(): Promise<void> } | null = null;
+// D182: the offers schedule sweep (every 60 s) starts scheduled offers, ends those past their end date and returns the
+// uses of orders cancelled before delivery
+const offersModule = createOffersModule({
+  prisma,
+  appOrigin: env.APP_URL,
+  rules: () => preorderSettings.offerRules(),
+});
+let offerJobs: { close(): Promise<void> } | null = null;
 
 async function shutdown(signal: string) {
   console.log(`worker stopping (${signal})`);
@@ -151,6 +168,7 @@ async function shutdown(signal: string) {
   await preorderJobs?.close();
   await supportJobs?.close();
   await rewardsJobs?.close();
+  await offerJobs?.close();
   redis.disconnect();
   await prisma.$disconnect();
   process.exit(0);
@@ -172,10 +190,15 @@ assertDatabaseRole({
     preorderJobs = await startPreorderJobs({ redisUrl: env.REDIS_URL, service: preordersService });
     supportJobs = await startSupportJobs({ redisUrl: env.REDIS_URL, service: supportService });
     rewardsJobs = await startRewardsExpiryJob({ redisUrl: env.REDIS_URL, service: rewardsService });
+    offerJobs = await startOfferJobs({
+      redisUrl: env.REDIS_URL,
+      service: offersModule.service,
+      redemptions: offersModule.redemptions, // F4 safety net
+    });
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
     process.once('SIGINT', () => void shutdown('SIGINT'));
     console.log(
-      `worker started (outbox publisher, webhook delivery: ${transport.name}, exports, notifications, pre-orders, support SLA, reward expiry)`,
+      `worker started (outbox publisher, webhook delivery: ${transport.name}, exports, notifications, pre-orders, support SLA, reward expiry, offers schedule)`,
     );
   })
   .catch((err: unknown) => {

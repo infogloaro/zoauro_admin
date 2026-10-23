@@ -206,6 +206,41 @@ enum VendorPlanSubscriptionStatus {
   EXPIRED
 }
 
+// D182 offers (`OfferStatus` is the auto-assign offer, D154)
+enum PromotionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  EXPIRED
+  REJECTED
+  CANCELLED
+}
+
+enum OfferScope {
+  PLATFORM
+  ZONE
+  VENDOR
+}
+
+enum OfferType {
+  PERCENT
+  FLAT
+  FREE_DELIVERY
+}
+
+enum OfferFunding {
+  PLATFORM
+  VENDOR
+  SHARED
+}
+
+enum OfferRedemptionStatus {
+  APPLIED
+  REVERSED
+}
+
 enum RestaurantKind {
   RESTAURANT
   SHOP
@@ -703,6 +738,7 @@ model Zone {
   refunds            Refund[]
 
   vendorPlanSubscriptions VendorPlanSubscription[]
+  offerRedemptions        OfferRedemption[]
 
   @@index([status])
   @@map("zones")
@@ -796,6 +832,7 @@ model Restaurant {
   diningReservations DiningReservation[]
 
   vendorPlanSubscriptions VendorPlanSubscription[]
+  offers                  Offer[]
 
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
@@ -852,6 +889,7 @@ model Homemaker {
   menuChangeRequests MenuItemChangeRequest[]
 
   vendorPlanSubscriptions VendorPlanSubscription[]
+  offers                  Offer[]
 
   @@index([zoneId, status])
   @@index([zoneId, createdAt(sort: Desc)])
@@ -961,6 +999,7 @@ model Customer {
 
   addresses           CustomerAddress[]
   orders              Order[]
+  offerRedemptions    OfferRedemption[]
   reviews             Review[]
   dataSubjectRequests DataSubjectRequest[]
   supportTickets      SupportTicket[]
@@ -1048,40 +1087,24 @@ model DeliveryPartner {
   @@map("delivery_partners")
 }
 
-enum CashSettlementStatus {
-  PENDING
-  CONFIRMED
-  REJECTED
-}
-
 model CashSettlement {
-  id                String               @id @db.Uuid
-  deliveryPartnerId String               @map("delivery_partner_id") @db.Uuid
-  zoneId            String               @map("zone_id") @db.Uuid
-  expectedAmount    Int                  @map("expected_amount") // paise
-  handedInAmount    Int                  @map("handed_in_amount") // paise
+  id                String   @id @db.Uuid
+  deliveryPartnerId String   @map("delivery_partner_id") @db.Uuid
+  zoneId            String   @map("zone_id") @db.Uuid
+  expectedAmount    Int      @map("expected_amount") // paise
+  handedInAmount    Int      @map("handed_in_amount") // paise
   variance          Int // paise, handed_in - expected
-  settledBy         String?              @map("settled_by") @db.Uuid // null while PENDING
-  settledAt         DateTime?            @map("settled_at") @db.Timestamptz // null while PENDING
+  settledBy         String   @map("settled_by") @db.Uuid
+  settledAt         DateTime @map("settled_at") @db.Timestamptz
   note              String?
-  /// M14: PENDING = reported by the partner app, waiting for the count; CONFIRMED moves the cash; REJECTED does not
-  status            CashSettlementStatus @default(CONFIRMED)
-  source            RecordSource         @default(ADMIN)
-  /// what the partner app reported (doc 42 cash-handover amountPaise); handed_in is what the admin counted
-  reportedAmount    Int?                 @map("reported_amount") // paise
-  reportedAt        DateTime?            @map("reported_at") @db.Timestamptz
-  reference         String?
-  idempotencyKey    String?              @unique @map("idempotency_key")
-  version           Int                  @default(1)
-  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   deliveryPartner DeliveryPartner @relation(fields: [deliveryPartnerId], references: [id], onDelete: Restrict)
   zone            Zone            @relation(fields: [zoneId], references: [id], onDelete: Restrict)
-  settler         User?           @relation(fields: [settledBy], references: [id], onDelete: Restrict)
+  settler         User            @relation(fields: [settledBy], references: [id], onDelete: Restrict)
 
   @@index([zoneId, settledAt(sort: Desc)])
   @@index([deliveryPartnerId])
-  @@index([zoneId, status, createdAt(sort: Desc)])
   @@map("cash_settlements")
 }
 
@@ -1132,17 +1155,18 @@ model Order {
   createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
-  zone            Zone                 @relation(fields: [zoneId], references: [id], onDelete: Restrict)
-  customer        Customer             @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  restaurant      Restaurant?          @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
-  homemaker       Homemaker?           @relation(fields: [homemakerId], references: [id], onDelete: Restrict)
-  deliveryPartner DeliveryPartner?     @relation(fields: [deliveryPartnerId], references: [id], onDelete: Restrict)
-  items           OrderItem[]
-  statusHistory   OrderStatusHistory[]
-  payments        Payment[]
-  refunds         Refund[]
-  ledgerEntries   LedgerEntry[]
-  reviews         Review[]
+  zone             Zone                 @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  customer         Customer             @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  restaurant       Restaurant?          @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  homemaker        Homemaker?           @relation(fields: [homemakerId], references: [id], onDelete: Restrict)
+  deliveryPartner  DeliveryPartner?     @relation(fields: [deliveryPartnerId], references: [id], onDelete: Restrict)
+  items            OrderItem[]
+  statusHistory    OrderStatusHistory[]
+  payments         Payment[]
+  offerRedemptions OfferRedemption[]
+  refunds          Refund[]
+  ledgerEntries    LedgerEntry[]
+  reviews          Review[]
 
   // CHECK exactly one of restaurant_id / homemaker_id: constraints migration
   supportTickets   SupportTicket[]
@@ -2306,4 +2330,88 @@ model VendorPlanSubscription {
   @@index([homemakerId])
   @@index([hotelId])
   @@map("vendor_plan_subscriptions")
+}
+
+// ===========================================================================
+// D182 offers (doc 60 §10.6; D199–D204). Replaces the unused coupons table (kept, never written, F5).
+// ===========================================================================
+
+/// One offer. PLATFORM: zone_ids empty (every zone). ZONE: 1..N zones. VENDOR: exactly one of restaurant_id,
+/// homemaker_id and zone_ids = [the vendor's zone] (CHECKs: SQL). Code unique ignoring case among live rows (SQL index).
+model Offer {
+  id                    String          @id @db.Uuid
+  scope                 OfferScope
+  restaurantId          String?         @map("restaurant_id") @db.Uuid
+  homemakerId           String?         @map("homemaker_id") @db.Uuid
+  zoneIds               String[]        @default([]) @map("zone_ids") @db.Uuid
+  code                  String? // upper case A-Z 0-9, 4-20 (CHECK: SQL); null = applied automatically
+  title                 String
+  description           String?
+  type                  OfferType
+  value                 Int // PERCENT: whole percent; FLAT: paise; FREE_DELIVERY: 0 (CHECK: SQL)
+  maxDiscountPaise      Int?            @map("max_discount_paise")
+  minOrderPaise         Int             @default(0) @map("min_order_paise")
+  newCustomersOnly      Boolean         @default(false) @map("new_customers_only")
+  paymentMethods        String[]        @default([]) @map("payment_methods") // ONLINE, COD, WALLET; empty = all
+  perCustomerLimit      Int             @default(1) @map("per_customer_limit")
+  usageLimit            Int?            @map("usage_limit")
+  usedCount             Int             @default(0) @map("used_count")
+  budgetPaise           Int?            @map("budget_paise")
+  spentPaise            Int             @default(0) @map("spent_paise")
+  fundedBy              OfferFunding    @map("funded_by")
+  vendorSharePct        Int?            @map("vendor_share_pct") // SHARED only (D199)
+  validFrom             DateTime        @map("valid_from") @db.Timestamptz
+  validTo               DateTime        @map("valid_to") @db.Timestamptz
+  status                PromotionStatus @default(DRAFT)
+  statusReason          String?         @map("status_reason")
+  source                RecordSource
+  submittedByClientId   String?         @map("submitted_by_client_id") @db.Uuid
+  requestedBy           String?         @map("requested_by") @db.Uuid
+  requestedBySuperAdmin Boolean         @default(false) @map("requested_by_super_admin")
+  submittedAt           DateTime?       @map("submitted_at") @db.Timestamptz
+  decidedBy             String?         @map("decided_by") @db.Uuid
+  decidedAt             DateTime?       @map("decided_at") @db.Timestamptz
+  decisionReason        String?         @map("decision_reason")
+  version               Int             @default(1)
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy             String?         @map("created_by") @db.Uuid
+  updatedBy             String?         @map("updated_by") @db.Uuid
+  deletedAt             DateTime?       @map("deleted_at") @db.Timestamptz
+
+  restaurant  Restaurant?       @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  homemaker   Homemaker?        @relation(fields: [homemakerId], references: [id], onDelete: Restrict)
+  redemptions OfferRedemption[]
+
+  @@index([status, validFrom])
+  @@index([status, validTo])
+  @@index([restaurantId])
+  @@index([homemakerId])
+  @@map("offers")
+}
+
+/// One use of an offer by one order (written at order intake, doc 10 §8). vendor + platform = discount (CHECK: SQL).
+model OfferRedemption {
+  id              String                @id @db.Uuid
+  offerId         String                @map("offer_id") @db.Uuid
+  orderId         String                @unique @map("order_id") @db.Uuid
+  checkoutGroupId String?               @map("checkout_group_id") @db.Uuid // D203
+  customerId      String                @map("customer_id") @db.Uuid
+  zoneId          String                @map("zone_id") @db.Uuid
+  discountPaise   Int                   @map("discount_paise")
+  vendorPaise     Int                   @map("vendor_paise")
+  platformPaise   Int                   @map("platform_paise")
+  status          OfferRedemptionStatus @default(APPLIED)
+  appliedAt       DateTime              @default(now()) @map("applied_at") @db.Timestamptz
+  reversedAt      DateTime?             @map("reversed_at") @db.Timestamptz
+  reverseReason   String?               @map("reverse_reason")
+
+  offer    Offer    @relation(fields: [offerId], references: [id], onDelete: Restrict)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  zone     Zone     @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  @@index([offerId, customerId, status])
+  @@index([zoneId, appliedAt(sort: Desc)])
+  @@map("offer_redemptions")
 }

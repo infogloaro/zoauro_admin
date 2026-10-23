@@ -7,11 +7,13 @@ import {
   orderPreorderSchema,
   orderUnpaidTimeoutSchema,
   payoutCycleSchema,
-  codFloatLimitSchema,
+  deliveryCodLimitSchema,
+  orderCancelReasonsSchema,
   sessionRememberSchema,
   supportSlaSchema,
   claimTimingSchema,
   orderSlaSchema,
+  offerRulesSchema,
   onboardingAgeWarningsSchema,
   refundRulesSchema,
   loyaltyValuesSchema,
@@ -555,9 +557,15 @@ export class SettingsReader {
     return (await this.effective('payouts.cycleDays', payoutCycleSchema, zoneId)).days;
   }
 
-  /** D173: the COD float limit of a zone. */
-  codFloatLimit(zoneId: string) {
-    return this.effective('cod.floatLimit', codFloatLimitSchema, zoneId);
+  /** D190: the zone's order cancel reasons. */
+  async cancelReasons(zoneId: string) {
+    return (await this.effective('orders.cancelReasons', orderCancelReasonsSchema, zoneId)).reasons;
+  }
+
+  /** D173: the COD cash a delivery partner may hold in the zone before new COD orders stop. */
+  async codLimitPaise(zoneId: string): Promise<number> {
+    return (await this.effective('delivery.codLimitPaise', deliveryCodLimitSchema, zoneId))
+      .limitPaise;
   }
 
   /** D165: the highest delivery charge any zone may have (platform-wide). */
@@ -585,6 +593,11 @@ export class SettingsReader {
   /** D146, D180, D187: a zone's refund rules (zone value ?? platform ?? the D146 defaults). */
   refundRules(zoneId: string) {
     return this.effective('refunds.rules', refundRulesSchema, zoneId);
+  }
+
+  /** D182: offers.rules (platform-wide; the D182 defaults until the Super Admin changes them). */
+  offerRules() {
+    return this.effective('offers.rules', offerRulesSchema);
   }
 
   /** D182 (O1): a zone's order stage targets in minutes */

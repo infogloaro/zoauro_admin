@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { mfaPolicySchema, DEFAULT_SECURITY_POLICY } from '../auth-mfa';
 import type { PermissionKey } from '../permissions';
 import { MAX_DELIVERY_CHARGE_PAISE } from '../zones/schemas';
+import { DEFAULT_OFFER_RULES, offerRulesSchema } from '../offers';
 
 // Platform settings registry (doc 59 §2–3, owner decisions D109–D116). One typed list: every setting's key, group,
 // value schema, the decided default ("the default rule"), whether a zone may override it, the re-authentication it needs
@@ -26,6 +27,7 @@ export const SETTING_GROUPS = [
   'zones',
   'access',
   'sessions',
+  'offers',
 ] as const;
 export type SettingGroup = (typeof SETTING_GROUPS)[number];
 
@@ -347,18 +349,6 @@ export const deliveryAutoAssignSchema = z
 /** D152 */
 export const payoutCycleSchema = z.object({ days: z.number().int().min(1).max(31) }).strict();
 
-/**
- * D173: a delivery partner's COD float. Above `limitPaise` of cash in hand the partner gets no new COD orders until a
- * settlement brings it down; `enabled: false` switches the check off for the zone.
- */
-export const codFloatLimitSchema = z
-  .object({
-    enabled: z.boolean(),
-    limitPaise: z.number().int().min(0).max(10_000_000),
-  })
-  .strict();
-export type CodFloatLimit = z.infer<typeof codFloatLimitSchema>;
-
 /** D165 (D86): the most a zone's delivery charge may be; the zones module checks every create and edit against it. */
 /** At most the database ceiling (₹1 000) until a migration raises it. */
 export const zoneDeliveryChargeCapSchema = z
@@ -490,6 +480,58 @@ export const orderNumberFormatSchema = z
 export const MAX_ORDERS_PER_PARTNER = 5;
 export const deliveryMaxConcurrentOrdersSchema = z
   .object({ perPartner: z.number().int().min(1).max(MAX_ORDERS_PER_PARTNER) })
+  .strict();
+
+/** D190: order cancel reasons, who may use each one, and whether it needs a note. */
+export const CANCEL_REASON_USERS = ['ADMIN', 'VENDOR', 'CUSTOMER', 'SYSTEM'] as const;
+export const orderCancelReasonsSchema = z
+  .object({
+    reasons: z
+      .array(
+        z
+          .object({
+            code: z.string().regex(/^[A-Z][A-Z0-9_]{1,39}$/, 'capital letters, digits and _'),
+            label: z.string().trim().min(2).max(60),
+            usableBy: z
+              .array(z.enum(CANCEL_REASON_USERS))
+              .min(1)
+              .max(CANCEL_REASON_USERS.length)
+              .refine((l) => new Set(l).size === l.length, 'must not repeat a user'),
+            noteRequired: z.boolean(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(40)
+      .refine((l) => new Set(l.map((r) => r.code)).size === l.length, 'must not repeat a reason'),
+  })
+  .strict();
+export type OrderCancelReasons = z.infer<typeof orderCancelReasonsSchema>;
+const cancelReason = (
+  code: string,
+  label: string,
+  usableBy: (typeof CANCEL_REASON_USERS)[number][],
+  noteRequired = false,
+) => ({ code, label, usableBy, noteRequired });
+/** D190 defaults until the Super Admin changes them. */
+export const DEFAULT_CANCEL_REASONS: OrderCancelReasons = {
+  reasons: [
+    cancelReason('CUSTOMER_REQUESTED', 'Customer asked to cancel', ['ADMIN', 'CUSTOMER']),
+    cancelReason('ITEM_UNAVAILABLE', 'Item unavailable', ['ADMIN', 'VENDOR']),
+    cancelReason('VENDOR_CLOSED', 'Vendor closed', ['ADMIN', 'VENDOR', 'SYSTEM']),
+    cancelReason('NO_PARTNER_AVAILABLE', 'No delivery partner available', ['ADMIN', 'SYSTEM']),
+    cancelReason('PAYMENT_FAILED', 'Payment failed', ['ADMIN', 'SYSTEM']),
+    cancelReason('DUPLICATE_ORDER', 'Duplicate order', ['ADMIN', 'CUSTOMER']),
+    cancelReason('ADDRESS_UNSERVICEABLE', 'Address not serviceable', ['ADMIN', 'SYSTEM']),
+    cancelReason('FRAUD_SUSPECTED', 'Suspected fraud', ['ADMIN']),
+    cancelReason('OTHER', 'Other', ['ADMIN', 'VENDOR', 'CUSTOMER'], true),
+  ],
+};
+
+/** D173: the COD cash a delivery partner may hold; at or above it the partner gets no new COD orders until settled. */
+export const MAX_COD_LIMIT_PAISE = 1_00_000_00;
+export const deliveryCodLimitSchema = z
+  .object({ limitPaise: z.number().int().min(0).max(MAX_COD_LIMIT_PAISE) })
   .strict();
 
 /** D68: the provider and its non-secret identifiers; the API key stays in the server environment. */
@@ -677,6 +719,34 @@ export const SETTINGS: readonly SettingDef[] = [
     effect: pending('Orders'),
   },
   {
+    key: 'orders.cancelReasons',
+    group: 'orders',
+    label: 'Order cancel reasons',
+    description:
+      'The reasons an order may be cancelled with, who may use each one (admin, vendor, customer, system) and whether a note is required.',
+    schema: orderCancelReasonsSchema,
+    default: DEFAULT_CANCEL_REASONS,
+    zoneOverride: true,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: { state: 'ENFORCED' },
+  },
+  {
+    key: 'delivery.codLimitPaise',
+    group: 'orders',
+    label: 'COD cash limit per delivery partner',
+    description:
+      'The cash on delivery money one delivery partner may hold. At or above it the partner gets no new cash on delivery orders until the cash is settled.',
+    schema: deliveryCodLimitSchema,
+    default: { limitPaise: 5_000_00 },
+    zoneOverride: true,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: pending('Order assignment'),
+  },
+  {
     key: 'orders.unpaidTimeoutMinutes',
     group: 'orders',
     label: 'Unpaid order timeout',
@@ -757,20 +827,6 @@ export const SETTINGS: readonly SettingDef[] = [
     editable: true,
     appsRead: false,
     effect: pending('Payouts'),
-  },
-  {
-    key: 'cod.floatLimit',
-    group: 'payouts',
-    label: 'COD float limit',
-    description:
-      'The most COD cash a delivery partner may hold. Above it the partner is given no new COD orders until the cash is settled.',
-    schema: codFloatLimitSchema,
-    default: { enabled: true, limitPaise: 5_000_00 },
-    zoneOverride: true,
-    reauth: 'PASSWORD',
-    editable: true,
-    appsRead: false,
-    effect: { state: 'ENFORCED' },
   },
   {
     key: 'zones.deliveryChargeCapPaise',
@@ -890,6 +946,20 @@ export const SETTINGS: readonly SettingDef[] = [
     editable: true,
     appsRead: false,
     effect: pending('Reward points'),
+  },
+  {
+    key: 'offers.rules',
+    group: 'offers',
+    label: 'Offer limits',
+    description:
+      'The most an offer may give (percent and flat amount), how long it may run, how many times one customer may use it, and when a waiting approval is flagged. One offer per order; reward points may be used with it (D182).',
+    schema: offerRulesSchema,
+    default: DEFAULT_OFFER_RULES,
+    zoneOverride: false,
+    reauth: 'PASSWORD',
+    editable: true,
+    appsRead: false,
+    effect: { state: 'ENFORCED' },
   },
   {
     key: 'security.mfa',

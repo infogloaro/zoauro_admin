@@ -1,9 +1,12 @@
 import {
-  cashHandoverSchema,
+  intakeOfferListQuerySchema,
+  intakeOfferQuoteSchema,
+  intakeVendorOfferCreateSchema,
+  intakeVendorOfferParamsSchema,
+  intakeVendorOfferWithdrawParamsSchema,
   intakePartnerRegisterSchema,
   intakeVendorRegisterSchema,
   intakeZoneResolveQuerySchema,
-  type CashHandoverInput,
   type IntakePing,
 } from '@zoauro/shared';
 import { Router } from 'express';
@@ -12,6 +15,7 @@ import { AppError, parseBody } from '../../lib/errors';
 import { IdempotencyRepository } from '../../lib/idempotency';
 import type { RateLimiter } from '../../lib/rate-limiter';
 import type { SecretBox } from '../auth/mfa/secret-box';
+import type { OfferRedemptions } from '../offers';
 import { RESOLVE_SCOPE, type ZoneResolver } from '../zones';
 import { IntakeRepository } from './intake.repository';
 import {
@@ -23,7 +27,7 @@ import {
   requireScope,
   writeIdempotency,
 } from './intake.middleware';
-import { RegistrationsDatabase, RegistrationsRepository } from './registrations.repository';
+import { RegistrationsDatabase } from './registrations.repository';
 import { RegistrationsService } from './registrations.service';
 
 // Integration API (M21, D147; doc 42, contract docs/G-integration/contracts/intake.openapi.yaml). Server-to-server from
@@ -42,12 +46,8 @@ export function createIntakeModule(deps: {
   limiter: RateLimiter;
   resolver: ZoneResolver;
   clock: Clock;
-  /** M14: the settlements service's reportFromApp (partner cash hand-over, doc 42) */
-  cashHandover?: (
-    partnerId: string,
-    input: CashHandoverInput,
-    key: string,
-  ) => Promise<{ id: string; replayed: boolean }>;
+  /** D182 offers for the apps (doc 42 sections 5.2 and 5.3); absent: those routes answer 404 */
+  offers?: Pick<OfferRedemptions, 'listForApp' | 'quote' | 'submitFromApp' | 'withdrawFromApp'>;
 }): { path: string; router: Router } {
   const repo = () => new IntakeRepository(deps.prisma);
   const router = Router();
@@ -98,33 +98,39 @@ export function createIntakeModule(deps: {
     res.status(r.httpStatus).json({ data: r.ref });
   });
 
-  // doc 42 section 5.4: the partner reports cash handed over; a PENDING settlement for the Zonal Admin to count (M14)
-  const handover = deps.cashHandover;
-  if (handover)
+  // doc 42 sections 5.2 and 5.3 (D182): the customer app lists and quotes offers; the vendor app sends its own offers
+  // for the zone admin's approval and withdraws them while they wait
+  const offers = deps.offers;
+  if (offers) {
+    router.get('/offers', requireScope('offers:read'), async (req, res) => {
+      const q = parseBody(intakeOfferListQuerySchema, req.query);
+      res.json({ data: await offers.listForApp(intakeClientOf(res), q) });
+    });
+
+    router.post('/offers/quote', requireScope('offers:read'), async (req, res) => {
+      const input = parseBody(intakeOfferQuoteSchema, req.body);
+      res.json({ data: await offers.quote(intakeClientOf(res), input) });
+    });
+
+    router.post('/vendors/:vendorId/offers', requireScope('offers:write'), async (req, res) => {
+      const { vendorId } = parseBody(intakeVendorOfferParamsSchema, req.params);
+      const input = parseBody(intakeVendorOfferCreateSchema, req.body);
+      const r = await offers.submitFromApp(intakeClientOf(res), vendorId, input);
+      noteIntakeEntity(res, { type: 'offer', id: r.ref.id, zoneId: r.zoneId });
+      res.status(r.httpStatus).json({ data: r.ref });
+    });
+
     router.post(
-      '/partners/:partnerId/cash-handover',
-      requireScope('cash:handover'),
+      '/vendors/:vendorId/offers/:offerId/withdraw',
+      requireScope('offers:write'),
       async (req, res) => {
-        const client = intakeClientOf(res);
-        const input = parseBody(cashHandoverSchema, req.body);
-        const externalId = String(req.params['partnerId'] ?? '');
-        const partnerId = await new RegistrationsRepository(deps.prisma).internalIdOf(
-          client.id,
-          'partner',
-          externalId,
-        );
-        if (!partnerId) throw new AppError('NOT_FOUND', 'No such partner for this app');
-        const r = await handover(
-          partnerId,
-          input,
-          `${client.id}:${req.get('idempotency-key') ?? ''}`,
-        );
-        noteIntakeEntity(res, { type: 'cod_settlement', id: r.id, zoneId: null });
-        res
-          .status(r.replayed ? 200 : 201)
-          .json({ data: { id: r.id, externalId, applied: !r.replayed } });
+        const p = parseBody(intakeVendorOfferWithdrawParamsSchema, req.params);
+        const r = await offers.withdrawFromApp(intakeClientOf(res), p.vendorId, p.offerId);
+        noteIntakeEntity(res, { type: 'offer', id: r.ref.id, zoneId: r.zoneId });
+        res.json({ data: r.ref });
       },
     );
+  }
 
   // An unknown intake path ends here, never in the staff API mounted behind it.
   router.use(() => {

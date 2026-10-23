@@ -234,6 +234,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         retryRefund: { ownObject: true },
         // the placeholder order is in zone A: whoever holds refunds:add there gets its options
         getRefundOptions: { ownObject: true },
+        // D190: the placeholder order is in zone A
+        getOrderCancelReasons: { ownObject: true },
         // D173/D152: one settlement, one partner and one payout per zone A, B, C; a row names its zone
         listCashSettlements: { listedZones: vendorZones },
         listCodBalances: { listedZones: vendorZones },
@@ -253,6 +255,7 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
             'exportHotels',
             'exportRoomBookings',
             'exportDiningReservations',
+            'exportOffers', // D182 F1
           ].map((op) => [
             op,
             {
@@ -262,6 +265,34 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
           ]),
         ),
         getExport: { ownObject: true },
+        // D182 offers: one ZONE offer per zone A, B, C; a row names its zones. Object routes use the zone A one
+        // (placeholder id): whoever passes the guard but may not view offers in zone A gets 404 (scope: tests/offers/)
+        listOffers: {
+          listedZones: (body) => {
+            const ids = [
+              ...new Set(
+                (body as { data: { zones: { id: string }[] }[] }).data.flatMap((o) =>
+                  o.zones.map((z) => z.id),
+                ),
+              ),
+            ];
+            return Object.values(fixtures.zones).every((z) => ids.includes(z)) ? 'ALL' : ids;
+          },
+        },
+        ...Object.fromEntries(
+          [
+            'getOffer',
+            'updateOffer',
+            'deleteOffer',
+            'submitOffer',
+            'approveOffer',
+            'rejectOffer',
+            'pauseOffer',
+            'resumeOffer',
+            'cancelOffer',
+            'listOfferRedemptions',
+          ].map((op) => [op, { ownObject: true as const }]),
+        ),
       },
     });
     publishReport('real-routes', report);
@@ -286,7 +317,10 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 1 refund options (the Request-refund dialog)
     // + 2 COD settlement and 1 payouts (D152, D173)
     // + 8 vendor plans (D188)
-    expect(report.coveredRoutes).toHaveLength(253);
+    // + 1 COD hand-in (POST /cash-settlements, D173)
+    // + 1 order cancel reasons (D190)
+    // + 12 offers (D182) + 1 offers export (D182 F1)
+    expect(report.coveredRoutes).toHaveLength(268);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

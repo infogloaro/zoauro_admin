@@ -13,9 +13,11 @@ import { seedCustomers } from './customers';
 import { freshenPreorders, seedOrders } from './orders';
 import { seedSettings } from './settings';
 import { seedHotels, seedNotifications, seedSupport } from './extras';
-import { seedRefunds } from './refunds';
+import { ensurePendingRefund, seedRefunds } from './refunds';
 import { seedOnboarding } from './onboarding';
+import { ensureCodLimitPartner, seedMoney, seedPlans } from './finance';
 import { createSecretBox } from '../../src/modules/auth/mfa/secret-box';
+import { seedOffers } from './offers';
 
 // `pnpm --filter @zoauro/api demo:data` (env from .env.demo): sample data for the demo, through the RUNNING demo API
 // (`demo:api`) as the demo accounts, so every record has its real audit trail; direct rows only where no admin route
@@ -195,6 +197,32 @@ async function main(): Promise<void> {
       { sa, zonal: people.clients.karthik },
       people.zoneId['CBE'] ?? '',
       appClients['CUSTOMER_APP'] ?? '',
+      log,
+    );
+    await ensurePendingRefund(db, people.clients.karthik, people.zoneId['CBE'] ?? '', log);
+    console.log('13 vendor plans: BASIC, GROWTH (trial), PRO, subscriptions');
+    await seedPlans(db, sa, vendors, log);
+    console.log('14 money: COD collections and hand-overs, payouts to vendors and partners');
+    await seedMoney(
+      db,
+      {
+        [people.zoneId['CBE'] ?? '']: people.userId.karthik,
+        [people.zoneId['CBN'] ?? '']: people.userId.karthik,
+        [people.zoneId['TUP'] ?? '']: people.userId.suresh,
+      },
+      people.userId.primary,
+      log,
+    );
+    await ensureCodLimitPartner(db, log);
+    console.log(
+      '15 offers and coupons: live, scheduled, waiting for approval, rejected, from the vendor app, used on orders',
+    );
+    await seedOffers(
+      db,
+      { sa, karthik: people.clients.karthik, suresh: people.clients.suresh },
+      people.zoneId,
+      vendors,
+      appClients['VENDOR_APP'] ?? '',
       log,
     );
   } finally {

@@ -44,7 +44,7 @@ describe('module catalogue (doc 39 + roadmap)', () => {
     for (const id of ['R01', 'R09', 'R11', 'R12', 'R13', 'NEW-HOTEL']) expect(ids).toContain(id);
   });
 
-  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Customers, Support Tickets, Global Search, Payments, Refunds, COD Cash Settlement, Vendor Onboarding, Order overview and Account security', () => {
+  it('live: Dashboard, Recent Activities, Zones, Zone Teams, Control Panel, Super Admins, Zonal Admins, Access Profiles, Access History, Platform Settings, Settings History, Security Settings, Audit & Logs, Access Requests, Restaurants, Home Food, Orders, Delivery Partners, Partner Requests, Notifications, Menu Items, Food Item Requests, Hotels & Bookings, Vendor Plans, Customers, Support Tickets, Global Search, Payments, Refunds, COD Cash Settlement, Payouts, Vendor Onboarding, Order overview, Offers & Coupons and Account security', () => {
     expect(
       NAV_MODULES.filter((m) => m.status === 'live')
         .map((m) => m.id)
@@ -70,14 +70,17 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       'M12',
       'M13',
       'M14',
+      'M15',
       'M16',
       'M17',
       'M18',
       'M19',
       'M19-HIST',
       'M19-SEC',
+      'M20-OFF',
       'M20-SUP',
       'NEW-HOTEL',
+      'NEW-PLANS',
       'R01',
       'R09',
       'R12',
@@ -91,8 +94,12 @@ describe('module catalogue (doc 39 + roadmap)', () => {
       expect(groups.has(m.group)).toBe(true);
       if (m.status === 'coming-soon') expect(m.blueprint?.screens.length ?? 0).toBeGreaterThan(0);
     }
-    // Phase 2 work is never presented as Phase 1 (roadmap R22, AC-16)
-    expect(NAV_MODULES.find((m) => m.id === 'M20-OFF')?.blueprint?.phase).toBe('Phase 2');
+    // D179/D182 brought Offers into Phase 1: a live page, for Zonal Admins with offers:view
+    expect(NAV_MODULES.find((m) => m.id === 'M20-OFF')).toMatchObject({
+      status: 'live',
+      superAdminHref: '/super-admin/offers',
+      zonal: { href: '/zone/offers', permission: 'offers' },
+    });
   });
 });
 
@@ -121,6 +128,22 @@ describe('menu by role', () => {
       label: 'Hotels & Bookings',
       href: '/super-admin/hotels',
     });
+    expect(byId['NEW-PLANS']).toMatchObject({
+      status: 'live',
+      label: 'Vendor Plans',
+      href: '/super-admin/vendor-plans',
+    });
+  });
+
+  it('Vendor Plans (D188): a Zonal Admin sees it only with plans:view in some zone', () => {
+    expect(menuFor('ZONAL_ADMIN', [zone('A', ['orders:view'])]).map((m) => m.id)).not.toContain(
+      'NEW-PLANS',
+    );
+    expect(
+      menuFor('ZONAL_ADMIN', [zone('A', ['orders:view']), zone('B', ['plans:view'])]).find(
+        (m) => m.id === 'NEW-PLANS',
+      ),
+    ).toMatchObject({ status: 'live', href: '/zone/vendor-plans' });
   });
 
   it('Zonal Admin: never Zones, Audit, Access, Settings, Integrations, nor Hotels without a hotels grant; modules only where viewable in some zone', () => {
@@ -155,6 +178,7 @@ describe('menu by role', () => {
       'M08',
       'M13',
       'NEW-HOTEL',
+      'NEW-PLANS',
       'R11',
     ])
       expect(ids).not.toContain(hidden);
@@ -185,13 +209,38 @@ describe('menu by role', () => {
     for (const id of ['M13', 'M14', 'M20-SUP', 'M17']) expect(none).not.toContain(id);
   });
 
+  it('pages that gather modules open with any one of them: Vendor Onboarding (restaurants, Home Food, hotels) and Hotels (hotels, room or table bookings)', () => {
+    const ids = (perms: PermissionKey[]) =>
+      menuFor('ZONAL_ADMIN', [zone('A', perms)]).map((m) => m.id);
+    expect(ids(['homemakers:view'])).toContain('R01');
+    expect(ids(['hotels:view'])).toContain('R01');
+    expect(ids(['orders:view'])).not.toContain('R01');
+    expect(ids(['bookings:view'])).toContain('NEW-HOTEL');
+    expect(ids(['dining:view'])).toContain('NEW-HOTEL');
+    expect(ids(['restaurants:view'])).not.toContain('NEW-HOTEL');
+  });
+
+  it('COD settlement and payouts (6a5f9b9) are live pages, each behind its own view grant', () => {
+    const items = menuFor('ZONAL_ADMIN', [zone('A', ['settlements:view', 'payouts:view'])]);
+    expect(items.find((m) => m.id === 'M14')).toMatchObject({
+      status: 'live',
+      href: '/zone/cod-settlement',
+    });
+    expect(items.find((m) => m.id === 'M15')).toMatchObject({
+      status: 'live',
+      href: '/zone/payouts',
+    });
+    expect(
+      menuFor('ZONAL_ADMIN', [zone('A', ['settlements:view'])]).map((m) => m.id),
+    ).not.toContain('M15');
+  });
+
   it('a Coming Soon page exists only for a module this person could see', () => {
     const zones = [zone('A', ['orders:view'])];
     expect(comingSoonModule('orders', 'ZONAL_ADMIN', zones)).toBeNull(); // live
     expect(
       comingSoonModule('cod-settlement', 'ZONAL_ADMIN', [zone('A', ['settlements:view'])]),
-    ).toBeNull(); // live (M14)
-    expect(comingSoonModule('payouts', 'SUPER_ADMIN', [])?.id).toBe('M15');
+    ).toBeNull(); // live since 6a5f9b9
     expect(
       comingSoonModule('restaurant-requests', 'ZONAL_ADMIN', [zone('A', ['restaurants:view'])]),
     ).toBeNull(); // live as Vendor Onboarding (D170)

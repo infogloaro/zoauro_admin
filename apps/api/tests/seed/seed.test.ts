@@ -109,6 +109,8 @@ describe('runSeed on a fresh database', () => {
       ...keys('bookings', 'view'), // D118
       ...keys('dining', 'view'), // D118
       ...keys('loyalty', 'view'), // D169
+      ...keys('offers', 'view'), // grantable since D182 F1
+      ...keys('plans', 'view'), // D188 (was missing here)
     ].sort();
 
     // Zone Manager: D2 full operations, refunds within limits

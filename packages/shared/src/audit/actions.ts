@@ -22,6 +22,7 @@ export const AUDIT_MODULES = [
   'hotels', // D118
   'support', // D93, D139
   'plans', // D188
+  'offers', // D182
 ] as const;
 export type AuditModule = (typeof AUDIT_MODULES)[number];
 export type AuditSensitivity = 'NORMAL' | 'HIGH';
@@ -224,10 +225,6 @@ export const AUDIT_ACTIONS = {
   'refund.processed': a('refunds', 'Processed refund'),
   'refund.failed': a('refunds', 'Refund failed'),
   'cod_settlement.confirmed': a('settlements', 'Confirmed COD settlement', H),
-  'cod_settlement.recorded': a('settlements', 'Recorded COD cash hand-in', H),
-  'cod_settlement.reported': a('settlements', 'Partner reported COD hand-over'),
-  'cod_settlement.rejected': a('settlements', 'Rejected COD hand-over', H),
-  'cod.collected': a('settlements', 'Confirmed COD cash collected'),
   'payout.generated': a('payouts', 'Generated payout'),
   'payout.marked_paid': a('payouts', 'Marked payout paid', H),
   'reconciliation.mismatch_ack': a('payments', 'Acknowledged reconciliation mismatch', H),
@@ -269,6 +266,24 @@ export const AUDIT_ACTIONS = {
   'vendor_plan.retired': a('plans', 'Retired vendor plan', H),
   'vendor_plan_subscription.created': a('plans', 'Put vendor on a plan'),
   'vendor_plan_subscription.cancelled': a('plans', 'Cancelled vendor plan'),
+  // D182 offers
+  'offer.created': a('offers', 'Created offer'),
+  'offer.updated': a('offers', 'Updated offer'),
+  'offer.submitted': a('offers', 'Sent offer for approval'),
+  'offer.approved': a('offers', 'Approved offer', H),
+  'offer.rejected': a('offers', 'Rejected offer'),
+  'offer.paused': a('offers', 'Paused offer'),
+  'offer.resumed': a('offers', 'Resumed offer'),
+  'offer.cancelled': a('offers', 'Cancelled offer'),
+  'offer.deleted': a('offers', 'Deleted offer', H),
+  'offer.exported': a('offers', 'Exported offers', H),
+  'offer.redeemed': a('offers', 'Offer used on an order'),
+  'offer.redemption_reversed': a('offers', 'Offer use returned (order cancelled)'),
+  'offer.submitted_by_vendor': a('offers', 'Vendor sent an offer for approval'),
+  'offer.withdrawn_by_vendor': a('offers', 'Vendor withdrew an offer'),
+  'job.offer_budget_spent': a('system', 'Offer paused: budget spent'),
+  'job.offer_uses_taken': a('system', 'Offer ended: every use taken'),
+  'job.offers_swept': a('system', 'Offers started or ended on schedule'),
 } as const satisfies Record<string, AuditActionDef>;
 
 export type AuditActionKey = keyof typeof AUDIT_ACTIONS;

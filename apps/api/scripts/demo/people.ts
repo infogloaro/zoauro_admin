@@ -100,6 +100,13 @@ export const ACCOUNTS: Record<AccountKey, Omit<DemoAccount, 'password' | 'totpSe
 /** D178: the delegated Super Admin runs all-zone operations but only these Control Panel areas. */
 export const ADMIN_AREAS = ['zones', 'settings.refunds', 'settings.onboarding', 'settings.loyalty'];
 
+/** D182 F1: the zone leads run offers in their zones (their own offers still need a Super Admin's approval). */
+const OFFERS_LEAD = (['view', 'add', 'edit', 'status', 'export'] as const).map((action) => ({
+  module: 'offers',
+  action,
+  effect: 'GRANT' as const,
+}));
+
 export interface PeopleResult {
   zoneId: Record<string, string>;
   profileId: Record<string, string>;
@@ -235,6 +242,7 @@ export async function seedPeople(
           { module: 'support', action: 'edit', effect: 'GRANT' },
           { module: 'notifications', action: 'view', effect: 'GRANT' },
           { module: 'notifications', action: 'add', effect: 'GRANT' },
+          ...OFFERS_LEAD,
         ],
         limits: limits(50_000, 200_000),
         note: 'Zone lead for Coimbatore Central',
@@ -266,6 +274,7 @@ export async function seedPeople(
       {
         zoneId: zoneId['TUP'],
         profileId: profileId['Zone Manager'],
+        overrides: OFFERS_LEAD,
         limits: limits(30_000, 100_000),
         note: 'Zone lead for Tiruppur',
       },

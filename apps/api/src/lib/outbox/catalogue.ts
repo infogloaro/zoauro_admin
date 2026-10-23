@@ -11,9 +11,12 @@ export const OUTBOUND_EVENTS: Readonly<Record<string, readonly AppClientType[]>>
   'order.offered': ['PARTNER_APP'], // D154
   'order.offer_expired': ['PARTNER_APP'], // D154
   'order.cancelled': ['CUSTOMER_APP', 'VENDOR_APP', 'PARTNER_APP'],
+  'order.released': ['VENDOR_APP', 'PARTNER_APP'], // D167 (was missing here: never delivered)
+  'order.rescheduled': ['CUSTOMER_APP'], // D167 (was missing here)
   'payment.status_changed': ['CUSTOMER_APP'],
   'refund.updated': ['CUSTOMER_APP'],
   'vendor.status_changed': ['VENDOR_APP'],
+  'onboarding.more_info_required': ['VENDOR_APP'], // D170 (was missing here)
   'vendor.updated': ['VENDOR_APP'],
   'menu_item.admin_changed': ['VENDOR_APP', 'CUSTOMER_APP'],
   'menu_item.change_decided': ['VENDOR_APP'], // D125
@@ -24,6 +27,8 @@ export const OUTBOUND_EVENTS: Readonly<Record<string, readonly AppClientType[]>>
   'settlement.confirmed': ['PARTNER_APP'],
   'zone.updated': ['CUSTOMER_APP', 'VENDOR_APP', 'PARTNER_APP'],
   'config.changed': ['CUSTOMER_APP', 'VENDOR_APP', 'PARTNER_APP'],
+  'offer.status_changed': ['CUSTOMER_APP', 'VENDOR_APP'], // D182
+  'offer.decided': ['VENDOR_APP'], // D182 F1
   'broadcast.created': ['CUSTOMER_APP', 'VENDOR_APP', 'PARTNER_APP'],
 };
 

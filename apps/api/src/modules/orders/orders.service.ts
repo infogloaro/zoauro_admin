@@ -1,12 +1,15 @@
 import {
   buildPage,
   isOrderTransitionAllowed,
+  ORDER_CANCELLABLE,
+  ORDER_TRANSITIONS,
   type AssignOrderInput,
   type AuditActionKey,
   type CancelOrderInput,
   type OrderDetail,
   type OrderListItem,
   type OrderListQuery,
+  type OrderCancelReasonsResponse,
   type OrderListResponse,
   type OrderStatus,
   type OrderWriteResponse,
@@ -14,7 +17,7 @@ import {
   type TransitionOrderInput,
 } from '@zoauro/shared';
 import { maskEmail, maskPhone, record, uuidv7 } from '../../lib/audit';
-import { assertCanWrite, type AuthContext } from '../../lib/authz';
+import { assertCanWrite, can, type AuthContext } from '../../lib/authz';
 import { AppError } from '../../lib/errors';
 import { orderEventRows, type OrderEventExtra } from './orders.events';
 import type {
@@ -98,9 +101,46 @@ export function toListItem(row: OrderListRow): OrderListItem {
   };
 }
 
-function toDetail(row: OrderDetailRow): OrderDetail {
+/** One line from the address snapshot (ported from magaraj's dev_cb). */
+export function addressLine(snapshot: unknown): string | null {
+  if (typeof snapshot !== 'object' || snapshot === null) return null;
+  const s = snapshot as Record<string, unknown>;
+  const parts = ['line1', 'line2', 'landmark', 'area', 'city', 'pincode']
+    .map((k) => s[k])
+    .filter(
+      (v): v is string | number =>
+        (typeof v === 'string' && v.trim() !== '') || typeof v === 'number',
+    )
+    .map((v) => String(v).trim());
+  return parts.length === 0 ? null : parts.join(', ');
+}
+
+/**
+ * What the viewer may do with the order now: the doc 10 table and the viewer's actions IN THE ORDER'S ZONE (can, not
+ * "somewhere"), so a member who is read-only there sees no buttons. Ported from magaraj's dev_cb, plus assign and
+ * reschedule.
+ */
+export function actionsFor(ctx: AuthContext, row: OrderDetailRow): OrderDetail['actions'] {
+  const status = can(ctx, 'orders:status', row.zoneId);
+  const edit = can(ctx, 'orders:edit', row.zoneId);
+  return {
+    transitions: status
+      ? ORDER_TRANSITIONS[row.status].filter(
+          (t) => t !== 'CANCELLED' && t !== 'ASSIGNED' && t !== 'REFUNDED',
+        )
+      : [],
+    cancel: status && ORDER_CANCELLABLE.includes(row.status),
+    assign: edit && (row.status === 'READY' || row.status === 'ASSIGNED'),
+    reschedule:
+      edit && row.status === 'PLACED' && row.scheduledFor !== null && row.releasedAt === null,
+  };
+}
+
+function toDetail(ctx: AuthContext, row: OrderDetailRow): OrderDetail {
   return {
     ...toListItem(row),
+    addressLine: addressLine(row.addressSnapshotJson),
+    actions: actionsFor(ctx, row),
     subtotal: row.subtotal,
     tax: row.tax,
     deliveryCharge: row.deliveryCharge,
@@ -202,6 +242,14 @@ interface Plan {
   statusChange: boolean;
 }
 
+/** One D190 cancel reason (settings orders.cancelReasons). */
+interface CancelReasonDef {
+  code: string;
+  label: string;
+  usableBy: readonly string[];
+  noteRequired: boolean;
+}
+
 export class OrdersService {
   constructor(
     private readonly deps: {
@@ -209,13 +257,20 @@ export class OrdersService {
       clock: () => Date;
       /** D121: effective `delivery.maxConcurrentOrders` for the zone */
       maxConcurrentOrders: (zoneId: string) => Promise<number>;
+      /** D173: effective `delivery.codLimitPaise` for the zone (absent: no COD gate) */
+      codLimit?: (zoneId: string) => Promise<number>;
+      /** D190: the zone's orders.cancelReasons (absent: any reason code is accepted) */
+      cancelReasons?: (zoneId: string) => Promise<CancelReasonDef[]>;
       /**
        * D169: after an order moved to DELIVERED (committed): the rewards module credits the points (its own
        * transaction, idempotent per order; nothing when loyalty is off, D101). A failure never undoes the delivery.
        */
       onDelivered?: (orderId: string) => Promise<unknown>;
-      /** D173: the zone's COD float limit (settings cod.floatLimit); absent = no check */
-      codFloatLimit?: (zoneId: string) => Promise<{ enabled: boolean; limitPaise: number }>;
+      /**
+       * D182 F4: after an order moved to CANCELLED (committed): the offers module gives the offer use and its budget
+       * back (its own transaction, idempotent; the offers sweep catches any it misses). A failure never undoes it.
+       */
+      onCancelled?: (orderId: string) => Promise<unknown>;
       /** D179 section 3: ids of the caller's delayed open orders (GET /orders?delayed=true) */
       delayedIds?: (ctx: AuthContext) => Promise<string[]>;
     },
@@ -234,7 +289,7 @@ export class OrdersService {
   async get(ctx: AuthContext, id: string): Promise<OrderDetail> {
     const row = await this.deps.db.repo.detail(ctx, id);
     if (!row) throw notFound();
-    return toDetail(row);
+    return toDetail(ctx, row);
   }
 
   /** POST /orders/{id}/transition: every doc 10 move except cancel and assign (their own routes). */
@@ -304,8 +359,44 @@ export class OrdersService {
     });
   }
 
+  /** GET /orders/{id}/cancel-reasons (D190): what the cancel dialog offers; scoped like a cancellation. */
+  async cancelReasons(ctx: AuthContext, id: string): Promise<OrderCancelReasonsResponse> {
+    const order = await this.deps.db.repo.forWrite(ctx, id);
+    if (!order) throw notFound();
+    assertCanWrite(ctx, 'orders:status', order.zoneId);
+    const reasons = await this.adminCancelReasons(order.zoneId);
+    return {
+      reasons: reasons.map((r) => ({ code: r.code, label: r.label, noteRequired: r.noteRequired })),
+    };
+  }
+
+  private async adminCancelReasons(zoneId: string): Promise<CancelReasonDef[]> {
+    const all = (await this.deps.cancelReasons?.(zoneId)) ?? [];
+    return all.filter((r) => r.usableBy.includes('ADMIN'));
+  }
+
   /** POST /orders/{id}/cancel: a reason is required (doc 10); a captured payment means a refund is expected. */
-  cancel(
+  async cancel(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    input: CancelOrderInput,
+  ): Promise<OrderWriteResponse> {
+    const result = await this.cancelInTx(ctx, id, version, input);
+    if (this.deps.onCancelled) {
+      try {
+        await this.deps.onCancelled(id);
+      } catch (err) {
+        // only the class name: messages can carry SQL or personal data
+        console.error(
+          `offer use return after cancel failed (${err instanceof Error ? err.name : 'unknown'})`,
+        );
+      }
+    }
+    return result;
+  }
+
+  private cancelInTx(
     ctx: AuthContext,
     id: string,
     version: number,
@@ -314,6 +405,19 @@ export class OrdersService {
     return this.write(ctx, id, version, 'orders:status', async (_tx, order) => {
       if (!isOrderTransitionAllowed(order.status, 'CANCELLED'))
         throw invalid(order.status, 'CANCELLED');
+      if (this.deps.cancelReasons) {
+        const reason = (await this.adminCancelReasons(order.zoneId)).find(
+          (r) => r.code === input.reasonCode,
+        );
+        if (!reason)
+          throw new AppError('VALIDATION_ERROR', 'Not a cancel reason of this zone', [
+            { field: 'reasonCode', issue: 'unknown_reason' },
+          ]);
+        if (reason.noteRequired && !input.note)
+          throw new AppError('VALIDATION_ERROR', 'This reason needs a note', [
+            { field: 'note', issue: 'required' },
+          ]);
+      }
       const now = this.deps.clock();
       return {
         to: 'CANCELLED',
@@ -366,14 +470,16 @@ export class OrdersService {
           throw new AppError('VALIDATION_ERROR', p.message, [{ field: p.field, issue: p.issue }]);
         throw guard(p.field, p.issue, p.message);
       }
-      // D173: a partner holding COD cash above the zone's float limit gets no new COD order until settled
-      if (order.paymentMethod === 'COD' && this.deps.codFloatLimit) {
-        const float = await this.deps.codFloatLimit(order.zoneId);
-        if (float.enabled && partner.cash_in_hand >= float.limitPaise)
-          throw guard(
-            'deliveryPartnerId',
-            'PARTNER_COD_FLOAT_FULL',
-            `The delivery partner holds ₹${(partner.cash_in_hand / 100).toFixed(2)} of COD cash (limit ₹${(float.limitPaise / 100).toFixed(2)}); settle it before giving them a COD order`,
+      // D173: a partner holding COD cash at or above the zone's limit gets no new COD order until settled
+      if (order.paymentMethod === 'COD' && this.deps.codLimit) {
+        const limit = await this.deps.codLimit(order.zoneId);
+        if (partner.cash_in_hand >= limit)
+          throw new AppError(
+            'INVALID_STATE_TRANSITION',
+            'The delivery partner holds too much cash on delivery money; settle it before a new COD order',
+            [{ field: 'deliveryPartnerId', issue: 'PARTNER_COD_LIMIT' }],
+            undefined,
+            { cashInHandPaise: partner.cash_in_hand, limitPaise: limit },
           );
       }
       await tx.repo.adjustPartnerLoad(partner.id, 1);

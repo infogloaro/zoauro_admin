@@ -5,6 +5,8 @@ import {
   hotelListQuerySchema,
   menuItemListQuerySchema,
   notificationListQuerySchema,
+  offerListQuerySchema,
+  offerValueText,
   partnerListQuerySchema,
   ticketListQuerySchema,
   vendorListQuerySchema,
@@ -20,6 +22,8 @@ import {
   type MenuItemListQuery,
   type NotificationListItem,
   type NotificationListQuery,
+  type Offer,
+  type OfferListQuery,
   type PartnerListItem,
   type PartnerListQuery,
   type RestaurantListItem,
@@ -52,6 +56,8 @@ export interface ListServices {
   notifications?: { list(ctx: AuthContext, q: NotificationListQuery): Page<NotificationListItem> };
   support?: { list(ctx: AuthContext, q: TicketListQuery): Page<TicketListItem> };
   customers?: { list(ctx: AuthContext, q: CustomerListQuery): Page<CustomerListItem> };
+  /** D182 F1 */
+  offers?: { list(ctx: AuthContext, q: OfferListQuery): Page<Offer> };
 }
 
 const name = (r: { name: string } | null | undefined) => r?.name ?? '';
@@ -76,7 +82,8 @@ const vendorColumns = [
 
 export function listExportSources(s: ListServices): ExportSource[] {
   const out: ExportSource[] = [];
-  const { vendors, menu, partners, hotels, bookings, notifications, support, customers } = s;
+  const { vendors, menu, partners, hotels, bookings, notifications, support, customers, offers } =
+    s;
 
   if (vendors) {
     out.push(
@@ -241,6 +248,47 @@ export function listExportSources(s: ListServices): ExportSource[] {
           { header: 'Id', value: (d) => d.id },
         ],
         filename: datedFilename('dining-reservations'),
+      }),
+    );
+  }
+
+  if (offers) {
+    out.push(
+      pagedListSource<OfferListQuery, Offer>({
+        module: 'offers',
+        viewKey: 'offers:view',
+        audit: { module: 'offers', action: 'offer.exported' },
+        parse: (raw) => parseBody(offerListQuerySchema, raw),
+        list: (ctx, q) => offers.list(ctx, q),
+        columns: () => [
+          { header: 'Title', value: (o) => o.title },
+          { header: 'Code', value: (o) => o.code ?? 'Automatic' },
+          { header: 'Scope', value: (o) => o.scope },
+          {
+            header: 'Zones',
+            value: (o) => (o.scope === 'PLATFORM' ? 'All zones' : list(o.zones.map((z) => z.name))),
+          },
+          { header: 'Vendor', value: (o) => name(o.vendor) },
+          { header: 'Discount', value: (o) => offerValueText(o) },
+          { header: 'Min order (Rs)', value: (o) => rupees(o.minOrderPaise) },
+          { header: 'Funded by', value: (o) => o.fundedBy },
+          { header: 'Vendor share %', value: (o) => o.vendorSharePct },
+          { header: 'Status', value: (o) => o.status },
+          { header: 'Valid from (UTC)', value: (o) => o.validFrom },
+          { header: 'Valid to (UTC)', value: (o) => o.validTo },
+          { header: 'Uses', value: (o) => o.usedCount },
+          { header: 'Total uses limit', value: (o) => o.usageLimit },
+          { header: 'Spent (Rs)', value: (o) => rupees(o.spentPaise) },
+          {
+            header: 'Budget (Rs)',
+            value: (o) => (o.budgetPaise === null ? null : rupees(o.budgetPaise)),
+          },
+          { header: 'Source', value: (o) => o.source },
+          { header: 'Requested by', value: (o) => name(o.requestedBy) },
+          { header: 'Decided by', value: (o) => name(o.decidedBy) },
+          { header: 'Id', value: (o) => o.id },
+        ],
+        filename: datedFilename('offers'),
       }),
     );
   }

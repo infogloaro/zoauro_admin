@@ -17,10 +17,18 @@ export function createOrdersModule(deps: {
   appOrigin: string;
   /** D121: the effective `delivery.maxConcurrentOrders` of a zone (settings reader) */
   maxConcurrentOrders: (zoneId: string) => Promise<number>;
-  /** D173: the zone's COD float limit (settings reader codFloatLimit) */
-  codFloatLimit?: (zoneId: string) => Promise<{ enabled: boolean; limitPaise: number }>;
+  /** D173: the effective `delivery.codLimitPaise` of a zone (absent: no COD gate) */
+  codLimit?: (zoneId: string) => Promise<number>;
+  /** D190: settings orders.cancelReasons of a zone (SettingsReader.cancelReasons) */
+  cancelReasons?: (
+    zoneId: string,
+  ) => Promise<
+    { code: string; label: string; usableBy: readonly string[]; noteRequired: boolean }[]
+  >;
   /** D169: the rewards module's earnForDeliveredOrder */
   onDelivered?: (orderId: string) => Promise<unknown>;
+  /** D182 F4: the offers module's reverseForOrder (after a cancel commits) */
+  onCancelled?: (orderId: string) => Promise<unknown>;
   /** D179 section 3: settings orders.sla of a zone (null = platform); absent: the defaults */
   sla?: (zoneId: string | null) => Promise<OrderSla>;
   clock?: () => Date;
@@ -35,8 +43,10 @@ export function createOrdersModule(deps: {
     db: new OrdersDatabase(deps.prisma),
     clock,
     maxConcurrentOrders: deps.maxConcurrentOrders,
-    ...(deps.codFloatLimit ? { codFloatLimit: deps.codFloatLimit } : {}),
+    ...(deps.codLimit ? { codLimit: deps.codLimit } : {}),
+    ...(deps.cancelReasons ? { cancelReasons: deps.cancelReasons } : {}),
     ...(deps.onDelivered ? { onDelivered: deps.onDelivered } : {}),
+    ...(deps.onCancelled ? { onCancelled: deps.onCancelled } : {}),
     delayedIds: (ctx) => overview.delayedIds(ctx),
   });
   return {

@@ -18,6 +18,8 @@ export const INTAKE_ERROR_STATUS = {
   DUPLICATE_ORDER: 409,
   /** an auto-assign offer that is no longer open (D154) */
   OFFER_EXPIRED: 409,
+  /** a promotion (D182) that cannot be applied to this order; meta.reason (OFFER_INVALID_REASONS, doc 10 §8) */
+  OFFER_INVALID: 422,
   /** address outside the vendor's zone, or the zone is not active */
   NOT_SERVICEABLE: 422,
   /** vendor inactive, suspended or closed */

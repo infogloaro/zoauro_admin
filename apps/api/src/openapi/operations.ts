@@ -116,6 +116,7 @@ import {
   zoneScopeResponseSchema,
   assignOrderSchema,
   cancelOrderSchema,
+  orderCancelReasonsResponseSchema,
   orderDetailSchema,
   orderIdParamsSchema,
   orderListQuerySchema,
@@ -138,6 +139,7 @@ import { PREORDER_OPERATIONS } from './operations.preorders';
 import { MENU_OPERATIONS } from './operations.menu';
 import { ONBOARDING_OPERATIONS } from './operations.onboarding';
 import { PLAN_OPERATIONS } from './operations.plans';
+import { OFFER_OPERATIONS } from './operations.offers';
 import { PARTNER_OPERATIONS } from './operations.partners';
 import { NOTIFICATION_OPERATIONS } from './operations.notifications';
 import { DASHBOARD_OPERATIONS } from './operations.dashboard';
@@ -1435,6 +1437,18 @@ export const OPERATIONS: OperationDef[] = [
     errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION', 'REASON_REQUIRED'],
   },
   {
+    operationId: 'getOrderCancelReasons',
+    method: 'get',
+    path: '/orders/{id}/cancel-reasons',
+    tags: ['orders'],
+    summary:
+      'D190: the reasons the cancel dialog offers for this order (the zone’s orders.cancelReasons an admin may use, and whether each needs a note); scoped like a cancellation',
+    access: { kind: 'permission', permission: 'orders:status', zone: 'none' },
+    params: orderIdParamsSchema,
+    response: { status: 200, schema: orderCancelReasonsResponseSchema, description: 'The reasons' },
+    errors: ['NOT_FOUND'],
+  },
+  {
     operationId: 'assignOrder',
     method: 'post',
     path: '/orders/{id}/assign',
@@ -1466,6 +1480,7 @@ export const OPERATIONS: OperationDef[] = [
   ...ONBOARDING_OPERATIONS,
   // D188 vendor plans (operations.plans.ts)
   ...PLAN_OPERATIONS,
+  ...OFFER_OPERATIONS,
   ...NOTIFICATION_OPERATIONS,
   ...DASHBOARD_OPERATIONS,
   ...SEARCH_OPERATIONS,

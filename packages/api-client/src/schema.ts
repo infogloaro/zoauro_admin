@@ -402,45 +402,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** COD settlement history: per partner the amount expected, handed in and the variance (?varianceOnly=true), PENDING hand-overs reported by the partner app (?status=PENDING), who settled it and when; totals of confirmed hand-ins for the filters */
+        /** COD settlement history: per partner the amount expected, handed in and the variance (?varianceOnly=true), who settled it and when; totals for the filters */
         get: operations["listCashSettlements"];
         put?: never;
-        /** Record cash an admin counted from a delivery partner (Idempotency-Key): CONFIRMED at once; expected = the cash in hand now, variance = counted − expected; the counted amount leaves the cash in hand, a shortfall stays on it */
-        post: operations["recordCashSettlement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/cash-settlements/{id}/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Confirm a PENDING hand-over the partner app reported, with the amount actually counted (version from the row); 409 when it is no longer pending or was changed meanwhile */
-        post: operations["confirmCashSettlement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/cash-settlements/{id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reject a PENDING hand-over with a reason: no cash moves */
-        post: operations["rejectCashSettlement"];
+        /** Record the cash a delivery partner handed in (doc 16 §2): expectedPaise is the cash in hand the admin saw (409 when it changed since); a difference needs a note; the partner then holds expected minus handed in. Ledger, audit and settlement.confirmed for the partner app */
+        post: operations["createCashSettlement"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2220,6 +2186,179 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offers in scope: zone and vendor offers of the caller’s offers:view zones, and every-zone (PLATFORM) offers; tab counts per status */
+        get: operations["listOffers"];
+        put?: never;
+        /** Create a DRAFT. PLATFORM and SHARED funding: Super Admin only; ZONE: every zone needs offers:add; VENDOR: the vendor’s zone. Checked against offers.rules */
+        post: operations["createOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/offers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One offer with what the caller may do with it (the service answers 404 outside the caller’s offers:view zones) */
+        get: operations["getOffer"];
+        put?: never;
+        post?: never;
+        /** Soft delete (Super Admin): a draft, rejected, cancelled or expired offer nobody has used. JSON body {version} */
+        delete: operations["deleteOffer"];
+        options?: never;
+        head?: never;
+        /** Edit at its version: any term while DRAFT or REJECTED (a rejected offer becomes a draft); once approved only budget up, total uses up, end earlier (Super Admin, D204) */
+        patch: operations["updateOffer"];
+        trace?: never;
+    };
+    "/offers/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** PENDING_APPROVAL → SCHEDULED or ACTIVE (PASSWORD). Never the requester; a Zonal Admin’s offer needs a Super Admin */
+        post: operations["approveOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/offers/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Any open offer (draft to paused) → CANCELLED with a reason */
+        post: operations["cancelOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/offers/{id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ACTIVE → PAUSED with a reason; offers:status in every zone of the offer */
+        post: operations["pauseOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/offers/{id}/redemptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Orders that used the offer, in the caller’s offers:view zones; customer phone masked (the service answers 404 outside the caller’s offers:view zones) */
+        get: operations["listOfferRedemptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/offers/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** PENDING_APPROVAL → REJECTED with a reason (PASSWORD); same approver rules */
+        post: operations["rejectOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/offers/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** PAUSED → ACTIVE; refused (409) once ended, with the budget spent or every use taken */
+        post: operations["resumeOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/offers/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** DRAFT → PENDING_APPROVAL; a Super Admin’s own offer goes straight to SCHEDULED (ACTIVE once started) */
+        post: operations["submitOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/offers/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start a CSV export of the offers list with the same filters and zone scope as GET /offers (D149). Needs offers:export and, for a Zonal Admin, the zone's export switch in every exported zone; at most 3 exports in progress, 100k rows; contacts masked (D26) */
+        get: operations["exportOffers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/onboarding": {
         parameters: {
             query?: never;
@@ -2322,17 +2461,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/orders/{id}/cod-collection": {
+    "/orders/{id}/cancel-reasons": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** D190: the reasons the cancel dialog offers for this order (the zone’s orders.cancelReasons an admin may use, and whether each needs a note); scoped like a cancellation */
+        get: operations["getOrderCancelReasons"];
         put?: never;
-        /** The customer paid the assigned partner in cash (If-Match): the COD payment becomes PAID, so the order can be delivered, and the total joins the partner’s cash in hand (doc 16 §2, R-PAY-3) */
-        post: operations["collectCodCash"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3640,7 +3779,7 @@ export interface components {
         ErrorBody: {
             error: {
                 /** @enum {string} */
-                code: "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "ZONE_NOT_FOUND" | "VALIDATION_ERROR" | "CONFLICT" | "RATE_LIMITED" | "INVALID_STATE_TRANSITION" | "REFUND_LIMIT_EXCEEDED" | "REAUTH_REQUIRED" | "PASSWORD_CHANGE_REQUIRED" | "SMS_NOT_AVAILABLE" | "PHONE_MISSING" | "LAST_METHOD_REQUIRED" | "STALE_VERSION" | "ZONE_NAME_TAKEN" | "ZONE_CODE_TAKEN" | "PINCODE_OVERLAP" | "RANGE_TOO_LARGE" | "CODE_IMMUTABLE" | "ZONE_NOT_ACTIVATABLE" | "IMPACT_CHANGED" | "REASON_REQUIRED" | "ZONE_HAS_HISTORY" | "ZONE_SERVICE_DISABLED" | "SIGNATURE_INVALID" | "TIMESTAMP_SKEW" | "CLIENT_DISABLED" | "SCOPE_DENIED" | "ENTITY_MISMATCH" | "CUSTOMER_BLOCKED" | "UNKNOWN_ENTITY" | "IDEMPOTENCY_CONFLICT" | "IDEMPOTENCY_IN_PROGRESS" | "DUPLICATE_ORDER" | "OFFER_EXPIRED" | "NOT_SERVICEABLE" | "VENDOR_UNAVAILABLE" | "PRICE_MISMATCH" | "ITEM_UNAVAILABLE" | "PARTNER_NOT_ELIGIBLE" | "CATEGORY_IN_USE" | "NO_ROOMS_AVAILABLE" | "RECORD_CLAIMED" | "SERVICE_UNAVAILABLE" | "INTERNAL";
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "ZONE_NOT_FOUND" | "VALIDATION_ERROR" | "CONFLICT" | "RATE_LIMITED" | "INVALID_STATE_TRANSITION" | "REFUND_LIMIT_EXCEEDED" | "REAUTH_REQUIRED" | "PASSWORD_CHANGE_REQUIRED" | "SMS_NOT_AVAILABLE" | "PHONE_MISSING" | "LAST_METHOD_REQUIRED" | "STALE_VERSION" | "ZONE_NAME_TAKEN" | "ZONE_CODE_TAKEN" | "PINCODE_OVERLAP" | "RANGE_TOO_LARGE" | "CODE_IMMUTABLE" | "ZONE_NOT_ACTIVATABLE" | "IMPACT_CHANGED" | "REASON_REQUIRED" | "ZONE_HAS_HISTORY" | "ZONE_SERVICE_DISABLED" | "SIGNATURE_INVALID" | "TIMESTAMP_SKEW" | "CLIENT_DISABLED" | "SCOPE_DENIED" | "ENTITY_MISMATCH" | "CUSTOMER_BLOCKED" | "UNKNOWN_ENTITY" | "IDEMPOTENCY_CONFLICT" | "IDEMPOTENCY_IN_PROGRESS" | "DUPLICATE_ORDER" | "OFFER_EXPIRED" | "OFFER_INVALID" | "NOT_SERVICEABLE" | "VENDOR_UNAVAILABLE" | "PRICE_MISMATCH" | "ITEM_UNAVAILABLE" | "PARTNER_NOT_ELIGIBLE" | "CATEGORY_IN_USE" | "NO_ROOMS_AVAILABLE" | "RECORD_CLAIMED" | "SERVICE_UNAVAILABLE" | "INTERNAL";
                 details?: {
                     field: string;
                     issue: string;
@@ -4761,7 +4900,7 @@ export interface operations {
                 entityType?: string;
                 from?: string;
                 limit?: number;
-                module?: "auth" | "zones" | "admins" | "access" | "restaurants" | "homemakers" | "menu" | "customers" | "delivery" | "orders" | "payments" | "refunds" | "settlements" | "payouts" | "settings" | "integrations" | "notifications" | "audit" | "system" | "hotels" | "support" | "plans";
+                module?: "auth" | "zones" | "admins" | "access" | "restaurants" | "homemakers" | "menu" | "customers" | "delivery" | "orders" | "payments" | "refunds" | "settlements" | "payouts" | "settings" | "integrations" | "notifications" | "audit" | "system" | "hotels" | "support" | "plans" | "offers";
                 outcome?: "SUCCESS" | "DENIED";
                 q?: string;
                 sensitivity?: "NORMAL" | "HIGH";
@@ -5046,9 +5185,9 @@ export interface operations {
                             key: string;
                             label: string;
                             /** @enum {string} */
-                            module: "auth" | "zones" | "admins" | "access" | "restaurants" | "homemakers" | "menu" | "customers" | "delivery" | "orders" | "payments" | "refunds" | "settlements" | "payouts" | "settings" | "integrations" | "notifications" | "audit" | "system" | "hotels" | "support" | "plans";
+                            module: "auth" | "zones" | "admins" | "access" | "restaurants" | "homemakers" | "menu" | "customers" | "delivery" | "orders" | "payments" | "refunds" | "settlements" | "payouts" | "settings" | "integrations" | "notifications" | "audit" | "system" | "hotels" | "support" | "plans" | "offers";
                         }[];
-                        modules: ("auth" | "zones" | "admins" | "access" | "restaurants" | "homemakers" | "menu" | "customers" | "delivery" | "orders" | "payments" | "refunds" | "settlements" | "payouts" | "settings" | "integrations" | "notifications" | "audit" | "system" | "hotels" | "support" | "plans")[];
+                        modules: ("auth" | "zones" | "admins" | "access" | "restaurants" | "homemakers" | "menu" | "customers" | "delivery" | "orders" | "payments" | "refunds" | "settlements" | "payouts" | "settings" | "integrations" | "notifications" | "audit" | "system" | "hotels" | "support" | "plans" | "offers")[];
                     };
                 };
             };
@@ -5748,7 +5887,6 @@ export interface operations {
                 page?: number;
                 pageSize?: number;
                 sort?: string;
-                status?: "PENDING" | "CONFIRMED" | "REJECTED";
                 to?: string;
                 varianceOnly?: "true" | "false";
                 zoneId?: string[];
@@ -5767,8 +5905,6 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: {
-                            /** Format: date-time */
-                            createdAt: string;
                             expectedPaise: number;
                             handedInPaise: number;
                             /** Format: uuid */
@@ -5779,23 +5915,14 @@ export interface operations {
                                 id: string;
                                 name: string;
                             };
-                            reference: string | null;
                             /** Format: date-time */
-                            reportedAt: string | null;
-                            reportedPaise: number | null;
-                            /** Format: date-time */
-                            settledAt: string | null;
+                            settledAt: string;
                             settledBy: {
                                 /** Format: uuid */
                                 id: string;
                                 name: string;
-                            } | null;
-                            /** @enum {string} */
-                            source: "APP" | "ADMIN" | "IMPORT";
-                            /** @enum {string} */
-                            status: "PENDING" | "CONFIRMED" | "REJECTED";
+                            };
                             variancePaise: number;
-                            version: number;
                             zone: {
                                 code: string;
                                 /** Format: uuid */
@@ -5807,7 +5934,6 @@ export interface operations {
                             counts: {
                                 expectedPaise: number;
                                 handedInPaise: number;
-                                pending: number;
                                 total: number;
                                 variancePaise: number;
                                 withVariance: number;
@@ -5857,12 +5983,10 @@ export interface operations {
             };
         };
     };
-    recordCashSettlement: {
+    createCashSettlement: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -5871,9 +5995,9 @@ export interface operations {
                 "application/json": {
                     /** Format: uuid */
                     deliveryPartnerId: string;
+                    expectedPaise: number;
                     handedInPaise: number;
                     note?: string;
-                    reference?: string;
                 };
             };
         };
@@ -5885,8 +6009,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** Format: date-time */
-                        createdAt: string;
+                        cashInHandAfterPaise: number;
                         expectedPaise: number;
                         handedInPaise: number;
                         /** Format: uuid */
@@ -5897,24 +6020,14 @@ export interface operations {
                             id: string;
                             name: string;
                         };
-                        partnerCashInHandPaise: number;
-                        reference: string | null;
                         /** Format: date-time */
-                        reportedAt: string | null;
-                        reportedPaise: number | null;
-                        /** Format: date-time */
-                        settledAt: string | null;
+                        settledAt: string;
                         settledBy: {
                             /** Format: uuid */
                             id: string;
                             name: string;
-                        } | null;
-                        /** @enum {string} */
-                        source: "APP" | "ADMIN" | "IMPORT";
-                        /** @enum {string} */
-                        status: "PENDING" | "CONFIRMED" | "REJECTED";
+                        };
                         variancePaise: number;
-                        version: number;
                         zone: {
                             code: string;
                             /** Format: uuid */
@@ -5971,229 +6084,6 @@ export interface operations {
             };
         };
     };
-    confirmCashSettlement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    handedInPaise: number;
-                    note?: string;
-                    version: number;
-                };
-            };
-        };
-        responses: {
-            /** @description Confirmed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Format: date-time */
-                        createdAt: string;
-                        expectedPaise: number;
-                        handedInPaise: number;
-                        /** Format: uuid */
-                        id: string;
-                        note: string | null;
-                        partner: {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                        };
-                        partnerCashInHandPaise: number;
-                        reference: string | null;
-                        /** Format: date-time */
-                        reportedAt: string | null;
-                        reportedPaise: number | null;
-                        /** Format: date-time */
-                        settledAt: string | null;
-                        settledBy: {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                        } | null;
-                        /** @enum {string} */
-                        source: "APP" | "ADMIN" | "IMPORT";
-                        /** @enum {string} */
-                        status: "PENDING" | "CONFIRMED" | "REJECTED";
-                        variancePaise: number;
-                        version: number;
-                        zone: {
-                            code: string;
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                        };
-                    };
-                };
-            };
-            /** @description Not signed in, or the session ended */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found (also used for objects in zones the caller cannot see) */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Invalid input */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
-    rejectCashSettlement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    reason: string;
-                    version: number;
-                };
-            };
-        };
-        responses: {
-            /** @description Rejected */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Format: date-time */
-                        createdAt: string;
-                        expectedPaise: number;
-                        handedInPaise: number;
-                        /** Format: uuid */
-                        id: string;
-                        note: string | null;
-                        partner: {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                        };
-                        partnerCashInHandPaise: number;
-                        reference: string | null;
-                        /** Format: date-time */
-                        reportedAt: string | null;
-                        reportedPaise: number | null;
-                        /** Format: date-time */
-                        settledAt: string | null;
-                        settledBy: {
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                        } | null;
-                        /** @enum {string} */
-                        source: "APP" | "ADMIN" | "IMPORT";
-                        /** @enum {string} */
-                        status: "PENDING" | "CONFIRMED" | "REJECTED";
-                        variancePaise: number;
-                        version: number;
-                        zone: {
-                            code: string;
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                        };
-                    };
-                };
-            };
-            /** @description Not signed in, or the session ended */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found (also used for objects in zones the caller cannot see) */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Invalid input */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
     listCodBalances: {
         parameters: {
             query?: {
@@ -6219,14 +6109,14 @@ export interface operations {
                     "application/json": {
                         data: {
                             cashInHandPaise: number;
-                            floatLimitPaise: number | null;
+                            codLimitPaise: number;
                             lastSettlement: {
                                 handedInPaise: number;
                                 /** Format: date-time */
                                 settledAt: string;
                                 variancePaise: number;
                             } | null;
-                            overFloatLimit: boolean;
+                            overLimit: boolean;
                             partner: {
                                 /** Format: uuid */
                                 id: string;
@@ -6234,13 +6124,6 @@ export interface operations {
                                 name: string;
                                 status: string;
                             };
-                            pendingHandover: {
-                                /** Format: uuid */
-                                id: string;
-                                /** Format: date-time */
-                                reportedAt: string | null;
-                                reportedPaise: number;
-                            } | null;
                             zone: {
                                 code: string;
                                 /** Format: uuid */
@@ -8561,7 +8444,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -9180,6 +9063,8 @@ export interface operations {
                             /** @enum {string} */
                             assignment: "ASSIGNED" | "UNASSIGNED";
                             cashInHand: number;
+                            codBlocked: boolean;
+                            codLimitPaise: number | null;
                             /** Format: date-time */
                             createdAt: string;
                             currentOrders: number;
@@ -9309,6 +9194,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -9455,6 +9342,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -9670,6 +9559,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -9823,6 +9714,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -10049,6 +9942,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -10203,6 +10098,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -10357,6 +10254,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -10581,6 +10480,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -10735,6 +10636,8 @@ export interface operations {
                             /** @enum {string} */
                             state: "MISSING" | "PENDING" | "VERIFIED" | "REJECTED";
                         }[] | null;
+                        codBlocked: boolean;
+                        codLimitPaise: number | null;
                         /** Format: date-time */
                         createdAt: string;
                         currentOrders: number;
@@ -10890,7 +10793,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -10973,7 +10876,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -12812,7 +12715,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -14343,7 +14246,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -14877,7 +14780,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -14967,7 +14870,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -17760,7 +17663,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -18716,7 +18619,1806 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
+                        rowCount: number;
+                        /** @enum {string} */
+                        status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
+                        zoneIds: string[] | null;
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listOffers: {
+        parameters: {
+            query?: {
+                fundedBy?: "PLATFORM" | "VENDOR" | "SHARED";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                scope?: "PLATFORM" | "ZONE" | "VENDOR";
+                sort?: string;
+                status?: ("DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED") | ("DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED")[];
+                type?: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                vendorId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            approvalOverdue: boolean;
+                            budgetPaise: number | null;
+                            can: {
+                                approve: boolean;
+                                cancel: boolean;
+                                delete: boolean;
+                                edit: boolean;
+                                pause: boolean;
+                                resume: boolean;
+                                submit: boolean;
+                            };
+                            code: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            decidedAt: string | null;
+                            decidedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            decisionReason: string | null;
+                            description: string | null;
+                            /** @enum {string} */
+                            fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                            /** Format: uuid */
+                            id: string;
+                            maxDiscountPaise: number | null;
+                            minOrderPaise: number;
+                            newCustomersOnly: boolean;
+                            paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                            perCustomerLimit: number;
+                            requestedBy: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            requestedBySuperAdmin: boolean;
+                            /** @enum {string} */
+                            scope: "PLATFORM" | "ZONE" | "VENDOR";
+                            /** @enum {string} */
+                            source: "ADMIN" | "APP";
+                            spentPaise: number;
+                            /** @enum {string} */
+                            status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                            statusReason: string | null;
+                            /** Format: date-time */
+                            submittedAt: string | null;
+                            title: string;
+                            /** @enum {string} */
+                            type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                            /** Format: date-time */
+                            updatedAt: string;
+                            usageLimit: number | null;
+                            usedCount: number;
+                            /** Format: date-time */
+                            validFrom: string;
+                            /** Format: date-time */
+                            validTo: string;
+                            value: number;
+                            vendor: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                type: "RESTAURANT" | "HOMEMAKER";
+                            } | null;
+                            vendorSharePct: number | null;
+                            version: number;
+                            zones: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            }[];
+                        }[];
+                        meta: {
+                            counts: {
+                                ACTIVE?: number;
+                                CANCELLED?: number;
+                                DRAFT?: number;
+                                EXPIRED?: number;
+                                PAUSED?: number;
+                                PENDING_APPROVAL?: number;
+                                REJECTED?: number;
+                                SCHEDULED?: number;
+                            };
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    createOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    budgetPaise?: number | null;
+                    code?: string | null;
+                    description?: string | null;
+                    /** @enum {string} */
+                    fundedBy?: "PLATFORM" | "VENDOR" | "SHARED";
+                    maxDiscountPaise?: number | null;
+                    /** @default 0 */
+                    minOrderPaise?: number;
+                    /** @default false */
+                    newCustomersOnly?: boolean;
+                    /** @default [] */
+                    paymentMethods?: ("ONLINE" | "COD" | "WALLET")[];
+                    /** @default 1 */
+                    perCustomerLimit?: number;
+                    /** @enum {string} */
+                    scope: "PLATFORM" | "ZONE" | "VENDOR";
+                    title: string;
+                    /** @enum {string} */
+                    type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                    usageLimit?: number | null;
+                    /** Format: date-time */
+                    validFrom: string;
+                    /** Format: date-time */
+                    validTo: string;
+                    value: number;
+                    vendor?: {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        type: "RESTAURANT" | "HOMEMAKER";
+                    } | null;
+                    vendorSharePct?: number | null;
+                    /** @default [] */
+                    zoneIds?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approvalOverdue: boolean;
+                        budgetPaise: number | null;
+                        can: {
+                            approve: boolean;
+                            cancel: boolean;
+                            delete: boolean;
+                            edit: boolean;
+                            pause: boolean;
+                            resume: boolean;
+                            submit: boolean;
+                        };
+                        code: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        description: string | null;
+                        /** @enum {string} */
+                        fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                        /** Format: uuid */
+                        id: string;
+                        maxDiscountPaise: number | null;
+                        minOrderPaise: number;
+                        newCustomersOnly: boolean;
+                        paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                        perCustomerLimit: number;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        requestedBySuperAdmin: boolean;
+                        /** @enum {string} */
+                        scope: "PLATFORM" | "ZONE" | "VENDOR";
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        spentPaise: number;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                        statusReason: string | null;
+                        /** Format: date-time */
+                        submittedAt: string | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        usageLimit: number | null;
+                        usedCount: number;
+                        /** Format: date-time */
+                        validFrom: string;
+                        /** Format: date-time */
+                        validTo: string;
+                        value: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER";
+                        } | null;
+                        vendorSharePct: number | null;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The offer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approvalOverdue: boolean;
+                        budgetPaise: number | null;
+                        can: {
+                            approve: boolean;
+                            cancel: boolean;
+                            delete: boolean;
+                            edit: boolean;
+                            pause: boolean;
+                            resume: boolean;
+                            submit: boolean;
+                        };
+                        code: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        description: string | null;
+                        /** @enum {string} */
+                        fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                        /** Format: uuid */
+                        id: string;
+                        maxDiscountPaise: number | null;
+                        minOrderPaise: number;
+                        newCustomersOnly: boolean;
+                        paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                        perCustomerLimit: number;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        requestedBySuperAdmin: boolean;
+                        /** @enum {string} */
+                        scope: "PLATFORM" | "ZONE" | "VENDOR";
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        spentPaise: number;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                        statusReason: string | null;
+                        /** Format: date-time */
+                        submittedAt: string | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        usageLimit: number | null;
+                        usedCount: number;
+                        /** Format: date-time */
+                        validFrom: string;
+                        /** Format: date-time */
+                        validTo: string;
+                        value: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER";
+                        } | null;
+                        vendorSharePct: number | null;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    deleteOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    updateOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    budgetPaise?: number | null;
+                    code?: string | null;
+                    description?: string | null;
+                    maxDiscountPaise?: number | null;
+                    minOrderPaise?: number;
+                    newCustomersOnly?: boolean;
+                    paymentMethods?: ("ONLINE" | "COD" | "WALLET")[];
+                    perCustomerLimit?: number;
+                    title?: string;
+                    /** @enum {string} */
+                    type?: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                    usageLimit?: number | null;
+                    /** Format: date-time */
+                    validFrom?: string;
+                    /** Format: date-time */
+                    validTo?: string;
+                    value?: number;
+                    vendorSharePct?: number;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approvalOverdue: boolean;
+                        budgetPaise: number | null;
+                        can: {
+                            approve: boolean;
+                            cancel: boolean;
+                            delete: boolean;
+                            edit: boolean;
+                            pause: boolean;
+                            resume: boolean;
+                            submit: boolean;
+                        };
+                        code: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        description: string | null;
+                        /** @enum {string} */
+                        fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                        /** Format: uuid */
+                        id: string;
+                        maxDiscountPaise: number | null;
+                        minOrderPaise: number;
+                        newCustomersOnly: boolean;
+                        paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                        perCustomerLimit: number;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        requestedBySuperAdmin: boolean;
+                        /** @enum {string} */
+                        scope: "PLATFORM" | "ZONE" | "VENDOR";
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        spentPaise: number;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                        statusReason: string | null;
+                        /** Format: date-time */
+                        submittedAt: string | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        usageLimit: number | null;
+                        usedCount: number;
+                        /** Format: date-time */
+                        validFrom: string;
+                        /** Format: date-time */
+                        validTo: string;
+                        value: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER";
+                        } | null;
+                        vendorSharePct: number | null;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    approveOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approvalOverdue: boolean;
+                        budgetPaise: number | null;
+                        can: {
+                            approve: boolean;
+                            cancel: boolean;
+                            delete: boolean;
+                            edit: boolean;
+                            pause: boolean;
+                            resume: boolean;
+                            submit: boolean;
+                        };
+                        code: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        description: string | null;
+                        /** @enum {string} */
+                        fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                        /** Format: uuid */
+                        id: string;
+                        maxDiscountPaise: number | null;
+                        minOrderPaise: number;
+                        newCustomersOnly: boolean;
+                        paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                        perCustomerLimit: number;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        requestedBySuperAdmin: boolean;
+                        /** @enum {string} */
+                        scope: "PLATFORM" | "ZONE" | "VENDOR";
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        spentPaise: number;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                        statusReason: string | null;
+                        /** Format: date-time */
+                        submittedAt: string | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        usageLimit: number | null;
+                        usedCount: number;
+                        /** Format: date-time */
+                        validFrom: string;
+                        /** Format: date-time */
+                        validTo: string;
+                        value: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER";
+                        } | null;
+                        vendorSharePct: number | null;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    cancelOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Cancelled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approvalOverdue: boolean;
+                        budgetPaise: number | null;
+                        can: {
+                            approve: boolean;
+                            cancel: boolean;
+                            delete: boolean;
+                            edit: boolean;
+                            pause: boolean;
+                            resume: boolean;
+                            submit: boolean;
+                        };
+                        code: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        description: string | null;
+                        /** @enum {string} */
+                        fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                        /** Format: uuid */
+                        id: string;
+                        maxDiscountPaise: number | null;
+                        minOrderPaise: number;
+                        newCustomersOnly: boolean;
+                        paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                        perCustomerLimit: number;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        requestedBySuperAdmin: boolean;
+                        /** @enum {string} */
+                        scope: "PLATFORM" | "ZONE" | "VENDOR";
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        spentPaise: number;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                        statusReason: string | null;
+                        /** Format: date-time */
+                        submittedAt: string | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        usageLimit: number | null;
+                        usedCount: number;
+                        /** Format: date-time */
+                        validFrom: string;
+                        /** Format: date-time */
+                        validTo: string;
+                        value: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER";
+                        } | null;
+                        vendorSharePct: number | null;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    pauseOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Paused */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approvalOverdue: boolean;
+                        budgetPaise: number | null;
+                        can: {
+                            approve: boolean;
+                            cancel: boolean;
+                            delete: boolean;
+                            edit: boolean;
+                            pause: boolean;
+                            resume: boolean;
+                            submit: boolean;
+                        };
+                        code: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        description: string | null;
+                        /** @enum {string} */
+                        fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                        /** Format: uuid */
+                        id: string;
+                        maxDiscountPaise: number | null;
+                        minOrderPaise: number;
+                        newCustomersOnly: boolean;
+                        paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                        perCustomerLimit: number;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        requestedBySuperAdmin: boolean;
+                        /** @enum {string} */
+                        scope: "PLATFORM" | "ZONE" | "VENDOR";
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        spentPaise: number;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                        statusReason: string | null;
+                        /** Format: date-time */
+                        submittedAt: string | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        usageLimit: number | null;
+                        usedCount: number;
+                        /** Format: date-time */
+                        validFrom: string;
+                        /** Format: date-time */
+                        validTo: string;
+                        value: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER";
+                        } | null;
+                        vendorSharePct: number | null;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listOfferRedemptions: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                status?: "APPLIED" | "REVERSED";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            appliedAt: string;
+                            customer: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                phone: string | null;
+                            };
+                            discountPaise: number;
+                            /** Format: uuid */
+                            id: string;
+                            order: {
+                                /** Format: uuid */
+                                id: string;
+                                orderNo: string;
+                            };
+                            platformPaise: number;
+                            /** Format: date-time */
+                            reversedAt: string | null;
+                            /** @enum {string} */
+                            status: "APPLIED" | "REVERSED";
+                            vendorPaise: number;
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rejectOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approvalOverdue: boolean;
+                        budgetPaise: number | null;
+                        can: {
+                            approve: boolean;
+                            cancel: boolean;
+                            delete: boolean;
+                            edit: boolean;
+                            pause: boolean;
+                            resume: boolean;
+                            submit: boolean;
+                        };
+                        code: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        description: string | null;
+                        /** @enum {string} */
+                        fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                        /** Format: uuid */
+                        id: string;
+                        maxDiscountPaise: number | null;
+                        minOrderPaise: number;
+                        newCustomersOnly: boolean;
+                        paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                        perCustomerLimit: number;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        requestedBySuperAdmin: boolean;
+                        /** @enum {string} */
+                        scope: "PLATFORM" | "ZONE" | "VENDOR";
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        spentPaise: number;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                        statusReason: string | null;
+                        /** Format: date-time */
+                        submittedAt: string | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        usageLimit: number | null;
+                        usedCount: number;
+                        /** Format: date-time */
+                        validFrom: string;
+                        /** Format: date-time */
+                        validTo: string;
+                        value: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER";
+                        } | null;
+                        vendorSharePct: number | null;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    resumeOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Resumed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approvalOverdue: boolean;
+                        budgetPaise: number | null;
+                        can: {
+                            approve: boolean;
+                            cancel: boolean;
+                            delete: boolean;
+                            edit: boolean;
+                            pause: boolean;
+                            resume: boolean;
+                            submit: boolean;
+                        };
+                        code: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        description: string | null;
+                        /** @enum {string} */
+                        fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                        /** Format: uuid */
+                        id: string;
+                        maxDiscountPaise: number | null;
+                        minOrderPaise: number;
+                        newCustomersOnly: boolean;
+                        paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                        perCustomerLimit: number;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        requestedBySuperAdmin: boolean;
+                        /** @enum {string} */
+                        scope: "PLATFORM" | "ZONE" | "VENDOR";
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        spentPaise: number;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                        statusReason: string | null;
+                        /** Format: date-time */
+                        submittedAt: string | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        usageLimit: number | null;
+                        usedCount: number;
+                        /** Format: date-time */
+                        validFrom: string;
+                        /** Format: date-time */
+                        validTo: string;
+                        value: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER";
+                        } | null;
+                        vendorSharePct: number | null;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    submitOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Sent */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approvalOverdue: boolean;
+                        budgetPaise: number | null;
+                        can: {
+                            approve: boolean;
+                            cancel: boolean;
+                            delete: boolean;
+                            edit: boolean;
+                            pause: boolean;
+                            resume: boolean;
+                            submit: boolean;
+                        };
+                        code: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decidedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        decisionReason: string | null;
+                        description: string | null;
+                        /** @enum {string} */
+                        fundedBy: "PLATFORM" | "VENDOR" | "SHARED";
+                        /** Format: uuid */
+                        id: string;
+                        maxDiscountPaise: number | null;
+                        minOrderPaise: number;
+                        newCustomersOnly: boolean;
+                        paymentMethods: ("ONLINE" | "COD" | "WALLET")[];
+                        perCustomerLimit: number;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        requestedBySuperAdmin: boolean;
+                        /** @enum {string} */
+                        scope: "PLATFORM" | "ZONE" | "VENDOR";
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP";
+                        spentPaise: number;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED";
+                        statusReason: string | null;
+                        /** Format: date-time */
+                        submittedAt: string | null;
+                        title: string;
+                        /** @enum {string} */
+                        type: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                        /** Format: date-time */
+                        updatedAt: string;
+                        usageLimit: number | null;
+                        usedCount: number;
+                        /** Format: date-time */
+                        validFrom: string;
+                        /** Format: date-time */
+                        validTo: string;
+                        value: number;
+                        vendor: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER";
+                        } | null;
+                        vendorSharePct: number | null;
+                        version: number;
+                        zones: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    exportOffers: {
+        parameters: {
+            query?: {
+                fundedBy?: "PLATFORM" | "VENDOR" | "SHARED";
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                scope?: "PLATFORM" | "ZONE" | "VENDOR";
+                sort?: string;
+                status?: ("DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED") | ("DRAFT" | "PENDING_APPROVAL" | "SCHEDULED" | "ACTIVE" | "PAUSED" | "EXPIRED" | "REJECTED" | "CANCELLED")[];
+                type?: "PERCENT" | "FLAT" | "FREE_DELIVERY";
+                vendorId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadUrl: string | null;
+                        /** Format: date-time */
+                        expiresAt: string | null;
+                        /** @enum {string|null} */
+                        failureReason: "SCOPE_CHANGED" | "TOO_MANY_ROWS" | "ERROR" | null;
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -19055,6 +20757,13 @@ export interface operations {
                 content: {
                     "application/json": {
                         acceptedAt: string | null;
+                        actions: {
+                            assign: boolean;
+                            cancel: boolean;
+                            reschedule: boolean;
+                            transitions: ("PLACED" | "ACCEPTED" | "PREPARING" | "READY" | "ASSIGNED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED" | "REFUNDED")[];
+                        };
+                        addressLine: string | null;
                         cancelledAt: string | null;
                         cancelReason: string | null;
                         customer: {
@@ -19350,46 +21059,29 @@ export interface operations {
             };
         };
     };
-    collectCodCash: {
+    getOrderCancelReasons: {
         parameters: {
             query?: never;
-            header: {
-                "If-Match": string;
-            };
+            header?: never;
             path: {
                 id: string;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": {
-                    collectedPaise?: number;
-                };
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Collected */
+            /** @description The reasons */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        collectedPaise: number;
-                        /** Format: uuid */
-                        orderId: string;
-                        partner: {
-                            cashInHandPaise: number;
-                            /** Format: uuid */
-                            id: string;
-                            name: string;
-                        };
-                        /** Format: uuid */
-                        paymentId: string;
-                        /** @enum {string} */
-                        paymentStatus: "PAID";
-                        version: number;
+                        reasons: {
+                            code: string;
+                            label: string;
+                            noteRequired: boolean;
+                        }[];
                     };
                 };
             };
@@ -19413,15 +21105,6 @@ export interface operations {
             };
             /** @description Not found (also used for objects in zones the caller cannot see) */
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
-            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19910,7 +21593,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -20436,7 +22119,6 @@ export interface operations {
                 awaitingSecondApproval?: "true" | "false";
                 fault?: "VENDOR" | "PLATFORM" | "CUSTOMER";
                 from?: string;
-                overdue?: "true" | "false";
                 page?: number;
                 pageSize?: number;
                 q?: string;
@@ -23288,7 +24970,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -23498,7 +25180,7 @@ export interface operations {
                             };
                             effective?: unknown;
                             /** @enum {string} */
-                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                             key: string;
                             label: string;
                             platform: {
@@ -23570,7 +25252,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
             };
             cookie?: never;
         };
@@ -23594,7 +25276,7 @@ export interface operations {
                             };
                             effective?: unknown;
                             /** @enum {string} */
-                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                             key: string;
                             label: string;
                             platform: {
@@ -23673,7 +25355,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
             };
             cookie?: never;
         };
@@ -23709,7 +25391,7 @@ export interface operations {
                             };
                             effective?: unknown;
                             /** @enum {string} */
-                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                             key: string;
                             label: string;
                             platform: {
@@ -23797,7 +25479,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                 key: string;
             };
             cookie?: never;
@@ -23828,7 +25510,7 @@ export interface operations {
                             };
                             effective?: unknown;
                             /** @enum {string} */
-                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                             key: string;
                             label: string;
                             platform: {
@@ -23907,7 +25589,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
             };
             cookie?: never;
         };
@@ -23995,7 +25677,7 @@ export interface operations {
                 actorId?: string;
                 after?: string;
                 from?: string;
-                group?: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                group?: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                 key?: string;
                 limit?: number;
                 to?: string;
@@ -25546,7 +27228,7 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** @enum {string} */
-                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "audit";
+                        module: "orders" | "restaurants" | "homemakers" | "menu" | "delivery" | "customers" | "payments" | "refunds" | "payouts" | "notifications" | "support" | "hotels" | "bookings" | "dining" | "offers" | "audit";
                         rowCount: number;
                         /** @enum {string} */
                         status: "QUEUED" | "RUNNING" | "READY" | "FAILED" | "EXPIRED";
@@ -28612,7 +30294,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                 id: string;
             };
             cookie?: never;
@@ -28649,7 +30331,7 @@ export interface operations {
                             };
                             effective?: unknown;
                             /** @enum {string} */
-                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                             key: string;
                             label: string;
                             platform: {
@@ -28737,7 +30419,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                 id: string;
                 key: string;
             };
@@ -28769,7 +30451,7 @@ export interface operations {
                             };
                             effective?: unknown;
                             /** @enum {string} */
-                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions";
+                            group: "refunds" | "onboarding" | "support" | "notifications" | "orders" | "sms" | "loyalty" | "security" | "payouts" | "zones" | "access" | "sessions" | "offers";
                             key: string;
                             label: string;
                             platform: {

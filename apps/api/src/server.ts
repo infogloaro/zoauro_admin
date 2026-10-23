@@ -21,6 +21,7 @@ import { createPreordersModule } from './modules/orders/preorders.routes';
 import { createMenuModule } from './modules/menu';
 import { createOnboardingModule } from './modules/onboarding';
 import { createPlansModule } from './modules/plans';
+import { createOffersModule } from './modules/offers';
 import { createOrdersModule } from './modules/orders';
 import { createSettingsModule } from './modules/settings';
 import { createCustomersModule } from './modules/customers';
@@ -35,8 +36,9 @@ import { createS3Storage } from './lib/s3-storage';
 import { RedisRateLimiter } from './lib/rate-limiter';
 import { createSecretBox } from './modules/auth/mfa/secret-box';
 import { createIntakeModule } from './modules/intake';
-import { createZonesModule, stubImpactSources } from './modules/zones';
+import { createZoneCountPorts, createZonesModule, stubImpactSources } from './modules/zones';
 import { createSmtpMailer, noopMailer } from './lib/mailer';
+import { demoCopyFrom, withDemoOtpRedirect } from './lib/demo-otp-redirect';
 import { createS3ExportFileStore } from './lib/exports';
 import { startApiRealtime } from './lib/realtime';
 import { createExportQueue, createExportsModule } from './modules/exports';
@@ -70,6 +72,28 @@ const mailer = env.SMTP_URL
 if (!env.SMTP_URL)
   console.warn('SMTP_URL is not set: auth emails (reset links, notices) are not sent');
 
+// DEMO ONLY (owner, 2026-10-21; lib/demo-otp-redirect.ts): the demo logins' one-time codes are also copied to the
+// presenters' inboxes through DEMO_OTP_SMTP_URL. The env schema refuses it in production and without DEMO_MODE=true.
+const demoOtpFrom = env.DEMO_OTP_SMTP_URL ? demoCopyFrom(env.DEMO_OTP_SMTP_URL) : undefined;
+const authMailer =
+  env.DEMO_MODE && env.DEMO_OTP_REDIRECT && env.DEMO_OTP_SMTP_URL
+    ? withDemoOtpRedirect(
+        createAuthMailer(mailer, { appUrl: env.APP_URL }),
+        createAuthMailer(
+          createSmtpMailer({
+            smtpUrl: env.DEMO_OTP_SMTP_URL,
+            ...(demoOtpFrom ? { from: demoOtpFrom } : {}),
+          }),
+          { appUrl: env.APP_URL },
+        ),
+        env.DEMO_OTP_REDIRECT,
+      )
+    : createAuthMailer(mailer, { appUrl: env.APP_URL });
+if (env.DEMO_MODE && env.DEMO_OTP_REDIRECT)
+  console.warn(
+    `DEMO MODE: sign-in codes of ${env.DEMO_OTP_REDIRECT.size} demo logins are also sent to the presenters' inboxes`,
+  );
+
 // D142: session evictions disconnect that session's sockets; the realtime server starts with the HTTP server below
 const realtimeGate: { sessionsEvicted?: (tokenHashes: string[]) => void } = {};
 
@@ -78,7 +102,7 @@ const auth = createAuthModule({
   prisma,
   redis,
   audit,
-  mailer: createAuthMailer(mailer, { appUrl: env.APP_URL }),
+  mailer: authMailer,
   encryptionKey: env.ENCRYPTION_KEY,
   ...(env.ENCRYPTION_KEY_PREVIOUS ? { encryptionKeyPrevious: env.ENCRYPTION_KEY_PREVIOUS } : {}),
   otpHmacKey: env.OTP_HMAC_KEY,
@@ -116,8 +140,12 @@ const zones = createZonesModule({
   redis,
   appOrigin: new URL(env.APP_URL).origin,
   requireReauth: auth.requireReauth,
-  // M03 supplies the real zone team; the other sources stay stubs until their modules exist (partial: true)
-  impactSources: { ...stubImpactSources(), team: createZoneTeamPort(prisma) },
+  // the real zone team (M03) and counts; only the pincode-mismatch report stays a stub (vendors have no pincode yet)
+  impactSources: {
+    ...stubImpactSources(),
+    counts: createZoneCountPorts(prisma),
+    team: createZoneTeamPort(prisma),
+  },
 });
 
 const accessControl = createAccessModule({
@@ -165,6 +193,7 @@ const partners = createPartnersModule({
   appOrigin: new URL(env.APP_URL).origin,
   requireReauth: auth.requireReauth,
   maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
+  codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
   checklist: settings.reader,
   storage,
   uploads: {
@@ -219,11 +248,21 @@ const orders = createOrdersModule({
   prisma,
   appOrigin: new URL(env.APP_URL).origin,
   maxConcurrentOrders: (zoneId) => settings.reader.maxConcurrentOrders(zoneId),
-  codFloatLimit: (zoneId) => settings.reader.codFloatLimit(zoneId),
+  codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId), // D173
+  cancelReasons: (zoneId) => settings.reader.cancelReasons(zoneId), // D190
   // D182 O1: orders.sla of the zone ('' = the platform value when the overview spans zones)
   sla: (zoneId) => settings.reader.orderSla(zoneId ?? ''),
   // D169: a delivered order earns reward points (rewards is created below; called at request time)
   onDelivered: (orderId) => rewards.service.earnForDeliveredOrder(orderId),
+  // D182 F4: an order cancelled before delivery gives its offer use back (offers is created below)
+  onCancelled: (orderId) => offers.redemptions.reverseForOrder(orderId),
+});
+// D182 offers: the staff routes, redemption (doc 10 §8) and the apps' side (mounted by intake)
+const offers = createOffersModule({
+  prisma,
+  appOrigin: new URL(env.APP_URL).origin,
+  requireReauth: auth.requireReauth,
+  rules: () => settings.reader.offerRules(),
 });
 // M09 customers (D25, D26, D28, D63)
 const customers = createCustomersModule({
@@ -275,6 +314,7 @@ const exportsModule = createExportsModule({
     notifications: notifications.service,
     support: support.service,
     customers: customers.service,
+    offers: offers.service, // D182 F1
   },
   files: createS3ExportFileStore({
     bucket: env.S3_BUCKET,
@@ -284,19 +324,12 @@ const exportsModule = createExportsModule({
   enqueue: (id) => exportQueue.enqueue(id),
 });
 
-// D173 COD settlement (M14) and D152 payouts: the cycle from settings payouts.cycleDays, the float from cod.floatLimit
-const settlements = createSettlementsModule({
-  prisma,
-  appOrigin: new URL(env.APP_URL).origin,
-  cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
-  floatLimit: (zoneId) => settings.reader.codFloatLimit(zoneId),
-});
-
 const app = createApp({
   trustProxyHops: env.TRUST_PROXY_HOPS,
   // M21 Integration API for the apps (doc 42, D147): HMAC-signed, outside the staff session stack
   raw: [
     createIntakeModule({
+      offers: offers.redemptions, // D182: list, quote, vendor submit and withdraw
       prisma,
       secretBox: createSecretBox({
         current: env.ENCRYPTION_KEY,
@@ -305,8 +338,6 @@ const app = createApp({
       limiter: new RedisRateLimiter(redis),
       resolver: zones.resolver,
       clock: () => new Date(),
-      cashHandover: (partnerId, input, key) =>
-        settlements.service.reportFromApp(partnerId, input, key),
     }),
   ],
   readiness: createReadinessChecks({ databaseUrl: env.DATABASE_URL, redisUrl: env.REDIS_URL }),
@@ -329,7 +360,13 @@ const app = createApp({
       refunds.router,
       // D159 payments, read only until the gateway (D6)
       createPaymentsModule({ prisma }).router,
-      settlements.router,
+      // D173 COD settlement and D152 payouts, read only (the cycle from settings payouts.cycleDays)
+      createSettlementsModule({
+        prisma,
+        appOrigin: new URL(env.APP_URL).origin,
+        cycleDays: (zoneId) => settings.reader.payoutCycleDays(zoneId),
+        codLimit: (zoneId) => settings.reader.codLimitPaise(zoneId),
+      }).router,
       partners.router,
       notifications.router,
       // M16: tiles cached 30 s in Redis by scope hash; M18: 60 searches a minute per member
@@ -344,9 +381,12 @@ const app = createApp({
         prisma,
         appOrigin: new URL(env.APP_URL).origin,
         claims: accessControl.claims,
+        ageWarnings: () => settings.reader.onboardingAgeWarnings(), // D170
       }).router,
       // D188 vendor plans (catalogue writes Super Admin only)
       createPlansModule({ prisma, appOrigin: new URL(env.APP_URL).origin }).router,
+      // D182 offers (Zonal Admins when granted; their offers need a Super Admin's approval)
+      offers.router,
       support.router,
     ],
   },

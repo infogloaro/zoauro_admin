@@ -3,6 +3,7 @@ import {
   bookingListQuerySchema,
   customerListQuerySchema,
   diningListQuerySchema,
+  offerListQuerySchema,
   EXPORT_LIST_PATHS,
   exportIdParamsSchema,
   exportJobSchema,
@@ -77,6 +78,7 @@ const LISTS: { module: ExportModule; operationId: string; label: string; query: 
     label: 'dining reservations',
     query: diningListQuerySchema,
   },
+  { module: 'offers', operationId: 'exportOffers', label: 'offers', query: offerListQuerySchema },
 ];
 
 export const EXPORT_OPERATIONS: OperationDef[] = [
