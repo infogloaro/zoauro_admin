@@ -7,7 +7,7 @@ import type { DemoAccount } from './client';
 import { DemoHttpError } from './client';
 import { ACCOUNTS, seedPeople, type AccountKey } from './people';
 import { seedVendors } from './vendors';
-import { ensureAppClients, seedMenu } from './menu';
+import { ensureAppClients, ensureMenuStock, seedMenu } from './menu';
 import { refreshPartnerLocations, seedPartners } from './partners';
 import { seedCustomers } from './customers';
 import { freshenPreorders, seedOrders } from './orders';
@@ -124,6 +124,7 @@ async function main(): Promise<void> {
     const secretBox = createSecretBox(encryption);
     const appClients = await ensureAppClients(db, secretBox);
     const items = await seedMenu(db, sa, vendors, appClients['VENDOR_APP'] ?? '', log);
+    await ensureMenuStock(db, vendors, log);
     console.log('4 delivery partners: every stage, plus Partner Requests from the partner app');
     const partners = await seedPartners(
       db,

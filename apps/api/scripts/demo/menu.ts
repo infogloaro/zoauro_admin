@@ -343,3 +343,36 @@ export async function seedMenu(
   }
   return items;
 }
+
+/**
+ * Run on every seed: menu items are created with stock 0 (the API default), which shows a whole menu as out of stock
+ * (QA 10-23: every Coimbatore North item). Each item gets a working stock, except the one the menu step sells out on
+ * purpose (the last item of a menu with an odd count), so one or two stay "Out of stock" for realism. Idempotent.
+ */
+export async function ensureMenuStock(
+  db: PrismaClient,
+  vendors: SeededVendor[],
+  log: Log,
+): Promise<void> {
+  let restocked = 0;
+  for (const v of vendors) {
+    const menu = MENUS[v.name];
+    if (!menu) continue;
+    const soldOut = (menu.length - 1) % 2 === 0 ? menu[menu.length - 1]?.[0] : undefined;
+    for (const [n, [name]] of menu.entries()) {
+      if (name === soldOut) continue;
+      const r = await db.menuItem.updateMany({
+        where: {
+          deletedAt: null,
+          name,
+          stock: { lte: 0 },
+          ...(v.module === 'restaurants' ? { restaurantId: v.id } : { homemakerId: v.id }),
+        },
+        data: { stock: 20 + ((n * 7) % 30) },
+      });
+      restocked += r.count;
+    }
+  }
+  if (restocked > 0)
+    log(`menu stock: ${restocked} items restocked (the planned sold-out ones stay at 0)`);
+}
