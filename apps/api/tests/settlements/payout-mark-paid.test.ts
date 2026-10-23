@@ -14,7 +14,7 @@ import { client, reauth, type Signed } from '../zones/support';
 // F4a: POST /payouts/{id}/mark-paid on a real database. A Super Admin (a non-primary needs settings.payouts, D178)
 // records a manual vendor payout with PASSWORD, If-Match and Idempotency-Key; it pays net minus the vendor-fault refunds
 // of the period (a snapshot), writes a balanced ledger pair and an audit row. Open refunds freeze it (doc 16 §7);
-// delivery-partner payouts wait for their formula (doc 16 §5); Zonal Admins never may (payouts:edit not grantable).
+// delivery partners are paid per D202 (fees × share − COD held); Zonal Admins never may (payouts:edit not grantable).
 
 let env: AuthTestEnv;
 let app: Express;
@@ -176,7 +176,7 @@ describe('mark a payout paid (F4a, doc 16 §5)', () => {
     expect(again.body.error.details).toEqual([{ field: 'status', issue: 'not_pending' }]);
   });
 
-  it('a stale version, a bad date, a missing If-Match, an open refund and a partner payout are refused', async () => {
+  it('a stale version, a bad date, a missing If-Match and an open refund are refused', async () => {
     await reauth(env, sa);
     const k = await kitchen();
     const id = await payout('RESTAURANT', k);
@@ -198,11 +198,75 @@ describe('mark a payout paid (F4a, doc 16 §5)', () => {
     expect(f.status).toBe(409);
     expect(f.body.error.details).toEqual([{ field: 'status', issue: 'open_refunds' }]);
     expect(f.body.error.meta).toEqual({ openRefunds: 1 });
+  });
 
-    const partner = await payout('DELIVERY_PARTNER', uuidv7(), 70_000);
-    const pr = await mark(sa, partner, body());
-    expect(pr.status).toBe(409);
-    expect(pr.body.error.details).toEqual([{ field: 'payeeType', issue: 'formula_open' }]);
+  it('D202: a partner is paid delivery fees × share − COD still held at period end', async () => {
+    await reauth(env, sa);
+    const rider = uuidv7();
+    await q(
+      `INSERT INTO delivery_partners (id, zone_id, name, status, verification_status, is_online, current_orders,
+         source, updated_at)
+       VALUES ($1, $2, 'Payout rider', 'ACTIVE', 'VERIFIED', true, 0, 'ADMIN', now())`,
+      [rider, zone],
+    );
+    const customerId = uuidv7();
+    const digits = parseInt(randomBytes(4).toString('hex'), 16).toString().slice(-8);
+    await q(
+      `INSERT INTO customers (id, name, phone, updated_at) VALUES ($1, 'Rider customer', $2, now())`,
+      [customerId, `+9192${digits.padStart(8, '0')}`],
+    );
+    const k = await kitchen();
+    // 3 deliveries in the period at ₹40 each; one COD order of ₹500 in it, ₹200 handed in before the period ended
+    for (const [i, method] of ['ONLINE', 'ONLINE', 'COD'].entries()) {
+      const orderId = uuidv7();
+      await q(
+        `INSERT INTO orders (id, order_no, zone_id, customer_id, restaurant_id, delivery_partner_id, status, subtotal,
+           delivery_charge, total, commission_pct, commission_amount, payment_method, payment_status,
+           address_snapshot_json, placed_at, delivered_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 'DELIVERED', 46000, 4000, 50000, 10, 4600, $7, 'PAID', '{}',
+           '2026-10-14T10:00:00Z', $8, now())`,
+        [
+          orderId,
+          `PR-${orderId.slice(-10)}`,
+          zone,
+          customerId,
+          k,
+          rider,
+          method,
+          `2026-10-1${4 + i}T11:00:00Z`,
+        ],
+      );
+    }
+    await q(
+      `INSERT INTO cash_settlements (id, delivery_partner_id, zone_id, expected_amount, handed_in_amount, variance,
+         settled_by, settled_at)
+       VALUES ($1, $2, $3, 50000, 20000, -30000, $4, '2026-10-17T10:00:00Z')`,
+      [uuidv7(), rider, zone, saUser.id],
+    );
+    const id = await payout('DELIVERY_PARTNER', rider, 12_000);
+    const d = (await client(sa, app).get(`/payouts/${id}`)).body;
+    expect(d).toMatchObject({
+      partner: {
+        deliveries: 3,
+        feesPaise: 12_000,
+        sharePercent: 100,
+        sharePaise: 12_000,
+        codHeldPaise: 30_000,
+      },
+      deductions: { codHeldPaise: 30_000, vendorRefundsPaise: 0 },
+      amountToPayPaise: 0, // ₹120 of fees, ₹300 of COD still held: nothing to pay
+      openRefunds: 0,
+    });
+    const orders = (await client(sa, app).get(`/payouts/${id}/orders`)).body;
+    expect(orders.meta.total).toBe(3);
+    expect(orders.data[0]).toMatchObject({
+      deliveryFeePaise: 4000,
+      partnerSharePaise: 4000,
+      netPaise: 4000,
+    });
+    const r = await mark(sa, id, body());
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    expect(r.body).toMatchObject({ status: 'PAID', paidPaise: 0 });
   });
 
   it('scope: a Zonal Admin never; a non-primary Super Admin only with settings.payouts (D178)', async () => {

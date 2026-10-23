@@ -76,8 +76,7 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         cancelAccessRequest: { ownObject: true },
         // D174: the placeholder claim is never the caller's (claimer-only routes answer 404; tests/access/claims.test.ts)
         extendClaim: { ownObject: true },
-        // {} is a valid release body (reason optional): the placeholder claim is then 404
-        releaseClaim: { ownObject: true, emptyBodyValid: true },
+        releaseClaim: { ownObject: true },
         requestClaimTakeover: { ownObject: true },
         approveClaimTakeover: { ownObject: true },
         rejectClaimTakeover: { ownObject: true },
@@ -244,6 +243,9 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         listCashSettlements: { listedZones: vendorZones },
         listCodBalances: { listedZones: vendorZones },
         listPayouts: { listedZones: vendorZones },
+        // D203: the placeholder payout id is not found for whoever passes the guard (scope: settlements-api.test.ts)
+        getPayout: { ownObject: true },
+        listPayoutOrders: { ownObject: true },
         // D129/D149 exports: a job names the zones it exports (null = every zone); jobs run inline in the test env.
         // Fixture profiles hold no <module>:export, so Zonal Admins get 403 (positive cases: tests/exports/)
         ...Object.fromEntries(
@@ -317,7 +319,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 1 menu badges (GET /me/badges)
     // + 3 money list exports (F4b, D149)
     // + 11 advertising (D201)
-    expect(report.coveredRoutes).toHaveLength(273);
+    // + 2 payout detail and its orders (D203)
+    expect(report.coveredRoutes).toHaveLength(275);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

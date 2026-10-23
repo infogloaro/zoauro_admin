@@ -283,6 +283,45 @@ describe('scope: SuperAdmin, Admin(A), Admin(A + B without payouts), Admin(none)
     }
     expect(zonesOf((await client(sa, app).get('/payouts')).body)).toEqual([zoneA, zoneB].sort());
   });
+
+  it('one payout and its orders (D203): 404 outside the zones holding payouts:view', async () => {
+    for (const path of [`/payouts/${payoutA}`, `/payouts/${payoutA}/orders`]) {
+      expect((await client(sa, app).get(path)).status, path).toBe(200);
+      expect((await client(adminA, app).get(path)).status, path).toBe(200);
+      expect((await client(adminAB, app).get(path)).status, path).toBe(200);
+      expect((await client(adminNone, app).get(path)).status, path).toBe(404);
+    }
+    for (const path of [`/payouts/${payoutB}`, `/payouts/${payoutB}/orders`]) {
+      expect((await client(sa, app).get(path)).status, path).toBe(200);
+      expect((await client(adminA, app).get(path)).status, path).toBe(404);
+      // B is the A+B admin's zone, but without payouts:view there
+      expect((await client(adminAB, app).get(path)).status, path).toBe(404);
+      expect((await client(adminNone, app).get(path)).status, path).toBe(404);
+    }
+    const detail = (await client(adminA, app).get(`/payouts/${payoutA}`)).body;
+    expect(detail).toMatchObject({
+      id: payoutA,
+      netPaise: 900_000,
+      deductions: { vendorRefundsPaise: 15_000, adFeesPaise: 0, codHeldPaise: 0 },
+      amountToPayPaise: 885_000,
+      partner: null,
+      adFees: [],
+    });
+    expect(detail.refunds.filter((r: { effect: string }) => r.effect === 'COUNTED')).toHaveLength(
+      2,
+    );
+  });
+
+  it('the list summary tiles follow the same scope (D203)', async () => {
+    const a = (await client(adminA, app).get('/payouts')).body.meta.summary;
+    expect(a.pendingCount).toBe(1);
+    expect(a.pendingPaise).toBe(900_000);
+    expect(a.nextPayoutDates.map((d: { zoneId: string }) => d.zoneId)).toEqual([zoneA]);
+    const none = (await client(adminNone, app).get('/payouts')).body.meta.summary;
+    expect(none).toMatchObject({ pendingCount: 0, pendingPaise: 0, nextPayoutDates: [] });
+    const all = (await client(sa, app).get('/payouts')).body.meta.summary;
+    expect(all.pendingCount).toBe(2);
+  });
 });
 
 describe('recording a hand-in (doc 16 §2)', () => {
