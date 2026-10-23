@@ -185,7 +185,7 @@ export class RefundsRepository {
       status: RefundStatus;
       target: RefundTarget;
       fault: RefundFault;
-      vendorSharePct: number;
+      vendorSharePct: number | null;
       vendorSharePaise: number;
       approvedBy: string;
       secondApprovedBy: string;
@@ -199,6 +199,29 @@ export class RefundsRepository {
     }>,
   ): Promise<void> {
     await this.db.refund.update({ where: { id }, data: { ...data, version: { increment: 1 } } });
+  }
+
+  /**
+   * D204: is the vendor's payout covering `at` already PAID? Same payee and zone, period_from ≤ at < period_to + 1 day
+   * (the D152 deduction window; payout periods are UTC calendar days).
+   */
+  async paidPayoutCovering(
+    payee: { type: 'RESTAURANT' | 'HOMEMAKER'; id: string },
+    zoneId: string,
+    at: Date,
+  ): Promise<boolean> {
+    const day = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
+    const n = await this.db.payout.count({
+      where: {
+        payeeType: payee.type,
+        payeeId: payee.id,
+        zoneId,
+        status: 'PAID',
+        periodFrom: { lte: day },
+        periodTo: { gte: day },
+      },
+    });
+    return n > 0;
   }
 
   async lock(id: string): Promise<void> {

@@ -10,6 +10,7 @@ import {
   type RefundOptions,
   type RefundRecordPaymentInput,
   type RefundRejectInput,
+  type RefundResponsibilityInput,
   type RefundRow,
   type RefundRules,
   type RefundTargetChoice,
@@ -434,6 +435,92 @@ export class RefundsService {
     return this.detail(ctx, id);
   }
 
+  /**
+   * PATCH /refunds/{id}/responsibility (D204): who bears a decided refund (APPROVED or PROCESSED), with a reason, at the
+   * version the caller saw. Refused once the vendor's payout covering the refund is PAID. The vendor share is computed
+   * again (the payout deduction follows: settlements reads it); a PROCESSED refund's ledger gets the difference.
+   */
+  async changeResponsibility(
+    ctx: AuthContext,
+    id: string,
+    version: number,
+    input: RefundResponsibilityInput,
+  ): Promise<RefundDetail> {
+    const r = await this.deps.db.repo.find(scopeOf(ctx), id);
+    if (!r) throw notFound();
+    assertCanWrite(ctx, 'refunds:edit', r.zoneId);
+    await this.deps.db.transaction(async (tx) => {
+      await tx.repo.lock(id);
+      const cur = await this.reload(tx, id);
+      if (cur.version !== version)
+        throw new AppError(
+          'STALE_VERSION',
+          'This refund changed; reload it',
+          undefined,
+          undefined,
+          {
+            current: await this.toDetail(cur),
+          },
+        );
+      if (cur.status !== 'APPROVED' && cur.status !== 'PROCESSED')
+        throw new AppError(
+          'INVALID_STATE_TRANSITION',
+          'Only a decided refund can change who bears it',
+          [{ field: 'status', issue: 'not_decided' }],
+        );
+      const payee = cur.order.restaurant
+        ? { type: 'RESTAURANT' as const, id: cur.order.restaurant.id }
+        : cur.order.homemaker
+          ? { type: 'HOMEMAKER' as const, id: cur.order.homemaker.id }
+          : null;
+      if (
+        payee &&
+        (await tx.repo.paidPayoutCovering(payee, cur.zoneId, cur.decidedAt ?? cur.requestedAt))
+      )
+        throw new AppError('CONFLICT', 'The vendor’s payout for this period is already paid', [
+          { field: 'fault', issue: 'payout_paid' },
+        ]);
+      const pct = input.fault === 'VENDOR' ? (input.vendorSharePct ?? 0) : null;
+      const share = vendorShareOf(cur.amount, input.fault, pct ?? 0);
+      await tx.repo.update(id, {
+        fault: input.fault,
+        vendorSharePct: pct,
+        vendorSharePaise: share,
+      });
+      // doc 16: the vendor share already booked on a PROCESSED refund moves by the difference
+      const delta = share - cur.vendorSharePaise;
+      if (cur.status === 'PROCESSED' && delta !== 0)
+        await tx.repo.insertLedger([
+          {
+            id: uuidv7(),
+            orderId: cur.orderId,
+            account: 'VENDOR_PAYABLE',
+            debit: Math.max(delta, 0),
+            credit: Math.max(-delta, 0),
+            refId: id,
+          },
+          {
+            id: uuidv7(),
+            orderId: cur.orderId,
+            account: 'REFUND_EXPENSE',
+            debit: Math.max(-delta, 0),
+            credit: Math.max(delta, 0),
+            refId: id,
+          },
+        ]);
+      const after = await this.reload(tx, id);
+      await this.audit(
+        tx,
+        after,
+        'refund.responsibility_changed',
+        responsibilityOf(cur),
+        responsibilityOf(after),
+        input.reason,
+      );
+    });
+    return this.detail(ctx, id);
+  }
+
   // ---- rules ---------------------------------------------------------------------------------------------------------
 
   /** doc 16: only what was paid can be refunded, and the sum of refunds never exceeds it. */
@@ -701,6 +788,15 @@ function snapshot(r: RefundRecord) {
     amountPaise: r.amount,
     target: API_TARGET[r.target],
     fault: r.fault,
+    vendorSharePaise: r.vendorSharePaise,
+  };
+}
+
+/** D204: the audit before/after of a responsibility change. */
+function responsibilityOf(r: RefundRecord) {
+  return {
+    fault: r.fault,
+    vendorSharePct: r.vendorSharePct?.toNumber() ?? null,
     vendorSharePaise: r.vendorSharePaise,
   };
 }

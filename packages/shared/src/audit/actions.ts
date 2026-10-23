@@ -225,6 +225,7 @@ export const AUDIT_ACTIONS = {
   'refund.rejected': a('refunds', 'Rejected refund', H),
   'refund.processed': a('refunds', 'Processed refund'),
   'refund.failed': a('refunds', 'Refund failed'),
+  'refund.responsibility_changed': a('refunds', 'Changed who bears a refund', H), // D204
   'cod_settlement.confirmed': a('settlements', 'Confirmed COD settlement', H),
   'payout.generated': a('payouts', 'Generated payout'),
   'payout.marked_paid': a('payouts', 'Marked payout paid', H),

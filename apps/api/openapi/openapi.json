@@ -67022,6 +67022,477 @@
         }
       }
     },
+    "/refunds/{id}/responsibility": {
+      "patch": {
+        "operationId": "changeRefundResponsibility",
+        "tags": [
+          "refunds"
+        ],
+        "summary": "Change who bears a decided refund (APPROVED or PROCESSED, D204): Super Admin, PASSWORD and If-Match, with a reason. VENDOR takes a share % (vendorSharePaise = round(amount × % / 100)); PLATFORM and CUSTOMER none. The vendor payout deduction follows; a PROCESSED refund’s ledger moves by the difference. Refused once the vendor’s payout for that period is PAID (409 payout_paid)",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(W\\/)?\"?\\d+\"?$"
+            },
+            "required": true,
+            "name": "If-Match",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fault": {
+                    "type": "string",
+                    "enum": [
+                      "VENDOR",
+                      "PLATFORM",
+                      "CUSTOMER"
+                    ]
+                  },
+                  "vendorSharePct": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "fault",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "order": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "orderNo": {
+                          "type": "string"
+                        },
+                        "zone": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "code": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "code"
+                          ]
+                        },
+                        "vendor": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "RESTAURANT",
+                                "HOMEMAKER"
+                              ]
+                            },
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "id",
+                            "name"
+                          ]
+                        },
+                        "paymentMethod": {
+                          "type": "string",
+                          "enum": [
+                            "ONLINE",
+                            "COD",
+                            "WALLET"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "orderNo",
+                        "zone",
+                        "vendor",
+                        "paymentMethod"
+                      ]
+                    },
+                    "customer": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "amountPaise": {
+                      "type": "integer"
+                    },
+                    "reasonCode": {
+                      "type": "string"
+                    },
+                    "reasonNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "REQUESTED",
+                        "PENDING_APPROVAL",
+                        "APPROVED",
+                        "PROCESSED",
+                        "FAILED",
+                        "REJECTED"
+                      ]
+                    },
+                    "target": {
+                      "type": "string",
+                      "enum": [
+                        "SOURCE",
+                        "WALLET",
+                        "UPI"
+                      ]
+                    },
+                    "fault": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "VENDOR",
+                        "PLATFORM",
+                        "CUSTOMER",
+                        null
+                      ]
+                    },
+                    "vendorSharePaise": {
+                      "type": "integer"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "ADMIN",
+                        "APP",
+                        "IMPORT"
+                      ]
+                    },
+                    "autoApproved": {
+                      "type": "boolean"
+                    },
+                    "awaitingSecondApproval": {
+                      "type": "boolean"
+                    },
+                    "requestedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "approvedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "secondApprovedBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "requestedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "decideBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "processedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "manualReference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "failureReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "decisionNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "orderItemId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "quantity": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "orderItemId",
+                          "quantity"
+                        ]
+                      }
+                    },
+                    "photoCount": {
+                      "type": "integer"
+                    },
+                    "vendorSharePct": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "ticketId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "orderRefundedPaise": {
+                      "type": "integer"
+                    },
+                    "orderRefundablePaise": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "order",
+                    "customer",
+                    "amountPaise",
+                    "reasonCode",
+                    "reasonNote",
+                    "status",
+                    "target",
+                    "fault",
+                    "vendorSharePaise",
+                    "source",
+                    "autoApproved",
+                    "awaitingSecondApproval",
+                    "requestedBy",
+                    "approvedBy",
+                    "secondApprovedBy",
+                    "requestedAt",
+                    "decideBy",
+                    "decidedAt",
+                    "processedAt",
+                    "manualReference",
+                    "failureReason",
+                    "decisionNote",
+                    "version",
+                    "items",
+                    "photoCount",
+                    "vendorSharePct",
+                    "ticketId",
+                    "orderRefundedPaise",
+                    "orderRefundablePaise"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Recent re-authentication required; Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict; Not allowed from the current state; Changed by someone else since it was read (error.meta.current)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "refunds:edit",
+          "zone": "none",
+          "reauth": "PASSWORD"
+        },
+        "x-audit": {
+          "module": "refunds",
+          "action": "refund.responsibility_changed"
+        }
+      }
+    },
     "/refunds/{id}/record-payment": {
       "post": {
         "operationId": "recordRefundPayment",

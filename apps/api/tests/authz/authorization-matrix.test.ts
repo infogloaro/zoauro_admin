@@ -320,7 +320,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
     // + 3 money list exports (F4b, D149)
     // + 11 advertising (D201)
     // + 2 payout detail and its orders (D203)
-    expect(report.coveredRoutes).toHaveLength(275);
+    // + 1 refund responsibility (D204)
+    expect(report.coveredRoutes).toHaveLength(276);
     expect(report.undocumentedRoutes).toEqual([]);
     expect(report.unimplementedRoutes).toEqual([]);
     // One run covers every route x actor x zone case and signs in afresh (Argon2id) for each mutating session route,

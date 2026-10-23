@@ -14,6 +14,7 @@ import {
   refundOptionsSchema,
   refundRecordPaymentSchema,
   refundRejectSchema,
+  refundResponsibilitySchema,
 } from '@zoauro/shared';
 import type { OperationDef } from './operations';
 
@@ -132,6 +133,21 @@ export const REFUND_OPERATIONS: OperationDef[] = [
     body: refundRejectSchema,
     response: { status: 200, schema: refundDetailSchema, description: 'Rejected' },
     errors: ['NOT_FOUND', 'INVALID_STATE_TRANSITION'],
+  },
+  {
+    operationId: 'changeRefundResponsibility',
+    method: 'patch',
+    path: '/refunds/{id}/responsibility',
+    tags: ['refunds'],
+    summary:
+      'Change who bears a decided refund (APPROVED or PROCESSED, D204): Super Admin, PASSWORD and If-Match, with a reason. VENDOR takes a share % (vendorSharePaise = round(amount × % / 100)); PLATFORM and CUSTOMER none. The vendor payout deduction follows; a PROCESSED refund’s ledger moves by the difference. Refused once the vendor’s payout for that period is PAID (409 payout_paid)',
+    access: { kind: 'permission', permission: 'refunds:edit', zone: 'none', reauth: 'PASSWORD' },
+    audit: { module: 'refunds', action: 'refund.responsibility_changed' },
+    params: refundIdParamsSchema,
+    body: refundResponsibilitySchema,
+    ifMatch: true,
+    response: { status: 200, schema: refundDetailSchema, description: 'Changed' },
+    errors: ['NOT_FOUND', 'STALE_VERSION', 'INVALID_STATE_TRANSITION', 'CONFLICT'],
   },
   {
     operationId: 'recordRefundPayment',

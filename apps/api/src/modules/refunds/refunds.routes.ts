@@ -5,15 +5,17 @@ import {
   refundCreateSchema,
   refundDecideSchema,
   refundIdParamsSchema,
+  refundIfMatchSchema,
   refundListQuerySchema,
   refundRecordPaymentSchema,
   refundRejectSchema,
+  refundResponsibilitySchema,
 } from '@zoauro/shared';
 import { auditMeta } from '../../lib/audit';
 import { originCheck, requireCsrf, requireJsonBody } from '../../lib/auth/middleware';
 import type { ReauthLevel } from '../../lib/auth/session-store';
 import { authContextOf, requirePermission } from '../../lib/authz';
-import { parseBody } from '../../lib/errors';
+import { AppError, parseBody } from '../../lib/errors';
 import { auditOf } from '../../openapi/operations';
 import type { RefundsService } from './refunds.service';
 
@@ -118,6 +120,29 @@ export function createRefundsRoutes(
           id(req.params),
           parseBody(refundRejectSchema, req.body),
         ),
+      );
+    },
+  );
+  // D204: who bears a decided refund (PASSWORD, If-Match); If-Match and the body are checked before any read
+  router.patch(
+    '/refunds/:id/responsibility',
+    ...write('edit'),
+    opts.requireReauth('PASSWORD'),
+    requireJsonBody,
+    auditMeta(auditOf('changeRefundResponsibility')),
+    async (req, res) => {
+      const refundId = id(req.params);
+      const version = refundIfMatchSchema.safeParse(req.get('If-Match'));
+      if (!version.success)
+        throw new AppError('VALIDATION_ERROR', 'Send the refund version in the If-Match header', [
+          {
+            field: 'If-Match',
+            issue: req.get('If-Match') === undefined ? 'required' : 'invalid',
+          },
+        ]);
+      const input = parseBody(refundResponsibilitySchema, req.body);
+      res.json(
+        await service.changeResponsibility(authContextOf(res), refundId, version.data, input),
       );
     },
   );

@@ -91,6 +91,45 @@ export const refundRecordPaymentSchema = z
   .strict();
 export type RefundRecordPaymentInput = z.infer<typeof refundRecordPaymentSchema>;
 
+/**
+ * PATCH /refunds/{id}/responsibility (Super Admin, PASSWORD, If-Match, D204): who bears a decided refund's cost, with a
+ * reason. VENDOR needs the vendor's share (above 0, up to 2 decimals); PLATFORM and CUSTOMER carry 0 or none.
+ */
+export const refundResponsibilitySchema = z
+  .object({
+    fault: z.enum(REFUND_FAULTS),
+    vendorSharePct: z.number().min(0).max(100).multipleOf(0.01).optional(),
+    reason: note(5, 500),
+  })
+  .strict()
+  .superRefine((v, ctx) => {
+    if (v.fault === 'VENDOR' && !(v.vendorSharePct !== undefined && v.vendorSharePct > 0))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['vendorSharePct'],
+        message: 'The vendor’s share is required and above 0 when the vendor bears the refund',
+      });
+    if (v.fault !== 'VENDOR' && v.vendorSharePct !== undefined && v.vendorSharePct !== 0)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['vendorSharePct'],
+        message: 'Only a vendor-fault refund has a vendor share',
+      });
+  });
+export type RefundResponsibilityInput = z.infer<typeof refundResponsibilitySchema>;
+
+/** `If-Match: <version>` on a refund write (D204); a weak or quoted value is accepted. */
+export const refundIfMatchSchema = z.preprocess(
+  (v) =>
+    typeof v === 'string'
+      ? v
+          .trim()
+          .replace(/^W\//, '')
+          .replace(/^"(.*)"$/, '$1')
+      : v,
+  z.coerce.number().int().min(1),
+);
+
 export const refundIdParamsSchema = z.object({ id: z.uuid() });
 
 const zoneIdsParam = z.preprocess(

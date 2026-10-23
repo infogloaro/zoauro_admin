@@ -2867,6 +2867,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/refunds/{id}/responsibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change who bears a decided refund (APPROVED or PROCESSED, D204): Super Admin, PASSWORD and If-Match, with a reason. VENDOR takes a share % (vendorSharePaise = round(amount × % / 100)); PLATFORM and CUSTOMER none. The vendor payout deduction follows; a PROCESSED refund’s ledger moves by the difference. Refused once the vendor’s payout for that period is PAID (409 payout_paid) */
+        patch: operations["changeRefundResponsibility"];
+        trace?: never;
+    };
     "/refunds/{id}/retry": {
         parameters: {
             query?: never;
@@ -23617,6 +23634,164 @@ export interface operations {
                 };
             };
             /** @description Not allowed from the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    changeRefundResponsibility: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    fault: "VENDOR" | "PLATFORM" | "CUSTOMER";
+                    reason: string;
+                    vendorSharePct?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        amountPaise: number;
+                        approvedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        autoApproved: boolean;
+                        awaitingSecondApproval: boolean;
+                        customer: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                        /** Format: date-time */
+                        decideBy: string | null;
+                        /** Format: date-time */
+                        decidedAt: string | null;
+                        decisionNote: string | null;
+                        failureReason: string | null;
+                        /** @enum {string|null} */
+                        fault: "VENDOR" | "PLATFORM" | "CUSTOMER" | null;
+                        /** Format: uuid */
+                        id: string;
+                        items: {
+                            /** Format: uuid */
+                            orderItemId: string;
+                            quantity: number;
+                        }[];
+                        manualReference: string | null;
+                        order: {
+                            /** Format: uuid */
+                            id: string;
+                            orderNo: string;
+                            /** @enum {string} */
+                            paymentMethod: "ONLINE" | "COD" | "WALLET";
+                            vendor: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                type: "RESTAURANT" | "HOMEMAKER";
+                            };
+                            zone: {
+                                code: string;
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            };
+                        };
+                        orderRefundablePaise: number;
+                        orderRefundedPaise: number;
+                        photoCount: number;
+                        /** Format: date-time */
+                        processedAt: string | null;
+                        reasonCode: string;
+                        reasonNote: string | null;
+                        /** Format: date-time */
+                        requestedAt: string;
+                        requestedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        secondApprovedBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        /** @enum {string} */
+                        source: "ADMIN" | "APP" | "IMPORT";
+                        /** @enum {string} */
+                        status: "REQUESTED" | "PENDING_APPROVAL" | "APPROVED" | "PROCESSED" | "FAILED" | "REJECTED";
+                        /** @enum {string} */
+                        target: "SOURCE" | "WALLET" | "UPI";
+                        /** Format: uuid */
+                        ticketId: string | null;
+                        vendorSharePaise: number;
+                        vendorSharePct: number | null;
+                        version: number;
+                    };
+                };
+            };
+            /** @description Recent re-authentication required; Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict; Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
             409: {
                 headers: {
                     [name: string]: unknown;
