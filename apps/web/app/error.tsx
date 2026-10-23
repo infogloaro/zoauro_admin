@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
 import { StatusPage, linkButton } from '../components/shell/StatusPage';
+import { reloadOnceForChunkError, sessionStore } from '../lib/chunk-reload';
 
-// Unexpected errors (doc 19 section 4). No technical detail is shown; the digest lets support find the server log.
+// Unexpected errors (doc 19 section 4). No technical detail is shown; the digest lets support find the server log. A
+// chunk that failed to load (a short network drop) reloads the page once instead (lib/chunk-reload).
 export default function Error({
   error,
   retry,
@@ -10,6 +13,9 @@ export default function Error({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
+  useEffect(() => {
+    reloadOnceForChunkError(error, sessionStore(), () => window.location.reload());
+  }, [error]);
   return (
     <main id="main" className="min-h-screen bg-bg p-4">
       <StatusPage
