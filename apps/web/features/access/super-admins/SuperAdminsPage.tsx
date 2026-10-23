@@ -10,11 +10,13 @@ import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
 import { CardError, EmptyState } from '../../dashboard/parts';
 import { relativeTime } from '../../dashboard/time';
-import { useControlAreaCatalogue, useSuperAdmins } from './api';
+import { MfaResetDialog } from '../MfaResetDialog';
+import { useControlAreaCatalogue, useInvalidateSuperAdmins, useSuperAdmins } from './api';
 import { AreasDialog, PrimaryDialog } from './AreaDialogs';
 import {
   AddSuperAdminDialog,
   SuperAdminActionDialog,
+  superAdminProblem,
   type SuperAdminAction,
 } from './SuperAdminDialogs';
 
@@ -43,6 +45,8 @@ export function SuperAdminsPage({ meIsPrimary }: { meIsPrimary: boolean }) {
   const catalogue = useControlAreaCatalogue();
   const [adding, setAdding] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [resetting, setResetting] = useState<SuperAdmin | null>(null);
+  const invalidate = useInvalidateSuperAdmins();
   const rows = list.data?.data ?? [];
   const activeCount = list.data?.meta.activeCount ?? 0;
   const primaryCount = rows.filter((r) => r.isPrimary && r.status === 'ACTIVE').length;
@@ -119,9 +123,8 @@ export function SuperAdminsPage({ meIsPrimary }: { meIsPrimary: boolean }) {
             id: 'actions',
             header: 'Actions',
             cell: (r: SuperAdmin) => {
-              // TODO(F9 B5): a "Reset 2-step" action (features/access/MfaResetDialog, problem = superAdminProblem for
-              // 403 PRIMARY_ONLY / 409 SELF) for another member with 2-step on, once the API lets only primaries
-              // reset a Super Admin. Until then the route also resets Super Admins for any Super Admin, so no button.
+              // Reset 2-step (54f97fa): a primary resets another Super Admin's 2-step; never their own (409 SELF), and the
+              // API refuses a non-primary (403 PRIMARY_ONLY), whose page has no actions at all
               const locked = lockReason(r, activeCount, primaryCount);
               return (
                 <div className="flex flex-wrap gap-1.5">
@@ -143,6 +146,16 @@ export function SuperAdminsPage({ meIsPrimary }: { meIsPrimary: boolean }) {
                       onClick={() => setPending({ row: r, action: 'primary' })}
                     >
                       {r.isPrimary ? 'Remove primary' : 'Make primary'}
+                    </Button>
+                  ) : null}
+                  {!r.isSelf && r.mfaEnabled ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      aria-label={`Reset the 2-step verification of ${r.name}`}
+                      onClick={() => setResetting(r)}
+                    >
+                      Reset 2-step
                     </Button>
                   ) : null}
                   {locked ? (
@@ -232,6 +245,15 @@ export function SuperAdminsPage({ meIsPrimary }: { meIsPrimary: boolean }) {
           target={pending.row}
           action={pending.action}
           onClose={() => setPending(null)}
+        />
+      ) : null}
+      {resetting ? (
+        <MfaResetDialog
+          open
+          member={{ id: resetting.id, name: resetting.name }}
+          onClose={() => setResetting(null)}
+          onDone={invalidate}
+          problem={superAdminProblem}
         />
       ) : null}
     </div>

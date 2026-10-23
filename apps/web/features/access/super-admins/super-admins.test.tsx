@@ -32,8 +32,8 @@ const row = (over: Partial<SuperAdmin>): SuperAdmin => ({
   ...over,
 });
 
-function wrap(get: ReturnType<typeof vi.fn>, patch = vi.fn()) {
-  const client = { get, patch, post: vi.fn(), delete: vi.fn() } as unknown as ApiClient;
+function wrap(get: ReturnType<typeof vi.fn>, patch = vi.fn(), post = vi.fn()) {
+  const client = { get, patch, post, delete: vi.fn() } as unknown as ApiClient;
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -157,5 +157,60 @@ describe('Super Admins page', () => {
         body: { status: 'SUSPENDED', reason: 'Left the company' },
       }),
     );
+  });
+
+  it('F9 B5: a primary resets another Super Admin’s 2-step, never their own; a refusal shows the API reason', async () => {
+    const user = userEvent.setup();
+    const get = vi.fn(async (path: string) => {
+      if (path === '/super-admins')
+        return {
+          data: [
+            row({
+              id: '0192f1d2-9999-7000-8000-000000000001',
+              name: 'Asha',
+              isSelf: true,
+              isPrimary: true,
+            }),
+            row({ id: '0192f1d2-9999-7000-8000-000000000002', name: 'Bala' }),
+            row({ id: '0192f1d2-9999-7000-8000-000000000003', name: 'Chitra', mfaEnabled: false }),
+          ],
+          meta: { activeCount: 3 },
+        };
+      if (path === '/super-admins/areas') return { data: AREAS };
+      throw new Error(`unexpected ${path}`);
+    });
+    const post = vi.fn(async () => {
+      throw new ApiError(403, 'FORBIDDEN', 'Only a primary', [
+        { field: 'id', issue: 'PRIMARY_ONLY' },
+      ]);
+    });
+    render(<SuperAdminsPage meIsPrimary />, { wrapper: wrap(get, vi.fn(), post) });
+    const table = await screen.findByRole('table', { name: 'Super Admins' });
+    expect(await within(table).findByText('Bala')).toBeTruthy();
+    expect(
+      within(table).queryByRole('button', { name: 'Reset the 2-step verification of Asha' }),
+    ).toBeNull();
+    // no 2-step to reset
+    expect(
+      within(table).queryByRole('button', { name: 'Reset the 2-step verification of Chitra' }),
+    ).toBeNull();
+    await user.click(
+      within(table).getByRole('button', { name: 'Reset the 2-step verification of Bala' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Reason' }),
+      'Lost phone, confirmed by call',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Reset 2-step' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/members/{id}/mfa/reset', {
+        params: { id: '0192f1d2-9999-7000-8000-000000000002' },
+        body: { reason: 'Lost phone, confirmed by call' },
+      }),
+    );
+    expect(
+      await within(dialog).findByText('Only a primary Super Admin can manage Super Admins.'),
+    ).toBeTruthy();
   });
 });
