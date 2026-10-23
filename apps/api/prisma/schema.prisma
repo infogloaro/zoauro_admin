@@ -1257,25 +1257,32 @@ model Refund {
 }
 
 model Payout {
-  id            String    @id @db.Uuid
-  payeeType     PayeeType @map("payee_type")
-  payeeId       String    @map("payee_id") @db.Uuid // polymorphic with payee_type: no foreign key
-  zoneId        String    @map("zone_id") @db.Uuid
-  periodFrom    DateTime  @map("period_from") @db.Date
-  periodTo      DateTime  @map("period_to") @db.Date
-  gross         Int // paise
-  commission    Int
-  net           Int
-  status        String // PENDING | PAID (PAYOUT_STATUSES, text column)
-  paidAt        DateTime? @map("paid_at") @db.Timestamptz
-  paidBy        String?   @map("paid_by") @db.Uuid
+  id               String    @id @db.Uuid
+  payeeType        PayeeType @map("payee_type")
+  payeeId          String    @map("payee_id") @db.Uuid // polymorphic with payee_type: no foreign key
+  zoneId           String    @map("zone_id") @db.Uuid
+  periodFrom       DateTime  @map("period_from") @db.Date
+  periodTo         DateTime  @map("period_to") @db.Date
+  gross            Int // paise
+  commission       Int
+  net              Int
+  status           String // PENDING | ON_HOLD | PAID (PAYOUT_STATUSES, text column)
+  paidAt           DateTime? @map("paid_at") @db.Timestamptz
+  paidBy           String?   @map("paid_by") @db.Uuid
   // F4 mark-paid: the bank / UPI reference, a note and the amount paid (net minus vendor-fault refunds, a snapshot)
-  paidReference String?   @map("paid_reference")
-  paidNote      String?   @map("paid_note")
-  paidAmount    Int?      @map("paid_amount") // paise
-  version       Int       @default(1)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  paidReference    String?   @map("paid_reference")
+  paidNote         String?   @map("paid_note")
+  paidAmount       Int?      @map("paid_amount") // paise
+  // D204: a hold while something is checked, an adjustment added to the amount to pay, and how it was paid
+  holdReason       String?   @map("hold_reason")
+  heldAt           DateTime? @map("held_at") @db.Timestamptz
+  heldBy           String?   @map("held_by") @db.Uuid
+  adjustmentPaise  Int       @default(0) @map("adjustment_paise")
+  adjustmentReason String?   @map("adjustment_reason")
+  paidMethod       String?   @map("paid_method") // PAYOUT_METHODS
+  version          Int       @default(1)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   zone  Zone  @relation(fields: [zoneId], references: [id], onDelete: Restrict)
   payer User? @relation(fields: [paidBy], references: [id], onDelete: Restrict)
