@@ -120,6 +120,17 @@ export function usePayoutOrders(id: string, page: number, pageSize = DEFAULT_LIS
   });
 }
 
+/** GET /payouts/{id}/history (D204): what happened to the payout (held, released, adjusted, made), newest first. */
+export function usePayoutHistory(id: string) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: ['payouts', 'history', id],
+    queryFn: ({ signal }) => client.get('/payouts/{id}/history', { params: { id }, signal }),
+    staleTime: 15_000,
+    retry: retryTransient,
+  });
+}
+
 export function usePayouts(f: PayoutFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({

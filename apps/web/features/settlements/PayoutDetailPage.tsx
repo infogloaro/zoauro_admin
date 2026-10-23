@@ -1,7 +1,7 @@
 'use client';
 
 import type { PayoutDetail } from '@zoauro/shared';
-import { Banknote, Printer } from 'lucide-react';
+import { Banknote, CirclePause, PencilLine, Play, Printer } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { DataTable, type Column } from '../../components/shared/DataTable';
@@ -14,14 +14,18 @@ import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { formatPaise } from '../audit/format';
 import { CardError, CardSkeleton, DetailError, EmptyState } from '../dashboard/parts';
-import { usePayout, usePayoutOrders } from './api';
+import { usePayout, usePayoutHistory, usePayoutOrders } from './api';
 import { PAYEE_LABEL, payoutTone, periodText, statusText } from './labels';
 import { MarkPayoutPaidDialog } from './MarkPayoutPaidDialog';
+import { PayoutActionDialog, type PayoutAction } from './PayoutHoldDialogs';
 
 // One payout (D203): who is paid, the period, the money block (gross, commission, net, then what comes off: vendor-fault
 // refunds D152, ad fees D182 A2, or for a delivery partner the D202 breakdown: fees × share − COD still held) and the
 // amount to pay; the delivered orders behind it, the refunds and the ad fees. Mark paid (Super Admin with the payouts
-// area) and a printable statement (print CSS: only the statement prints).
+// area) and a printable statement (print CSS: only the statement prints). D204 (owner, 2026-10-23): with the same right
+// the payout can be held while something is checked (a banner says why and by whom), released, and adjusted with a
+// reason (an Adjustment line in the money block); Mark paid is "Make payout" and waits while on hold; the Activity
+// list shows every step from GET /payouts/{id}/history.
 
 type Tab = 'orders' | 'refunds' | 'ads';
 const TABS: { id: Tab; label: string }[] = [
@@ -50,14 +54,19 @@ export function PayoutDetailPage({
   id,
   role,
   canMarkPaid = false,
+  meName,
 }: {
   id: string;
   role: 'SUPER_ADMIN' | 'ZONAL_ADMIN';
   canMarkPaid?: boolean;
+  /** the signed-in member: a payout made here is recorded as made by them */
+  meName?: string;
 }) {
   const url = useUrlState();
   const [marking, setMarking] = useState<PayoutDetail | null>(null);
+  const [acting, setActing] = useState<{ p: PayoutDetail; action: PayoutAction } | null>(null);
   const detail = usePayout(id);
+  const history = usePayoutHistory(id);
   const tab = tabFromParam(url.params.get('tab'));
   const page = pageFromParam(url.params.get('page'));
   const orders = usePayoutOrders(id, page);
@@ -84,6 +93,8 @@ export function PayoutDetailPage({
   const p = detail.data;
   const partner = p.payee.type === 'DELIVERY_PARTNER';
   const pending = p.status === 'PENDING';
+  const onHold = p.status === 'ON_HOLD';
+  const open = pending || onHold;
 
   const money: { label: string; value: string; strong?: boolean; minus?: boolean }[] = partner
     ? [
@@ -110,6 +121,12 @@ export function PayoutDetailPage({
         },
         { label: 'Ad fees', value: formatPaise(p.deductions.adFeesPaise), minus: true },
       ];
+  if (p.adjustmentPaise !== 0)
+    money.push({
+      label: `Adjustment${p.adjustmentReason ? ` (${p.adjustmentReason})` : ''}`,
+      value: formatPaise(Math.abs(p.adjustmentPaise)),
+      minus: p.adjustmentPaise < 0,
+    });
 
   type OrderRow = NonNullable<typeof orders.data>['data'][number];
   const orderColumns: Column<OrderRow>[] = [
@@ -196,8 +213,27 @@ export function PayoutDetailPage({
                 <Printer aria-hidden className="size-4" /> Print statement
               </Button>
               {canMarkPaid && pending ? (
-                <Button onClick={() => setMarking(p)} disabled={p.openRefunds > 0}>
-                  <Banknote aria-hidden className="size-4" /> Mark paid
+                <Button variant="secondary" onClick={() => setActing({ p, action: 'hold' })}>
+                  <CirclePause aria-hidden className="size-4" /> Hold
+                </Button>
+              ) : null}
+              {canMarkPaid && onHold ? (
+                <Button variant="secondary" onClick={() => setActing({ p, action: 'release' })}>
+                  <Play aria-hidden className="size-4" /> Release hold
+                </Button>
+              ) : null}
+              {canMarkPaid && open ? (
+                <Button variant="secondary" onClick={() => setActing({ p, action: 'adjust' })}>
+                  <PencilLine aria-hidden className="size-4" /> Adjust amount
+                </Button>
+              ) : null}
+              {canMarkPaid && open ? (
+                <Button
+                  onClick={() => setMarking(p)}
+                  disabled={onHold || p.openRefunds > 0}
+                  title={onHold ? 'Release the hold before making the payout' : undefined}
+                >
+                  <Banknote aria-hidden className="size-4" /> Make payout
                 </Button>
               ) : null}
             </div>
@@ -230,6 +266,21 @@ export function PayoutDetailPage({
             }
           />
           <CardBody className="flex flex-col gap-4">
+            {onHold ? (
+              <p
+                role="status"
+                className="rounded-lg border border-amber-200 bg-warning-soft px-3 py-2 text-sm text-warning"
+              >
+                <span className="font-semibold">On hold</span>
+                {p.holdReason ? `: ${p.holdReason}` : ''}
+                {p.heldByName || p.heldAt
+                  ? ` · by ${p.heldByName ?? 'an admin'}${p.heldAt ? `, ${when(p.heldAt)}` : ''}`
+                  : ''}
+                <span className="block text-xs print:hidden">
+                  Release the hold to make this payout.
+                </span>
+              </p>
+            ) : null}
             {pending && p.openRefunds > 0 ? (
               <p
                 role="status"
@@ -251,7 +302,7 @@ export function PayoutDetailPage({
               ))}
             </dl>
             <div className="flex items-baseline justify-between rounded-lg bg-surface-muted px-4 py-3">
-              <span className="font-semibold">{pending ? 'Amount to pay' : 'Paid'}</span>
+              <span className="font-semibold">{open ? 'Amount to pay' : 'Paid'}</span>
               <span className="text-2xl font-bold tabular-nums">
                 {formatPaise(p.amountToPayPaise)}
               </span>
@@ -259,7 +310,8 @@ export function PayoutDetailPage({
             {p.status === 'PAID' ? (
               <p className="text-sm text-muted">
                 Paid {p.paidAt ? when(p.paidAt) : ''}
-                {p.paidBy ? ` by ${p.paidBy.name}` : ''}
+                {p.paidByName ? ` by ${p.paidByName}` : p.paidBy ? ` by ${p.paidBy.name}` : ''}
+                {p.paidMethod ? ` · ${p.paidMethod === 'CHEQUE' ? 'Cheque' : p.paidMethod}` : ''}
                 {p.paidReference ? ` · Ref ${p.paidReference}` : ''}
                 {p.paidNote ? ` · ${p.paidNote}` : ''}
               </p>
@@ -388,10 +440,49 @@ export function PayoutDetailPage({
         ) : null}
       </div>
 
+      <Card aria-labelledby="payout-activity" className="print:hidden">
+        <CardHeader
+          id="payout-activity"
+          title="Activity"
+          subtitle="Every step on this payout, newest first"
+        />
+        <CardBody>
+          {history.isError ? (
+            <CardError what="The activity" onRetry={() => void history.refetch()} />
+          ) : !history.data ? (
+            <CardSkeleton rows={3} />
+          ) : history.data.data.length === 0 ? (
+            <p className="text-sm text-muted">Nothing has been done on this payout yet.</p>
+          ) : (
+            <ol className="flex flex-col gap-3 text-sm">
+              {[...history.data.data].reverse().map((h) => (
+                <li key={h.id} className="flex flex-col gap-0.5 border-b border-line pb-2">
+                  <span>
+                    <span className="font-semibold">{h.label}</span>
+                    {h.actor ? ` by ${h.actor.name}` : ''}
+                    <span className="text-muted"> · {when(h.at)}</span>
+                  </span>
+                  {h.note ? <span className="break-words text-muted">“{h.note}”</span> : null}
+                </li>
+              ))}
+            </ol>
+          )}
+        </CardBody>
+      </Card>
+
+      {acting ? (
+        <PayoutActionDialog
+          payout={acting.p}
+          action={acting.action}
+          onClose={() => setActing(null)}
+        />
+      ) : null}
+
       {marking ? (
         <MarkPayoutPaidDialog
           payout={marking}
           amountPaise={marking.amountToPayPaise}
+          {...(meName ? { madeBy: meName } : {})}
           onClose={() => {
             setMarking(null);
             void detail.refetch();

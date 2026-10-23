@@ -21,6 +21,16 @@ import { amountToPay, PAYEE_LABEL, periodText } from './labels';
 // Idempotency-Key per dialog, so a double click or a retry never pays twice. The version is the one seen when the
 // dialog opened (the row passed in), never a later refetch. A vendor payout is frozen while that vendor has open
 // refunds in the period (409 open_refunds). A delivery partner's amount (D202) comes from the payout page (amountPaise).
+// D204 (owner, 2026-10-23): it reads "Make payout", records how it was paid (NEFT, IMPS, RTGS, UPI or cheque) and shows
+// who it is recorded as made by; a payout on hold is refused (409 on_hold) and its button is disabled on the page.
+
+const METHODS = [
+  ['NEFT', 'NEFT'],
+  ['IMPS', 'IMPS'],
+  ['RTGS', 'RTGS'],
+  ['UPI', 'UPI'],
+  ['CHEQUE', 'Cheque'],
+] as const;
 
 /** Today as YYYY-MM-DD in India time. */
 const todayIst = () =>
@@ -29,11 +39,14 @@ const todayIst = () =>
 export function MarkPayoutPaidDialog({
   payout,
   amountPaise,
+  madeBy,
   onClose,
 }: {
   payout: PayoutRow;
   /** the server's amount to pay (GET /payouts/{id}); without it, net minus vendor refunds */
   amountPaise?: number;
+  /** the signed-in member's name: the payout is recorded as made by them */
+  madeBy?: string;
   onClose: () => void;
 }) {
   const client = useApiClient();
@@ -45,14 +58,14 @@ export function MarkPayoutPaidDialog({
   const today = todayIst();
   const form = useForm<PayoutMarkPaidInput>({
     resolver: zodResolver(payoutMarkPaidSchema),
-    defaultValues: { reference: '', paidOn: today },
+    defaultValues: { method: 'NEFT', reference: '', paidOn: today },
   });
   const errors = form.formState.errors;
 
   const submit = form.handleSubmit(async (values) => {
     setAlert(null);
     try {
-      await guarded(`Mark the payout to ${payout.payee.name} paid`, 'PASSWORD', async () => {
+      await guarded(`Make the payout to ${payout.payee.name}`, 'PASSWORD', async () => {
         await client.post('/payouts/{id}/mark-paid', {
           params: { id: payout.id },
           body: values,
@@ -60,7 +73,7 @@ export function MarkPayoutPaidDialog({
           idempotencyKey,
         });
       });
-      toast({ title: `Payout to ${payout.payee.name} marked paid` });
+      toast({ title: `Payout to ${payout.payee.name} made` });
       await qc.invalidateQueries({ queryKey: ['payouts'] });
       onClose();
     } catch (err) {
@@ -78,6 +91,10 @@ export function MarkPayoutPaidDialog({
       if (isApiError(err, 'INVALID_STATE_TRANSITION')) {
         const issue = err.details[0]?.issue;
         const open = err.meta?.['openRefunds'];
+        if (issue === 'on_hold') {
+          setAlert('This payout is on hold. Release the hold before making it.');
+          return;
+        }
         setAlert(
           issue === 'open_refunds' && typeof open === 'number'
             ? `${open} refund${open === 1 ? '' : 's'} for this vendor ${open === 1 ? 'is' : 'are'} still open in this period. Decide ${open === 1 ? 'it' : 'them'} first.`
@@ -96,7 +113,7 @@ export function MarkPayoutPaidDialog({
       <Dialog open onOpenChange={(o) => !o && !form.formState.isSubmitting && onClose()}>
         <DialogContent className="max-w-md">
           <div>
-            <DialogTitle>Mark the payout to {payout.payee.name} paid?</DialogTitle>
+            <DialogTitle>Make the payout to {payout.payee.name}</DialogTitle>
             <DialogDescription>
               {PAYEE_LABEL[payout.payee.type]} · {periodText(payout.periodFrom, payout.periodTo)}.
               You will be asked for your password.
@@ -119,9 +136,23 @@ export function MarkPayoutPaidDialog({
           {alert ? <FormAlert>{alert}</FormAlert> : null}
           <form className="flex flex-col gap-4" onSubmit={(e) => void submit(e)} noValidate>
             <FormField
-              label="Reference (UTR or NEFT)"
+              label="Paid by"
+              error={errors.method ? 'Pick how the payout was made.' : undefined}
+            >
+              <select className={inputClass()} {...form.register('method')}>
+                {METHODS.map(([v, label]) => (
+                  <option key={v} value={v}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField
+              label="Reference (UTR or cheque no.)"
               hint="6 to 40 letters, digits or hyphens"
-              error={errors.reference ? 'Enter the bank or UPI reference.' : undefined}
+              error={
+                errors.reference ? 'Enter the UTR, UPI reference or cheque number.' : undefined
+              }
             >
               <Input maxLength={40} {...form.register('reference')} />
             </FormField>
@@ -144,12 +175,17 @@ export function MarkPayoutPaidDialog({
                 })}
               />
             </FormField>
+            {madeBy ? (
+              <p className="text-sm text-muted">
+                Recorded as made by: <span className="font-medium text-text">{madeBy}</span>
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={onClose} disabled={form.formState.isSubmitting}>
                 Cancel
               </Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
-                Mark paid
+                Make payout
               </Button>
             </div>
           </form>

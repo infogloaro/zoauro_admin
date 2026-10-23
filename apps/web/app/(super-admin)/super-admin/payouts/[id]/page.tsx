@@ -15,5 +15,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!me) return null;
   const p = settlementPageProps(me, 'payouts');
   if (!UUID.test(id) || (p.role === 'ZONAL_ADMIN' && p.myZones.length === 0)) notFound();
-  return <PayoutDetailPage id={id} role={p.role} canMarkPaid={p.canMarkPaid ?? false} />;
+  return (
+    <PayoutDetailPage
+      id={id}
+      role={p.role}
+      canMarkPaid={p.canMarkPaid ?? false}
+      meName={me.user.name}
+    />
+  );
 }

@@ -306,21 +306,25 @@ describe('Mark a payout paid (F4a)', () => {
     );
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('₹7,500.00')).toBeTruthy();
-    await user.click(within(dialog).getByRole('button', { name: 'Mark paid' }));
-    expect(within(dialog).getByText('Enter the bank or UPI reference.')).toBeTruthy();
+    await user.click(within(dialog).getByRole('button', { name: 'Make payout' }));
+    expect(within(dialog).getByText('Enter the UTR, UPI reference or cheque number.')).toBeTruthy();
     expect(post).not.toHaveBeenCalled();
     await user.type(within(dialog).getByLabelText(/Reference/), 'UTR-12345678');
-    await user.click(within(dialog).getByRole('button', { name: 'Mark paid' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Make payout' }));
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
     expect(post).toHaveBeenCalledWith('/payouts/{id}/mark-paid', {
       params: { id: '0192f1d2-7777-7000-8000-000000000001' },
-      body: { reference: 'UTR-12345678', paidOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
+      body: {
+        method: 'NEFT',
+        reference: 'UTR-12345678',
+        paidOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      },
       ifMatch: 3,
       idempotencyKey: expect.stringContaining('payout-0192f1d2-7777-7000-8000-000000000001-'),
     });
-    expect(
-      (await screen.findAllByText(/Payout to Saravana Bhavan marked paid/)).length,
-    ).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/Payout to Saravana Bhavan made/)).length).toBeGreaterThan(
+      0,
+    );
   });
 
   it('open refunds in the period keep the dialog open with how many', async () => {
@@ -345,7 +349,7 @@ describe('Mark a payout paid (F4a)', () => {
     );
     const dialog = await screen.findByRole('dialog');
     await user.type(within(dialog).getByLabelText(/Reference/), 'UTR-12345678');
-    await user.click(within(dialog).getByRole('button', { name: 'Mark paid' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Make payout' }));
     expect(
       await within(dialog).findByText(/2 refunds for this vendor are still open in this period/),
     ).toBeTruthy();
