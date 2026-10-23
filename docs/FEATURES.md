@@ -84,7 +84,7 @@ Status: **Built** = API and screens; **API only** = no screen yet; **Paused** = 
 | Notifications: messages, promotions with Super Admin approval, scheduling (D134–D137) | Built | |
 | Support desk: tickets, messages, assignment, SLA timers, reopen (D139–D141) | Built | |
 | Exports of every list to CSV (D129, D149) | Built | needs the worker |
-| Live updates over Socket.IO (D142) | Built | |
+| Live updates over Socket.IO (D142) | Built (server) | admin screens refresh on timers (15–60 s); live screens after the demo (D200) |
 | Audit log and sign-in history | Built | `/activity`, `/settings/logs` |
 
 ## 11. Control Panel (Super Admin settings, D144: every business value is a setting with a default)

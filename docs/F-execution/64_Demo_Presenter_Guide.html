@@ -83,7 +83,7 @@ For the owner. Updated with every demo build. Newest first.
   - the payout page, tiles, export, statement and partner payouts (Part 16);
   - Reset 2-step for Super Admins;
   - suspend asks for the password;
-  - every list has Export CSV.
+  - Export CSV on the main lists (orders, vendors, menu, customers, partners, hotels, notifications, support, payments, refunds, payouts).
 - **Tip:** all Coimbatore North menu items are "Out of stock" in this data; show menus from Coimbatore Central.
 
 **Morning build `3f9dc30` (2026-10-23, about 09:40), fresh sample data:**
@@ -250,7 +250,9 @@ flowchart LR
 - charts: Orders over time, Orders by status, top restaurants and more.
 
 **Say:**
-> "This is the morning view. Without opening anything, I can see how many orders came in, how many were delivered or cancelled, which zones have no team, and what is waiting for my decision. Every tile is a link to the list behind it. It updates by itself: new orders, approvals and status changes arrive live, without reloading."
+> "This is the morning view. Without opening anything, I can see how many orders came in, how many were delivered or cancelled, which zones have no team, and what is waiting for my decision. Every tile is a link to the list behind it, and it refreshes by itself every minute."
+
+(Refresh timers: orders and the Advertising dashboard every 15 seconds; refunds, support and the order overview every 30 seconds; the dashboard every 60 seconds. Instant live updates on the admin screens are **Plan only**, after the demo, D200: don't promise them.)
 
 **Do:** in the top bar, change the zone picker from **All zones** to **Coimbatore Central**.
 
@@ -697,7 +699,9 @@ flowchart LR
 **Do:** on the customer, show **Reward points**: balance and history.
 
 **Say:**
-> "Customers earn points on orders. The earn rate, the value of a point, the expiry and the limits are Control Panel settings for each zone. In Coimbatore Central, for example, customers earn 5% of the order value, a point is worth ₹1, and points expire after a year. An admin can add or deduct points, always with a reason, and a customer can convert points to wallet money where the zone allows it."
+> "Customers earn points on orders. The earn rate, the value of a point, the expiry and the limits are Control Panel settings for each zone. In Coimbatore Central, for example, customers earn 5% of the order value, a point is worth ₹1, and points expire after a year. An admin can add or deduct points, always with a reason, and an admin can turn a customer's points into wallet credit when the zone allows it."
+
+(The button is **Turn into wallet credit** on the customer's Reward points card. It is enabled only when the zone has wallet conversion switched on and the balance is at least the minimum points to redeem.)
 
 **Also there:** **Add customer** on the list (for phone orders), and **Export CSV** on the list.
 
@@ -747,7 +751,7 @@ flowchart LR
 
 **Exports**
 
-- Every list (orders, restaurants, Home Food, menu items, customers, delivery partners, hotels, support, notifications, payments, refunds, payouts) has **Export CSV**. The export runs in the background, the file appears when it is ready, and it holds only the zones and fields the admin may see. A Super Admin without the Exports area, or a Zonal Admin without export in that zone, doesn't see the button.
+- **Export CSV** is on these lists: orders, restaurants and Home Food, menu items, customers, delivery partners, hotels and bookings, notifications, support tickets, payments, refunds and payouts. Not on zones, admins, vendor plans or Advertising. The export runs in the background, the file appears when it is ready, and it holds only the zones and fields the admin may see. A Super Admin without the Exports area, or a Zonal Admin without export in that zone, doesn't see the button.
 
 ---
 
