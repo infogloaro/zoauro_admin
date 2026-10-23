@@ -15,11 +15,12 @@ Doc 61 is the technical runbook (start commands, data reset, QA status of each s
 
 For the owner. Updated with every demo build. Newest first.
 
-**Coming before the final build (cut-off 11:30, final build 12:00, checked 12:30–13:45):**
+**Landed in the code since the morning build; shows from the next demo build (freeze 11:15, final build 11:30, checked about 12:00–13:30):**
 
-- the payout detail page, statement and partner payouts (Part 16);
-- Advertising screens (Part 17): Dashboard, Requests, Campaigns and Slots;
-- a Reset 2-step button for Super Admins, and a password check when suspending or reactivating a Zonal Admin.
+- **New: Advertising is live** in the menu (Support & Engagement → Advertising), with Dashboard, Requests, Campaigns and Slots, and its sample data (Part 17).
+- **New:** a primary can **Reset 2-step** for another Super Admin (Part 7).
+- **Changed:** suspending or reactivating a Zonal Admin now asks for the password.
+- **Coming:** the payout detail page, statement and partner payouts on screen (Part 16). The server side is in; ad fees are deducted from vendor payouts.
 
 **Morning build `3f9dc30` (2026-10-23, about 09:40), fresh sample data:**
 
@@ -316,6 +317,8 @@ flowchart LR
 
 **Say:**
 > "Arun is the Primary Super Admin, the owner's account. Meena is also a Super Admin, but she has only some Control Panel areas. Only the primary can add Super Admins or change what they control."
+
+**Point at** the Actions column on Meena's row: **Areas**, **Make primary**, **Reset 2-step**, **Suspend** and **Remove**. Only a primary sees these, never on their own row. Each asks for the password and an authenticator code. There must always be at least one primary: the last primary can't be removed.
 
 **Do:** **Administration → Zonal Admins**. Open **Karthik Raj**, then click through to his access page.
 
@@ -667,7 +670,7 @@ flowchart LR
 
 ## 16. Vendor and partner payouts (8 min)
 
-> **Status:** the list, Mark paid and exports work on the evening build of 2026-10-22. The detail page, the statement and partner payouts land by the 11:30 cut-off on 2026-10-23 and are checked on the 12:00 final build (doc 61 §5). If they are not green, show only the list and Mark paid.
+> **Status:** the list, Mark paid and exports work on the evening build of 2026-10-22. The detail page, the statement and partner payouts land by the 11:15 freeze on 2026-10-23 and are checked on the 11:30 final build (doc 61 §5). If they are not green, show only the list and Mark paid.
 
 **Do:** **Payments & Finance → Payouts & Reconciliation**.
 
@@ -750,7 +753,7 @@ flowchart LR
 
 ## 17. Advertising (10 min)
 
-> **Status:** lands by the 11:30 cut-off on 2026-10-23 and is checked on the 12:00 final build (doc 61 §5). If it is not green, the menu shows "Advertising: Soon" and you show the plan instead. The figures come from the sample data: read the exact amounts from the seed log, not from this guide.
+> **Status:** built (e501700, sample data 88b38e0) and checked on the next demo build and the 11:30 final build (doc 61 §5). If it is not green, the menu shows "Advertising: Soon" and you show the plan instead. The figures come from the sample data: read the exact amounts from the seed log, not from this guide.
 
 **Say first:**
 > "Vendors can pay to be seen more. They can buy a banner on a page, or a top listing in their category. We sell two kinds: a flat fee per day, or a percentage commission on the orders the ad brings. The vendor asks from the vendor app, we quote, the vendor accepts, and the fee is taken from their next payout."
@@ -794,7 +797,7 @@ flowchart LR
 **Do:** open the **Slots** tab (Coimbatore Central).
 
 **Say:**
-> "A slot is a place on a page we can sell: the home banner, the restaurants banner, a top listing. Each has a list price and a capacity: the home banner holds two ads at once. We can pause or retire a slot. The slots for this demo are set up in advance."
+> "A slot is a place on a page we can sell: the home banner, the restaurants banner, a top listing. Each has a list price, a capacity (the home banner holds two ads at once), and a minimum and maximum number of days. We can pause, activate or retire a slot; each asks for a confirmation, and a slot can't be retired while a campaign holds it. The slots for this demo are set up in advance."
 
 **Requests**
 

@@ -8,11 +8,11 @@ Version 0.4, 2026-10-22. Owner: docs lane. **Demo: Thursday 2026-10-23 at 15:00 
 |---|---|
 | 2026-10-22, 13:30 and 18:12 | Demo rebuilt from the latest code; QA walk of every role, timings and live actions after each (§5). The laptop was off overnight |
 | 2026-10-23, morning | Rebuilds as the advertising and payouts work lands; the owner's live access check |
-| 2026-10-23, 11:30 | **Code cut-off** |
-| 12:00 | The final demo build: the build of record |
-| 12:30 to 13:45 | Final QA on a quiet machine (only Docker, demo API and demo web running) |
-| by 14:00 | Sample data reset to a fresh state |
-| 14:15 | All build sessions stopped |
+| 2026-10-23, 11:15 | **Code freeze** |
+| 11:30 | The final demo build: the build of record |
+| about 12:00 to 13:30 | Final QA on a quiet machine (only Docker, demo API and demo web running) |
+| by 13:45 | Sample data reset to a fresh state |
+| after the reset | All build sessions stopped |
 | 15:00 | Demo |
 
 The demo shows the ZOAURO admin panel with **sample data only**: no live app data, no app integration, no payment gateway (Razorpay keys are pending from management). It walks through what each role sees and controls, how the main flows work, and how the Super Admin changes business rules from the Control Panel without code changes.
