@@ -2697,6 +2697,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/payouts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One payout (D203): the row plus the money block: vendor-fault refunds (D152), ad fees (D182 A2), COD held for a delivery partner (D202), the amount to pay, the refunds behind the deduction or holding it; 404 outside payouts:view */
+        get: operations["getPayout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/payouts/{id}/mark-paid": {
         parameters: {
             query?: never;
@@ -2706,8 +2723,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays net minus the vendor-fault refunds (kept as paidPaise); ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK */
+        /** Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays the amount to pay (vendor: net − vendor-fault refunds − ad fees; delivery partner, D202: fees × payouts.partnerShare − COD held at period end), kept as paidPaise; ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK */
         post: operations["markPayoutPaid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payouts/{id}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The payee's DELIVERED orders in the payout period (25 a page, at most 50): commission per order for a vendor, the delivery fee and partner share for a delivery partner (D202); 404 outside payouts:view */
+        get: operations["listPayoutOrders"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -22205,6 +22239,19 @@ export interface operations {
                             }[];
                             page: number;
                             pageSize: number;
+                            summary: {
+                                blockedCount: number;
+                                nextPayoutDates: {
+                                    /** Format: date */
+                                    date: string;
+                                    /** Format: uuid */
+                                    zoneId: string;
+                                }[];
+                                paidThisCycleCount: number;
+                                paidThisCyclePaise: number;
+                                pendingCount: number;
+                                pendingPaise: number;
+                            };
                             total: number;
                         };
                     };
@@ -22229,6 +22276,142 @@ export interface operations {
                 };
             };
             /** @description Not found (also used for objects in zones the caller cannot see); A requested zone is not assigned to the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getPayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The payout */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        adFees: {
+                            /** Format: uuid */
+                            campaignId: string;
+                            days: number;
+                            earnedPaise: number;
+                            /** @enum {string} */
+                            pricing: "FLAT_PER_DAY" | "COMMISSION";
+                            slotLabel: string;
+                        }[];
+                        amountToPayPaise: number;
+                        commissionPaise: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        deductions: {
+                            adFeesPaise: number;
+                            codHeldPaise: number;
+                            vendorRefundsPaise: number;
+                        };
+                        grossPaise: number;
+                        /** Format: uuid */
+                        id: string;
+                        netPaise: number;
+                        openRefunds: number;
+                        /** Format: date-time */
+                        paidAt: string | null;
+                        paidBy: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        } | null;
+                        paidNote: string | null;
+                        paidPaise: number | null;
+                        paidReference: string | null;
+                        partner: {
+                            codHeldPaise: number;
+                            deliveries: number;
+                            feesPaise: number;
+                            sharePaise: number;
+                            sharePercent: number;
+                        } | null;
+                        payee: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "RESTAURANT" | "HOMEMAKER" | "DELIVERY_PARTNER";
+                        };
+                        /** Format: date */
+                        periodFrom: string;
+                        /** Format: date */
+                        periodTo: string;
+                        refunds: {
+                            amountPaise: number;
+                            /** Format: date-time */
+                            decidedAt: string | null;
+                            /** @enum {string} */
+                            effect: "COUNTED" | "OPEN";
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            orderId: string;
+                            orderNo: string;
+                            reasonCode: string;
+                            /** Format: date-time */
+                            requestedAt: string;
+                            status: string;
+                            vendorSharePaise: number;
+                        }[];
+                        status: string;
+                        vendorRefundsPaise: number;
+                        version: number;
+                        zone: {
+                            code: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -22346,6 +22529,87 @@ export interface operations {
             };
             /** @description Conflict; Not allowed from the current state; Changed by someone else since it was read (error.meta.current) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    listPayoutOrders: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            commissionPaise: number;
+                            commissionPct: number;
+                            /** Format: date-time */
+                            deliveredAt: string;
+                            deliveryFeePaise: number | null;
+                            /** Format: uuid */
+                            id: string;
+                            netPaise: number;
+                            orderNo: string;
+                            partnerSharePaise: number | null;
+                            paymentMethod: string;
+                            subtotalPaise: number;
+                        }[];
+                        meta: {
+                            page: number;
+                            pageSize: number;
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Not signed in, or the session ended */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not allowed (missing permission, bad CSRF token or Origin) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found (also used for objects in zones the caller cannot see) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

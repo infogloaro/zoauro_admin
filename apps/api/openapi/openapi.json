@@ -69015,6 +69015,54 @@
                               "days"
                             ]
                           }
+                        },
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "pendingCount": {
+                              "type": "integer"
+                            },
+                            "pendingPaise": {
+                              "type": "integer"
+                            },
+                            "paidThisCycleCount": {
+                              "type": "integer"
+                            },
+                            "paidThisCyclePaise": {
+                              "type": "integer"
+                            },
+                            "blockedCount": {
+                              "type": "integer"
+                            },
+                            "nextPayoutDates": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "zoneId": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "date": {
+                                    "type": "string",
+                                    "format": "date"
+                                  }
+                                },
+                                "required": [
+                                  "zoneId",
+                                  "date"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "pendingCount",
+                            "pendingPaise",
+                            "paidThisCycleCount",
+                            "paidThisCyclePaise",
+                            "blockedCount",
+                            "nextPayoutDates"
+                          ]
                         }
                       },
                       "required": [
@@ -69022,7 +69070,8 @@
                         "pageSize",
                         "total",
                         "counts",
-                        "cycles"
+                        "cycles",
+                        "summary"
                       ]
                     }
                   },
@@ -69082,13 +69131,584 @@
         }
       }
     },
+    "/payouts/{id}": {
+      "get": {
+        "operationId": "getPayout",
+        "tags": [
+          "payouts"
+        ],
+        "summary": "One payout (D203): the row plus the money block: vendor-fault refunds (D152), ad fees (D182 A2), COD held for a delivery partner (D202), the amount to pay, the refunds behind the deduction or holding it; 404 outside payouts:view",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The payout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "payee": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESTAURANT",
+                            "HOMEMAKER",
+                            "DELIVERY_PARTNER"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "zone": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ]
+                    },
+                    "periodFrom": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "periodTo": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "grossPaise": {
+                      "type": "integer"
+                    },
+                    "commissionPaise": {
+                      "type": "integer"
+                    },
+                    "netPaise": {
+                      "type": "integer"
+                    },
+                    "vendorRefundsPaise": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "paidAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "paidBy": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "paidReference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidPaise": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "deductions": {
+                      "type": "object",
+                      "properties": {
+                        "vendorRefundsPaise": {
+                          "type": "integer"
+                        },
+                        "adFeesPaise": {
+                          "type": "integer"
+                        },
+                        "codHeldPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "vendorRefundsPaise",
+                        "adFeesPaise",
+                        "codHeldPaise"
+                      ]
+                    },
+                    "amountToPayPaise": {
+                      "type": "integer"
+                    },
+                    "openRefunds": {
+                      "type": "integer"
+                    },
+                    "partner": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "deliveries": {
+                          "type": "integer"
+                        },
+                        "feesPaise": {
+                          "type": "integer"
+                        },
+                        "sharePercent": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "sharePaise": {
+                          "type": "integer"
+                        },
+                        "codHeldPaise": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "deliveries",
+                        "feesPaise",
+                        "sharePercent",
+                        "sharePaise",
+                        "codHeldPaise"
+                      ]
+                    },
+                    "adFees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "campaignId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "slotLabel": {
+                            "type": "string"
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FLAT_PER_DAY",
+                              "COMMISSION"
+                            ]
+                          },
+                          "days": {
+                            "type": "integer"
+                          },
+                          "earnedPaise": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "campaignId",
+                          "slotLabel",
+                          "pricing",
+                          "days",
+                          "earnedPaise"
+                        ]
+                      }
+                    },
+                    "refunds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "amountPaise": {
+                            "type": "integer"
+                          },
+                          "vendorSharePaise": {
+                            "type": "integer"
+                          },
+                          "reasonCode": {
+                            "type": "string"
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "COUNTED",
+                              "OPEN"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderId",
+                          "orderNo",
+                          "status",
+                          "amountPaise",
+                          "vendorSharePaise",
+                          "reasonCode",
+                          "requestedAt",
+                          "decidedAt",
+                          "effect"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "payee",
+                    "zone",
+                    "periodFrom",
+                    "periodTo",
+                    "grossPaise",
+                    "commissionPaise",
+                    "netPaise",
+                    "vendorRefundsPaise",
+                    "status",
+                    "paidAt",
+                    "paidBy",
+                    "paidReference",
+                    "paidNote",
+                    "paidPaise",
+                    "version",
+                    "createdAt",
+                    "deductions",
+                    "amountToPayPaise",
+                    "openRefunds",
+                    "partner",
+                    "adFees",
+                    "refunds"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "payouts:view",
+          "zone": "none"
+        }
+      }
+    },
+    "/payouts/{id}/orders": {
+      "get": {
+        "operationId": "listPayoutOrders",
+        "tags": [
+          "payouts"
+        ],
+        "summary": "The payee's DELIVERED orders in the payout period (25 a page, at most 50): commission per order for a vendor, the delivery fee and partner share for a delivery partner (D202); 404 outside payouts:view",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "orderNo": {
+                            "type": "string"
+                          },
+                          "deliveredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "paymentMethod": {
+                            "type": "string"
+                          },
+                          "subtotalPaise": {
+                            "type": "integer"
+                          },
+                          "commissionPct": {
+                            "type": "number"
+                          },
+                          "commissionPaise": {
+                            "type": "integer"
+                          },
+                          "netPaise": {
+                            "type": "integer"
+                          },
+                          "deliveryFeePaise": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "partnerSharePaise": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "orderNo",
+                          "deliveredAt",
+                          "paymentMethod",
+                          "subtotalPaise",
+                          "commissionPct",
+                          "commissionPaise",
+                          "netPaise",
+                          "deliveryFeePaise",
+                          "partnerSharePaise"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (missing permission, bad CSRF token or Origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also used for objects in zones the caller cannot see)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "x-access": {
+          "kind": "permission",
+          "permission": "payouts:view",
+          "zone": "none"
+        }
+      }
+    },
     "/payouts/{id}/mark-paid": {
       "post": {
         "operationId": "markPayoutPaid",
         "tags": [
           "payouts"
         ],
-        "summary": "Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays net minus the vendor-fault refunds (kept as paidPaise); ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK",
+        "summary": "Record a manual payout (doc 16 §5): Super Admin only, PASSWORD, If-Match and Idempotency-Key. Only a PENDING payout; a vendor payout waits while the vendor has open refunds in the period (409 open_refunds). Pays the amount to pay (vendor: net − vendor-fault refunds − ad fees; delivery partner, D202: fees × payouts.partnerShare − COD held at period end), kept as paidPaise; ledger VENDOR_PAYABLE or DELIVERY_PAYABLE to PLATFORM_BANK",
         "security": [
           {
             "sessionCookie": [],
