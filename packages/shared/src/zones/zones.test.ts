@@ -197,6 +197,8 @@ describe('error codes', () => {
       IMPACT_CHANGED: 409,
       REASON_REQUIRED: 422,
       ZONE_HAS_HISTORY: 409,
+      // D92 service switches
+      ZONE_SERVICE_DISABLED: 409,
     });
   });
 
