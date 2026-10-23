@@ -139,6 +139,32 @@ describe('Vendor Onboarding queue', () => {
     );
   });
 
+  it('a record with no zone offers "Assign a zone first" to its page, not Start review', async () => {
+    const get = vi.fn(async () => ({
+      data: [item({ name: 'Mettupalayam Biryani Point', zone: null })],
+      meta: { page: 1, pageSize: 25, total: 1, counts },
+    }));
+    const client = { get, post: vi.fn() } as unknown as ApiClient;
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <ApiClientProvider client={client}>
+          <ToastProvider>
+            <OnboardingPage {...{ role: 'SUPER_ADMIN' as const, myZones: [], canAct: true }} />
+          </ToastProvider>
+        </ApiClientProvider>
+      </QueryClientProvider>,
+    );
+    const link = await screen.findByRole('link', { name: 'Assign a zone first' });
+    expect(link.getAttribute('href')).toBe(
+      '/super-admin/restaurants/0192f1d2-4444-7000-8000-000000000009',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Start reviewing Mettupalayam Biryani Point' }),
+    ).toBeNull();
+  });
+
   it('Ask for more info sends the message to the vendor', async () => {
     const user = userEvent.setup();
     const { post } = mount();

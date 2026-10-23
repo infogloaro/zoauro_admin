@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { OnboardingAgeLevel, OnboardingItem, OnboardingStage } from '@zoauro/shared';
 import { ClipboardList } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { DataTable, RowActivator, type Column } from '../../components/shared/DataTable';
@@ -222,6 +223,15 @@ export function OnboardingPage({ role, myZones, canAct }: OnboardingPageProps) {
             cell: (r: OnboardingItem) =>
               r.stage === 'DECIDED' ? (
                 <span className="text-xs text-muted">Done</span>
+              ) : !r.zone ? (
+                // a record without a zone cannot be reviewed (the API refuses it): its page is where a zone is set
+                <Link
+                  href={recordHref(role, r.module, r.id)}
+                  prefetch={false}
+                  className="text-xs text-muted underline-offset-2 hover:underline"
+                >
+                  Assign a zone first
+                </Link>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {r.stage !== 'UNDER_REVIEW' ? (
