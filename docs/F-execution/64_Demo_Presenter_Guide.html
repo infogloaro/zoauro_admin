@@ -76,6 +76,14 @@ For the owner. Updated with every demo build. Newest first.
 - payout **Hold / Release / Adjust** with reasons, and **Make payout** (method, reference, "made by") with an Activity list (Part 16);
 - **Edit responsibility** on a decided refund, so ZOAURO can take the cost (Part 15).
 
+**Final-2 build `c888e76` (2026-10-23, about 13:05): the demo build; QA green (doc 61 §5):**
+
+- **New:** payout **Hold / Release / Adjust amount / Make payout** (Paid by, Reference, "made by") with an Activity card (Part 16).
+- **New:** refund **Edit responsibility**, so ZOAURO can take the cost (Part 15).
+- **Changed:** "Mark paid" is now **Make payout**.
+- **Fixed:** Coimbatore North menus are in stock.
+- **Security:** share the demo link only with trusted people and close it after the demo (doc 32 TD-18).
+
 **Final build `548a09f` (2026-10-23, 11:30), fresh sample data, final QA passed (doc 61 §5):**
 
 - **New:**
@@ -757,7 +765,7 @@ flowchart LR
 
 ## 16. Vendor and partner payouts (8 min)
 
-> **Status:** the list, Mark paid and exports work on the evening build of 2026-10-22. The detail page, the statement and partner payouts land by the 11:15 freeze on 2026-10-23 and are checked on the 11:30 final build (doc 61 §5). If they are not green, show only the list and Mark paid.
+> **Status:** all of this part works on the demo build `c888e76`: list, payout page, statement, partner payouts, and the hold flow (doc 61 §5, QA green on 2026-10-23). On this build the pay button is called **Make payout**.
 
 **Do:** **Payments & Finance → Payouts & Reconciliation**.
 
@@ -789,7 +797,7 @@ flowchart LR
 3. **Ad fees**: the vendor's advertising billed in this period (Part 17).
 4. **History**: every action on this payout.
 
-**Do:** click **Mark paid**. Enter the bank reference (UTR or NEFT), the date paid and your password.
+**Do:** click **Make payout**. Choose **Paid by** (NEFT, IMPS, RTGS, UPI or Cheque), enter the **Reference** (UTR or cheque no.) and **Paid on**, and confirm with your password.
 
 **They see:** the status becomes Paid, with the reference, the date, the amount and who recorded it. The History tab shows the action.
 
@@ -801,7 +809,7 @@ flowchart LR
 **Say:**
 > "This is the statement we can send the vendor: the period, the money block and every order line."
 
-**Hold, adjust and make the payout (lands in the "final-2" build at 13:00; show only if its QA is green, otherwise show Mark paid as above)**
+**Hold, adjust and make the payout (final-2 build; QA green)**
 
 **Do:** open a vendor payout and walk through the full details. Then:
 
@@ -816,9 +824,9 @@ Each step asks for your password.
 **Say:**
 > "If anything doesn't match, finance holds the payout, corrects it with a reason, and only then pays. Every step is recorded with who did it and why."
 
-**Do:** go back to the list and open **Sree Krishna Sweets**. Click **Mark paid**.
+**Do:** go back to the list and open **Sree Krishna Sweets**. Look at **Make payout**.
 
-**They see:** "1 refund for this vendor is still open". The payout cannot be paid yet.
+**They see:** a warning that a refund is still open in this period and must be decided first, and **Make payout** is disabled.
 
 **Say:**
 > "If a vendor still has a refund under review in that period, we hold the payout, so we never pay money that has to be taken back."
@@ -839,7 +847,7 @@ flowchart LR
   D --> A[Amount to pay]
   A -->|an open refund in the period| H[Held until<br/>the refund is decided]
   H --> A
-  A -->|finance pays,<br/>Mark paid + reference| P[Paid:<br/>reference, date, by whom]
+  A -->|finance pays,<br/>Make payout + reference| P[Paid:<br/>reference, date, by whom]
   P --> S[Statement<br/>and history]
 ```
 
@@ -848,7 +856,7 @@ flowchart LR
 - **Vendor amount to pay:** net (gross minus commission), minus vendor-fault refunds decided in the period, minus ad fees billed in the period.
 - **Partner share setting:** Control Panel → Payouts → "Delivery partner share of delivery fees (%)", 100% by default, per zone.
 - **Partner amount to pay:** delivery fees on delivered orders × the partner share, minus the cash-on-delivery money the partner still holds at the end of the period. It is never below zero.
-- **Who can pay:** Mark paid is for Super Admins with the payouts area. A Zonal Admin with payouts view sees their zones' payouts read only. Meena does not see Mark paid.
+- **Who can pay:** Make payout (and Hold, Adjust amount, Release hold) is for Super Admins with the payouts area. A Zonal Admin with payouts view sees their zones' payouts read only. Meena does not see these buttons.
 - **Safe to click twice:** each payment is recorded once, even if someone double-clicks or retries. If two admins open the same payout, the second is told it changed and must reload.
 - **Money never moves from the panel.** Finance pays from the bank; the panel records it. Paying vendors automatically comes with the payment gateway.
 

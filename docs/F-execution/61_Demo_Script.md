@@ -9,9 +9,9 @@ Version 0.4, 2026-10-22. Owner: docs lane. **Demo: Thursday 2026-10-23 at 15:00 
 | 2026-10-22, 13:30 and 18:12 | Demo rebuilt from the latest code; QA walk of every role, timings and live actions after each (§5). The laptop was off overnight |
 | 2026-10-23, morning | Rebuilds as the advertising and payouts work lands; the owner's live access check |
 | 2026-10-23, 11:15 | **Code freeze** |
-| 11:30 | The final demo build: the fallback build of record |
+| 11:30 | The final demo build (fallback) |
 | about 11:40 to 13:00 | Final QA of that build |
-| 13:00 | "final-2" build with the owner's payout hold, adjust and make-payout flows and refund responsibility (D204) |
+| 13:05 | "final-2" build `c888e76` with the payout hold flow and refund responsibility (D204): QA green, **the demo build** |
 | 13:25 to 14:15 | QA of final-2; if it isn't green, the 11:30 build is the demo |
 | by 14:30 | Sample data reset to a fresh state |
 | after the reset | All build sessions stopped |
@@ -315,3 +315,33 @@ Every page is within the 2 s budget. Only a few calls take over 800 ms, at sign-
   - All Coimbatore North menu items are seeded "Out of stock" (sent to the seed lane for final-2). Show menus from Coimbatore Central.
   - A Super Admin without the access area who opens the Zonal Admins page by its address sees an empty page with an error (the server refuses; parked until after the demo).
 - **Final-2 (13:00):** payout hold / adjust / make payout and refund responsibility (D204); checked 13:25–14:15. If not green, this build is the demo.
+
+### Final-2 QA: 2026-10-23, about 13:10 to 13:55, demo build `c888e76` (the build of record)
+
+| Account | Pages | Errors | Typical page | Slowest page |
+|---|---|---|---|---|
+| Arun | 57 | 0 | 0.41 s | 0.72 s |
+| Meena | 47 | 0 | 0.45 s | 0.71 s |
+| Karthik | 33 | 0 | 0.40 s | 0.66 s |
+| Priya | 15 | 0 | 0.35 s | 0.54 s |
+| Suresh | 28 | 0 | 0.37 s | 0.58 s |
+
+Every API call is under 800 ms (slowest 627 ms), and there are no layout overlaps. The hidden `/claims/mine` error from the 11:30 build did not recur.
+
+- **Payout hold flow (D204):** pass, on the Tiruppur Kongu Kitchen payout (₹5,940 − ₹1,009.80 commission − ₹76.65 ad fees = ₹4,853.55).
+  1. Hold with a reason and the password; the banner reads "On hold: … by Arun Prakash", and Make payout is disabled.
+  2. Adjust +₹150 → ₹5,003.55.
+  3. Release hold.
+  4. Make payout (IMPS, UTR, date; "Recorded as made by: Arun Prakash") → Paid.
+  5. The Activity card lists each step, newest first.
+
+  After the first step the password isn't asked again for 10 minutes (by design).
+- **Refund responsibility:** moved to ZOAURO: "Responsibility updated", the vendor deduction ₹219.00 → ₹0.00.
+- **Payouts:** pass.
+  - tiles and Export CSV;
+  - the vendor money block (all six lines) and the Orders / Refunds / Ad fees tabs;
+  - Print statement;
+  - the partner breakdown.
+- **Coimbatore North menus** are in stock now (5b2ee99).
+- **Security note:** the build warned about a known issue in Next.js 16.4.0 (doc 32 TD-18). Share the tunnel link only with trusted people and close it after the demo; the upgrade comes after the demo with the owner's OK.
+- **Sample data:** reset after this QA, before the demo.
