@@ -240,6 +240,23 @@ function removeBuild(dir: string): void {
   rmdirSync(dir);
 }
 
+/**
+ * Empties the build folder but keeps what outlives a build: logs\ (the launcher's history and the running tunnel's log,
+ * which Windows cannot delete while cloudflared writes it) and app-url.txt (the tunnel address the demo is shared on).
+ */
+const KEPT = new Set(['logs', 'app-url.txt']);
+function clearBuild(dir: string): void {
+  if (!existsSync(dir)) return;
+  for (const entry of readdirSync(dir)) {
+    if (KEPT.has(entry)) continue;
+    const p = path.join(dir, entry);
+    const st = lstatSync(p);
+    if (st.isSymbolicLink()) unlinkSync(p);
+    else if (st.isDirectory()) removeBuild(p);
+    else unlinkSync(p);
+  }
+}
+
 function run(
   what: string,
   cwd: string,
@@ -257,7 +274,7 @@ function demoBuild(commit = 'HEAD'): void {
     encoding: 'utf8',
   }).trim();
   console.log(`building the demo from committed HEAD ${head} into ${BUILD_DIR}`);
-  removeBuild(BUILD_DIR);
+  clearBuild(BUILD_DIR);
   mkdirSync(BUILD_DIR, { recursive: true });
 
   // 1. the committed tree, through a throwaway index (never the shared one)

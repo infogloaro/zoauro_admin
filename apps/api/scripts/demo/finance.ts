@@ -168,6 +168,7 @@ export async function seedMoney(
       total: true,
       subtotal: true,
       commissionAmount: true,
+      deliveryCharge: true,
       deliveredAt: true,
     },
   });
@@ -230,7 +231,8 @@ export async function seedMoney(
       await db.deliveryPartner.update({ where: { id: partnerId }, data: { cashInHand: amount } });
   }
 
-  // payouts: weekly per vendor (food value less commission) and per partner (₹40 a delivery); last week still pending
+  // payouts: weekly per vendor (food value less commission) and per partner (the delivery fees of their deliveries, D202:
+  // the payout page applies the share and the COD still held); last week still pending
   const payouts = new Map<
     string,
     {
@@ -264,7 +266,8 @@ export async function seedMoney(
       add('RESTAURANT', o.restaurantId, o.zoneId, week, o.subtotal, o.commissionAmount);
     if (o.homemakerId)
       add('HOMEMAKER', o.homemakerId, o.zoneId, week, o.subtotal, o.commissionAmount);
-    if (o.deliveryPartnerId) add('DELIVERY_PARTNER', o.deliveryPartnerId, o.zoneId, week, 4_000, 0);
+    if (o.deliveryPartnerId)
+      add('DELIVERY_PARTNER', o.deliveryPartnerId, o.zoneId, week, o.deliveryCharge, 0);
   }
   const payoutRows = [...payouts.values()].map((p) => {
     const to = new Date(startOfToday.getTime() - p.week * 7 * DAY - DAY);
