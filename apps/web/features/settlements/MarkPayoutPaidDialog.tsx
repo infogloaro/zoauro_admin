@@ -20,7 +20,7 @@ import { amountToPay, PAYEE_LABEL, periodText } from './labels';
 // was paid (between the period end and today, India time) and a note. Sent with the row's version (If-Match) and one
 // Idempotency-Key per dialog, so a double click or a retry never pays twice. The version is the one seen when the
 // dialog opened (the row passed in), never a later refetch. A vendor payout is frozen while that vendor has open
-// refunds in the period (409 open_refunds); delivery-partner payouts are not settled here yet (formula_open).
+// refunds in the period (409 open_refunds). A delivery partner's amount (D202) comes from the payout page (amountPaise).
 
 /** Today as YYYY-MM-DD in India time. */
 const todayIst = () =>
@@ -28,9 +28,12 @@ const todayIst = () =>
 
 export function MarkPayoutPaidDialog({
   payout,
+  amountPaise,
   onClose,
 }: {
   payout: PayoutRow;
+  /** the server's amount to pay (GET /payouts/{id}); without it, net minus vendor refunds */
+  amountPaise?: number;
   onClose: () => void;
 }) {
   const client = useApiClient();
@@ -74,10 +77,6 @@ export function MarkPayoutPaidDialog({
       }
       if (isApiError(err, 'INVALID_STATE_TRANSITION')) {
         const issue = err.details[0]?.issue;
-        if (issue === 'formula_open') {
-          setAlert('Partner payouts are not settled here yet.');
-          return;
-        }
         const open = err.meta?.['openRefunds'];
         setAlert(
           issue === 'open_refunds' && typeof open === 'number'
@@ -108,7 +107,7 @@ export function MarkPayoutPaidDialog({
               [
                 ['Net', formatPaise(payout.netPaise)],
                 ['Vendor refunds', formatPaise(payout.vendorRefundsPaise)],
-                ['Amount to pay', formatPaise(amountToPay(payout))],
+                ['Amount to pay', formatPaise(amountPaise ?? amountToPay(payout))],
               ] as const
             ).map(([k, v]) => (
               <div key={k} className="rounded-input bg-surface-muted p-3">

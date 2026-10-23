@@ -92,5 +92,6 @@ export function canMarkPayoutsPaid(
 }
 
 /** F4a: only vendor payouts are marked paid here; the delivery-partner formula is not confirmed yet. */
+/** Marked paid from the list row: vendors (a partner's amount, D202, needs the payout page's figures). */
 export const payeeMarkable = (type: 'RESTAURANT' | 'HOMEMAKER' | 'DELIVERY_PARTNER') =>
   type === 'RESTAURANT' || type === 'HOMEMAKER';

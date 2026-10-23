@@ -1,8 +1,10 @@
 'use client';
 
-import { Banknote, Percent, Receipt, Wallet } from 'lucide-react';
+import { Banknote, CalendarClock, CircleAlert, Receipt } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { DataTable, type Column } from '../../components/shared/DataTable';
+import { ExportButton } from '../../components/shared/ExportButton';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { Pagination, pageFromParam } from '../../components/shared/Pagination';
 import { StatCard } from '../../components/shared/StatCard';
@@ -10,13 +12,14 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { inputClass } from '../../components/ui/input';
+import { useApiClient } from '../../lib/api-client';
 import { useUrlState } from '../../lib/url-state';
 import { cn } from '../../lib/utils';
 import { selectedZone, type ScopeZone } from '../../lib/zone-scope';
 import { formatPaise } from '../audit/format';
 import { CardError, EmptyState } from '../dashboard/parts';
 import { useZoneOptions } from '../platform-settings/api';
-import { usePayouts, type PayoutFilters } from './api';
+import { payoutListQuery, usePayouts, type PayoutFilters } from './api';
 import {
   PAYEE_LABEL,
   PAYEE_TABS,
@@ -41,9 +44,22 @@ const SORTS = [
   { id: '-createdAt', label: 'Newest first' },
 ] as const;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** 2026-10-26 -> 26 Oct */
+const dayText = (d: string) =>
+  new Date(`${d}T00:00:00+05:30`).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'Asia/Kolkata',
+  });
 
-export function PayoutsPage({ role, myZones, canMarkPaid = false }: SettlementPageProps) {
+export function PayoutsPage({
+  role,
+  myZones,
+  canMarkPaid = false,
+  canExport = false,
+}: SettlementPageProps & { canExport?: boolean }) {
   const url = useUrlState();
+  const client = useApiClient();
   // the row as seen when the dialog opened: its version is the one sent, never a later refetch
   const [marking, setMarking] = useState<Row | null>(null);
   const superAdmin = role === 'SUPER_ADMIN';
@@ -80,7 +96,10 @@ export function PayoutsPage({ role, myZones, canMarkPaid = false }: SettlementPa
   };
   const list = usePayouts(filters, !waiting);
   const counts = list.data?.meta.counts;
+  const summary = list.data?.meta.summary;
   const statuses = Object.keys(counts?.byStatus ?? {}).sort();
+  const detailBase = superAdmin ? '/super-admin/payouts' : '/zone/payouts';
+  const zoneCodeOf = (id: string) => zones.find((z) => z.id === id)?.code ?? '';
   const cycles = list.data?.meta.cycles ?? [];
   const cycleDays = [...new Set(cycles.map((c) => c.days))];
   const filtered = Boolean(status || fromDay || toDay);
@@ -91,7 +110,12 @@ export function PayoutsPage({ role, myZones, canMarkPaid = false }: SettlementPa
       header: 'Payee',
       cell: (r) => (
         <div className="min-w-40">
-          <p className="font-semibold">{r.payee.name}</p>
+          <Link
+            href={`${detailBase}/${r.id}`}
+            className="font-semibold text-primary-strong hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+          >
+            {r.payee.name}
+          </Link>
           <p className="text-xs text-muted">{PAYEE_LABEL[r.payee.type]}</p>
         </div>
       ),
@@ -193,34 +217,58 @@ export function PayoutsPage({ role, myZones, canMarkPaid = false }: SettlementPa
         }
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Payouts" value={counts?.total ?? null} loading={!counts} icon={Receipt} />
         <StatCard
-          label="Gross"
-          value={counts ? formatPaise(counts.grossPaise) : null}
-          loading={!counts}
-          icon={Wallet}
-          tone="info"
-        />
-        <StatCard
-          label="Commission"
-          value={counts ? formatPaise(counts.commissionPaise) : null}
-          loading={!counts}
-          icon={Percent}
-          tone="neutral"
-        />
-        <StatCard
-          label="Net to pay"
-          value={counts ? formatPaise(counts.netPaise) : null}
-          loading={!counts}
+          label="Pending"
+          value={summary ? formatPaise(summary.pendingPaise) : null}
+          loading={!summary}
           hint={
-            counts && statuses.length
-              ? statuses
-                  .map((s) => `${counts.byStatus[s] ?? 0} ${statusText(s).toLowerCase()}`)
-                  .join(' · ')
+            summary
+              ? `${summary.pendingCount} payout${summary.pendingCount === 1 ? '' : 's'} to pay`
               : undefined
           }
           icon={Banknote}
+          tone="info"
+        />
+        <StatCard
+          label="Paid this cycle"
+          value={summary ? formatPaise(summary.paidThisCyclePaise) : null}
+          loading={!summary}
+          hint={summary ? `${summary.paidThisCycleCount} paid` : undefined}
+          icon={Receipt}
           tone="success"
+        />
+        <StatCard
+          label="Blocked by open refunds"
+          value={summary?.blockedCount ?? null}
+          loading={!summary}
+          hint="Vendor payouts waiting for refund decisions"
+          icon={CircleAlert}
+          tone={summary && summary.blockedCount > 0 ? 'warning' : 'neutral'}
+        />
+        <StatCard
+          label="Next payout"
+          value={
+            summary
+              ? summary.nextPayoutDates.length === 0
+                ? '—'
+                : dayText(
+                    summary.nextPayoutDates.reduce(
+                      (min, d) => (d.date < min ? d.date : min),
+                      summary.nextPayoutDates[0]?.date ?? '',
+                    ),
+                  )
+              : null
+          }
+          loading={!summary}
+          hint={
+            summary && summary.nextPayoutDates.length > 1
+              ? summary.nextPayoutDates
+                  .map((d) => `${zoneCodeOf(d.zoneId) || 'Zone'} ${dayText(d.date)}`)
+                  .join(' · ')
+              : undefined
+          }
+          icon={CalendarClock}
+          tone="neutral"
         />
       </div>
 
@@ -304,6 +352,13 @@ export function PayoutsPage({ role, myZones, canMarkPaid = false }: SettlementPa
           >
             Clear filters
           </Button>
+        ) : null}
+        {canExport ? (
+          <div className="ml-auto">
+            <ExportButton
+              start={() => client.get('/payouts/export', { query: payoutListQuery(filters) })}
+            />
+          </div>
         ) : null}
       </div>
 

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PayoutsPage } from '../../../../features/settlements/PayoutsPage';
 import { settlementPageProps } from '../../../../features/settlements/settlement-page-props';
+import { canExportList } from '../../../../lib/export-access';
 import { getMe } from '../../../../lib/server-session';
 
 export const metadata: Metadata = { title: 'Payouts · ZOAURO Admin' };
@@ -12,5 +13,5 @@ export default async function Page() {
   if (!me) return null;
   const p = settlementPageProps(me, 'payouts');
   if (p.myZones.length === 0) notFound();
-  return <PayoutsPage {...p} />;
+  return <PayoutsPage {...p} canExport={canExportList(me, 'payouts')} />;
 }

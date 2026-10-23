@@ -94,6 +94,32 @@ export function payoutListQuery(f: PayoutFilters) {
   };
 }
 
+/** GET /payouts/{id} (D203): the money block, the partner breakdown (D202), refunds and ad fees. */
+export function usePayout(id: string) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: ['payouts', 'detail', id],
+    queryFn: ({ signal }) => client.get('/payouts/{id}', { params: { id }, signal }),
+    staleTime: 15_000,
+    retry: retryTransient,
+  });
+}
+
+/** GET /payouts/{id}/orders: the payee's delivered orders in the period. */
+export function usePayoutOrders(id: string, page: number, pageSize = DEFAULT_LIST_PAGE_SIZE) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: ['payouts', 'orders', id, page, pageSize],
+    queryFn: ({ signal }) =>
+      client.get('/payouts/{id}/orders', {
+        params: { id },
+        query: { page, pageSize },
+        signal,
+      }),
+    ...common,
+  });
+}
+
 export function usePayouts(f: PayoutFilters, enabled = true) {
   const client = useApiClient();
   return useQuery({
