@@ -76,7 +76,8 @@ describe('authorization matrix over apps/api/openapi/openapi.json (the real rout
         cancelAccessRequest: { ownObject: true },
         // D174: the placeholder claim is never the caller's (claimer-only routes answer 404; tests/access/claims.test.ts)
         extendClaim: { ownObject: true },
-        releaseClaim: { ownObject: true },
+        // {} is a valid release body (reason optional): the placeholder claim is then 404
+        releaseClaim: { ownObject: true, emptyBodyValid: true },
         requestClaimTakeover: { ownObject: true },
         approveClaimTakeover: { ownObject: true },
         rejectClaimTakeover: { ownObject: true },

@@ -47,17 +47,17 @@ export function createAccessAdminRoutes(
   ];
   const password = opts.requireReauth('PASSWORD');
   const strong = opts.requireReauth('STRONG');
-  /** D107: only an email change needs STRONG; name, phone and status need none */
-  const strongForEmail: RequestHandler = (req, res, next) => {
+  /**
+   * D107: an email change needs STRONG; a status change (suspend, reactivate) is an access change and needs PASSWORD
+   * (AGENTS.md, QA 2026-10-23); name and phone need none
+   */
+  const reauthForMemberEdit: RequestHandler = (req, res, next) => {
     const body: unknown = req.body;
-    if (
-      typeof body === 'object' &&
-      body !== null &&
-      Object.prototype.hasOwnProperty.call(body, 'email')
-    ) {
-      // the guard is async: its rejection (REAUTH_REQUIRED) must reach Express, so the promise is returned
-      return strong(req, res, next);
-    }
+    const has = (key: string) =>
+      typeof body === 'object' && body !== null && Object.prototype.hasOwnProperty.call(body, key);
+    // the guards are async: their rejection (REAUTH_REQUIRED) must reach Express, so the promise is returned
+    if (has('email')) return strong(req, res, next);
+    if (has('status')) return password(req, res, next);
     next();
   };
 
@@ -75,7 +75,7 @@ export function createAccessAdminRoutes(
     '/zonal-admins/:id',
     ...write('admins', 'edit'),
     requireJsonBody,
-    strongForEmail,
+    reauthForMemberEdit,
     auditMeta(auditOf('updateZonalAdmin')),
     c.updateMember,
   );

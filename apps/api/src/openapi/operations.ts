@@ -1195,7 +1195,7 @@ export const OPERATIONS: OperationDef[] = [
     path: '/zonal-admins/{id}',
     tags: ['access'],
     summary:
-      'Change name, phone, email or status. An email change needs STRONG re-auth (401 REAUTH_REQUIRED otherwise, D107); SUSPENDED ends every session (D102). Email in use 409',
+      'Change name, phone, email or status. An email change needs STRONG re-auth and a status change PASSWORD re-auth (401 REAUTH_REQUIRED otherwise, D107); SUSPENDED ends every session (D102). Email in use 409',
     access: { kind: 'permission', permission: 'admins:edit', zone: 'none' },
     audit: { module: 'admins', action: 'member.updated' },
     params: zonalAdminIdParamsSchema,

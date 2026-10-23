@@ -184,6 +184,23 @@ describe('members (D102, D103)', () => {
     ).toBe(true);
   });
 
+  it('a status change (suspend, reactivate) needs PASSWORD re-authentication (access change)', async () => {
+    const { user } = await member();
+    const fresh = await signIn(await env.createUser('SUPER_ADMIN'));
+    const plain = await client(fresh, app).patch(`/zonal-admins/${user.id}`, {
+      status: 'SUSPENDED',
+    });
+    expect(plain.status).toBe(401);
+    expect(plain.body.error.code).toBe('REAUTH_REQUIRED');
+    expect(
+      (await client(fresh, app).patch(`/zonal-admins/${user.id}`, { name: 'Renamed' })).status,
+    ).toBe(200);
+    await reauth(env, fresh);
+    const ok = await client(fresh, app).patch(`/zonal-admins/${user.id}`, { status: 'SUSPENDED' });
+    expect(ok.status).toBe(200);
+    expect(ok.body.status).toBe('SUSPENDED');
+  });
+
   it('D107: an email change needs STRONG re-authentication; name and phone need none', async () => {
     const { user } = await member();
     expect((await api().patch(`/zonal-admins/${user.id}`, { name: 'Renamed' })).status).toBe(200);

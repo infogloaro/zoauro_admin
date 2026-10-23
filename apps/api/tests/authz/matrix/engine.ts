@@ -337,6 +337,8 @@ export interface Binding {
    * suite.
    */
   ownObject?: true;
+  /** `{}` is a valid body (every field optional): past validation the call reaches the object, so no 422 is expected */
+  emptyBodyValid?: true;
   /** The call may revoke the actor's other sessions (POST /me/sessions/revoke-others): sign in again afterwards. */
   invalidatesSessions?: true;
 }
@@ -455,7 +457,8 @@ export async function runAuthorizationMatrix(cfg: MatrixConfig): Promise<MatrixR
             binding?.ownObject === true && res.status === 404 && actualCode === 'NOT_FOUND';
           const passedAuth =
             (ownObjectNotFound || ![401, 403, 404].includes(res.status)) && res.status < 500;
-          ok = passedAuth && (c.expected.status === undefined || res.status === c.expected.status);
+          const expectedStatus = binding?.emptyBodyValid ? undefined : c.expected.status;
+          ok = passedAuth && (expectedStatus === undefined || res.status === expectedStatus);
           if (ok && c.expected.listed !== undefined) {
             if (!binding?.listedZones) {
               ok = false;
