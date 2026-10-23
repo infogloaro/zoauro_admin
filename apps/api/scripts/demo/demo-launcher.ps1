@@ -183,7 +183,8 @@ function Start-Demo([switch]$Quiet) {
   Step 'starting the demo API (:4100) and worker'
   # a tunnel origin (app-url.txt) overrides .env.demo's APP_URL: node's --env-file never replaces a set variable
   $appUrl = if (Test-Path $AppUrlFile) { (Get-Content $AppUrlFile -Raw).Trim() } else { '' }
-  $setUrl = if ($appUrl) { "set APP_URL=$appUrl&& " } else { '' }
+  # ...and the local address stays allowed for writes and sockets beside it (APP_EXTRA_ORIGINS, d473e31)
+  $setUrl = if ($appUrl) { "set APP_URL=$appUrl&& set APP_EXTRA_ORIGINS=$WebUrl&& " } else { '' }
   if ($appUrl) { Step "APP_URL for this run: $appUrl" }
   Start-Detached $apiDir "$setUrl`"$node`" --max-old-space-size=768 `"--env-file=$EnvDemo`" dist/server.js" 'api'
   Start-Detached $apiDir "$setUrl`"$node`" --max-old-space-size=384 `"--env-file=$EnvDemo`" dist/worker.js" 'worker'
